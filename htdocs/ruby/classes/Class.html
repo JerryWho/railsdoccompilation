@@ -1,0 +1,393 @@
+  <div id="C00000299">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Class<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/object_c.html');">ruby-1.8.7-p22/object.c</a>
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/yaml/rubytypes_rb.html');">ruby-1.8.7-p22/lib/yaml/rubytypes.rb</a>
+
+Parent:&nbsp;
+Module
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Classes in Ruby are first-class objects&#8212;each is an instance of class
+<tt><a href="index.html?a=C00000299&name=Class">Class</a></tt>.
+</p>
+<p>
+When a new class is created (typically using <tt>class Name &#8230;
+end</tt>), an object of type <tt><a
+href="index.html?a=C00000299&name=Class">Class</a></tt> is created and
+assigned to a global constant (<tt>Name</tt> in this case). When
+<tt>Name.new</tt> is called to create a new object, the <tt>new</tt> method
+in <tt><a href="index.html?a=C00000299&name=Class">Class</a></tt> is run by
+default. This can be demonstrated by overriding <tt>new</tt> in <tt><a
+href="index.html?a=C00000299&name=Class">Class</a></tt>:
+</p>
+<pre>
+   class Class
+      alias oldNew  new
+      def new(*args)
+        print &quot;Creating a new &quot;, self.name, &quot;\n&quot;
+        oldNew(*args)
+      end
+    end
+
+    class Name
+    end
+
+    n = Name.new
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre>
+   Creating a new Name
+</pre>
+<p>
+Classes, modules, and objects are interrelated. In the diagram that
+follows, the vertical arrows represent inheritance, and the parentheses
+meta-classes. All metaclasses are instances of the class `<a
+href="index.html?a=C00000299&name=Class">Class</a>&#8217;.
+</p>
+<pre>
+                          +------------------+
+                          |                  |
+            Object----&gt;(Object)              |
+             ^  ^        ^  ^                |
+             |  |        |  |                |
+             |  |  +-----+  +---------+      |
+             |  |  |                  |      |
+             |  +-----------+         |      |
+             |     |        |         |      |
+      +------+     |     Module---&gt;(Module)  |
+      |            |        ^         ^      |
+ OtherClass--&gt;(OtherClass)  |         |      |
+                            |         |      |
+                          Class----&gt;(Class)  |
+                            ^                |
+                            |                |
+                            +----------------+
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M002720&name=allocate" >allocate</a></li>
+  <li><a href="index.html?a=M002719&name=inherited" >inherited</a></li>
+  <li><a href="index.html?a=M002721&name=new" >new</a></li>
+  <li><a href="index.html?a=M002722&name=new" >new</a></li>
+  <li><a href="index.html?a=M002723&name=superclass" >superclass</a></li>
+  <li><a href="index.html?a=M002724&name=to_yaml" >to_yaml</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M002722" class="method">
+  <div id="M002722_title" class="title">
+    <b>Class.new(super_class=Object)   =>    a_class<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Creates a new anonymous (unnamed) class with the given superclass (or
+<tt><a href="index.html?a=C00000023&name=Object">Object</a></tt> if no
+parameter is given). You can give a class a name by assigning the class
+object to a constant.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002722_source')" id="l_M002722_source">show source</a> ]</p>
+  <div id="M002722_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     Class.new(super_class=Object)   =&gt;    a_class
+ *  
+ *  Creates a new anonymous (unnamed) class with the given superclass
+ *  (or &lt;code&gt;Object&lt;/code&gt; if no parameter is given). You can give a
+ *  class a name by assigning the class object to a constant.
+ *     
+ */
+
+static VALUE
+rb_class_initialize(argc, argv, klass)
+    int argc;
+    VALUE *argv;
+    VALUE klass;
+{
+    VALUE super;
+
+    if (RCLASS(klass)-&gt;super != 0) {
+        rb_raise(rb_eTypeError, &quot;already initialized class&quot;);
+    }
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;super) == 0) {
+        super = rb_cObject;
+    }
+    else {
+        rb_check_inheritable(super);
+    }
+    RCLASS(klass)-&gt;super = super;
+    rb_make_metaclass(klass, RBASIC(super)-&gt;klass);
+    rb_mod_initialize(klass);
+    rb_class_inherited(super, klass);
+
+    return klass;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M002720" class="method">
+  <div id="M002720_title" class="title">
+    <b>class.allocate()   =>   obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Allocates space for a new object of <em>class</em>&#8217;s class and does
+not call initialize on the new instance. The returned object must be an
+instance of <em>class</em>.
+</p>
+<pre>
+    klass = Class.new do
+      def initialize(*args)
+        @initialized = true
+      end
+
+      def initialized?
+        @initialized || false
+      end
+    end
+
+    klass.allocate.initialized? #=&gt; false
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002720_source')" id="l_M002720_source">show source</a> ]</p>
+  <div id="M002720_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     class.allocate()   =&gt;   obj
+ *  
+ *  Allocates space for a new object of &lt;i&gt;class&lt;/i&gt;'s class and does not
+ *  call initialize on the new instance. The returned object must be an
+ *  instance of &lt;i&gt;class&lt;/i&gt;.
+ *  
+ *      klass = Class.new do
+ *        def initialize(*args)
+ *          @initialized = true
+ *        end
+ *      
+ *        def initialized?
+ *          @initialized || false
+ *        end
+ *      end
+ *      
+ *      klass.allocate.initialized? #=&gt; false
+ *     
+ */
+
+VALUE
+rb_obj_alloc(klass)
+    VALUE klass;
+{
+    VALUE obj;
+
+    if (RCLASS(klass)-&gt;super == 0) {
+        rb_raise(rb_eTypeError, &quot;can't instantiate uninitialized class&quot;);
+    }
+    if (FL_TEST(klass, FL_SINGLETON)) {
+        rb_raise(rb_eTypeError, &quot;can't create instance of virtual class&quot;);
+    }
+    obj = rb_funcall(klass, ID_ALLOCATOR, 0, 0);
+    if (rb_obj_class(obj) != rb_class_real(klass)) {
+        rb_raise(rb_eTypeError, &quot;wrong instance allocation&quot;);
+    }
+    return obj;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002719" class="method">
+  <div id="M002719_title" class="title">
+    <b>inherited(subclass)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Callback invoked whenever a subclass of the current class is created.
+</p>
+<p>
+Example:
+</p>
+<pre>
+   class Foo
+      def self.inherited(subclass)
+         puts &quot;New subclass: #{subclass}&quot;
+      end
+   end
+
+   class Bar &lt; Foo
+   end
+
+   class Baz &lt; Bar
+   end
+</pre>
+<p>
+produces:
+</p>
+<pre>
+   New subclass: Bar
+   New subclass: Baz
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002719_source')" id="l_M002719_source">show source</a> ]</p>
+  <div id="M002719_source" class="dyn-source">
+<pre>
+/*
+ * Not documented
+ */
+
+static VALUE
+rb_obj_dummy()
+{
+    return Qnil;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002721" class="method">
+  <div id="M002721_title" class="title">
+    <b>class.new(args, ...)    =>  obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Calls <tt>allocate</tt> to create a new object of <em>class</em>&#8217;s
+class, then invokes that object&#8217;s <tt>initialize</tt> method, passing
+it <em>args</em>. This is the method that ends up getting called whenever
+an object is constructed using .new.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002721_source')" id="l_M002721_source">show source</a> ]</p>
+  <div id="M002721_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     class.new(args, ...)    =&gt;  obj
+ *  
+ *  Calls &lt;code&gt;allocate&lt;/code&gt; to create a new object of
+ *  &lt;i&gt;class&lt;/i&gt;'s class, then invokes that object's
+ *  &lt;code&gt;initialize&lt;/code&gt; method, passing it &lt;i&gt;args&lt;/i&gt;.
+ *  This is the method that ends up getting called whenever
+ *  an object is constructed using .new.
+ *     
+ */
+
+VALUE
+rb_class_new_instance(argc, argv, klass)
+    int argc;
+    VALUE *argv;
+    VALUE klass;
+{
+    VALUE obj;
+
+    obj = rb_obj_alloc(klass);
+    rb_obj_call_init(obj, argc, argv);
+
+    return obj;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002723" class="method">
+  <div id="M002723_title" class="title">
+    <b>class.superclass &rarr; a_super_class or nil<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the superclass of <em>class</em>, or <tt>nil</tt>.
+</p>
+<pre>
+   File.superclass     #=&gt; IO
+   IO.superclass       #=&gt; Object
+   Object.superclass   #=&gt; nil
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002723_source')" id="l_M002723_source">show source</a> ]</p>
+  <div id="M002723_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     class.superclass -&gt; a_super_class or nil
+ *  
+ *  Returns the superclass of &lt;i&gt;class&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt;.
+ *     
+ *     File.superclass     #=&gt; IO
+ *     IO.superclass       #=&gt; Object
+ *     Object.superclass   #=&gt; nil
+ *     
+ */
+
+static VALUE
+rb_class_superclass(klass)
+    VALUE klass;
+{
+    VALUE super = RCLASS(klass)-&gt;super;
+
+    if (!super) {
+        rb_raise(rb_eTypeError, &quot;uninitialized class&quot;);
+    }
+    if (FL_TEST(klass, FL_SINGLETON)) {
+        super = RBASIC(klass)-&gt;klass;
+    }
+    while (TYPE(super) == T_ICLASS) {
+        super = RCLASS(super)-&gt;super;
+    }
+    if (!super) {
+        return Qnil;
+    }
+    return super;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002724" class="method">
+  <div id="M002724_title" class="title">
+    <b>to_yaml</b>( opts = {} )
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002724_source')" id="l_M002724_source">show source</a> ]</p>
+  <div id="M002724_source" class="dyn-source">
+<pre>
+   <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/yaml/rubytypes.rb, line 5</span>
+5:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">to_yaml</span>( <span class="ruby-identifier">opts</span> = {} )
+6:                 <span class="ruby-identifier">raise</span> <span class="ruby-constant">TypeError</span>, <span class="ruby-value str">&quot;can't dump anonymous class %s&quot;</span> <span class="ruby-operator">%</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>
+7:         <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

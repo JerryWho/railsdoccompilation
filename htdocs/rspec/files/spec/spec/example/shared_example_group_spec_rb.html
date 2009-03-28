@@ -1,0 +1,276 @@
+  <div id="fileHeader">
+    <h1>shared_example_group_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/example/shared_example_group_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+module Spec
+  module Example
+    describe ExampleGroup, &quot;with :shared =&gt; true&quot; do
+      with_sandboxed_options do
+        attr_reader :formatter, :example_group
+        before(:each) do
+          @formatter = Spec::Mocks::Mock.new(&quot;formatter&quot;, :null_object =&gt; true)
+          options.formatters &lt;&lt; formatter
+          @example_group = Class.new(ExampleGroup).describe(&quot;example_group&quot;)
+          class &lt;&lt; example_group
+            public :include
+          end
+        end
+
+        after(:each) do
+          @formatter.rspec_verify
+          @example_group = nil
+          Spec::Example::SharedExampleGroup.clear
+        end
+        
+        describe &quot;#register&quot; do
+          it &quot;creates a new shared example group with the submitted args&quot; do
+            block = lambda {}
+            group = SharedExampleGroup.new(&quot;shared group&quot;) do end
+            Spec::Example::SharedExampleGroup.should_receive(:new).with(&quot;share me&quot;, &amp;block).and_return(group)
+            Spec::Example::SharedExampleGroup.register(&quot;share me&quot;, &amp;block)
+          end
+
+          it &quot;registers the shared example group&quot; do
+            lambda do
+              Spec::Example::SharedExampleGroup.register &quot;share me&quot; do end
+            end.should change {Spec::Example::SharedExampleGroup.count}.by(1)
+          end
+        end
+
+        it &quot;complains when adding a second shared example_group with the same description&quot; do
+          describe &quot;shared example_group&quot;, :shared =&gt; true do
+          end
+          lambda do
+            describe &quot;shared example_group&quot;, :shared =&gt; true do
+            end
+          end.should raise_error(ArgumentError)
+        end
+        
+        it &quot;does NOT add the same group twice&quot; do
+          lambda do
+            2.times do
+              describe &quot;shared example_group which gets loaded twice&quot;, :shared =&gt; true do
+              end
+            end
+          end.should change {Spec::Example::SharedExampleGroup.count}.by(1)
+        end
+
+        it &quot;does NOT complain when adding the same shared example_group again (i.e. file gets reloaded)&quot; do
+          lambda do
+            2.times do
+              describe &quot;shared example_group which gets loaded twice&quot;, :shared =&gt; true do
+              end
+            end
+          end.should_not raise_error(ArgumentError)
+        end
+
+        it &quot;does NOT complain when adding the same shared example_group in same file with different absolute path&quot; do
+          SharedExampleGroup.register(
+            &quot;shared example_group&quot;,
+            :shared =&gt; true,
+            :spec_path =&gt; &quot;/my/spec/a/../shared.rb&quot;
+          )
+          SharedExampleGroup.register(
+            &quot;shared example_group&quot;,
+            :shared =&gt; true,
+            :spec_path =&gt; &quot;/my/spec/b/../shared.rb&quot;
+          )
+        end
+
+        it &quot;complains when adding a different shared example_group with the same name in a different file with the same basename&quot; do
+          SharedExampleGroup.register(
+            &quot;shared example_group&quot;,
+            :shared =&gt; true,
+            :spec_path =&gt; &quot;/my/spec/a/shared.rb&quot;
+          )
+          lambda do
+            SharedExampleGroup.register(
+              &quot;shared example_group&quot;,
+              :shared =&gt; true,
+              :spec_path =&gt; &quot;/my/spec/b/shared.rb&quot;
+            )
+          end.should raise_error(ArgumentError, /already exists/)
+        end
+
+        it &quot;adds examples to current example_group using it_should_behave_like&quot; do
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group&quot;) do
+            it(&quot;shared example&quot;) {}
+            it(&quot;shared example 2&quot;) {}
+          end
+
+          example_group.it(&quot;example&quot;) {}
+          example_group.number_of_examples.should == 1
+          example_group.it_should_behave_like(&quot;shared example_group&quot;)
+          example_group.number_of_examples.should == 3
+        end
+
+        it &quot;adds examples to from two shared groups&quot; do
+          shared_example_group_1 = SharedExampleGroup.register(&quot;shared example_group 1&quot;) do
+            it(&quot;shared example 1&quot;) {}
+          end
+
+          shared_example_group_1 = SharedExampleGroup.register(&quot;shared example_group 2&quot;) do
+            it(&quot;shared example 2&quot;) {}
+          end
+
+          example_group.it(&quot;example&quot;) {}
+          example_group.number_of_examples.should == 1
+          example_group.it_should_behave_like(&quot;shared example_group 1&quot;, &quot;shared example_group 2&quot;)
+          example_group.number_of_examples.should == 3
+        end
+
+        it &quot;adds examples to current example_group using include&quot; do
+          shared_example_group = describe &quot;all things&quot;, :shared =&gt; true do
+            it &quot;should do stuff&quot; do end
+          end
+        
+          example_group = describe &quot;one thing&quot; do
+            include shared_example_group
+          end
+        
+          example_group.number_of_examples.should == 1
+        end
+
+        it &quot;adds examples to current example_group using it_should_behave_like with a module&quot; do
+          AllThings = describe &quot;all things&quot;, :shared =&gt; true do
+            it &quot;should do stuff&quot; do end
+          end
+        
+          example_group = describe &quot;one thing&quot; do
+            it_should_behave_like AllThings
+          end
+        
+          example_group.number_of_examples.should == 1
+        end
+
+        it &quot;runs shared examples&quot; do
+          shared_example_ran = false
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group&quot;) do
+            it(&quot;shared example&quot;) { shared_example_ran = true }
+          end
+
+          example_ran = false
+
+          example_group.it_should_behave_like(&quot;shared example_group&quot;)
+          example_group.it(&quot;example&quot;) {example_ran = true}
+          example_group.run(options)
+          example_ran.should be_true
+          shared_example_ran.should be_true
+        end
+
+        it &quot;runs before(:each) and after(:each) from shared example_group&quot; do
+          shared_setup_ran = false
+          shared_teardown_ran = false
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group&quot;) do
+            before(:each) { shared_setup_ran = true }
+            after(:each)  { shared_teardown_ran = true }
+            it(&quot;shared example&quot;) { shared_example_ran = true }
+          end
+
+          example_ran = false
+
+          example_group.it_should_behave_like(&quot;shared example_group&quot;)
+          example_group.it(&quot;example&quot;) {example_ran = true}
+          example_group.run(options)
+          example_ran.should be_true
+          shared_setup_ran.should be_true
+          shared_teardown_ran.should be_true
+        end
+
+        it &quot;should run before(:all) and after(:all) only once from shared example_group&quot; do
+          shared_before_all_run_count = 0
+          shared_after_all_run_count = 0
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group&quot;) do
+            before(:all) { shared_before_all_run_count += 1}
+            after(:all)  { shared_after_all_run_count += 1}
+            it(&quot;shared example&quot;) { shared_example_ran = true }
+          end
+
+          example_ran = false
+
+          example_group.it_should_behave_like(&quot;shared example_group&quot;)
+          example_group.it(&quot;example&quot;) {example_ran = true}
+          example_group.run(options)
+          example_ran.should be_true
+          shared_before_all_run_count.should == 1
+          shared_after_all_run_count.should == 1
+        end
+
+        it &quot;should include modules, included into shared example_group, into current example_group&quot; do
+          @formatter.should_receive(:add_example_group).with(any_args)
+
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group&quot;) do
+            it(&quot;shared example&quot;) { shared_example_ran = true }
+          end
+
+          mod1_method_called = false
+          mod1 = Module.new do
+            define_method :mod1_method do
+              mod1_method_called = true
+            end
+          end
+
+          mod2_method_called = false
+          mod2 = Module.new do
+            define_method :mod2_method do
+              mod2_method_called = true
+            end
+          end
+
+          shared_example_group.__send__ :include, mod2
+
+          example_group.it_should_behave_like(&quot;shared example_group&quot;)
+          example_group.include mod1
+
+          example_group.it(&quot;test&quot;) do
+            mod1_method
+            mod2_method
+          end
+          example_group.run(options)
+          mod1_method_called.should be_true
+          mod2_method_called.should be_true
+        end
+
+        it &quot;should make methods defined in the shared example_group available in consuming example_group&quot; do
+          shared_example_group = SharedExampleGroup.register(&quot;shared example_group xyz&quot;) do
+            def a_shared_helper_method
+              &quot;this got defined in a shared example_group&quot;
+            end
+          end
+          example_group.it_should_behave_like(&quot;shared example_group xyz&quot;)
+          success = false
+          example_group.it(&quot;should access a_shared_helper_method&quot;) do
+            a_shared_helper_method
+            success = true
+          end
+          example_group.run(options)
+          success.should be_true
+        end
+
+        it &quot;should raise when named shared example_group can not be found&quot; do
+          lambda {
+            example_group.it_should_behave_like(&quot;non-existent shared example group&quot;)
+            violated
+          }.should raise_error(&quot;Shared Example Group 'non-existent shared example group' can not be found&quot;)
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

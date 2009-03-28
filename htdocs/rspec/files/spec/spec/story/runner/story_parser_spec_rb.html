@@ -1,0 +1,419 @@
+  <div id="fileHeader">
+    <h1>story_parser_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/story/runner/story_parser_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../story_helper'
+
+module Spec
+	module Story
+		module Runner
+		  
+			describe StoryParser do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			  end
+
+			  it &quot;should parse no lines&quot; do
+					@parser.parse([])
+			  end
+			  
+			  it &quot;should ignore text before the first Story: begins&quot; do
+			    @story_mediator.should_not_receive(:create_scenario)
+			    @story_mediator.should_not_receive(:create_given)
+			    @story_mediator.should_not_receive(:create_when)
+			    @story_mediator.should_not_receive(:create_then)
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;, &quot;&quot;)
+					@parser.parse([&quot;Here is a bunch of text&quot;, &quot;about a calculator and all the things&quot;, &quot;that it will do&quot;, &quot;Story: simple addition&quot;])
+		    end
+			  
+			  it &quot;should create a story&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;, &quot;&quot;)
+					@parser.parse([&quot;Story: simple addition&quot;])
+			  end
+			  
+			  it &quot;should create a story when line has leading spaces&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;, &quot;&quot;)
+					@parser.parse([&quot;    Story: simple addition&quot;])
+			  end
+			  
+			  it &quot;should add a one line narrative to the story&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;,&quot;narrative&quot;)
+					@parser.parse([&quot;Story: simple addition&quot;,&quot;narrative&quot;])
+			  end
+			  
+			  it &quot;should add a multi line narrative to the story&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;,&quot;narrative line 1\nline 2\nline 3&quot;)
+					@parser.parse([&quot;Story: simple addition&quot;,&quot;narrative line 1&quot;, &quot;line 2&quot;, &quot;line 3&quot;])
+			  end
+			  
+			  it &quot;should exclude blank lines from the narrative&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;,&quot;narrative line 1\nline 2&quot;)
+					@parser.parse([&quot;Story: simple addition&quot;,&quot;narrative line 1&quot;, &quot;&quot;, &quot;line 2&quot;])
+			  end
+			  
+			  it &quot;should exclude Scenario from the narrative&quot; do
+			    @story_mediator.should_receive(:create_story).with(&quot;simple addition&quot;,&quot;narrative line 1\nline 2&quot;)
+			    @story_mediator.should_receive(:create_scenario)
+					@parser.parse([&quot;Story: simple addition&quot;,&quot;narrative line 1&quot;, &quot;line 2&quot;, &quot;Scenario: add one plus one&quot;])
+			  end
+			  
+			end
+
+			describe StoryParser, &quot;in Story state&quot; do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			    @story_mediator.stub!(:create_story)
+			  end
+			  
+			  it &quot;should create a second Story for Story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;number two&quot;,&quot;&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Story: number two&quot;])
+			  end
+			  
+			  it &quot;should include And in the narrative&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;And foo&quot;)
+          @story_mediator.should_receive(:create_scenario).with(&quot;bar&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;And foo&quot;, &quot;Scenario: bar&quot;])
+			  end
+			  
+			  it &quot;should create a Scenario for Scenario&quot; do
+          @story_mediator.should_receive(:create_scenario).with(&quot;number two&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: number two&quot;])
+			  end
+
+			  it &quot;should include Given in the narrative&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;Given foo&quot;)
+          @story_mediator.should_receive(:create_scenario).with(&quot;bar&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Given foo&quot;, &quot;Scenario: bar&quot;])
+			  end
+			  
+			  it &quot;should include Given: in the narrative&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;Given: foo&quot;)
+          @story_mediator.should_receive(:create_scenario).with(&quot;bar&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Given: foo&quot;, &quot;Scenario: bar&quot;])
+			  end
+			  			  
+			  it &quot;should include When in the narrative&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;When foo&quot;)
+          @story_mediator.should_receive(:create_scenario).with(&quot;bar&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;When foo&quot;, &quot;Scenario: bar&quot;])
+			  end
+			  			  
+			  it &quot;should include Then in the narrative&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;Then foo&quot;)
+          @story_mediator.should_receive(:create_scenario).with(&quot;bar&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Then foo&quot;, &quot;Scenario: bar&quot;])
+			  end
+			  			  
+			  it &quot;should include other in the story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;s&quot;,&quot;narrative&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;narrative&quot;])
+			  end
+			end
+			
+			describe StoryParser, &quot;in Scenario state&quot; do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			    @story_mediator.stub!(:create_story)
+			    @story_mediator.stub!(:create_scenario)
+			  end
+			  
+			  it &quot;should create a Story for Story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;number two&quot;,&quot;&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Story: number two&quot;])
+			  end
+			  
+			  it &quot;should create a Scenario for Scenario&quot; do
+          @story_mediator.should_receive(:create_scenario).with(&quot;number two&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Scenario: number two&quot;])
+			  end
+
+			  it &quot;should raise for And&quot; do
+			    lambda {
+  					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;And second&quot;])
+			    }.should raise_error(IllegalStepError, /^Illegal attempt to create a And after a Scenario/)
+			  end
+			  
+			  it &quot;should create a Given for Given&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;gift&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given gift&quot;])
+			  end
+			  
+			  it &quot;should create a Given for Given:&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;gift&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: gift&quot;])
+			  end
+			  
+			  it &quot;should create a GivenScenario for GivenScenario&quot; do
+          @story_mediator.should_receive(:create_given_scenario).with(&quot;previous&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;GivenScenario previous&quot;])
+			  end
+			  
+			  it &quot;should create a GivenScenario for GivenScenario:&quot; do
+          @story_mediator.should_receive(:create_given_scenario).with(&quot;previous&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;GivenScenario: previous&quot;])
+			  end
+			  
+			  it &quot;should transition to Given state after GivenScenario&quot; do
+          @story_mediator.stub!(:create_given_scenario)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;GivenScenario previous&quot;])
+					@parser.instance_eval{@state}.should be_an_instance_of(StoryParser::GivenState)
+			  end
+			  
+			  it &quot;should transition to Given state after GivenScenario:&quot; do
+          @story_mediator.stub!(:create_given_scenario)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;GivenScenario: previous&quot;])
+					@parser.instance_eval{@state}.should be_an_instance_of(StoryParser::GivenState)
+			  end
+			  
+			  it &quot;should create a When for When&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;When ever&quot;])
+			  end
+			  
+			  it &quot;should create a When for When:&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;When: ever&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Then and there&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then:&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Then: and there&quot;])
+			  end
+			  
+			  it &quot;should ignore other&quot; do
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;this is ignored&quot;])
+			  end
+			end
+						
+			describe StoryParser, &quot;in Given state&quot; do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			    @story_mediator.stub!(:create_story)
+			    @story_mediator.stub!(:create_scenario)
+			    @story_mediator.should_receive(:create_given).with(&quot;first&quot;)
+			  end
+			  
+			  it &quot;should create a Story for Story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;number two&quot;,&quot;&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;Story: number two&quot;])
+			  end
+			  
+			  it &quot;should create a Scenario for Scenario&quot; do
+          @story_mediator.should_receive(:create_scenario).with(&quot;number two&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;Scenario: number two&quot;])
+			  end
+
+			  it &quot;should create a second Given for Given&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;Given second&quot;])
+			  end
+			  
+			  it &quot;should create a second Given for And&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;And second&quot;])
+			  end
+			  
+			  it &quot;should create a second Given for And:&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;And: second&quot;])
+			  end
+			  
+			  it &quot;should create a When for When&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When ever&quot;])
+			  end
+			  
+			  it &quot;should create a When for When:&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When: ever&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;Then and there&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then:&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;Then: and there&quot;])
+			  end
+			  
+			  it &quot;should ignore lines beginning with '#'&quot; do
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;#this is ignored&quot;])
+			  end
+
+			  it &quot;should not ignore lines beginning with non-keywords&quot; do
+          @story_mediator.should_receive(:add_to_last).with(&quot;\nthis is not ignored&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;this is not ignored&quot;])
+			  end
+			  
+			end
+
+			describe StoryParser, &quot;in When state&quot; do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			    @story_mediator.stub!(:create_story)
+			    @story_mediator.stub!(:create_scenario)
+			    @story_mediator.should_receive(:create_given).with(&quot;first&quot;)
+			    @story_mediator.should_receive(:create_when).with(&quot;else&quot;)
+			  end
+			  
+			  it &quot;should create a Story for Story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;number two&quot;,&quot;&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When: else&quot;, &quot;Story: number two&quot;])
+			  end
+			  
+			  it &quot;should create a Scenario for Scenario&quot; do
+          @story_mediator.should_receive(:create_scenario).with(&quot;number two&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Scenario: number two&quot;])
+			  end
+
+			  it &quot;should create Given for Given&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Given second&quot;])
+			  end
+			  
+			  it &quot;should create Given for Given:&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Given: second&quot;])
+			  end
+			  
+			  it &quot;should create a second When for When&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;When ever&quot;])
+			  end
+			  
+			  it &quot;should create a second When for When:&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;When: ever&quot;])
+			  end
+			  
+			  it &quot;should create a second When for And&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;And ever&quot;])
+			  end
+			  
+			  it &quot;should create a second When for And:&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;And: ever&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then and there&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then:&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;Then: and there&quot;])
+			  end
+			  
+			  it &quot;should ignore lines beginning with '#'&quot; do
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;#this is ignored&quot;])
+			  end
+
+			  it &quot;should not ignore lines beginning with non-keywords&quot; do
+          @story_mediator.should_receive(:add_to_last).with(&quot;\nthis is not ignored&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When else&quot;, &quot;this is not ignored&quot;])
+			  end
+			end
+
+			describe StoryParser, &quot;in Then state&quot; do
+			  before(:each) do
+			    @story_mediator = mock(&quot;story_mediator&quot;)
+		    	@parser = StoryParser.new(@story_mediator)
+			    @story_mediator.stub!(:create_story)
+			    @story_mediator.stub!(:create_scenario)
+			    @story_mediator.should_receive(:create_given).with(&quot;first&quot;)
+			    @story_mediator.should_receive(:create_when).with(&quot;else&quot;)
+			    @story_mediator.should_receive(:create_then).with(&quot;what&quot;)
+			  end
+			  
+			  it &quot;should create a Story for Story&quot; do
+          @story_mediator.should_receive(:create_story).with(&quot;number two&quot;,&quot;&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;Story: number two&quot;])
+			  end
+			  
+			  it &quot;should create a Scenario for Scenario&quot; do
+          @story_mediator.should_receive(:create_scenario).with(&quot;number two&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;Scenario: number two&quot;])
+			  end
+
+			  it &quot;should create Given for Given&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;Given second&quot;])
+			  end
+			  
+			  it &quot;should create Given for Given:&quot; do
+          @story_mediator.should_receive(:create_given).with(&quot;second&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;Then: what&quot;, &quot;Given: second&quot;])
+			  end
+			  
+			  it &quot;should create When for When&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;When ever&quot;])
+			  end
+			  
+			  it &quot;should create When for When:&quot; do
+          @story_mediator.should_receive(:create_when).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;Then: what&quot;, &quot;When: ever&quot;])
+			  end
+
+			  it &quot;should create a Then for Then&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;Then and there&quot;])
+			  end
+			  
+			  it &quot;should create a Then for Then:&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;and there&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;Then: what&quot;, &quot;Then: and there&quot;])
+			  end
+
+			  it &quot;should create a second Then for And&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;And ever&quot;])
+			  end
+			  
+			  it &quot;should create a second Then for And:&quot; do
+          @story_mediator.should_receive(:create_then).with(&quot;ever&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When: else&quot;, &quot;Then: what&quot;, &quot;And: ever&quot;])
+			  end
+
+			  
+			  it &quot;should ignore lines beginning with '#'&quot; do
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;#this is ignored&quot;])
+			  end
+
+			  it &quot;should not ignore lines beginning with non-keywords&quot; do
+          @story_mediator.should_receive(:add_to_last).with(&quot;\nthis is not ignored&quot;)
+					@parser.parse([&quot;Story: s&quot;, &quot;Scenario: s&quot;, &quot;Given: first&quot;, &quot;When else&quot;, &quot;Then what&quot;, &quot;this is not ignored&quot;])
+			  end
+			end
+		end
+	end
+end</pre>
+    </div>

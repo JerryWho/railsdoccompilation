@@ -1,0 +1,243 @@
+  <div id="fileHeader">
+    <h1>spectask.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/rake/spectask.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+
+# Define a task library for running RSpec contexts.
+
+require 'rake'
+require 'rake/tasklib'
+
+module Spec
+  module Rake
+
+    # A Rake task that runs a set of specs.
+    #
+    # Example:
+    #
+    #   Spec::Rake::SpecTask.new do |t|
+    #     t.warning = true
+    #     t.rcov = true
+    #   end
+    #
+    # This will create a task that can be run with:
+    #
+    #   rake spec
+    #
+    # If rake is invoked with a &quot;SPEC=filename&quot; command line option,
+    # then the list of spec files will be overridden to include only the
+    # filename specified on the command line.  This provides an easy way
+    # to run just one spec.
+    #
+    # If rake is invoked with a &quot;SPEC_OPTS=options&quot; command line option,
+    # then the given options will override the value of the +spec_opts+
+    # attribute.
+    #
+    # If rake is invoked with a &quot;RCOV_OPTS=options&quot; command line option,
+    # then the given options will override the value of the +rcov_opts+
+    # attribute.
+    #
+    # Examples:
+    #
+    #   rake spec                                      # run specs normally
+    #   rake spec SPEC=just_one_file.rb                # run just one spec file.
+    #   rake spec SPEC_OPTS=&quot;--diff&quot;                   # enable diffing
+    #   rake spec RCOV_OPTS=&quot;--aggregate myfile.txt&quot;   # see rcov --help for details
+    #
+    # Each attribute of this task may be a proc. This allows for lazy evaluation,
+    # which is sometimes handy if you want to defer the evaluation of an attribute value
+    # until the task is run (as opposed to when it is defined).
+    #
+    # This task can also be used to run existing Test::Unit tests and get RSpec
+    # output, for example like this:
+    #
+    #   require 'spec/rake/spectask'
+    #   Spec::Rake::SpecTask.new do |t|
+    #     t.ruby_opts = ['-rtest/unit']
+    #     t.spec_files = FileList['test/**/*_test.rb']
+    #   end
+    #
+    class SpecTask &lt; ::Rake::TaskLib
+      def self.attr_accessor(*names)
+        super(*names)
+        names.each do |name|
+          module_eval &quot;def #{name}() evaluate(@#{name}) end&quot; # Allows use of procs
+        end
+      end
+
+      # Name of spec task. (default is :spec)
+      attr_accessor :name
+
+      # Array of directories to be added to $LOAD_PATH before running the
+      # specs. Defaults to ['&lt;the absolute path to RSpec's lib directory&gt;']
+      attr_accessor :libs
+
+      # If true, requests that the specs be run with the warning flag set.
+      # E.g. warning=true implies &quot;ruby -w&quot; used to run the specs. Defaults to false.
+      attr_accessor :warning
+
+      # Glob pattern to match spec files. (default is 'spec/**/*_spec.rb')
+      # Setting the SPEC environment variable overrides this.
+      attr_accessor :pattern
+
+      # Array of commandline options to pass to RSpec. Defaults to [].
+      # Setting the SPEC_OPTS environment variable overrides this.
+      attr_accessor :spec_opts
+
+      # Whether or not to use RCov (default is false)
+      # See http://eigenclass.org/hiki.rb?rcov
+      attr_accessor :rcov
+
+      # Array of commandline options to pass to RCov. Defaults to ['--exclude', 'lib\/spec,bin\/spec'].
+      # Ignored if rcov=false
+      # Setting the RCOV_OPTS environment variable overrides this.
+      attr_accessor :rcov_opts
+
+      # Directory where the RCov report is written. Defaults to &quot;coverage&quot;
+      # Ignored if rcov=false
+      attr_accessor :rcov_dir
+
+      # Array of commandline options to pass to ruby. Defaults to [].
+      attr_accessor :ruby_opts
+
+      # Whether or not to fail Rake when an error occurs (typically when specs fail).
+      # Defaults to true.
+      attr_accessor :fail_on_error
+
+      # A message to print to stderr when there are failures.
+      attr_accessor :failure_message
+
+      # Where RSpec's output is written. Defaults to $stdout.
+      # DEPRECATED. Use --format FORMAT:WHERE in spec_opts.
+      attr_accessor :out
+
+      # Explicitly define the list of spec files to be included in a
+      # spec.  +spec_files+ is expected to be an array of file names (a
+      # FileList is acceptable).  If both +pattern+ and +spec_files+ are
+      # used, then the list of spec files is the union of the two.
+      # Setting the SPEC environment variable overrides this.
+      attr_accessor :spec_files
+
+      # Use verbose output. If this is set to true, the task will print
+      # the executed spec command to stdout. Defaults to false.
+      attr_accessor :verbose
+
+      # Defines a new task, using the name +name+.
+      def initialize(name=:spec)
+        @name = name
+        @libs = [File.expand_path(File.dirname(__FILE__) + '/../../../lib')]
+        @pattern = nil
+        @spec_files = nil
+        @spec_opts = []
+        @warning = false
+        @ruby_opts = []
+        @fail_on_error = true
+        @rcov = false
+        @rcov_opts = ['--exclude', 'lib\/spec,bin\/spec,config\/boot.rb']
+        @rcov_dir = &quot;coverage&quot;
+
+        yield self if block_given?
+        @pattern = 'spec/**/*_spec.rb' if pattern.nil? &amp;&amp; spec_files.nil?
+        define
+      end
+
+      def define # :nodoc:
+        spec_script = File.expand_path(File.dirname(__FILE__) + '/../../../bin/spec')
+
+        lib_path = libs.join(File::PATH_SEPARATOR)
+        actual_name = Hash === name ? name.keys.first : name
+        unless ::Rake.application.last_comment
+          desc &quot;Run specs&quot; + (rcov ? &quot; using RCov&quot; : &quot;&quot;)
+        end
+        task name do
+          RakeFileUtils.verbose(verbose) do
+            unless spec_file_list.empty?
+              # ruby [ruby_opts] -Ilib -S rcov [rcov_opts] bin/spec -- examples [spec_opts]
+              # or
+              # ruby [ruby_opts] -Ilib bin/spec examples [spec_opts]
+              cmd_parts = [RUBY]
+              cmd_parts += ruby_opts
+              cmd_parts &lt;&lt; %[-I&quot;#{lib_path}&quot;]
+              cmd_parts &lt;&lt; &quot;-S rcov&quot; if rcov
+              cmd_parts &lt;&lt; &quot;-w&quot; if warning
+              cmd_parts &lt;&lt; rcov_option_list
+              cmd_parts &lt;&lt; %[-o &quot;#{rcov_dir}&quot;] if rcov
+              cmd_parts &lt;&lt; %[&quot;#{spec_script}&quot;]
+              cmd_parts &lt;&lt; &quot;--&quot; if rcov
+              cmd_parts += spec_file_list.collect { |fn| %[&quot;#{fn}&quot;] }
+              cmd_parts &lt;&lt; spec_option_list
+              if out
+                cmd_parts &lt;&lt; %[&gt; &quot;#{out}&quot;]
+                STDERR.puts &quot;The Spec::Rake::SpecTask#out attribute is DEPRECATED and will be removed in a future version. Use --format FORMAT:WHERE instead.&quot;
+              end
+              cmd = cmd_parts.join(&quot; &quot;)
+              puts cmd if verbose
+              unless system(cmd)
+                STDERR.puts failure_message if failure_message
+                raise(&quot;Command #{cmd} failed&quot;) if fail_on_error
+              end
+            end
+          end
+        end
+
+        if rcov
+          desc &quot;Remove rcov products for #{actual_name}&quot;
+          task paste(&quot;clobber_&quot;, actual_name) do
+            rm_r rcov_dir rescue nil
+          end
+
+          clobber_task = paste(&quot;clobber_&quot;, actual_name)
+          task :clobber =&gt; [clobber_task]
+
+          task actual_name =&gt; clobber_task
+        end
+        self
+      end
+
+      def rcov_option_list # :nodoc:
+        return &quot;&quot; unless rcov
+        ENV['RCOV_OPTS'] || rcov_opts.join(&quot; &quot;) || &quot;&quot;
+      end
+
+      def spec_option_list # :nodoc:
+        STDERR.puts &quot;RSPECOPTS is DEPRECATED and will be removed in a future version. Use SPEC_OPTS instead.&quot; if ENV['RSPECOPTS']
+        ENV['SPEC_OPTS'] || ENV['RSPECOPTS'] || spec_opts.join(&quot; &quot;) || &quot;&quot;
+      end
+
+      def evaluate(o) # :nodoc:
+        case o
+          when Proc then o.call
+          else o
+        end
+      end
+
+      def spec_file_list # :nodoc:
+        if ENV['SPEC']
+          FileList[ ENV['SPEC'] ]
+        else
+          result = []
+          result += spec_files.to_a if spec_files
+          result += FileList[ pattern ].to_a if pattern
+          FileList[result]
+        end
+      end
+
+    end
+  end
+end
+</pre>
+    </div>

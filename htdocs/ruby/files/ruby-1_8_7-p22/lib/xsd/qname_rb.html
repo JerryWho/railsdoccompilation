@@ -1,0 +1,98 @@
+  <div id="fileHeader">
+    <h1>qname.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/qname.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - XML QName definition.
+# Copyright (C) 2002, 2003, 2004  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+module XSD
+
+
+class QName
+  attr_accessor :namespace
+  attr_accessor :name
+  attr_accessor :source
+
+  def initialize(namespace = nil, name = nil)
+    @namespace = namespace
+    @name = name
+    @source = nil
+  end
+
+  def dup_name(name)
+    XSD::QName.new(@namespace, name)
+  end
+
+  def dump
+    ns = @namespace.nil? ? 'nil' : @namespace.dump
+    name = @name.nil? ? 'nil' : @name.dump
+    &quot;XSD::QName.new(#{ns}, #{name})&quot;
+  end
+
+  def match(rhs)
+    if rhs.namespace and (rhs.namespace != @namespace)
+      return false
+    end
+    if rhs.name and (rhs.name != @name)
+      return false
+    end
+    true
+  end
+
+  def ==(rhs)
+    !rhs.nil? and @namespace == rhs.namespace and @name == rhs.name
+  end
+
+  def ===(rhs)
+    (self == rhs)
+  end
+
+  def eql?(rhs)
+    (self == rhs)
+  end
+
+  def hash
+    @namespace.hash ^ @name.hash
+  end
+  
+  def to_s
+    &quot;{#{ namespace }}#{ name }&quot;
+  end
+
+  def inspect
+    sprintf(&quot;#&lt;%s:0x%x %s&gt;&quot;, self.class.name, __id__,
+      &quot;{#{ namespace }}#{ name }&quot;)
+  end
+
+  NormalizedNameRegexp = /^\{([^}]*)\}(.*)$/
+  def parse(str)
+    NormalizedNameRegexp =~ str
+    self.new($1, $2)
+  end
+
+  EMPTY = QName.new.freeze
+end
+
+
+end
+</pre>
+    </div>

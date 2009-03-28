@@ -1,0 +1,193 @@
+  <div id="fileHeader">
+    <h1>helper_spec_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/rails/example/helper_spec_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:13:00 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+Spec::Runner.configuration.global_fixtures = :people
+
+describe ExplicitHelper, :type =&gt; :helper do
+  include ExplicitHelper
+  
+  it &quot;should not require naming the helper if describe is passed a type&quot; do
+    method_in_explicit_helper.should match(/text from a method/)
+    helper.method_in_explicit_helper.should match(/text from a method/)
+  end
+end
+
+module Spec
+  module Rails
+    module Example
+      describe HelperExampleGroup, :type =&gt; :helper do
+        helper_name :explicit
+
+        it &quot;DEPRECATED should have direct access to methods defined in helpers&quot; do
+          method_in_explicit_helper.should =~ /text from a method/
+        end
+
+        it &quot;should expose the helper with the #helper method&quot; do
+          helper.method_in_explicit_helper.should =~ /text from a method/
+        end
+
+        it &quot;should have access to named routes&quot; do
+          rspec_on_rails_specs_url.should == &quot;http://test.host/rspec_on_rails_specs&quot;
+          rspec_on_rails_specs_path.should == &quot;/rspec_on_rails_specs&quot;
+
+          helper.named_url.should == &quot;http://test.host/rspec_on_rails_specs&quot;
+          helper.named_path.should == &quot;/rspec_on_rails_specs&quot;
+        end
+
+        it &quot;should fail if the helper method deson't exist&quot; do
+          lambda { non_existent_helper_method }.should raise_error(NameError)
+          lambda { helper.non_existent_helper_method }.should raise_error(NameError)
+        end
+
+        it &quot;should have access to session&quot; do
+          session[:foo] = 'bar'
+          session_foo.should == 'bar'
+          helper.session_foo.should == 'bar'
+        end
+        
+        it &quot;should have access to params&quot; do
+          params[:foo] = 'bar'
+          params_foo.should == 'bar'
+          helper.params_foo.should == 'bar'
+        end
+        
+        it &quot;should have access to request&quot; do
+          request.stub!(:thing).and_return('bar')
+          request_thing.should == 'bar'
+          helper.request_thing.should == 'bar'
+        end
+        
+        it &quot;should have access to flash&quot; do
+          flash[:thing] = 'camera'
+          flash_thing.should == 'camera'
+          helper.flash_thing.should == 'camera'
+        end
+      end
+
+      describe HelperExampleGroup, &quot;#eval_erb&quot;, :type =&gt; :helper do
+        helper_name :explicit
+
+        it &quot;should support methods that accept blocks&quot; do
+          eval_erb(&quot;&lt;% prepend 'foo' do %&gt;bar&lt;% end %&gt;&quot;).should == &quot;foobar&quot;
+        end
+      end
+
+      describe HelperExampleGroup, &quot;.fixtures&quot;, :type =&gt; :helper do
+        helper_name :explicit
+        fixtures :animals
+
+        it &quot;should load fixtures&quot; do
+          pig = animals(:pig)
+          pig.class.should == Animal
+        end
+
+        it &quot;should load global fixtures&quot; do
+          lachie = people(:lachie)
+          lachie.class.should == Person
+        end
+      end
+      
+      describe &quot;methods from standard helpers&quot;, :type =&gt; :helper do
+        helper_name :explicit
+        it &quot;should be exposed to the helper&quot; do
+          helper.link_to(&quot;Foo&quot;,&quot;http://bar&quot;).should have_tag(&quot;a&quot;)
+        end
+      end
+
+      describe HelperExampleGroup, &quot;included modules&quot;, :type =&gt; :helper do
+        helpers = [
+          ActionView::Helpers::ActiveRecordHelper,
+          ActionView::Helpers::AssetTagHelper,
+          ActionView::Helpers::BenchmarkHelper,
+          ActionView::Helpers::CacheHelper,
+          ActionView::Helpers::CaptureHelper,
+          ActionView::Helpers::DateHelper,
+          ActionView::Helpers::DebugHelper,
+          ActionView::Helpers::FormHelper,
+          ActionView::Helpers::FormOptionsHelper,
+          ActionView::Helpers::FormTagHelper,
+          ActionView::Helpers::JavaScriptHelper,
+          ActionView::Helpers::NumberHelper,
+          ActionView::Helpers::PrototypeHelper,
+          ActionView::Helpers::ScriptaculousHelper,
+          ActionView::Helpers::TagHelper,
+          ActionView::Helpers::TextHelper,
+          ActionView::Helpers::UrlHelper
+        ]
+        helpers &lt;&lt; ActionView::Helpers::PaginationHelper rescue nil       #removed for 2.0
+        helpers &lt;&lt; ActionView::Helpers::JavaScriptMacrosHelper rescue nil #removed for 2.0
+        helpers.each do |helper_module|
+          it &quot;should include #{helper_module}&quot; do
+            self.class.ancestors.should include(helper_module)
+            helper.class.ancestors.should include(helper_module)
+          end
+        end
+      end
+      
+      # TODO: BT - Helper Examples should proxy method_missing to a Rails View instance.
+      # When that is done, remove this method
+      describe HelperExampleGroup, &quot;#protect_against_forgery?&quot;, :type =&gt; :helper do
+        it &quot;should return false&quot; do
+          protect_against_forgery?.should be_false
+          helper.protect_against_forgery?.should be_false
+        end
+      end
+      
+      describe HelperExampleGroup, &quot;#assigns&quot;, :type =&gt; :helper do
+        helper_name :addition
+        it &quot;should expose variables to helper&quot; do
+          assigns[:addend] = 3
+          helper.plus(4).should == 7
+        end
+
+        it &quot;should make helper ivars available in example&quot; do
+          assigns[:addend] = 3
+          assigns[:addend].should == 3
+        end
+      end
+    end
+  end
+end
+
+module Bug11223
+  # see http://rubyforge.org/tracker/index.php?func=detail&amp;aid=11223&amp;group_id=797&amp;atid=3149
+  describe 'Accessing flash from helper spec', :type =&gt; :helper do
+    it 'should not raise an error' do
+      lambda { flash['test'] }.should_not raise_error
+    end
+  end
+end
+
+module Spec
+  module Rails
+    module Example
+      describe HelperExampleGroup do
+        it &quot;should clear its name from the description&quot; do
+          group = describe(&quot;foo&quot;, :type =&gt; :helper) do
+            $nested_group = describe(&quot;bar&quot;) do
+            end
+          end
+          group.description.to_s.should == &quot;foo&quot;
+          $nested_group.description.to_s.should == &quot;foo bar&quot;
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,903 @@
+  <div id="fileHeader">
+    <h1>erb.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/erb.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Jun 06 03:05:24 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># = ERB -- Ruby Templating
+#
+# Author:: Masatoshi SEKI
+# Documentation:: James Edward Gray II and Gavin Sinclair
+#
+# See ERB for primary documentation and ERB::Util for a couple of utility
+# routines.
+#
+# Copyright (c) 1999-2000,2002,2003 Masatoshi SEKI
+#
+# You can redistribute it and/or modify it under the same terms as Ruby.
+
+#
+# = ERB -- Ruby Templating
+#
+# == Introduction
+#
+# ERB provides an easy to use but powerful templating system for Ruby.  Using
+# ERB, actual Ruby code can be added to any plain text document for the
+# purposes of generating document information details and/or flow control.
+#
+# A very simple example is this:
+# 
+#   require 'erb'
+#
+#   x = 42
+#   template = ERB.new &lt;&lt;-EOF
+#     The value of x is: &lt;%= x %&gt;
+#   EOF
+#   puts template.result(binding)
+#
+# &lt;em&gt;Prints:&lt;/em&gt; The value of x is: 42
+#
+# More complex examples are given below.
+#
+#
+# == Recognized Tags
+#
+# ERB recognizes certain tags in the provided template and converts them based
+# on the rules below:
+#
+#   &lt;% Ruby code -- inline with output %&gt;
+#   &lt;%= Ruby expression -- replace with result %&gt;
+#   &lt;%# comment -- ignored -- useful in testing %&gt;
+#   % a line of Ruby code -- treated as &lt;% line %&gt; (optional -- see ERB.new)
+#   %% replaced with % if first thing on a line and % processing is used
+#   &lt;%% or %%&gt; -- replace with &lt;% or %&gt; respectively
+#
+# All other text is passed through ERB filtering unchanged.
+#
+#
+# == Options
+#
+# There are several settings you can change when you use ERB:
+# * the nature of the tags that are recognized;
+# * the value of &lt;tt&gt;$SAFE&lt;/tt&gt; under which the template is run;
+# * the binding used to resolve local variables in the template.
+#
+# See the ERB.new and ERB#result methods for more detail.
+#
+#
+# == Examples
+#
+# === Plain Text
+#
+# ERB is useful for any generic templating situation.  Note that in this example, we use the
+# convenient &quot;% at start of line&quot; tag, and we quote the template literally with
+# &lt;tt&gt;%q{...}&lt;/tt&gt; to avoid trouble with the backslash.
+#
+#   require &quot;erb&quot;
+#   
+#   # Create template.
+#   template = %q{
+#     From:  James Edward Gray II &lt;james@grayproductions.net&gt;
+#     To:  &lt;%= to %&gt;
+#     Subject:  Addressing Needs
+#   
+#     &lt;%= to[/\w+/] %&gt;:
+#   
+#     Just wanted to send a quick note assuring that your needs are being
+#     addressed.
+#   
+#     I want you to know that my team will keep working on the issues,
+#     especially:
+#   
+#     &lt;%# ignore numerous minor requests -- focus on priorities %&gt;
+#     % priorities.each do |priority|
+#       * &lt;%= priority %&gt;
+#     % end
+#   
+#     Thanks for your patience.
+#   
+#     James Edward Gray II
+#   }.gsub(/^  /, '')
+#   
+#   message = ERB.new(template, 0, &quot;%&lt;&gt;&quot;)
+#   
+#   # Set up template data.
+#   to = &quot;Community Spokesman &lt;spokesman@ruby_community.org&gt;&quot;
+#   priorities = [ &quot;Run Ruby Quiz&quot;,
+#                  &quot;Document Modules&quot;,
+#                  &quot;Answer Questions on Ruby Talk&quot; ]
+#   
+#   # Produce result.
+#   email = message.result
+#   puts email
+#
+# &lt;i&gt;Generates:&lt;/i&gt;
+#
+#   From:  James Edward Gray II &lt;james@grayproductions.net&gt;
+#   To:  Community Spokesman &lt;spokesman@ruby_community.org&gt;
+#   Subject:  Addressing Needs
+#   
+#   Community:
+#   
+#   Just wanted to send a quick note assuring that your needs are being addressed.
+#   
+#   I want you to know that my team will keep working on the issues, especially:
+#   
+#       * Run Ruby Quiz
+#       * Document Modules
+#       * Answer Questions on Ruby Talk
+#   
+#   Thanks for your patience.
+#   
+#   James Edward Gray II
+#
+# === Ruby in HTML
+#
+# ERB is often used in &lt;tt&gt;.rhtml&lt;/tt&gt; files (HTML with embedded Ruby).  Notice the need in
+# this example to provide a special binding when the template is run, so that the instance
+# variables in the Product object can be resolved.
+#
+#   require &quot;erb&quot;
+#   
+#   # Build template data class.
+#   class Product
+#     def initialize( code, name, desc, cost )
+#       @code = code
+#       @name = name
+#       @desc = desc
+#       @cost = cost
+#        	
+#       @features = [ ]
+#     end
+#   
+#     def add_feature( feature )
+#       @features &lt;&lt; feature
+#     end
+#   
+#     # Support templating of member data.
+#     def get_binding
+#       binding
+#     end
+#   
+#     # ...
+#   end
+#   
+#   # Create template.
+#   template = %{
+#     &lt;html&gt;
+#       &lt;head&gt;&lt;title&gt;Ruby Toys -- &lt;%= @name %&gt;&lt;/title&gt;&lt;/head&gt;
+#       &lt;body&gt;
+#   
+#         &lt;h1&gt;&lt;%= @name %&gt; (&lt;%= @code %&gt;)&lt;/h1&gt;
+#         &lt;p&gt;&lt;%= @desc %&gt;&lt;/p&gt;
+#   
+#         &lt;ul&gt;
+#           &lt;% @features.each do |f| %&gt;
+#             &lt;li&gt;&lt;b&gt;&lt;%= f %&gt;&lt;/b&gt;&lt;/li&gt;
+#           &lt;% end %&gt;
+#         &lt;/ul&gt;
+#   
+#         &lt;p&gt;
+#           &lt;% if @cost &lt; 10 %&gt;
+#             &lt;b&gt;Only &lt;%= @cost %&gt;!!!&lt;/b&gt;
+#           &lt;% else %&gt;
+#              Call for a price, today!
+#           &lt;% end %&gt;
+#         &lt;/p&gt;
+#    
+#       &lt;/body&gt;
+#     &lt;/html&gt;
+#   }.gsub(/^  /, '')
+#   
+#   rhtml = ERB.new(template)
+#   
+#   # Set up template data.
+#   toy = Product.new( &quot;TZ-1002&quot;,
+#                      &quot;Rubysapien&quot;,
+#                      &quot;Geek's Best Friend!  Responds to Ruby commands...&quot;,
+#                      999.95 )
+#   toy.add_feature(&quot;Listens for verbal commands in the Ruby language!&quot;)
+#   toy.add_feature(&quot;Ignores Perl, Java, and all C variants.&quot;)
+#   toy.add_feature(&quot;Karate-Chop Action!!!&quot;)
+#   toy.add_feature(&quot;Matz signature on left leg.&quot;)
+#   toy.add_feature(&quot;Gem studded eyes... Rubies, of course!&quot;)
+#   
+#   # Produce result.
+#   rhtml.run(toy.get_binding)
+#
+# &lt;i&gt;Generates (some blank lines removed):&lt;/i&gt;
+#
+#    &lt;html&gt;
+#      &lt;head&gt;&lt;title&gt;Ruby Toys -- Rubysapien&lt;/title&gt;&lt;/head&gt;
+#      &lt;body&gt;
+#    
+#        &lt;h1&gt;Rubysapien (TZ-1002)&lt;/h1&gt;
+#        &lt;p&gt;Geek's Best Friend!  Responds to Ruby commands...&lt;/p&gt;
+#    
+#        &lt;ul&gt;
+#            &lt;li&gt;&lt;b&gt;Listens for verbal commands in the Ruby language!&lt;/b&gt;&lt;/li&gt;
+#            &lt;li&gt;&lt;b&gt;Ignores Perl, Java, and all C variants.&lt;/b&gt;&lt;/li&gt;
+#            &lt;li&gt;&lt;b&gt;Karate-Chop Action!!!&lt;/b&gt;&lt;/li&gt;
+#            &lt;li&gt;&lt;b&gt;Matz signature on left leg.&lt;/b&gt;&lt;/li&gt;
+#            &lt;li&gt;&lt;b&gt;Gem studded eyes... Rubies, of course!&lt;/b&gt;&lt;/li&gt;
+#        &lt;/ul&gt;
+#    
+#        &lt;p&gt;
+#             Call for a price, today!
+#        &lt;/p&gt;
+#    
+#      &lt;/body&gt;
+#    &lt;/html&gt;
+#
+# 
+# == Notes
+#
+# There are a variety of templating solutions available in various Ruby projects:
+# * ERB's big brother, eRuby, works the same but is written in C for speed;
+# * Amrita (smart at producing HTML/XML);
+# * cs/Template (written in C for speed);
+# * RDoc, distributed with Ruby, uses its own template engine, which can be reused elsewhere;
+# * and others; search the RAA.
+#
+# Rails, the web application framework, uses ERB to create views.
+#
+class ERB
+  Revision = '$Date: 2008-06-06 17:05:24 +0900 (Fri, 06 Jun 2008) $' 	#'
+
+  # Returns revision information for the erb.rb module.
+  def self.version
+    &quot;erb.rb [2.1.0 #{ERB::Revision.split[1]}]&quot;
+  end
+end
+
+#--
+# ERB::Compiler
+class ERB
+  class Compiler # :nodoc:
+    class PercentLine # :nodoc:
+      def initialize(str)
+        @value = str
+      end
+      attr_reader :value
+      alias :to_s :value
+
+      def empty?
+        @value.empty?
+      end
+    end
+
+    class Scanner # :nodoc:
+      @scanner_map = {}
+      def self.regist_scanner(klass, trim_mode, percent)
+	@scanner_map[[trim_mode, percent]] = klass
+      end
+
+      def self.default_scanner=(klass)
+	@default_scanner = klass
+      end
+
+      def self.make_scanner(src, trim_mode, percent)
+	klass = @scanner_map.fetch([trim_mode, percent], @default_scanner)
+	klass.new(src, trim_mode, percent)
+      end
+
+      def initialize(src, trim_mode, percent)
+	@src = src
+	@stag = nil
+      end
+      attr_accessor :stag
+
+      def scan; end
+    end
+
+    class TrimScanner &lt; Scanner # :nodoc:
+      def initialize(src, trim_mode, percent)
+	super
+	@trim_mode = trim_mode
+	@percent = percent
+	if @trim_mode == '&gt;'
+	  @scan_line = self.method(:trim_line1)
+	elsif @trim_mode == '&lt;&gt;'
+	  @scan_line = self.method(:trim_line2)
+	elsif @trim_mode == '-'
+	  @scan_line = self.method(:explicit_trim_line)
+	else
+	  @scan_line = self.method(:scan_line)
+	end
+      end
+      attr_accessor :stag
+      
+      def scan(&amp;block)
+	@stag = nil
+	if @percent
+	  @src.each do |line|
+	    percent_line(line, &amp;block)
+	  end
+	else
+          @scan_line.call(@src, &amp;block)
+	end
+	nil
+      end
+
+      def percent_line(line, &amp;block)
+	if @stag || line[0] != ?%
+	  return @scan_line.call(line, &amp;block)
+	end
+
+	line[0] = ''
+	if line[0] == ?%
+	  @scan_line.call(line, &amp;block)
+	else
+          yield(PercentLine.new(line.chomp))
+	end
+      end
+
+      def scan_line(line)
+        line.scan(/(.*?)(&lt;%%|%%&gt;|&lt;%=|&lt;%#|&lt;%|%&gt;|\n|\z)/m) do |tokens|
+          tokens.each do |token|
+            next if token.empty?
+            yield(token)
+          end
+	end
+      end
+
+      def trim_line1(line)
+        line.scan(/(.*?)(&lt;%%|%%&gt;|&lt;%=|&lt;%#|&lt;%|%&gt;\n|%&gt;|\n|\z)/m) do |tokens|
+          tokens.each do |token|
+            next if token.empty?
+            if token == &quot;%&gt;\n&quot;
+              yield('%&gt;')
+              yield(:cr)
+            else
+              yield(token)
+            end
+          end
+	end
+      end
+
+      def trim_line2(line)
+	head = nil
+        line.scan(/(.*?)(&lt;%%|%%&gt;|&lt;%=|&lt;%#|&lt;%|%&gt;\n|%&gt;|\n|\z)/m) do |tokens|
+          tokens.each do |token|
+            next if token.empty?
+            head = token unless head
+            if token == &quot;%&gt;\n&quot;
+              yield('%&gt;')
+              if is_erb_stag?(head)
+                yield(:cr)
+              else
+                yield(&quot;\n&quot;)
+              end
+              head = nil
+            else
+              yield(token)
+              head = nil if token == &quot;\n&quot;
+            end
+          end
+	end
+      end
+
+      def explicit_trim_line(line)
+        line.scan(/(.*?)(^[ \t]*&lt;%\-|&lt;%\-|&lt;%%|%%&gt;|&lt;%=|&lt;%#|&lt;%|-%&gt;\n|-%&gt;|%&gt;|\z)/m) do |tokens|
+          tokens.each do |token|
+            next if token.empty?
+            if @stag.nil? &amp;&amp; /[ \t]*&lt;%-/ =~ token
+              yield('&lt;%')
+            elsif @stag &amp;&amp; token == &quot;-%&gt;\n&quot;
+              yield('%&gt;')
+              yield(:cr)
+            elsif @stag &amp;&amp; token == '-%&gt;'
+              yield('%&gt;')
+            else
+              yield(token)
+            end
+          end
+        end
+      end
+
+      ERB_STAG = %w(&lt;%= &lt;%# &lt;%)
+      def is_erb_stag?(s)
+	ERB_STAG.member?(s)
+      end
+    end
+
+    Scanner.default_scanner = TrimScanner
+
+    class SimpleScanner &lt; Scanner # :nodoc:
+      def scan
+        @src.scan(/(.*?)(&lt;%%|%%&gt;|&lt;%=|&lt;%#|&lt;%|%&gt;|\n|\z)/m) do |tokens|
+          tokens.each do |token|
+            next if token.empty?
+            yield(token)
+          end
+	end
+      end
+    end
+    
+    Scanner.regist_scanner(SimpleScanner, nil, false)
+
+    begin
+      require 'strscan'
+      class SimpleScanner2 &lt; Scanner # :nodoc:
+        def scan
+          stag_reg = /(.*?)(&lt;%%|&lt;%=|&lt;%#|&lt;%|\z)/m
+          etag_reg = /(.*?)(%%&gt;|%&gt;|\z)/m
+          scanner = StringScanner.new(@src)
+          while ! scanner.eos?
+            scanner.scan(@stag ? etag_reg : stag_reg)
+            yield(scanner[1])
+            yield(scanner[2])
+          end
+        end
+      end
+      Scanner.regist_scanner(SimpleScanner2, nil, false)
+
+      class PercentScanner &lt; Scanner # :nodoc:
+	def scan
+          stag_reg = /(.*?)(^%%|^%|&lt;%%|&lt;%=|&lt;%#|&lt;%|\z)/m
+          etag_reg = /(.*?)(%%&gt;|%&gt;|\z)/m
+          scanner = StringScanner.new(@src)
+          while ! scanner.eos?
+	    scanner.scan(@stag ? etag_reg : stag_reg)
+            yield(scanner[1])
+
+            elem = scanner[2]
+            if elem == '%%'
+              elem = '%'
+            elsif elem == '%'
+              elem = PercentLine.new(scanner.scan(/.*?(\n|\z)/).chomp)
+            end
+            yield(elem)
+          end
+        end
+      end
+      Scanner.regist_scanner(PercentScanner, nil, true)
+
+      class ExplicitScanner &lt; Scanner # :nodoc:
+	def scan
+          stag_reg = /(.*?)(^[ \t]*&lt;%-|&lt;%%|&lt;%=|&lt;%#|&lt;%-|&lt;%|\z)/m
+          etag_reg = /(.*?)(%%&gt;|-%&gt;|%&gt;|\z)/m
+          scanner = StringScanner.new(@src)
+          while ! scanner.eos?
+	    scanner.scan(@stag ? etag_reg : stag_reg)
+            yield(scanner[1])
+
+            elem = scanner[2]
+            if /[ \t]*&lt;%-/ =~ elem
+              yield('&lt;%')
+            elsif elem == '-%&gt;'
+	      yield('%&gt;')
+	      yield(:cr) if scanner.scan(/(\n|\z)/)
+	    else
+	      yield(elem)
+	    end
+          end
+        end
+      end
+      Scanner.regist_scanner(ExplicitScanner, '-', false)
+
+    rescue LoadError
+    end
+
+    class Buffer # :nodoc:
+      def initialize(compiler)
+	@compiler = compiler
+	@line = []
+	@script = &quot;&quot;
+	@compiler.pre_cmd.each do |x|
+	  push(x)
+	end
+      end
+      attr_reader :script
+
+      def push(cmd)
+	@line &lt;&lt; cmd
+      end
+      
+      def cr
+	@script &lt;&lt; (@line.join('; '))
+	@line = []
+	@script &lt;&lt; &quot;\n&quot;
+      end
+      
+      def close
+	return unless @line
+	@compiler.post_cmd.each do |x|
+	  push(x)
+	end
+	@script &lt;&lt; (@line.join('; '))
+	@line = nil
+      end
+    end
+
+    def content_dump(s)
+      n = s.count(&quot;\n&quot;)
+      if n &gt; 0
+        s.dump + &quot;\n&quot; * n
+      else
+        s.dump
+      end
+    end
+
+    def compile(s)
+      out = Buffer.new(self)
+
+      content = ''
+      scanner = make_scanner(s)
+      scanner.scan do |token|
+        next if token.nil? 
+        next if token == ''
+	if scanner.stag.nil?
+	  case token
+          when PercentLine
+	    out.push(&quot;#{@put_cmd} #{content_dump(content)}&quot;) if content.size &gt; 0
+	    content = ''
+            out.push(token.to_s)
+            out.cr
+	  when :cr
+	    out.cr
+	  when '&lt;%', '&lt;%=', '&lt;%#'
+	    scanner.stag = token
+	    out.push(&quot;#{@put_cmd} #{content_dump(content)}&quot;) if content.size &gt; 0
+	    content = ''
+	  when &quot;\n&quot;
+	    content &lt;&lt; &quot;\n&quot;
+	    out.push(&quot;#{@put_cmd} #{content_dump(content)}&quot;)
+	    content = ''
+	  when '&lt;%%'
+	    content &lt;&lt; '&lt;%'
+	  else
+	    content &lt;&lt; token
+	  end
+	else
+	  case token
+	  when '%&gt;'
+	    case scanner.stag
+	    when '&lt;%'
+	      if content[-1] == ?\n
+		content.chop!
+		out.push(content)
+		out.cr
+	      else
+		out.push(content)
+	      end
+	    when '&lt;%='
+	      out.push(&quot;#{@insert_cmd}((#{content}).to_s)&quot;)
+	    when '&lt;%#'
+	      # out.push(&quot;# #{content_dump(content)}&quot;)
+	    end
+	    scanner.stag = nil
+	    content = ''
+	  when '%%&gt;'
+	    content &lt;&lt; '%&gt;'
+	  else
+	    content &lt;&lt; token
+	  end
+	end
+      end
+      out.push(&quot;#{@put_cmd} #{content_dump(content)}&quot;) if content.size &gt; 0
+      out.close
+      out.script
+    end
+
+    def prepare_trim_mode(mode)
+      case mode
+      when 1
+	return [false, '&gt;']
+      when 2
+	return [false, '&lt;&gt;']
+      when 0
+	return [false, nil]
+      when String
+	perc = mode.include?('%')
+	if mode.include?('-')
+	  return [perc, '-']
+	elsif mode.include?('&lt;&gt;')
+	  return [perc, '&lt;&gt;']
+	elsif mode.include?('&gt;')
+	  return [perc, '&gt;']
+	else
+	  [perc, nil]
+	end
+      else
+	return [false, nil]
+      end
+    end
+
+    def make_scanner(src)
+      Scanner.make_scanner(src, @trim_mode, @percent)
+    end
+
+    def initialize(trim_mode)
+      @percent, @trim_mode = prepare_trim_mode(trim_mode)
+      @put_cmd = 'print'
+      @insert_cmd = @put_cmd
+      @pre_cmd = []
+      @post_cmd = []
+    end
+    attr_reader :percent, :trim_mode
+    attr_accessor :put_cmd, :insert_cmd, :pre_cmd, :post_cmd
+  end
+end
+
+#--
+# ERB
+class ERB
+  #
+  # Constructs a new ERB object with the template specified in _str_.
+  # 
+  # An ERB object works by building a chunk of Ruby code that will output
+  # the completed template when run. If _safe_level_ is set to a non-nil value,
+  # ERB code will be run in a separate thread with &lt;b&gt;$SAFE&lt;/b&gt; set to the
+  # provided level.
+  # 
+  # If _trim_mode_ is passed a String containing one or more of the following
+  # modifiers, ERB will adjust its code generation as listed:
+  # 
+  # 	%  enables Ruby code processing for lines beginning with %
+  # 	&lt;&gt; omit newline for lines starting with &lt;% and ending in %&gt;
+  # 	&gt;  omit newline for lines ending in %&gt;
+  # 
+  # _eoutvar_ can be used to set the name of the variable ERB will build up
+  # its output in.  This is useful when you need to run multiple ERB
+  # templates through the same binding and/or when you want to control where
+  # output ends up.  Pass the name of the variable to be used inside a String.
+  #
+  # === Example
+  #
+  #  require &quot;erb&quot;
+  #  
+  #  # build data class
+  #  class Listings
+  #    PRODUCT = { :name =&gt; &quot;Chicken Fried Steak&quot;,
+  #                :desc =&gt; &quot;A well messages pattie, breaded and fried.&quot;,
+  #                :cost =&gt; 9.95 }
+  #  
+  #    attr_reader :product, :price
+  #    
+  #    def initialize( product = &quot;&quot;, price = &quot;&quot; )
+  #      @product = product
+  #      @price = price
+  #    end
+  #    
+  #    def build
+  #      b = binding
+  #      # create and run templates, filling member data variables
+  #      ERB.new(&lt;&lt;-'END_PRODUCT'.gsub(/^\s+/, &quot;&quot;), 0, &quot;&quot;, &quot;@product&quot;).result b
+  #        &lt;%= PRODUCT[:name] %&gt;
+  #        &lt;%= PRODUCT[:desc] %&gt;
+  #      END_PRODUCT
+  #      ERB.new(&lt;&lt;-'END_PRICE'.gsub(/^\s+/, &quot;&quot;), 0, &quot;&quot;, &quot;@price&quot;).result b
+  #        &lt;%= PRODUCT[:name] %&gt; -- &lt;%= PRODUCT[:cost] %&gt;
+  #        &lt;%= PRODUCT[:desc] %&gt;
+  #      END_PRICE
+  #    end
+  #  end
+  #  
+  #  # setup template data
+  #  listings = Listings.new
+  #  listings.build
+  #  
+  #  puts listings.product + &quot;\n&quot; + listings.price
+  #
+  # _Generates_
+  #
+  #  Chicken Fried Steak
+  #  A well messages pattie, breaded and fried.
+  #  
+  #  Chicken Fried Steak -- 9.95
+  #  A well messages pattie, breaded and fried.
+  #  
+  def initialize(str, safe_level=nil, trim_mode=nil, eoutvar='_erbout')
+    @safe_level = safe_level
+    compiler = ERB::Compiler.new(trim_mode)
+    set_eoutvar(compiler, eoutvar)
+    @src = compiler.compile(str)
+    @filename = nil
+  end
+
+  # The Ruby code generated by ERB
+  attr_reader :src
+
+  # The optional _filename_ argument passed to Kernel#eval when the ERB code
+  # is run
+  attr_accessor :filename
+
+  #
+  # Can be used to set _eoutvar_ as described in ERB#new.  It's probably easier
+  # to just use the constructor though, since calling this method requires the
+  # setup of an ERB _compiler_ object.
+  #
+  def set_eoutvar(compiler, eoutvar = '_erbout')
+    compiler.put_cmd = &quot;#{eoutvar}.concat&quot;
+    compiler.insert_cmd = &quot;#{eoutvar}.concat&quot;
+
+    cmd = []
+    cmd.push &quot;#{eoutvar} = ''&quot;
+    
+    compiler.pre_cmd = cmd
+
+    cmd = []
+    cmd.push(eoutvar)
+
+    compiler.post_cmd = cmd
+  end
+
+  # Generate results and print them. (see ERB#result)
+  def run(b=TOPLEVEL_BINDING)
+    print self.result(b)
+  end
+
+  #
+  # Executes the generated ERB code to produce a completed template, returning
+  # the results of that code.  (See ERB#new for details on how this process can
+  # be affected by _safe_level_.)
+  # 
+  # _b_ accepts a Binding or Proc object which is used to set the context of
+  # code evaluation.
+  #
+  def result(b=TOPLEVEL_BINDING)
+    if @safe_level
+      proc { 
+	$SAFE = @safe_level
+	eval(@src, b, (@filename || '(erb)'), 1)
+      }.call
+    else
+      eval(@src, b, (@filename || '(erb)'), 1)
+    end
+  end
+
+  # Define _methodname_ as instance method of _mod_ from compiled ruby source.
+  #
+  # example:
+  #   filename = 'example.rhtml'   # 'arg1' and 'arg2' are used in example.rhtml
+  #   erb = ERB.new(File.read(filename))
+  #   erb.def_method(MyClass, 'render(arg1, arg2)', filename)
+  #   print MyClass.new.render('foo', 123)
+  def def_method(mod, methodname, fname='(ERB)')
+    mod.module_eval(&quot;def #{methodname}\n&quot; + self.src + &quot;\nend\n&quot;, fname, 0)
+  end
+
+  # Create unnamed module, define _methodname_ as instance method of it, and return it.
+  #
+  # example:
+  #   filename = 'example.rhtml'   # 'arg1' and 'arg2' are used in example.rhtml
+  #   erb = ERB.new(File.read(filename))
+  #   erb.filename = filename
+  #   MyModule = erb.def_module('render(arg1, arg2)')
+  #   class MyClass
+  #     include MyModule
+  #   end
+  def def_module(methodname='erb')
+    mod = Module.new
+    def_method(mod, methodname, @filename || '(ERB)')
+    mod
+  end
+
+  # Define unnamed class which has _methodname_ as instance method, and return it.
+  #
+  # example:
+  #   class MyClass_
+  #     def initialize(arg1, arg2)
+  #       @arg1 = arg1;  @arg2 = arg2
+  #     end
+  #   end
+  #   filename = 'example.rhtml'  # @arg1 and @arg2 are used in example.rhtml
+  #   erb = ERB.new(File.read(filename))
+  #   erb.filename = filename
+  #   MyClass = erb.def_class(MyClass_, 'render()')
+  #   print MyClass.new('foo', 123).render()
+  def def_class(superklass=Object, methodname='result')
+    cls = Class.new(superklass)
+    def_method(cls, methodname, @filename || '(ERB)')
+    cls
+  end
+end
+
+#--
+# ERB::Util
+class ERB
+  # A utility module for conversion routines, often handy in HTML generation.
+  module Util
+    public
+    #
+    # A utility method for escaping HTML tag characters in _s_.
+    # 
+    # 	require &quot;erb&quot;
+    # 	include ERB::Util
+    # 	
+    # 	puts html_escape(&quot;is a &gt; 0 &amp; a &lt; 10?&quot;)
+    # 
+    # _Generates_
+    # 
+    # 	is a &amp;gt; 0 &amp;amp; a &amp;lt; 10?
+    #
+    def html_escape(s)
+      s.to_s.gsub(/&amp;/, &quot;&amp;amp;&quot;).gsub(/\&quot;/, &quot;&amp;quot;&quot;).gsub(/&gt;/, &quot;&amp;gt;&quot;).gsub(/&lt;/, &quot;&amp;lt;&quot;)
+    end
+    alias h html_escape
+    module_function :h
+    module_function :html_escape
+    
+    #
+    # A utility method for encoding the String _s_ as a URL.
+    # 
+    # 	require &quot;erb&quot;
+    # 	include ERB::Util
+    # 	
+    # 	puts url_encode(&quot;Programming Ruby:  The Pragmatic Programmer's Guide&quot;)
+    # 
+    # _Generates_
+    # 
+    # 	Programming%20Ruby%3A%20%20The%20Pragmatic%20Programmer%27s%20Guide
+    #
+    def url_encode(s)
+      s.to_s.gsub(/[^a-zA-Z0-9_\-.]/n){ sprintf(&quot;%%%02X&quot;, $&amp;.unpack(&quot;C&quot;)[0]) }
+    end
+    alias u url_encode
+    module_function :u
+    module_function :url_encode
+  end
+end
+
+#--
+# ERB::DefMethod
+class ERB
+  # Utility module to define eRuby script as instance method.
+  #
+  # === Example
+  #
+  # example.rhtml:
+  #   &lt;% for item in @items %&gt;
+  #   &lt;b&gt;&lt;%= item %&gt;&lt;/b&gt;
+  #   &lt;% end %&gt;
+  #
+  # example.rb:
+  #   require 'erb'
+  #   class MyClass
+  #     extend ERB::DefMethod
+  #     def_erb_method('render()', 'example.rhtml')
+  #     def initialize(items)
+  #       @items = items
+  #     end
+  #   end
+  #   print MyClass.new([10,20,30]).render()
+  #
+  # result:
+  #
+  #   &lt;b&gt;10&lt;/b&gt;
+  #
+  #   &lt;b&gt;20&lt;/b&gt;
+  #
+  #   &lt;b&gt;30&lt;/b&gt;
+  #
+  module DefMethod
+    public
+  # define _methodname_ as instance method of current module, using ERB object or eRuby file
+    def def_erb_method(methodname, erb_or_fname)
+      if erb_or_fname.kind_of? String
+        fname = erb_or_fname
+        erb = ERB.new(File.read(fname))
+        erb.def_method(self, methodname, fname)
+      else
+        erb = erb_or_fname
+        erb.def_method(self, methodname, erb.filename || '(ERB)')
+      end
+    end
+    module_function :def_erb_method
+  end
+end
+</pre>
+    </div>

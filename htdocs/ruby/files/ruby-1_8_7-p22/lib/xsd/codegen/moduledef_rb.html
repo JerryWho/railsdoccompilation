@@ -1,0 +1,211 @@
+  <div id="fileHeader">
+    <h1>moduledef.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/codegen/moduledef.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - Generating module definition code
+# Copyright (C) 2004  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'xsd/codegen/gensupport'
+require 'xsd/codegen/methoddef'
+require 'xsd/codegen/commentdef'
+
+
+module XSD
+module CodeGen
+
+
+class ModuleDef
+  include GenSupport
+  include CommentDef
+
+  def initialize(name)
+    @name = name
+    @comment = nil
+    @const = []
+    @code = []
+    @requirepath = []
+    @methoddef = []
+  end
+
+  def def_require(path)
+    @requirepath &lt;&lt; path
+  end
+
+  def def_const(const, value)
+    unless safeconstname?(const)
+      raise ArgumentError.new(&quot;#{const} seems to be unsafe&quot;)
+    end
+    @const &lt;&lt; [const, value]
+  end
+
+  def def_code(code)
+    @code &lt;&lt; code
+  end
+
+  def def_method(name, *params)
+    add_method(MethodDef.new(name, *params) { yield if block_given? }, :public)
+  end
+  alias def_publicmethod def_method
+
+  def def_protectedmethod(name, *params)
+    add_method(MethodDef.new(name, *params) { yield if block_given? },
+      :protected)
+  end
+
+  def def_privatemethod(name, *params)
+    add_method(MethodDef.new(name, *params) { yield if block_given? }, :private)
+  end
+
+  def add_method(m, visibility = :public)
+    @methoddef &lt;&lt; [visibility, m]
+  end
+
+  def dump
+    buf = &quot;&quot;
+    unless @requirepath.empty?
+      buf &lt;&lt; dump_requirepath 
+    end
+    buf &lt;&lt; dump_emptyline unless buf.empty?
+    package = @name.split(/::/)[0..-2]
+    buf &lt;&lt; dump_package_def(package) unless package.empty?
+    buf &lt;&lt; dump_comment if @comment
+    buf &lt;&lt; dump_module_def
+    spacer = false
+    unless @const.empty?
+      buf &lt;&lt; dump_emptyline if spacer
+      spacer = true
+      buf &lt;&lt; dump_const
+    end
+    unless @code.empty?
+      buf &lt;&lt; dump_emptyline if spacer
+      spacer = true
+      buf &lt;&lt; dump_code
+    end
+    unless @methoddef.empty?
+      buf &lt;&lt; dump_emptyline if spacer
+      spacer = true
+      buf &lt;&lt; dump_methods
+    end
+    buf &lt;&lt; dump_module_def_end
+    buf &lt;&lt; dump_package_def_end(package) unless package.empty?
+    buf.gsub(/^\s+$/, '')
+  end
+
+private
+
+  def dump_requirepath
+    format(
+      @requirepath.collect { |path|
+        %Q(require '#{path}')
+      }.join(&quot;\n&quot;)
+    )
+  end
+
+  def dump_const
+    dump_static(
+      @const.sort.collect { |var, value|
+        %Q(#{var} = #{dump_value(value)})
+      }.join(&quot;\n&quot;)
+    )
+  end
+
+  def dump_code
+    dump_static(@code.join(&quot;\n&quot;))
+  end
+
+  def dump_static(str)
+    format(str, 2)
+  end
+
+  def dump_methods
+    methods = {}
+    @methoddef.each do |visibility, method|
+      (methods[visibility] ||= []) &lt;&lt; method
+    end
+    str = &quot;&quot;
+    [:public, :protected, :private].each do |visibility|
+      if methods[visibility]
+        str &lt;&lt; &quot;\n&quot; unless str.empty?
+        str &lt;&lt; visibility.to_s &lt;&lt; &quot;\n\n&quot; unless visibility == :public
+        str &lt;&lt; methods[visibility].collect { |m| format(m.dump, 2) }.join(&quot;\n&quot;)
+      end
+    end
+    str
+  end
+
+  def dump_value(value)
+    if value.respond_to?(:to_src)
+      value.to_src
+    else
+      value
+    end
+  end
+
+  def dump_package_def(package)
+    format(package.collect { |ele| &quot;module #{ele}&quot; }.join(&quot;; &quot;)) + &quot;\n\n&quot;
+  end
+
+  def dump_package_def_end(package)
+    &quot;\n\n&quot; + format(package.collect { |ele| &quot;end&quot; }.join(&quot;; &quot;))
+  end
+
+  def dump_module_def
+    name = @name.to_s.split(/::/)
+    format(&quot;module #{name.last}&quot;)
+  end
+
+  def dump_module_def_end
+    format(&quot;end&quot;)
+  end
+end
+
+
+end
+end
+
+
+if __FILE__ == $0
+  require 'xsd/codegen/moduledef'
+  include XSD::CodeGen
+  m = ModuleDef.new(&quot;Foo::Bar::HobbitName&quot;)
+  m.def_require(&quot;foo/bar&quot;)
+  m.def_require(&quot;baz&quot;)
+  m.comment = &lt;&lt;-EOD
+    foo
+    bar
+    baz
+  EOD
+  m.def_method(&quot;foo&quot;) do
+    &lt;&lt;-EOD
+      foo.bar = 1
+      baz.each do |ele|
+        ele + 1
+      end
+    EOD
+  end
+  m.def_method(&quot;baz&quot;, &quot;qux&quot;)
+  #m.def_protectedmethod(&quot;aaa&quot;)
+  m.def_privatemethod(&quot;bbb&quot;)
+  puts m.dump
+end
+</pre>
+    </div>

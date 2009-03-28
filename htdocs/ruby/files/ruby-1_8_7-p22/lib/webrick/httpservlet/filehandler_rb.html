@@ -1,0 +1,455 @@
+  <div id="fileHeader">
+    <h1>filehandler.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/httpservlet/filehandler.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun May 18 10:02:36 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# filehandler.rb -- FileHandler Module
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2001 TAKAHASHI Masayoshi, GOTOU Yuuzou
+# Copyright (c) 2003 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: filehandler.rb,v 1.44 2003/06/07 01:34:51 gotoyuzo Exp $
+
+require 'thread'
+require 'time'
+
+require 'webrick/htmlutils'
+require 'webrick/httputils'
+require 'webrick/httpstatus'
+
+module WEBrick
+  module HTTPServlet
+
+    class DefaultFileHandler &lt; AbstractServlet
+      def initialize(server, local_path)
+        super
+        @local_path = local_path
+      end
+
+      def do_GET(req, res)
+        st = File::stat(@local_path)
+        mtime = st.mtime
+        res['etag'] = sprintf(&quot;%x-%x-%x&quot;, st.ino, st.size, st.mtime.to_i)
+
+        if not_modified?(req, res, mtime, res['etag'])
+          res.body = ''
+          raise HTTPStatus::NotModified
+        elsif req['range'] 
+          make_partial_content(req, res, @local_path, st.size)
+          raise HTTPStatus::PartialContent
+        else
+          mtype = HTTPUtils::mime_type(@local_path, @config[:MimeTypes])
+          res['content-type'] = mtype
+          res['content-length'] = st.size
+          res['last-modified'] = mtime.httpdate
+          res.body = open(@local_path, &quot;rb&quot;)
+        end
+      end
+
+      def not_modified?(req, res, mtime, etag)
+        if ir = req['if-range']
+          begin
+            if Time.httpdate(ir) &gt;= mtime
+              return true
+            end
+          rescue
+            if HTTPUtils::split_header_value(ir).member?(res['etag'])
+              return true
+            end
+          end
+        end
+
+        if (ims = req['if-modified-since']) &amp;&amp; Time.parse(ims) &gt;= mtime
+          return true
+        end
+
+        if (inm = req['if-none-match']) &amp;&amp;
+           HTTPUtils::split_header_value(inm).member?(res['etag'])
+          return true
+        end
+
+        return false
+      end
+
+      def make_partial_content(req, res, filename, filesize)
+        mtype = HTTPUtils::mime_type(filename, @config[:MimeTypes])
+        unless ranges = HTTPUtils::parse_range_header(req['range'])
+          raise HTTPStatus::BadRequest,
+            &quot;Unrecognized range-spec: \&quot;#{req['range']}\&quot;&quot;
+        end
+        open(filename, &quot;rb&quot;){|io|
+          if ranges.size &gt; 1
+            time = Time.now
+            boundary = &quot;#{time.sec}_#{time.usec}_#{Process::pid}&quot;
+            body = ''
+            ranges.each{|range|
+              first, last = prepare_range(range, filesize)
+              next if first &lt; 0
+              io.pos = first
+              content = io.read(last-first+1)
+              body &lt;&lt; &quot;--&quot; &lt;&lt; boundary &lt;&lt; CRLF
+              body &lt;&lt; &quot;Content-Type: #{mtype}&quot; &lt;&lt; CRLF
+              body &lt;&lt; &quot;Content-Range: #{first}-#{last}/#{filesize}&quot; &lt;&lt; CRLF
+              body &lt;&lt; CRLF
+              body &lt;&lt; content
+              body &lt;&lt; CRLF
+            }
+            raise HTTPStatus::RequestRangeNotSatisfiable if body.empty?
+            body &lt;&lt; &quot;--&quot; &lt;&lt; boundary &lt;&lt; &quot;--&quot; &lt;&lt; CRLF
+            res[&quot;content-type&quot;] = &quot;multipart/byteranges; boundary=#{boundary}&quot;
+            res.body = body
+          elsif range = ranges[0]
+            first, last = prepare_range(range, filesize)
+            raise HTTPStatus::RequestRangeNotSatisfiable if first &lt; 0
+            if last == filesize - 1
+              content = io.dup
+              content.pos = first
+            else
+              io.pos = first
+              content = io.read(last-first+1)
+            end
+            res['content-type'] = mtype
+            res['content-range'] = &quot;#{first}-#{last}/#{filesize}&quot;
+            res['content-length'] = last - first + 1
+            res.body = content
+          else
+            raise HTTPStatus::BadRequest
+          end
+        }
+      end
+
+      def prepare_range(range, filesize)
+        first = range.first &lt; 0 ? filesize + range.first : range.first
+        return -1, -1 if first &lt; 0 || first &gt;= filesize
+        last = range.last &lt; 0 ? filesize + range.last : range.last
+        last = filesize - 1 if last &gt;= filesize
+        return first, last
+      end
+    end
+
+    class FileHandler &lt; AbstractServlet
+      HandlerTable = Hash.new
+
+      def self.add_handler(suffix, handler)
+        HandlerTable[suffix] = handler
+      end
+
+      def self.remove_handler(suffix)
+        HandlerTable.delete(suffix)
+      end
+
+      def initialize(server, root, options={}, default=Config::FileHandler)
+        @config = server.config
+        @logger = @config[:Logger]
+        @root = File.expand_path(root)
+        if options == true || options == false
+          options = { :FancyIndexing =&gt; options }
+        end
+        @options = default.dup.update(options)
+      end
+
+      def service(req, res)
+        # if this class is mounted on &quot;/&quot; and /~username is requested.
+        # we're going to override path informations before invoking service.
+        if defined?(Etc) &amp;&amp; @options[:UserDir] &amp;&amp; req.script_name.empty?
+          if %r|^(/~([^/]+))| =~ req.path_info
+            script_name, user = $1, $2
+            path_info = $'
+            begin
+              passwd = Etc::getpwnam(user)
+              @root = File::join(passwd.dir, @options[:UserDir])
+              req.script_name = script_name
+              req.path_info = path_info
+            rescue
+              @logger.debug &quot;#{self.class}#do_GET: getpwnam(#{user}) failed&quot;
+            end
+          end
+        end
+        prevent_directory_traversal(req, res)
+        super(req, res)
+      end
+
+      def do_GET(req, res)
+        unless exec_handler(req, res)
+          set_dir_list(req, res)
+        end
+      end
+
+      def do_POST(req, res)
+        unless exec_handler(req, res)
+          raise HTTPStatus::NotFound, &quot;`#{req.path}' not found.&quot;
+        end
+      end
+
+      def do_OPTIONS(req, res)
+        unless exec_handler(req, res)
+          super(req, res)
+        end
+      end
+
+      # ToDo
+      # RFC2518: HTTP Extensions for Distributed Authoring -- WEBDAV
+      #
+      # PROPFIND PROPPATCH MKCOL DELETE PUT COPY MOVE
+      # LOCK UNLOCK
+
+      # RFC3253: Versioning Extensions to WebDAV
+      #          (Web Distributed Authoring and Versioning)
+      #
+      # VERSION-CONTROL REPORT CHECKOUT CHECK_IN UNCHECKOUT
+      # MKWORKSPACE UPDATE LABEL MERGE ACTIVITY
+
+      private
+
+      def trailing_pathsep?(path)
+        # check for trailing path separator:
+        #   File.dirname(&quot;/aaaa/bbbb/&quot;)      #=&gt; &quot;/aaaa&quot;)
+        #   File.dirname(&quot;/aaaa/bbbb/x&quot;)     #=&gt; &quot;/aaaa/bbbb&quot;)
+        #   File.dirname(&quot;/aaaa/bbbb&quot;)       #=&gt; &quot;/aaaa&quot;)
+        #   File.dirname(&quot;/aaaa/bbbbx&quot;)      #=&gt; &quot;/aaaa&quot;)
+        return File.dirname(path) != File.dirname(path+&quot;x&quot;)
+      end
+
+      def prevent_directory_traversal(req, res)
+        # Preventing directory traversal on Windows platforms;
+        # Backslashes (0x5c) in path_info are not interpreted as special
+        # character in URI notation. So the value of path_info should be
+        # normalize before accessing to the filesystem.
+
+        if trailing_pathsep?(req.path_info)
+          # File.expand_path removes the trailing path separator.
+          # Adding a character is a workaround to save it.
+          #  File.expand_path(&quot;/aaa/&quot;)        #=&gt; &quot;/aaa&quot;
+          #  File.expand_path(&quot;/aaa/&quot; + &quot;x&quot;)  #=&gt; &quot;/aaa/x&quot;
+          expanded = File.expand_path(req.path_info + &quot;x&quot;)
+          expanded.chop!  # remove trailing &quot;x&quot;
+        else
+          expanded = File.expand_path(req.path_info)
+        end
+        req.path_info = expanded
+      end
+
+      def exec_handler(req, res)
+        raise HTTPStatus::NotFound, &quot;`#{req.path}' not found&quot; unless @root
+        if set_filename(req, res)
+          handler = get_handler(req, res)
+          call_callback(:HandlerCallback, req, res)
+          h = handler.get_instance(@config, res.filename)
+          h.service(req, res)
+          return true
+        end
+        call_callback(:HandlerCallback, req, res)
+        return false
+      end
+
+      def get_handler(req, res)
+        suffix1 = (/\.(\w+)\z/ =~ res.filename) &amp;&amp; $1.downcase
+        if /\.(\w+)\.([\w\-]+)\z/ =~ res.filename
+          if @options[:AcceptableLanguages].include?($2.downcase)
+            suffix2 = $1.downcase
+          end
+        end
+        handler_table = @options[:HandlerTable]
+        return handler_table[suffix1] || handler_table[suffix2] ||
+               HandlerTable[suffix1] || HandlerTable[suffix2] ||
+               DefaultFileHandler
+      end
+
+      def set_filename(req, res)
+        res.filename = @root.dup
+        path_info = req.path_info.scan(%r|/[^/]*|)
+
+        path_info.unshift(&quot;&quot;)  # dummy for checking @root dir
+        while base = path_info.first
+          break if base == &quot;/&quot;
+          break unless File.directory?(File.expand_path(res.filename + base))
+          shift_path_info(req, res, path_info)
+          call_callback(:DirectoryCallback, req, res)
+        end
+
+        if base = path_info.first
+          if base == &quot;/&quot;
+            if file = search_index_file(req, res)
+              shift_path_info(req, res, path_info, file)
+              call_callback(:FileCallback, req, res)
+              return true
+            end
+            shift_path_info(req, res, path_info)
+          elsif file = search_file(req, res, base)
+            shift_path_info(req, res, path_info, file)
+            call_callback(:FileCallback, req, res)
+            return true
+          else
+            raise HTTPStatus::NotFound, &quot;`#{req.path}' not found.&quot;
+          end
+        end
+
+        return false
+      end
+
+      def check_filename(req, res, name)
+        if nondisclosure_name?(name) || windows_ambiguous_name?(name)
+          @logger.warn(&quot;the request refers nondisclosure name `#{name}'.&quot;)
+          raise HTTPStatus::NotFound, &quot;`#{req.path}' not found.&quot;
+        end
+      end
+
+      def shift_path_info(req, res, path_info, base=nil)
+        tmp = path_info.shift
+        base = base || tmp
+        req.path_info = path_info.join
+        req.script_name &lt;&lt; base
+        res.filename = File.expand_path(res.filename + base)
+        check_filename(req, res, File.basename(res.filename))
+      end
+
+      def search_index_file(req, res)
+        @config[:DirectoryIndex].each{|index|
+          if file = search_file(req, res, &quot;/&quot;+index)
+            return file
+          end
+        }
+        return nil
+      end
+
+      def search_file(req, res, basename)
+        langs = @options[:AcceptableLanguages]
+        path = res.filename + basename
+        if File.file?(path)
+          return basename
+        elsif langs.size &gt; 0
+          req.accept_language.each{|lang|
+            path_with_lang = path + &quot;.#{lang}&quot;
+            if langs.member?(lang) &amp;&amp; File.file?(path_with_lang)
+              return basename + &quot;.#{lang}&quot;
+            end
+          }
+          (langs - req.accept_language).each{|lang|
+            path_with_lang = path + &quot;.#{lang}&quot;
+            if File.file?(path_with_lang)
+              return basename + &quot;.#{lang}&quot;
+            end
+          }
+        end
+        return nil
+      end
+
+      def call_callback(callback_name, req, res)
+        if cb = @options[callback_name]
+          cb.call(req, res)
+        end
+      end
+
+      def windows_ambiguous_name?(name)
+        return true if /[. ]+\z/ =~ name
+        return true if /::\$DATA\z/ =~ name
+        return false
+      end
+
+      def nondisclosure_name?(name)
+        @options[:NondisclosureName].each{|pattern|
+          if File.fnmatch(pattern, name, File::FNM_CASEFOLD)
+            return true
+          end
+        }
+        return false
+      end
+
+      def set_dir_list(req, res)
+        redirect_to_directory_uri(req, res)
+        unless @options[:FancyIndexing]
+          raise HTTPStatus::Forbidden, &quot;no access permission to `#{req.path}'&quot;
+        end
+        local_path = res.filename
+        list = Dir::entries(local_path).collect{|name|
+          next if name == &quot;.&quot; || name == &quot;..&quot;
+          next if nondisclosure_name?(name)
+          next if windows_ambiguous_name?(name)
+          st = (File::stat(File.join(local_path, name)) rescue nil)
+          if st.nil?
+            [ name, nil, -1 ]
+          elsif st.directory?
+            [ name + &quot;/&quot;, st.mtime, -1 ]
+          else
+            [ name, st.mtime, st.size ]
+          end
+        }
+        list.compact!
+
+        if    d0 = req.query[&quot;N&quot;]; idx = 0
+        elsif d0 = req.query[&quot;M&quot;]; idx = 1
+        elsif d0 = req.query[&quot;S&quot;]; idx = 2
+        else  d0 = &quot;A&quot;           ; idx = 0
+        end
+        d1 = (d0 == &quot;A&quot;) ? &quot;D&quot; : &quot;A&quot;
+
+        if d0 == &quot;A&quot;
+          list.sort!{|a,b| a[idx] &lt;=&gt; b[idx] }
+        else
+          list.sort!{|a,b| b[idx] &lt;=&gt; a[idx] }
+        end
+
+        res['content-type'] = &quot;text/html&quot;
+
+        res.body = &lt;&lt;-_end_of_html_
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;HTML&gt;
+  &lt;HEAD&gt;&lt;TITLE&gt;Index of #{HTMLUtils::escape(req.path)}&lt;/TITLE&gt;&lt;/HEAD&gt;
+  &lt;BODY&gt;
+    &lt;H1&gt;Index of #{HTMLUtils::escape(req.path)}&lt;/H1&gt;
+        _end_of_html_
+
+        res.body &lt;&lt; &quot;&lt;PRE&gt;\n&quot;
+        res.body &lt;&lt; &quot; &lt;A HREF=\&quot;?N=#{d1}\&quot;&gt;Name&lt;/A&gt;                          &quot;
+        res.body &lt;&lt; &quot;&lt;A HREF=\&quot;?M=#{d1}\&quot;&gt;Last modified&lt;/A&gt;         &quot;
+        res.body &lt;&lt; &quot;&lt;A HREF=\&quot;?S=#{d1}\&quot;&gt;Size&lt;/A&gt;\n&quot;
+        res.body &lt;&lt; &quot;&lt;HR&gt;\n&quot;
+       
+        list.unshift [ &quot;..&quot;, File::mtime(local_path+&quot;/..&quot;), -1 ]
+        list.each{ |name, time, size|
+          if name == &quot;..&quot;
+            dname = &quot;Parent Directory&quot;
+          elsif name.size &gt; 25
+            dname = name.sub(/^(.{23})(.*)/){ $1 + &quot;..&quot; }
+          else
+            dname = name
+          end
+          s =  &quot; &lt;A HREF=\&quot;#{HTTPUtils::escape(name)}\&quot;&gt;#{dname}&lt;/A&gt;&quot;
+          s &lt;&lt; &quot; &quot; * (30 - dname.size)
+          s &lt;&lt; (time ? time.strftime(&quot;%Y/%m/%d %H:%M      &quot;) : &quot; &quot; * 22)
+          s &lt;&lt; (size &gt;= 0 ? size.to_s : &quot;-&quot;) &lt;&lt; &quot;\n&quot;
+          res.body &lt;&lt; s
+        }
+        res.body &lt;&lt; &quot;&lt;/PRE&gt;&lt;HR&gt;&quot;
+
+        res.body &lt;&lt; &lt;&lt;-_end_of_html_    
+    &lt;ADDRESS&gt;
+     #{HTMLUtils::escape(@config[:ServerSoftware])}&lt;BR&gt;
+     at #{req.host}:#{req.port}
+    &lt;/ADDRESS&gt;
+  &lt;/BODY&gt;
+&lt;/HTML&gt;
+        _end_of_html_
+      end
+
+    end
+  end
+end
+</pre>
+    </div>

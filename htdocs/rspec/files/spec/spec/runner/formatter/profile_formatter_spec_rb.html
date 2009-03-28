@@ -1,0 +1,83 @@
+  <div id="fileHeader">
+    <h1>profile_formatter_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/runner/formatter/profile_formatter_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper.rb'
+require 'spec/runner/formatter/profile_formatter'
+
+module Spec
+  module Runner
+    module Formatter
+      describe ProfileFormatter do
+        attr_reader :io, :formatter
+        before(:each) do
+          @io = StringIO.new
+          options = mock('options')
+          options.stub!(:colour).and_return(true)
+          @formatter = ProfileFormatter.new(options, io)
+        end
+        
+        it &quot;should print a heading&quot; do
+          formatter.start(0)
+          io.string.should eql(&quot;Profiling enabled.\n&quot;)
+        end
+        
+        it &quot;should record the current time when starting a new example&quot; do
+          now = Time.now
+          Time.stub!(:now).and_return(now)
+          formatter.example_started('should foo')
+          formatter.instance_variable_get(&quot;@time&quot;).should == now
+        end
+        
+        it &quot;should correctly record a passed example&quot; do
+          now = Time.now
+          Time.stub!(:now).and_return(now)
+          parent_example_group = Class.new(ExampleGroup).describe('Parent')
+          child_example_group = Class.new(parent_example_group).describe('Child')
+
+          formatter.add_example_group(child_example_group)
+          
+          formatter.example_started('when foo')
+          Time.stub!(:now).and_return(now+1)
+          formatter.example_passed(stub('foo', :description =&gt; 'i like ice cream'))
+
+          formatter.start_dump
+          io.string.should include('Parent Child')
+        end
+        
+        it &quot;should sort the results in descending order&quot; do
+          formatter.instance_variable_set(&quot;@example_times&quot;, [['a', 'a', 0.1], ['b', 'b', 0.3], ['c', 'c', 0.2]])
+          formatter.start_dump
+          formatter.instance_variable_get(&quot;@example_times&quot;).should == [ ['b', 'b', 0.3], ['c', 'c', 0.2], ['a', 'a', 0.1]]
+        end
+        
+        it &quot;should print the top 10 results&quot; do
+          example_group = Class.new(::Spec::Example::ExampleGroup).describe(&quot;ExampleGroup&quot;)
+          formatter.add_example_group(example_group)
+          formatter.instance_variable_set(&quot;@time&quot;, Time.now)
+          
+          15.times do 
+            formatter.example_passed(stub('foo', :description =&gt; 'i like ice cream'))
+          end
+          
+          io.should_receive(:print).exactly(10)
+          formatter.start_dump
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

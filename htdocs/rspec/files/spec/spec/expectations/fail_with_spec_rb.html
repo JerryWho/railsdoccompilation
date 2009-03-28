@@ -1,0 +1,90 @@
+  <div id="fileHeader">
+    <h1>fail_with_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/expectations/fail_with_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+describe Spec::Expectations, &quot;#fail_with with no diff&quot; do
+  before(:each) do
+    @old_differ = Spec::Expectations.differ
+    Spec::Expectations.differ = nil
+  end
+  
+  it &quot;should handle just a message&quot; do
+    lambda {
+      Spec::Expectations.fail_with &quot;the message&quot;
+    }.should fail_with(&quot;the message&quot;)
+  end
+  
+  it &quot;should handle an Array&quot; do
+    lambda {
+      Spec::Expectations.fail_with [&quot;the message&quot;,&quot;expected&quot;,&quot;actual&quot;]
+    }.should fail_with(&quot;the message&quot;)
+  end
+
+  after(:each) do
+    Spec::Expectations.differ = @old_differ
+  end
+end
+
+describe Spec::Expectations, &quot;#fail_with with diff&quot; do
+  before(:each) do
+    @old_differ = Spec::Expectations.differ
+    @differ = mock(&quot;differ&quot;)
+    Spec::Expectations.differ = @differ
+  end
+  
+  it &quot;should not call differ if no expected/actual&quot; do
+    lambda {
+      Spec::Expectations.fail_with &quot;the message&quot;
+    }.should fail_with(&quot;the message&quot;)
+  end
+  
+  it &quot;should call differ if expected/actual are presented separately&quot; do
+    @differ.should_receive(:diff_as_string).and_return(&quot;diff&quot;)
+    lambda {
+      Spec::Expectations.fail_with &quot;the message&quot;, &quot;expected&quot;, &quot;actual&quot;
+    }.should fail_with(&quot;the message\nDiff:diff&quot;)
+  end
+  
+  it &quot;should call differ if expected/actual are not strings&quot; do
+    @differ.should_receive(:diff_as_object).and_return(&quot;diff&quot;)
+    lambda {
+      Spec::Expectations.fail_with &quot;the message&quot;, :expected, :actual
+    }.should fail_with(&quot;the message\nDiff:diff&quot;)
+  end
+  
+  it &quot;should not call differ if expected or actual are procs&quot; do
+    @differ.should_not_receive(:diff_as_string)
+    @differ.should_not_receive(:diff_as_object)
+    lambda {
+      Spec::Expectations.fail_with &quot;the message&quot;, lambda {}, lambda {}
+    }.should fail_with(&quot;the message&quot;)
+  end
+  
+  it &quot;should call differ if expected/actual are presented in an Array with message&quot; do
+    @differ.should_receive(:diff_as_string).with(&quot;actual&quot;,&quot;expected&quot;).and_return(&quot;diff&quot;)
+    lambda {
+      Spec::Expectations.fail_with([&quot;the message&quot;, &quot;expected&quot;, &quot;actual&quot;])
+    }.should fail_with(/the message\nDiff:diff/)
+  end
+  
+  after(:each) do
+    Spec::Expectations.differ = @old_differ
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,270 @@
+  <div id="C00000282">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />BufferedReader<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/rdoc/parsers/parse_rb_rb.html');">ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Read an input stream character by character. We allow for unlimited
+ungetting of characters just read.
+</p>
+<p>
+We simplify the implementation greatly by reading the entire input into a
+buffer initially, and then simply traversing it using pointers.
+</p>
+<p>
+We also have to allow for the <em>here document diversion</em>. This little
+gem comes about when the lexer encounters a here document. At this point we
+effectively need to split the input stream into two parts: one to read the
+body of the here document, the other to read the rest of the input line
+where the here document was initially encountered. For example, we might
+have
+</p>
+<pre>
+  do_something(&lt;&lt;-A, &lt;&lt;-B)
+    stuff
+    for
+  A
+    stuff
+    for
+  B
+</pre>
+<p>
+When the lexer encounters the &lt;&lt;A, it reads until the end of the
+line, and keeps it around for later. It then reads the body of the here
+document. Once complete, it needs to read the rest of the original line,
+but then skip the here document body.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M002619&name=column" >column</a></li>
+  <li><a href="index.html?a=M002626&name=divert_read_from" >divert_read_from</a></li>
+  <li><a href="index.html?a=M002623&name=get_read" >get_read</a></li>
+  <li><a href="index.html?a=M002620&name=getc" >getc</a></li>
+  <li><a href="index.html?a=M002621&name=getc_already_read" >getc_already_read</a></li>
+  <li><a href="index.html?a=M002618&name=new" >new</a></li>
+  <li><a href="index.html?a=M002624&name=peek" >peek</a></li>
+  <li><a href="index.html?a=M002625&name=peek_equal" >peek_equal</a></li>
+  <li><a href="index.html?a=M002622&name=ungetc" >ungetc</a></li>
+  </ul>
+
+
+
+
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>line_num</td>
+    <td class='attr-desc'></td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M002618" class="method">
+  <div id="M002618_title" class="title">
+    <b>new</b>(content)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002618_source')" id="l_M002618_source">show source</a> ]</p>
+  <div id="M002618_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 348</span>
+348:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">content</span>)
+349:       <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/\t/</span> <span class="ruby-operator">=~</span> <span class="ruby-identifier">content</span>
+350:         <span class="ruby-identifier">tab_width</span> = <span class="ruby-constant">Options</span>.<span class="ruby-identifier">instance</span>.<span class="ruby-identifier">tab_width</span>
+351:         <span class="ruby-identifier">content</span> = <span class="ruby-identifier">content</span>.<span class="ruby-identifier">split</span>(<span class="ruby-regexp re">/\n/</span>).<span class="ruby-identifier">map</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">line</span><span class="ruby-operator">|</span>
+352:           <span class="ruby-value">1</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">line</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-regexp re">/\t+/</span>) { <span class="ruby-value str">' '</span> <span class="ruby-operator">*</span> (<span class="ruby-identifier">tab_width</span><span class="ruby-operator">*</span><span class="ruby-identifier">$&amp;</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">$`</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">%</span> <span class="ruby-identifier">tab_width</span>)}  <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">$~</span> <span class="ruby-comment cmt">#`</span>
+353:           <span class="ruby-identifier">line</span>
+354:         <span class="ruby-keyword kw">end</span> .<span class="ruby-identifier">join</span>(<span class="ruby-value str">&quot;\n&quot;</span>)
+355:       <span class="ruby-keyword kw">end</span>
+356:       <span class="ruby-ivar">@content</span>   = <span class="ruby-identifier">content</span>
+357:       <span class="ruby-ivar">@content</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-ivar">@content</span>[<span class="ruby-value">-1</span>,<span class="ruby-value">1</span>] <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;\n&quot;</span>
+358:       <span class="ruby-ivar">@size</span>      = <span class="ruby-ivar">@content</span>.<span class="ruby-identifier">size</span>
+359:       <span class="ruby-ivar">@offset</span>    = <span class="ruby-value">0</span>
+360:       <span class="ruby-ivar">@hwm</span>       = <span class="ruby-value">0</span>
+361:       <span class="ruby-ivar">@line_num</span>  = <span class="ruby-value">1</span>
+362:       <span class="ruby-ivar">@read_back_offset</span> = <span class="ruby-value">0</span>
+363:       <span class="ruby-ivar">@last_newline</span> = <span class="ruby-value">0</span>
+364:       <span class="ruby-ivar">@newline_pending</span> = <span class="ruby-keyword kw">false</span>
+365:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M002619" class="method">
+  <div id="M002619_title" class="title">
+    <b>column</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002619_source')" id="l_M002619_source">show source</a> ]</p>
+  <div id="M002619_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 367</span>
+367:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">column</span>
+368:       <span class="ruby-ivar">@offset</span> <span class="ruby-operator">-</span> <span class="ruby-ivar">@last_newline</span>
+369:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002626" class="method">
+  <div id="M002626_title" class="title">
+    <b>divert_read_from</b>(reserve)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002626_source')" id="l_M002626_source">show source</a> ]</p>
+  <div id="M002626_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 421</span>
+421:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">divert_read_from</span>(<span class="ruby-identifier">reserve</span>)
+422:       <span class="ruby-ivar">@content</span>[<span class="ruby-ivar">@offset</span>, <span class="ruby-value">0</span>] = <span class="ruby-identifier">reserve</span>
+423:       <span class="ruby-ivar">@size</span>      = <span class="ruby-ivar">@content</span>.<span class="ruby-identifier">size</span>
+424:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002623" class="method">
+  <div id="M002623_title" class="title">
+    <b>get_read</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002623_source')" id="l_M002623_source">show source</a> ]</p>
+  <div id="M002623_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 402</span>
+402:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_read</span>
+403:       <span class="ruby-identifier">res</span> = <span class="ruby-ivar">@content</span>[<span class="ruby-ivar">@read_back_offset</span><span class="ruby-operator">...</span><span class="ruby-ivar">@offset</span>]
+404:       <span class="ruby-ivar">@read_back_offset</span> = <span class="ruby-ivar">@offset</span>
+405:       <span class="ruby-identifier">res</span>
+406:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002620" class="method">
+  <div id="M002620_title" class="title">
+    <b>getc</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002620_source')" id="l_M002620_source">show source</a> ]</p>
+  <div id="M002620_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 371</span>
+371:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">getc</span>
+372:       <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@offset</span> <span class="ruby-operator">&gt;=</span> <span class="ruby-ivar">@size</span>
+373:       <span class="ruby-identifier">ch</span> = <span class="ruby-ivar">@content</span>[<span class="ruby-ivar">@offset</span>, <span class="ruby-value">1</span>]
+374:       
+375:       <span class="ruby-ivar">@offset</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+376:       <span class="ruby-ivar">@hwm</span> = <span class="ruby-ivar">@offset</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@hwm</span> <span class="ruby-operator">&lt;</span> <span class="ruby-ivar">@offset</span>
+377:       
+378:       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@newline_pending</span>
+379:         <span class="ruby-ivar">@line_num</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+380:         <span class="ruby-ivar">@last_newline</span> = <span class="ruby-ivar">@offset</span> <span class="ruby-operator">-</span> <span class="ruby-value">1</span>
+381:         <span class="ruby-ivar">@newline_pending</span> = <span class="ruby-keyword kw">false</span>
+382:       <span class="ruby-keyword kw">end</span>
+383:       
+384:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">ch</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;\n&quot;</span>
+385:         <span class="ruby-ivar">@newline_pending</span> = <span class="ruby-keyword kw">true</span>
+386:       <span class="ruby-keyword kw">end</span>
+387:       <span class="ruby-identifier">ch</span>
+388:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002621" class="method">
+  <div id="M002621_title" class="title">
+    <b>getc_already_read</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002621_source')" id="l_M002621_source">show source</a> ]</p>
+  <div id="M002621_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 390</span>
+390:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">getc_already_read</span>
+391:       <span class="ruby-identifier">getc</span>
+392:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002624" class="method">
+  <div id="M002624_title" class="title">
+    <b>peek</b>(at)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002624_source')" id="l_M002624_source">show source</a> ]</p>
+  <div id="M002624_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 408</span>
+408:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">peek</span>(<span class="ruby-identifier">at</span>)
+409:       <span class="ruby-identifier">pos</span> = <span class="ruby-ivar">@offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">at</span>
+410:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">pos</span> <span class="ruby-operator">&gt;=</span> <span class="ruby-ivar">@size</span>
+411:         <span class="ruby-keyword kw">nil</span>
+412:       <span class="ruby-keyword kw">else</span>
+413:         <span class="ruby-ivar">@content</span>[<span class="ruby-identifier">pos</span>, <span class="ruby-value">1</span>]
+414:       <span class="ruby-keyword kw">end</span>
+415:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002625" class="method">
+  <div id="M002625_title" class="title">
+    <b>peek_equal</b>(str)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002625_source')" id="l_M002625_source">show source</a> ]</p>
+  <div id="M002625_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 417</span>
+417:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">peek_equal</span>(<span class="ruby-identifier">str</span>)
+418:       <span class="ruby-ivar">@content</span>[<span class="ruby-ivar">@offset</span>, <span class="ruby-identifier">str</span>.<span class="ruby-identifier">length</span>] <span class="ruby-operator">==</span> <span class="ruby-identifier">str</span>
+419:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002622" class="method">
+  <div id="M002622_title" class="title">
+    <b>ungetc</b>(ch)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002622_source')" id="l_M002622_source">show source</a> ]</p>
+  <div id="M002622_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb, line 394</span>
+394:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">ungetc</span>(<span class="ruby-identifier">ch</span>)
+395:       <span class="ruby-identifier">raise</span> <span class="ruby-value str">&quot;unget past beginning of file&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@offset</span> <span class="ruby-operator">&lt;=</span> <span class="ruby-value">0</span>
+396:       <span class="ruby-ivar">@offset</span> <span class="ruby-operator">-=</span> <span class="ruby-value">1</span>
+397:       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@content</span>[<span class="ruby-ivar">@offset</span>] <span class="ruby-operator">==</span> <span class="ruby-value">?\n</span>
+398:         <span class="ruby-ivar">@newline_pending</span> = <span class="ruby-keyword kw">false</span>
+399:       <span class="ruby-keyword kw">end</span>
+400:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

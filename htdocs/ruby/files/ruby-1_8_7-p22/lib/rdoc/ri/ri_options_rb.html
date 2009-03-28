@@ -1,0 +1,339 @@
+  <div id="fileHeader">
+    <h1>ri_options.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/ri/ri_options.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 24 01:22:01 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># We handle the parsing of options, and subsequently as a singleton
+# object to be queried for option values
+
+module RI
+
+  require 'rdoc/ri/ri_paths'
+  require 'rdoc/ri/ri_display'
+
+  VERSION_STRING = &quot;ri v1.0.1 - 20041108&quot;
+
+  class Options
+    
+    require 'singleton'
+    require 'getoptlong'
+    
+    include Singleton
+
+    # No not use a pager. Writable, because ri sets it if it
+    # can't find a pager
+    attr_accessor :use_stdout
+
+    # should we just display a class list and exit
+    attr_reader :list_classes
+
+    # should we display a list of all names
+    attr_reader :list_names
+
+    # The width of the output line
+    attr_reader :width
+
+    # the formatting we apply to the output
+    attr_reader :formatter
+
+    # the directory we search for original documentation
+    attr_reader :doc_dir
+
+    module OptionList
+      
+      OPTION_LIST = [
+        [ &quot;--help&quot;,          &quot;-h&quot;,   nil,
+          &quot;you're looking at it&quot; ],
+
+        [ &quot;--classes&quot;,      &quot;-c&quot;,   nil,
+          &quot;Display the names of classes and modules we\n&quot; +
+          &quot;know about&quot;],
+
+        [ &quot;--doc-dir&quot;,      &quot;-d&quot;,   &quot;&lt;dirname&gt;&quot;,
+          &quot;A directory to search for documentation. If not\n&quot; +
+          &quot;specified, we search the standard rdoc/ri directories.\n&quot; +
+          &quot;May be repeated.&quot;],
+
+        [ &quot;--system&quot;,       nil,    nil,
+          &quot;Include documentation from Ruby's standard library:\n  &quot; +
+          RI::Paths::SYSDIR ],
+
+        [ &quot;--site&quot;,         nil,    nil,
+          &quot;Include documentation from libraries installed in site_lib:\n  &quot; +
+          RI::Paths::SITEDIR ],
+
+        [ &quot;--home&quot;,         nil,    nil,
+          &quot;Include documentation stored in ~/.rdoc:\n  &quot; +
+          (RI::Paths::HOMEDIR || &quot;No ~/.rdoc found&quot;) ],
+
+        [ &quot;--gems&quot;,         nil,    nil,
+          &quot;Include documentation from RubyGems:\n&quot; +
+          (RI::Paths::GEMDIRS ?
+           Gem.path.map { |dir| &quot;  #{dir}/doc/*/ri&quot; }.join(&quot;\n&quot;) :
+           &quot;No Rubygems ri found.&quot;) ],
+
+        [ &quot;--format&quot;,       &quot;-f&quot;,   &quot;&lt;name&gt;&quot;,
+          &quot;Format to use when displaying output:\n&quot; +
+          &quot;   &quot; + RI::TextFormatter.list + &quot;\n&quot; +
+          &quot;Use 'bs' (backspace) with most pager programs.\n&quot; +
+          &quot;To use ANSI, either also use the -T option, or\n&quot; +
+          &quot;tell your pager to allow control characters\n&quot; +
+          &quot;(for example using the -R option to less)&quot;],
+
+        [ &quot;--list-names&quot;,    &quot;-l&quot;,   nil,
+          &quot;List all the names known to RDoc, one per line&quot;
+        ],
+
+        [ &quot;--no-pager&quot;,      &quot;-T&quot;,   nil,
+          &quot;Send output directly to stdout.&quot; 
+        ],
+
+        [ &quot;--width&quot;,         &quot;-w&quot;,   &quot;output width&quot;,
+        &quot;Set the width of the output&quot; ],
+
+        [ &quot;--version&quot;,       &quot;-v&quot;,   nil,
+         &quot;Display the version of ri&quot;
+        ],
+
+      ]
+
+      def OptionList.options
+        OPTION_LIST.map do |long, short, arg,|
+          option = []
+          option &lt;&lt; long
+          option &lt;&lt; short unless short.nil?
+          option &lt;&lt; (arg ? GetoptLong::REQUIRED_ARGUMENT :
+                           GetoptLong::NO_ARGUMENT)
+          option
+        end
+      end
+
+
+      def OptionList.strip_output(text)
+        text =~ /^\s+/
+        leading_spaces = $&amp;
+        text.gsub!(/^#{leading_spaces}/, '')
+        $stdout.puts text
+      end
+      
+      
+      # Show an error and exit
+      
+      def OptionList.error(msg)
+        $stderr.puts
+        $stderr.puts msg
+        name = File.basename $PROGRAM_NAME
+        $stderr.puts &quot;\nFor help on options, try '#{name} --help'\n\n&quot;
+        exit 1
+      end
+      
+      # Show usage and exit
+      
+      def OptionList.usage(short_form=false)
+        
+        puts
+        puts(RI::VERSION_STRING)
+        puts
+        
+        name = File.basename($0)
+
+        directories = [
+          RI::Paths::SYSDIR,
+          RI::Paths::SITEDIR,
+          RI::Paths::HOMEDIR
+        ]
+
+        if RI::Paths::GEMDIRS then
+          Gem.path.each do |dir|
+            directories &lt;&lt; &quot;#{dir}/doc/*/ri&quot;
+          end
+        end
+
+        directories = directories.join(&quot;\n    &quot;)
+
+        OptionList.strip_output(&lt;&lt;-EOT)
+          Usage:
+
+            #{name} [options]  [names...]
+
+          Display information on Ruby classes, modules, and methods.
+          Give the names of classes or methods to see their documentation.
+          Partial names may be given: if the names match more than
+          one entity, a list will be shown, otherwise details on
+          that entity will be displayed.
+
+          Nested classes and modules can be specified using the normal
+          Name::Name notation, and instance methods can be distinguished
+          from class methods using &quot;.&quot; (or &quot;#&quot;) instead of &quot;::&quot;.
+
+          For example:
+
+              #{name}  File
+              #{name}  File.new
+              #{name}  F.n
+              #{name}  zip
+
+          Note that shell quoting may be required for method names
+          containing punctuation:
+
+              #{name} 'Array.[]'
+              #{name} compact\\!
+
+          By default ri searches for documentation in the following
+          directories:
+
+              #{directories}
+
+          Specifying the --system, --site, --home, --gems or --doc-dir
+          options will limit ri to searching only the specified
+          directories.
+
+        EOT
+
+        if short_form
+          puts &quot;For help on options, type '#{name} -h'&quot;
+          puts &quot;For a list of classes I know about, type '#{name} -c'&quot;
+        else
+          puts &quot;Options:\n\n&quot;
+          OPTION_LIST.each do|long, short, arg, desc|
+            opt = ''
+            opt &lt;&lt; (short ? sprintf(&quot;%15s&quot;, &quot;#{long}, #{short}&quot;) :
+                            sprintf(&quot;%15s&quot;, long))
+            if arg
+              opt &lt;&lt; &quot; &quot; &lt;&lt; arg
+            end
+            print opt
+            desc = desc.split(&quot;\n&quot;)
+            if opt.size &lt; 17
+              print &quot; &quot;*(18-opt.size)
+              puts desc.shift
+            else
+              puts
+            end
+            desc.each do |line|
+              puts(&quot; &quot;*18 + line)
+            end
+            puts
+          end
+          puts &quot;Options may also be passed in the 'RI' environment variable&quot;
+          exit 0
+        end
+      end
+    end
+
+    # Show the version and exit
+    def show_version
+      puts VERSION_STRING
+      exit(0)
+    end
+
+    def initialize
+      @use_stdout   = !STDOUT.tty?
+      @width        = 72
+      @formatter    = RI::TextFormatter.for(&quot;plain&quot;) 
+      @list_classes = false
+      @list_names   = false
+
+      # By default all paths are used.  If any of these are true, only those
+      # directories are used.
+      @use_system = false
+      @use_site = false
+      @use_home = false
+      @use_gems = false
+      @doc_dirs = []
+    end
+
+    # Parse command line options.
+
+    def parse(args)
+    
+      old_argv = ARGV.dup
+
+      ARGV.replace(args)
+
+      begin
+
+        go = GetoptLong.new(*OptionList.options)
+        go.quiet = true
+
+        go.each do |opt, arg|
+          case opt
+          when &quot;--help&quot;       then OptionList.usage
+          when &quot;--version&quot;    then show_version
+          when &quot;--list-names&quot; then @list_names = true
+          when &quot;--no-pager&quot;   then @use_stdout = true
+          when &quot;--classes&quot;    then @list_classes = true
+
+          when &quot;--system&quot;     then @use_system = true
+          when &quot;--site&quot;       then @use_site = true
+          when &quot;--home&quot;       then @use_home = true
+          when &quot;--gems&quot;       then @use_gems = true
+
+          when &quot;--doc-dir&quot;
+            if File.directory?(arg)
+              @doc_dirs &lt;&lt; arg
+            else
+              $stderr.puts &quot;Invalid directory: #{arg}&quot;
+              exit 1
+            end
+
+          when &quot;--format&quot;
+            @formatter = RI::TextFormatter.for(arg)
+            unless @formatter
+              $stderr.print &quot;Invalid formatter (should be one of &quot;
+              $stderr.puts RI::TextFormatter.list + &quot;)&quot;
+              exit 1
+            end
+          when &quot;--width&quot;
+            begin
+              @width = Integer(arg)
+            rescue 
+              $stderr.puts &quot;Invalid width: '#{arg}'&quot;
+              exit 1
+            end
+          end
+        end
+
+      rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument =&gt; error
+        OptionList.error(error.message)
+
+      end
+    end
+
+    # Return the selected documentation directories.
+
+    def path
+      RI::Paths.path(@use_system, @use_site, @use_home, @use_gems, *@doc_dirs)
+    end
+
+    def raw_path
+      RI::Paths.raw_path(@use_system, @use_site, @use_home, @use_gems,
+                         *@doc_dirs)
+    end
+
+    # Return an instance of the displayer (the thing that actually writes
+    # the information). This allows us to load in new displayer classes
+    # at runtime (for example to help with IDE integration)
+    
+    def displayer
+      ::RiDisplay.new(self)
+    end
+  end
+
+end
+
+</pre>
+    </div>

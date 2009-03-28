@@ -1,0 +1,130 @@
+  <div id="fileHeader">
+    <h1>cookie.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/cookie.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# cookie.rb -- Cookie class
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2000, 2001 TAKAHASHI Masayoshi, GOTOU Yuuzou
+# Copyright (c) 2002 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: cookie.rb,v 1.16 2002/09/21 12:23:35 gotoyuzo Exp $
+
+require 'time'
+require 'webrick/httputils'
+
+module WEBrick
+  class Cookie
+
+    attr_reader :name
+    attr_accessor :value, :version
+    attr_accessor :domain, :path, :secure
+    attr_accessor :comment, :max_age
+    #attr_accessor :comment_url, :discard, :port
+
+    def initialize(name, value)
+      @name = name
+      @value = value
+      @version = 0     # Netscape Cookie
+
+      @domain = @path = @secure = @comment = @max_age =
+      @expires = @comment_url = @discard = @port = nil
+    end
+
+    def expires=(t)
+      @expires = t &amp;&amp; (t.is_a?(Time) ? t.httpdate : t.to_s)
+    end
+
+    def expires
+      @expires &amp;&amp; Time.parse(@expires)
+    end
+
+    def to_s
+      ret = &quot;&quot;
+      ret &lt;&lt; @name &lt;&lt; &quot;=&quot; &lt;&lt; @value
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Version=&quot; &lt;&lt; @version.to_s if @version &gt; 0
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Domain=&quot;  &lt;&lt; @domain  if @domain
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Expires=&quot; &lt;&lt; @expires if @expires
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Max-Age=&quot; &lt;&lt; @max_age.to_s if @max_age
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Comment=&quot; &lt;&lt; @comment if @comment
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Path=&quot;    &lt;&lt; @path if @path
+      ret &lt;&lt; &quot;; &quot; &lt;&lt; &quot;Secure&quot;   if @secure
+      ret
+    end
+
+    # Cookie::parse()
+    #   It parses Cookie field sent from the user agent.
+    def self.parse(str)
+      if str
+        ret = []
+        cookie = nil
+        ver = 0
+        str.split(/[;,]\s+/).each{|x|
+          key, val = x.split(/=/,2)
+          val = val ? HTTPUtils::dequote(val) : &quot;&quot;
+          case key
+          when &quot;$Version&quot;; ver = val.to_i
+          when &quot;$Path&quot;;    cookie.path = val
+          when &quot;$Domain&quot;;  cookie.domain = val
+          when &quot;$Port&quot;;    cookie.port = val
+          else
+            ret &lt;&lt; cookie if cookie
+            cookie = self.new(key, val)
+            cookie.version = ver
+          end
+        }
+        ret &lt;&lt; cookie if cookie
+        ret
+      end
+    end
+
+    def self.parse_set_cookie(str)
+      cookie_elem = str.split(/;/)
+      first_elem = cookie_elem.shift
+      first_elem.strip!
+      key, value = first_elem.split(/=/, 2)
+      cookie = new(key, HTTPUtils.dequote(value))
+      cookie_elem.each{|pair|
+        pair.strip!
+        key, value = pair.split(/=/, 2)
+        if value
+          value = HTTPUtils.dequote(value.strip)
+        end
+        case key.downcase
+        when &quot;domain&quot;  then cookie.domain  = value
+        when &quot;path&quot;    then cookie.path    = value
+        when &quot;expires&quot; then cookie.expires = value
+        when &quot;max-age&quot; then cookie.max_age = Integer(value)
+        when &quot;comment&quot; then cookie.comment = value
+        when &quot;version&quot; then cookie.version = Integer(value)
+        when &quot;secure&quot;  then cookie.secure = true
+        end
+      }
+      return cookie
+    end
+
+    def self.parse_set_cookies(str)
+      return str.split(/,(?=[^;,]*=)|,$/).collect{|c|
+        parse_set_cookie(c)
+      }
+    end
+  end
+end
+</pre>
+    </div>

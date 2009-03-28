@@ -1,0 +1,70 @@
+  <div id="fileHeader">
+    <h1>xmlparser.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/xmlparser/xmlparser.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - XMLParser XML parser library.
+# Copyright (C) 2001, 2003  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'xsd/xmlparser'
+require 'xml/parser'
+
+
+module XSD
+module XMLParser
+
+
+class XMLParser &lt; XSD::XMLParser::Parser
+  class Listener &lt; XML::Parser
+    begin
+      require 'xml/encoding-ja'
+      include XML::Encoding_ja
+    rescue LoadError
+      # uconv may not be installed.
+    end
+  end
+
+  def do_parse(string_or_readable)
+    # XMLParser passes a String in utf-8.
+    @charset = 'utf-8'
+    @parser = Listener.new
+    @parser.parse(string_or_readable) do |type, name, data|
+      case type
+      when XML::Parser::START_ELEM
+	start_element(name, data)
+      when XML::Parser::END_ELEM
+	end_element(name)
+      when XML::Parser::CDATA
+	characters(data)
+      else
+	raise FormatDecodeError.new(&quot;Unexpected XML: #{ type }/#{ name }/#{ data }.&quot;)
+      end
+    end
+  end
+
+  add_factory(self)
+end
+
+
+end
+end
+</pre>
+    </div>

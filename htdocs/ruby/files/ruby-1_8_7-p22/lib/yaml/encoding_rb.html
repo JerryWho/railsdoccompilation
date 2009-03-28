@@ -1,0 +1,53 @@
+  <div id="fileHeader">
+    <h1>encoding.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/yaml/encoding.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Apr 19 06:45:39 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# Handle Unicode-to-Internal conversion
+#
+
+module YAML
+
+	#
+	# Escape the string, condensing common escapes
+	#
+	def YAML.escape( value, skip = &quot;&quot; )
+		value.gsub( /\\/, &quot;\\\\\\&quot; ).
+              gsub( /&quot;/, &quot;\\\&quot;&quot; ).
+              gsub( /([\x00-\x1f])/ ) do
+                 skip[$&amp;] || ESCAPES[ $&amp;.unpack(&quot;C&quot;)[0] ]
+             end
+	end
+
+	#
+	# Unescape the condenses escapes
+	#
+	def YAML.unescape( value )
+		value.gsub( /\\(?:([nevfbart\\])|0?x([0-9a-fA-F]{2})|u([0-9a-fA-F]{4}))/ ) {
+			if $3
+				[&quot;#$3&quot;.hex ].pack('U*')
+			elsif $2
+				[$2].pack( &quot;H2&quot; ) 
+			else
+				UNESCAPES[$1] 
+			end
+		}
+	end
+
+end
+</pre>
+    </div>

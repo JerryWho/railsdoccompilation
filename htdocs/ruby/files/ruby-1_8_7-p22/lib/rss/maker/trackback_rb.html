@@ -1,0 +1,81 @@
+  <div id="fileHeader">
+    <h1>trackback.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/maker/trackback.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Oct 21 07:19:43 -0500 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rss/trackback'
+require 'rss/maker/1.0'
+require 'rss/maker/2.0'
+
+module RSS
+  module Maker
+    module TrackBackModel
+      def self.append_features(klass)
+        super
+
+        klass.def_other_element(&quot;#{RSS::TRACKBACK_PREFIX}_ping&quot;)
+        klass.def_classed_elements(&quot;#{RSS::TRACKBACK_PREFIX}_about&quot;, &quot;value&quot;,
+                                   &quot;TrackBackAbouts&quot;)
+      end
+
+      class TrackBackAboutsBase &lt; Base
+        def_array_element(&quot;about&quot;, nil, &quot;TrackBackAbout&quot;)
+
+        class TrackBackAboutBase &lt; Base
+          attr_accessor :value
+          add_need_initialize_variable(&quot;value&quot;)
+          
+          alias_method(:resource, :value)
+          alias_method(:resource=, :value=)
+          alias_method(:content, :value)
+          alias_method(:content=, :value=)
+
+          def have_required_values?
+            @value
+          end
+
+          def to_feed(feed, current)
+            if current.respond_to?(:trackback_abouts) and have_required_values?
+              about = current.class::TrackBackAbout.new
+              setup_values(about)
+              setup_other_elements(about)
+              current.trackback_abouts &lt;&lt; about
+            end
+          end
+        end
+      end
+    end
+
+    class ItemsBase
+      class ItemBase; include TrackBackModel; end
+    end
+
+    makers.each do |maker|
+      maker.module_eval(&lt;&lt;-EOC, __FILE__, __LINE__ + 1)
+        class Items
+          class Item
+            class TrackBackAbouts &lt; TrackBackAboutsBase
+              class TrackBackAbout &lt; TrackBackAboutBase
+              end
+            end
+          end
+        end
+      EOC
+    end
+  end
+end
+</pre>
+    </div>

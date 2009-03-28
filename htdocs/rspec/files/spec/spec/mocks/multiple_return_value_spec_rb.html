@@ -1,0 +1,132 @@
+  <div id="fileHeader">
+    <h1>multiple_return_value_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/mocks/multiple_return_value_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+module Spec
+  module Mocks
+    describe &quot;a Mock expectation with multiple return values and no specified count&quot; do
+      before(:each) do
+        @mock = Mock.new(&quot;mock&quot;)
+        @return_values = [&quot;1&quot;,2,Object.new]
+        @mock.should_receive(:message).and_return(@return_values[0],@return_values[1],@return_values[2])
+      end
+      
+      it &quot;should return values in order to consecutive calls&quot; do
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        @mock.message.should == @return_values[2]
+        @mock.rspec_verify
+      end
+
+      it &quot;should complain when there are too few calls&quot; do
+        third = Object.new
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it twice&quot;)
+      end
+
+      it &quot;should complain when there are too many calls&quot; do
+        third = Object.new
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        @mock.message.should == @return_values[2]
+        @mock.message.should == @return_values[2]
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it 4 times&quot;)
+      end
+    end
+
+    describe &quot;a Mock expectation with multiple return values with a specified count equal to the number of values&quot; do
+      before(:each) do
+        @mock = Mock.new(&quot;mock&quot;)
+        @return_values = [&quot;1&quot;,2,Object.new]
+        @mock.should_receive(:message).exactly(3).times.and_return(@return_values[0],@return_values[1],@return_values[2])
+      end
+
+      it &quot;should return values in order to consecutive calls&quot; do
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        @mock.message.should == @return_values[2]
+        @mock.rspec_verify
+      end
+
+      it &quot;should complain when there are too few calls&quot; do
+        third = Object.new
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it twice&quot;)
+      end
+
+      it &quot;should complain when there are too many calls&quot; do
+        third = Object.new
+        @mock.message.should == @return_values[0]
+        @mock.message.should == @return_values[1]
+        @mock.message.should == @return_values[2]
+        @mock.message.should == @return_values[2]
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it 4 times&quot;)
+      end
+    end
+
+    describe &quot;a Mock expectation with multiple return values specifying at_least less than the number of values&quot; do
+      before(:each) do
+        @mock = Mock.new(&quot;mock&quot;)
+        @mock.should_receive(:message).at_least(:twice).with(no_args).and_return(11, 22)
+      end
+      
+      it &quot;should use last return value for subsequent calls&quot; do
+        @mock.message.should equal(11)
+        @mock.message.should equal(22)
+        @mock.message.should equal(22)
+        @mock.rspec_verify
+      end
+
+      it &quot;should fail when called less than the specified number&quot; do
+        @mock.message.should equal(11)
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (no args) twice, but received it once&quot;)
+      end
+    end
+    describe &quot;a Mock expectation with multiple return values with a specified count larger than the number of values&quot; do
+      before(:each) do
+        @mock = Mock.new(&quot;mock&quot;)
+        @mock.should_receive(:message).exactly(3).times.and_return(11, 22)
+      end
+      
+      it &quot;should use last return value for subsequent calls&quot; do
+        @mock.message.should equal(11)
+        @mock.message.should equal(22)
+        @mock.message.should equal(22)
+        @mock.rspec_verify
+      end
+
+      it &quot;should fail when called less than the specified number&quot; do
+        @mock.message.should equal(11)
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it once&quot;)
+      end
+
+      it &quot;should fail when called greater than the specified number&quot; do
+        @mock.message.should equal(11)
+        @mock.message.should equal(22)
+        @mock.message.should equal(22)
+        @mock.message.should equal(22)
+        lambda { @mock.rspec_verify }.should raise_error(MockExpectationError, &quot;Mock 'mock' expected :message with (any args) 3 times, but received it 4 times&quot;)
+      end
+    end
+  end
+end
+
+</pre>
+    </div>

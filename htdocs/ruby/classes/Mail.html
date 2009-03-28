@@ -1,0 +1,171 @@
+  <div id="C00000139">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Mail<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/mailread_rb.html');">ruby-1.8.7-p22/lib/mailread.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+The <a href="index.html?a=C00000139&name=Mail">Mail</a> class represents an
+internet mail message (as per RFC822, RFC2822) with headers and a body.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001359&name=[]" >[]</a></li>
+  <li><a href="index.html?a=M001358&name=body" >body</a></li>
+  <li><a href="index.html?a=M001357&name=header" >header</a></li>
+  <li><a href="index.html?a=M001356&name=new" >new</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001356" class="method">
+  <div id="M001356_title" class="title">
+    <b>new</b>(f)
+  </div>
+  <div class="description">
+  <p>
+Create a new <a href="index.html?a=C00000139&name=Mail">Mail</a> where
+<tt>f</tt> is either a stream which responds to gets(), or a path to a
+file. If <tt>f</tt> is a path it will be opened.
+</p>
+<p>
+The whole message is read so it can be made available through the <a
+href="index.html?a=M001357&name=header">header</a>, #[] and <a
+href="index.html?a=M001358&name=body">body</a> methods.
+</p>
+<p>
+The &quot;From &quot; line is ignored if the mail is in mbox format.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001356_source')" id="l_M001356_source">show source</a> ]</p>
+  <div id="M001356_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/mailread.rb, line 12</span>
+12:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">f</span>)
+13:     <span class="ruby-keyword kw">unless</span> <span class="ruby-keyword kw">defined?</span> <span class="ruby-identifier">f</span>.<span class="ruby-identifier">gets</span>
+14:       <span class="ruby-identifier">f</span> = <span class="ruby-identifier">open</span>(<span class="ruby-identifier">f</span>, <span class="ruby-value str">&quot;r&quot;</span>)
+15:       <span class="ruby-identifier">opened</span> = <span class="ruby-keyword kw">true</span>
+16:     <span class="ruby-keyword kw">end</span>
+17: 
+18:     <span class="ruby-ivar">@header</span> = {}
+19:     <span class="ruby-ivar">@body</span> = []
+20:     <span class="ruby-keyword kw">begin</span>
+21:       <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">line</span> = <span class="ruby-identifier">f</span>.<span class="ruby-identifier">gets</span>()
+22:         <span class="ruby-identifier">line</span>.<span class="ruby-identifier">chop!</span>
+23:         <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/^From /</span><span class="ruby-operator">=~</span><span class="ruby-identifier">line</span> <span class="ruby-comment cmt"># skip From-line</span>
+24:         <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/^$/</span><span class="ruby-operator">=~</span><span class="ruby-identifier">line</span>    <span class="ruby-comment cmt"># end of header</span>
+25: 
+26:         <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/^(\S+?):\s*(.*)/</span><span class="ruby-operator">=~</span><span class="ruby-identifier">line</span>
+27:           (<span class="ruby-identifier">attr</span> = <span class="ruby-identifier">$1</span>).<span class="ruby-identifier">capitalize!</span>
+28:           <span class="ruby-ivar">@header</span>[<span class="ruby-identifier">attr</span>] = <span class="ruby-identifier">$2</span>
+29:         <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">attr</span>
+30:           <span class="ruby-identifier">line</span>.<span class="ruby-identifier">sub!</span>(<span class="ruby-regexp re">/^\s*/</span>, <span class="ruby-value str">''</span>)
+31:           <span class="ruby-ivar">@header</span>[<span class="ruby-identifier">attr</span>] <span class="ruby-operator">+=</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">line</span>
+32:         <span class="ruby-keyword kw">end</span>
+33:       <span class="ruby-keyword kw">end</span>
+34:   
+35:       <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">line</span>
+36: 
+37:       <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">line</span> = <span class="ruby-identifier">f</span>.<span class="ruby-identifier">gets</span>()
+38:         <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/^From /</span><span class="ruby-operator">=~</span><span class="ruby-identifier">line</span>
+39:         <span class="ruby-ivar">@body</span>.<span class="ruby-identifier">push</span>(<span class="ruby-identifier">line</span>)
+40:       <span class="ruby-keyword kw">end</span>
+41:     <span class="ruby-keyword kw">ensure</span>
+42:       <span class="ruby-identifier">f</span>.<span class="ruby-identifier">close</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">opened</span>
+43:     <span class="ruby-keyword kw">end</span>
+44:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001359" class="method">
+  <div id="M001359_title" class="title">
+    <b>[]</b>(field)
+  </div>
+  <div class="description">
+  <p>
+Return the header corresponding to <tt>field</tt>.
+</p>
+<p>
+Matching is case-insensitive.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001359_source')" id="l_M001359_source">show source</a> ]</p>
+  <div id="M001359_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/mailread.rb, line 59</span>
+59:   <span class="ruby-keyword kw">def</span> <span class="ruby-operator">[]</span>(<span class="ruby-identifier">field</span>)
+60:     <span class="ruby-ivar">@header</span>[<span class="ruby-identifier">field</span>.<span class="ruby-identifier">capitalize</span>]
+61:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001358" class="method">
+  <div id="M001358_title" class="title">
+    <b>body</b>()
+  </div>
+  <div class="description">
+  <p>
+Return the message body as an <a
+href="index.html?a=C00000243&name=Array">Array</a> of lines
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001358_source')" id="l_M001358_source">show source</a> ]</p>
+  <div id="M001358_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/mailread.rb, line 52</span>
+52:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">body</span>
+53:     <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@body</span>
+54:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001357" class="method">
+  <div id="M001357_title" class="title">
+    <b>header</b>()
+  </div>
+  <div class="description">
+  <p>
+Return the headers as a <a
+href="index.html?a=C00000320&name=Hash">Hash</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001357_source')" id="l_M001357_source">show source</a> ]</p>
+  <div id="M001357_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/mailread.rb, line 47</span>
+47:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">header</span>
+48:     <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@header</span>
+49:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

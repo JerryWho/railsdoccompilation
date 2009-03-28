@@ -1,0 +1,59 @@
+  <div id="fileHeader">
+    <h1>feature_generator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>rails_generators/feature/feature_generator.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># This generator bootstraps a Rails project for use with Cucumber
+class FeatureGenerator &lt; Rails::Generator::NamedBase
+  def manifest
+    record do |m|
+      m.directory 'features/step_definitions'
+      m.template  'feature.erb', &quot;features/manage_#{plural_name}.feature&quot;
+      m.template  'steps.erb', &quot;features/step_definitions/#{singular_name}_steps.rb&quot;
+
+      m.gsub_file 'features/support/paths.rb', /root_path/mi do |match|
+        &quot;#{match}\n    when /the new #{singular_name} page/\n      new_#{singular_name}_path\n&quot;
+      end
+    end
+  end
+
+  class NamedArg
+    attr_reader :name
+
+    def initialize(s)
+      @name, @type = *s.split(':')
+    end
+
+    def value(n)
+      if @type == 'boolean'
+        (n % 2) == 0
+      else
+        &quot;#{@name} #{n}&quot;
+      end
+    end
+  end
+
+  def named_args
+    args.map{|arg| NamedArg.new(arg)}
+  end
+
+  protected
+
+  def banner
+    &quot;Usage: #{$0} feature ModelName [field:type, field:type]&quot;
+  end
+end
+</pre>
+    </div>

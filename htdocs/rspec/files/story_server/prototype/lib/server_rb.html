@@ -1,0 +1,42 @@
+  <div id="fileHeader">
+    <h1>server.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>story_server/prototype/lib/server.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'webrick'
+
+class DispatchServlet &lt; WEBrick::HTTPServlet::AbstractServlet
+  def do_POST(request, response)
+    File.open('story', 'w') do |io|
+      io.write(request.body)
+    end
+
+    response.status = 200
+    response['Content-Type'] = 'text/html'
+    response.body = &quot;body&quot;
+  end
+end
+
+params = { :Port        =&gt; 4000,
+           :ServerType  =&gt; WEBrick::SimpleServer,
+           :BindAddress =&gt; &quot;0.0.0.0&quot;,
+           :MimeTypes   =&gt; WEBrick::HTTPUtils::DefaultMimeTypes }
+server = WEBrick::HTTPServer.new(params)
+server.mount('/stories', DispatchServlet)
+server.mount('/', WEBrick::HTTPServlet::FileHandler, File.dirname(__FILE__) + '/..', { :FancyIndexing =&gt; true })
+
+trap(&quot;INT&quot;) { server.shutdown }
+server.start</pre>
+    </div>

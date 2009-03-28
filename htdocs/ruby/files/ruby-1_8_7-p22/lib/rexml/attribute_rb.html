@@ -1,0 +1,205 @@
+  <div id="fileHeader">
+    <h1>attribute.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rexml/attribute.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Apr 18 02:22:13 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rexml/namespace&quot;
+require 'rexml/text'
+
+module REXML
+	# Defines an Element Attribute; IE, a attribute=value pair, as in:
+	# &lt;element attribute=&quot;value&quot;/&gt;.  Attributes can be in their own
+	# namespaces.  General users of REXML will not interact with the
+	# Attribute class much.
+	class Attribute
+		include Node
+		include Namespace
+
+		# The element to which this attribute belongs
+		attr_reader :element
+		# The normalized value of this attribute.  That is, the attribute with
+		# entities intact.
+		attr_writer :normalized	
+		PATTERN = /\s*(#{NAME_STR})\s*=\s*([&quot;'])(.*?)\2/um
+
+		# Constructor.
+    # FIXME: The parser doesn't catch illegal characters in attributes
+    #
+    # first:: 
+    #   Either: an Attribute, which this new attribute will become a
+    #   clone of; or a String, which is the name of this attribute
+    # second::
+    #   If +first+ is an Attribute, then this may be an Element, or nil.
+    #   If nil, then the Element parent of this attribute is the parent
+    #   of the +first+ Attribute.  If the first argument is a String, 
+    #   then this must also be a String, and is the content of the attribute.  
+    #   If this is the content, it must be fully normalized (contain no
+    #   illegal characters).
+    # parent::
+    #   Ignored unless +first+ is a String; otherwise, may be the Element 
+    #   parent of this attribute, or nil.
+    #
+		#
+		#  Attribute.new( attribute_to_clone )
+		#  Attribute.new( attribute_to_clone, parent_element )
+		#  Attribute.new( &quot;attr&quot;, &quot;attr_value&quot; )
+		#  Attribute.new( &quot;attr&quot;, &quot;attr_value&quot;, parent_element )
+		def initialize( first, second=nil, parent=nil )
+			@normalized = @unnormalized = @element = nil
+			if first.kind_of? Attribute
+				self.name = first.expanded_name
+				@unnormalized = first.value
+				if second.kind_of? Element
+					@element = second
+				else
+					@element = first.element
+				end
+			elsif first.kind_of? String
+				@element = parent
+				self.name = first
+				@normalized = second.to_s
+			else
+				raise &quot;illegal argument #{first.class.name} to Attribute constructor&quot;
+			end
+		end
+
+		# Returns the namespace of the attribute.
+		# 
+		#  e = Element.new( &quot;elns:myelement&quot; )
+		#  e.add_attribute( &quot;nsa:a&quot;, &quot;aval&quot; )
+		#  e.add_attribute( &quot;b&quot;, &quot;bval&quot; )
+		#  e.attributes.get_attribute( &quot;a&quot; ).prefix   # -&gt; &quot;nsa&quot;
+		#  e.attributes.get_attribute( &quot;b&quot; ).prefix   # -&gt; &quot;elns&quot;
+		#  a = Attribute.new( &quot;x&quot;, &quot;y&quot; )
+		#  a.prefix                                   # -&gt; &quot;&quot;
+		def prefix
+			pf = super
+			if pf == &quot;&quot;
+				pf = @element.prefix if @element
+			end
+			pf
+		end
+
+		# Returns the namespace URL, if defined, or nil otherwise
+		# 
+		#  e = Element.new(&quot;el&quot;)
+		#  e.add_attributes({&quot;xmlns:ns&quot;, &quot;http://url&quot;})
+		#  e.namespace( &quot;ns&quot; )              # -&gt; &quot;http://url&quot;
+		def namespace arg=nil
+			arg = prefix if arg.nil?
+			@element.namespace arg
+		end
+
+		# Returns true if other is an Attribute and has the same name and value,
+		# false otherwise.
+		def ==( other )
+			other.kind_of?(Attribute) and other.name==name and other.value==value
+		end
+
+		# Creates (and returns) a hash from both the name and value
+		def hash
+			name.hash + value.hash
+		end
+
+		# Returns this attribute out as XML source, expanding the name
+		#
+		#  a = Attribute.new( &quot;x&quot;, &quot;y&quot; )
+		#  a.to_string     # -&gt; &quot;x='y'&quot;
+		#  b = Attribute.new( &quot;ns:x&quot;, &quot;y&quot; )
+		#  b.to_string     # -&gt; &quot;ns:x='y'&quot;
+		def to_string
+			if @element and @element.context and @element.context[:attribute_quote] == :quote
+				%Q^#@expanded_name=&quot;#{to_s().gsub(/&quot;/, '&amp;quote;')}&quot;^
+			else
+				&quot;#@expanded_name='#{to_s().gsub(/'/, '&amp;apos;')}'&quot;
+			end
+		end
+
+		# Returns the attribute value, with entities replaced
+		def to_s
+			return @normalized if @normalized
+
+			doctype = nil
+			if @element
+				doc = @element.document
+				doctype = doc.doctype if doc
+			end
+
+			@normalized = Text::normalize( @unnormalized, doctype )
+			@unnormalized = nil
+      @normalized
+		end
+
+		# Returns the UNNORMALIZED value of this attribute.  That is, entities
+		# have been expanded to their values
+		def value
+			return @unnormalized if @unnormalized
+			doctype = nil
+			if @element
+				doc = @element.document
+				doctype = doc.doctype if doc
+			end
+			@unnormalized = Text::unnormalize( @normalized, doctype )
+			@normalized = nil
+      @unnormalized
+		end
+
+		# Returns a copy of this attribute
+		def clone
+			Attribute.new self
+		end
+
+		# Sets the element of which this object is an attribute.  Normally, this
+		# is not directly called.
+		#
+		# Returns this attribute
+		def element=( element )
+			@element = element
+			self
+		end
+
+		# Removes this Attribute from the tree, and returns true if successfull
+		# 
+		# This method is usually not called directly.
+		def remove
+			@element.attributes.delete self.name unless @element.nil?
+		end
+
+		# Writes this attribute (EG, puts 'key=&quot;value&quot;' to the output)
+		def write( output, indent=-1 )
+			output &lt;&lt; to_string
+		end
+
+    def node_type
+      :attribute
+    end
+
+    def inspect
+      rv = &quot;&quot;
+      write( rv )
+      rv
+    end
+
+    def xpath
+      path = @element.xpath
+      path += &quot;/@#{self.expanded_name}&quot;
+      return path
+    end
+	end
+end
+#vim:ts=2 sw=2 noexpandtab:
+</pre>
+    </div>

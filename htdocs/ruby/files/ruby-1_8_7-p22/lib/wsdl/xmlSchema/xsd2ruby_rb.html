@@ -1,0 +1,127 @@
+  <div id="fileHeader">
+    <h1>xsd2ruby.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/wsdl/xmlSchema/xsd2ruby.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - XSD to ruby mapping library.
+# Copyright (C) 2005  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'xsd/codegen/gensupport'
+require 'wsdl/xmlSchema/importer'
+require 'wsdl/soap/classDefCreator'
+
+
+module WSDL
+module XMLSchema
+
+
+class XSD2Ruby
+  attr_accessor :location
+  attr_reader :opt
+  attr_accessor :logger
+  attr_accessor :basedir
+
+  def run
+    unless @location
+      raise RuntimeError, &quot;XML Schema location not given&quot;
+    end
+    @xsd = import(@location)
+    @name = create_classname(@xsd)
+    create_file
+  end
+
+private
+
+  def initialize
+    @location = nil
+    @opt = {}
+    @logger = Logger.new(STDERR)
+    @basedir = nil
+    @xsd = nil
+    @name = nil
+  end
+
+  def create_file
+    create_classdef
+  end
+
+  def create_classdef
+    @logger.info { &quot;Creating class definition.&quot; }
+    @classdef_filename = @name + '.rb'
+    check_file(@classdef_filename) or return
+    write_file(@classdef_filename) do |f|
+      f &lt;&lt; WSDL::SOAP::ClassDefCreator.new(@xsd).dump
+    end
+  end
+
+  def write_file(filename)
+    if @basedir
+      filename = File.join(basedir, filename)
+    end
+    File.open(filename, &quot;w&quot;) do |f|
+      yield f
+    end
+  end
+
+  def check_file(filename)
+    if @basedir
+      filename = File.join(basedir, filename)
+    end
+    if FileTest.exist?(filename)
+      if @opt.key?('force')
+	@logger.warn {
+	  &quot;File '#{filename}' exists but overrides it.&quot;
+	}
+	true
+      else
+	@logger.warn {
+	  &quot;File '#{filename}' exists.  #{$0} did not override it.&quot;
+	}
+	false
+      end
+    else
+      @logger.info { &quot;Creates file '#{filename}'.&quot; }
+      true
+    end
+  end
+
+  def create_classname(xsd)
+    name = nil
+    if xsd.targetnamespace
+      name = xsd.targetnamespace.scan(/[a-zA-Z0-9]+$/)[0]
+    end
+    if name.nil?
+      'default'
+    else
+      XSD::CodeGen::GenSupport.safevarname(name)
+    end
+  end
+
+  def import(location)
+    WSDL::XMLSchema::Importer.import(location)
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

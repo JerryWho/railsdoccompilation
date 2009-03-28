@@ -1,0 +1,79 @@
+  <div id="fileHeader">
+    <h1>profiler.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/profiler.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Profiler__
+  # internal values
+  @@start = @@stack = @@map = nil
+  PROFILE_PROC = proc{|event, file, line, id, binding, klass|
+    case event
+    when &quot;call&quot;, &quot;c-call&quot;
+      now = Process.times[0]
+      @@stack.push [now, 0.0]
+    when &quot;return&quot;, &quot;c-return&quot;
+      now = Process.times[0]
+      key = [klass, id]
+      if tick = @@stack.pop
+        data = (@@map[key] ||= [0, 0.0, 0.0, key])
+        data[0] += 1
+        cost = now - tick[0]
+        data[1] += cost
+        data[2] += cost - tick[1]
+        @@stack[-1][1] += cost if @@stack[-1]
+      end
+    end
+  }
+module_function
+  def start_profile
+    @@start = Process.times[0]
+    @@stack = []
+    @@map = {}
+    set_trace_func PROFILE_PROC
+  end
+  def stop_profile
+    set_trace_func nil
+  end
+  def print_profile(f)
+    stop_profile
+    total = Process.times[0] - @@start
+    if total == 0 then total = 0.01 end
+    data = @@map.values
+    data.sort!{|a,b| b[2] &lt;=&gt; a[2]}
+    sum = 0
+    f.printf &quot;  %%   cumulative   self              self     total\n&quot;
+    f.printf &quot; time   seconds   seconds    calls  ms/call  ms/call  name\n&quot;
+    for d in data
+      sum += d[2]
+      f.printf &quot;%6.2f %8.2f  %8.2f %8d &quot;, d[2]/total*100, sum, d[2], d[0]
+      f.printf &quot;%8.2f %8.2f  %s\n&quot;, d[2]*1000/d[0], d[1]*1000/d[0], get_name(*d[3])
+    end
+    f.printf &quot;%6.2f %8.2f  %8.2f %8d &quot;, 0.0, total, 0.0, 1     # ???
+    f.printf &quot;%8.2f %8.2f  %s\n&quot;, 0.0, total*1000, &quot;#toplevel&quot; # ???
+  end
+  def get_name(klass, id)
+    name = klass.to_s || &quot;&quot;
+    if klass.kind_of? Class
+      name += &quot;#&quot;
+    else
+      name += &quot;.&quot;
+    end
+    name + id.id2name
+  end
+  private :get_name
+end
+</pre>
+    </div>

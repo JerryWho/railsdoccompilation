@@ -1,0 +1,91 @@
+  <div id="fileHeader">
+    <h1>xml.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/xml.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Oct 21 07:19:43 -0500 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rss/utils&quot;
+
+module RSS
+  module XML
+    class Element
+      include Enumerable
+
+      attr_reader :name, :prefix, :uri, :attributes, :children
+      def initialize(name, prefix=nil, uri=nil, attributes={}, children=[])
+        @name = name
+        @prefix = prefix
+        @uri = uri
+        @attributes = attributes
+        if children.is_a?(String) or !children.respond_to?(:each)
+          @children = [children]
+        else
+          @children = children
+        end
+      end
+
+      def [](name)
+        @attributes[name]
+      end
+
+      def []=(name, value)
+        @attributes[name] = value
+      end
+
+      def &lt;&lt;(child)
+        @children &lt;&lt; child
+      end
+
+      def each(&amp;block)
+        @children.each(&amp;block)
+      end
+
+      def ==(other)
+        other.kind_of?(self.class) and
+          @name == other.name and
+          @uri == other.uri and
+          @attributes == other.attributes and
+          @children == other.children
+      end
+
+      def to_s
+        rv = &quot;&lt;#{full_name}&quot;
+        attributes.each do |key, value|
+          rv &lt;&lt; &quot; #{Utils.html_escape(key)}=\&quot;#{Utils.html_escape(value)}\&quot;&quot;
+        end
+        if children.empty?
+          rv &lt;&lt; &quot;/&gt;&quot;
+        else
+          rv &lt;&lt; &quot;&gt;&quot;
+          children.each do |child|
+            rv &lt;&lt; child.to_s
+          end
+          rv &lt;&lt; &quot;&lt;/#{full_name}&gt;&quot;
+        end
+        rv
+      end
+
+      def full_name
+        if @prefix
+          &quot;#{@prefix}:#{@name}&quot;
+        else
+          @name
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

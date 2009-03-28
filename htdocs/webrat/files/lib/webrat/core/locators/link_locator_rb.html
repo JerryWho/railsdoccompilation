@@ -1,0 +1,84 @@
+  <div id="fileHeader">
+    <h1>link_locator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/core/locators/link_locator.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:40 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;webrat/core/locators/locator&quot;
+
+module Webrat
+  module Locators
+    
+    class LinkLocator &lt; Locator # :nodoc:
+  
+      def locate
+        Link.load(@session, link_element)
+      end
+  
+      def link_element
+        matching_links.min { |a, b| Webrat::XML.all_inner_text(a).length &lt;=&gt; Webrat::XML.all_inner_text(b).length }
+      end
+  
+      def matching_links
+        @matching_links ||= link_elements.select do |link_element|
+          matches_text?(link_element) ||
+          matches_id?(link_element)
+        end
+      end
+  
+      def matches_text?(link)
+        if @value.is_a?(Regexp)
+          matcher = @value
+        else
+          matcher = /#{Regexp.escape(@value.to_s)}/i
+        end
+
+        replace_nbsp(Webrat::XML.all_inner_text(link)) =~ matcher ||
+        replace_nbsp_ref(Webrat::XML.inner_html(link)) =~ matcher ||
+        Webrat::XML.attribute(link, &quot;title&quot;)=~ matcher
+      end
+
+      def matches_id?(link)
+        if @value.is_a?(Regexp)
+          (Webrat::XML.attribute(link, &quot;id&quot;) =~ @value) ? true : false
+        else
+          (Webrat::XML.attribute(link, &quot;id&quot;) == @value) ? true : false
+        end
+      end
+  
+      def link_elements
+        Webrat::XML.xpath_search(@dom, *Link.xpath_search)
+      end
+  
+      def replace_nbsp(str)
+        str.gsub([0xA0].pack('U'), ' ')
+      end
+
+      def replace_nbsp_ref(str)
+        str.gsub('&amp;#xA0;',' ').gsub('&amp;nbsp;', ' ')
+      end
+  
+      def error_message
+        &quot;Could not find link with text or title or id #{@value.inspect}&quot;
+      end
+      
+    end
+    
+    def find_link(text_or_title_or_id) #:nodoc:
+      LinkLocator.new(@session, dom, text_or_title_or_id).locate!
+    end
+    
+  end
+end</pre>
+    </div>

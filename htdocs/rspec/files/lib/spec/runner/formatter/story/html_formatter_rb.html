@@ -1,0 +1,192 @@
+  <div id="fileHeader">
+    <h1>html_formatter.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/runner/formatter/story/html_formatter.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'erb'
+require 'spec/runner/formatter/base_text_formatter'
+
+module Spec
+  module Runner
+    module Formatter
+      module Story
+        class HtmlFormatter &lt; BaseTextFormatter
+          include ERB::Util
+          
+          def initialize(options, where)
+            super
+            @previous_type = nil
+            @scenario_text = &quot;&quot;
+            @story_text = &quot;&quot;
+            @scenario_failed = false
+            @story_failed = false
+          end
+          
+          def run_started(count)
+            @output.puts &lt;&lt;-EOF
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE html 
+  PUBLIC &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot;
+  &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; xml:lang=&quot;en&quot; lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;title&gt;Stories&lt;/title&gt;
+    &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+    &lt;meta http-equiv=&quot;Expires&quot; content=&quot;-1&quot; /&gt;
+    &lt;meta http-equiv=&quot;Pragma&quot; content=&quot;no-cache&quot; /&gt;
+    &lt;script src=&quot;javascripts/prototype.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;javascripts/scriptaculous.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;javascripts/rspec.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+    &lt;link href=&quot;stylesheets/rspec.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;container&quot;&gt;
+EOF
+          end
+
+          def collected_steps(steps)
+            unless steps.empty?
+              @output.puts &quot;      &lt;ul id=\&quot;stock_steps\&quot; style=\&quot;display: none;\&quot;&gt;&quot;
+              steps.each do |step|
+                @output.puts &quot;        &lt;li&gt;#{step}&lt;/li&gt;&quot;
+              end
+              @output.puts &quot;      &lt;/ul&gt;&quot;
+            end
+          end
+
+          def run_ended
+            @output.puts &lt;&lt;-EOF
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/head&gt;
+EOF
+          end
+          
+          def story_started(title, narrative)
+            @story_failed = false
+            @story_text = &lt;&lt;-EOF 
+        &lt;dt&gt;Story: #{h title}&lt;/dt&gt;
+        &lt;dd&gt;
+          &lt;p&gt;
+            #{h(narrative).split(&quot;\n&quot;).join(&quot;&lt;br /&gt;&quot;)}
+          &lt;/p&gt;
+EOF
+          end
+
+          def story_ended(title, narrative)     
+            if @story_failed
+              @output.puts &lt;&lt;-EOF
+      &lt;dl class=&quot;story failed&quot;&gt;
+EOF
+            else
+              @output.puts &lt;&lt;-EOF
+      &lt;dl class=&quot;story passed&quot;&gt;
+EOF
+            end
+              @output.puts &lt;&lt;-EOF
+#{@story_text}
+        &lt;/dd&gt;
+      &lt;/dl&gt;
+EOF
+          end
+     
+          def scenario_started(story_title, scenario_name)
+            @previous_type = nil
+            @scenario_failed = false
+            @scenario_text = &lt;&lt;-EOF
+              &lt;dt&gt;Scenario: #{h scenario_name}&lt;/dt&gt;
+              &lt;dd&gt;
+                &lt;ul class=&quot;steps&quot;&gt;
+EOF
+          end
+
+          def scenario_ended
+            if @scenario_failed
+              @story_text += &lt;&lt;-EOF
+            &lt;dl class=&quot;failed&quot;&gt;
+EOF
+            else
+              @story_text += &lt;&lt;-EOF
+            &lt;dl class=&quot;passed&quot;&gt;
+EOF
+            end
+            
+            @story_text += &lt;&lt;-EOF
+#{@scenario_text}
+                &lt;/ul&gt;
+              &lt;/dd&gt;
+            &lt;/dl&gt;
+EOF
+          end
+          
+          def found_scenario(type, description)
+          end
+
+          def scenario_succeeded(story_title, scenario_name)
+            scenario_ended
+          end
+
+          def scenario_pending(story_title, scenario_name, reason)
+            scenario_ended
+          end
+
+          def scenario_failed(story_title, scenario_name, err)
+            @scenario_failed = true
+            @story_failed = true
+            scenario_ended
+          end
+
+          def step_upcoming(type, description, *args)
+          end
+
+          def step_succeeded(type, description, *args)
+            print_step('passed', type, description, *args) # TODO: uses succeeded CSS class
+          end
+
+          def step_pending(type, description, *args)
+            print_step('pending', type, description, *args)
+          end
+
+          def step_failed(type, description, *args)
+            print_step('failed', type, description, *args)
+          end
+          
+          def print_step(klass, type, description, *args)
+            spans = args.map { |arg| &quot;&lt;span class=\&quot;param\&quot;&gt;#{arg}&lt;/span&gt;&quot; }
+            desc_string = description.step_name
+            arg_regexp = description.arg_regexp           
+            inner = if(type == @previous_type)
+              &quot;And &quot;
+            else
+              &quot;#{type.to_s.capitalize} &quot;
+            end
+            i = -1
+            inner += desc_string.gsub(arg_regexp) { |param| spans[i+=1] }
+            
+            @scenario_text += &quot;                  &lt;li class=\&quot;#{klass}\&quot;&gt;#{inner}&lt;/li&gt;\n&quot;
+            
+            if type == :'given scenario'
+              @previous_type = :given
+            else
+              @previous_type = type
+            end
+            
+          end
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

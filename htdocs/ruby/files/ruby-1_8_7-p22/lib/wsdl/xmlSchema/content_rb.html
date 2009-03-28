@@ -1,0 +1,116 @@
+  <div id="fileHeader">
+    <h1>content.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/wsdl/xmlSchema/content.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># WSDL4R - XMLSchema complexType definition for WSDL.
+# Copyright (C) 2002, 2003  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'wsdl/info'
+
+
+module WSDL
+module XMLSchema
+
+
+class Content &lt; Info
+  attr_accessor :final
+  attr_accessor :mixed
+  attr_accessor :type
+  attr_reader :contents
+  attr_reader :elements
+
+  def initialize
+    super()
+    @final = nil
+    @mixed = false
+    @type = nil
+    @contents = []
+    @elements = []
+  end
+
+  def targetnamespace
+    parent.targetnamespace
+  end
+
+  def &lt;&lt;(content)
+    @contents &lt;&lt; content
+    update_elements
+  end
+
+  def each
+    @contents.each do |content|
+      yield content
+    end
+  end
+
+  def parse_element(element)
+    case element
+    when AllName, SequenceName, ChoiceName
+      o = Content.new
+      o.type = element.name
+      @contents &lt;&lt; o
+      o
+    when AnyName
+      o = Any.new
+      @contents &lt;&lt; o
+      o
+    when ElementName
+      o = Element.new
+      @contents &lt;&lt; o
+      o
+    else
+      nil
+    end
+  end
+
+  def parse_attr(attr, value)
+    case attr
+    when FinalAttrName
+      @final = value.source
+    when MixedAttrName
+      @mixed = (value.source == 'true')
+    else
+      nil
+    end
+  end
+
+  def parse_epilogue
+    update_elements
+  end
+
+private
+
+  def update_elements
+    @elements = []
+    @contents.each do |content|
+      if content.is_a?(Element)
+	@elements &lt;&lt; [content.name, content]
+      end
+    end
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

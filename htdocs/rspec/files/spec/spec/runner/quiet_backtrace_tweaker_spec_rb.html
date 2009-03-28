@@ -1,0 +1,81 @@
+  <div id="fileHeader">
+    <h1>quiet_backtrace_tweaker_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/runner/quiet_backtrace_tweaker_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module Spec
+  module Runner
+    describe &quot;QuietBacktraceTweaker&quot; do
+      before(:each) do
+        @error = RuntimeError.new
+        @tweaker = QuietBacktraceTweaker.new
+      end
+
+      it &quot;should not barf on nil backtrace&quot; do
+        lambda do
+          @tweaker.tweak_backtrace(@error)
+        end.should_not raise_error
+      end
+
+      it &quot;should remove anything from textmate ruby bundle&quot; do
+        @error.set_backtrace([&quot;/Applications/TextMate.app/Contents/SharedSupport/Bundles/Ruby.tmbundle/Support/tmruby.rb:147&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should be_empty
+      end
+
+      it &quot;should remove anything in lib spec dir&quot; do
+        [&quot;expectations&quot;, &quot;mocks&quot;, &quot;runner&quot;].each do |child|
+          element=&quot;/lib/spec/#{child}/anything.rb&quot;
+          @error.set_backtrace([element])
+          @tweaker.tweak_backtrace(@error)
+          unless (@error.backtrace.empty?)
+            raise(&quot;Should have tweaked away '#{element}'&quot;)
+          end
+        end
+      end
+
+      it &quot;should remove mock_frameworks/rspec&quot; do
+        element = &quot;mock_frameworks/rspec&quot;
+        @error.set_backtrace([element])
+        @tweaker.tweak_backtrace(@error)
+        unless (@error.backtrace.empty?)
+          raise(&quot;Should have tweaked away '#{element}'&quot;)
+        end
+      end
+
+      it &quot;should remove bin spec&quot; do
+        @error.set_backtrace([&quot;bin/spec:&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should be_empty
+      end
+      
+      it &quot;should clean up double slashes&quot; do
+        @error.set_backtrace([&quot;/a//b/c//d.rb&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should include(&quot;/a/b/c/d.rb&quot;)
+      end
+
+      it &quot;should gracefully handle backtraces with newlines&quot; do
+        @error.set_backtrace([&quot;we like\nbin/spec:\nnewlines&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should include(&quot;we like\nnewlines&quot;)
+      end
+    end
+  end
+end
+</pre>
+    </div>

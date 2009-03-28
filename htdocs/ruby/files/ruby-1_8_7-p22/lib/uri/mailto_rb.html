@@ -1,0 +1,286 @@
+  <div id="fileHeader">
+    <h1>mailto.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/uri/mailto.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Wed Feb 14 20:41:45 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# = uri/mailto.rb
+#
+# Author:: Akira Yamada &lt;akira@ruby-lang.org&gt;
+# License:: You can redistribute it and/or modify it under the same term as Ruby.
+# Revision:: $Id: mailto.rb 11747 2007-02-15 02:41:45Z knu $
+#
+
+require 'uri/generic'
+
+module URI
+
+  #
+  # RFC2368, The mailto URL scheme
+  #
+  class MailTo &lt; Generic
+    include REGEXP
+
+    DEFAULT_PORT = nil
+
+    COMPONENT = [ :scheme, :to, :headers ].freeze
+
+    # :stopdoc:
+    #  &quot;hname&quot; and &quot;hvalue&quot; are encodings of an RFC 822 header name and
+    #  value, respectively. As with &quot;to&quot;, all URL reserved characters must
+    #  be encoded.
+    #
+    #  &quot;#mailbox&quot; is as specified in RFC 822 [RFC822]. This means that it
+    #  consists of zero or more comma-separated mail addresses, possibly
+    #  including &quot;phrase&quot; and &quot;comment&quot; components. Note that all URL
+    #  reserved characters in &quot;to&quot; must be encoded: in particular,
+    #  parentheses, commas, and the percent sign (&quot;%&quot;), which commonly occur
+    #  in the &quot;mailbox&quot; syntax.
+    #
+    #  Within mailto URLs, the characters &quot;?&quot;, &quot;=&quot;, &quot;&amp;&quot; are reserved.
+
+    # hname      =  *urlc
+    # hvalue     =  *urlc
+    # header     =  hname &quot;=&quot; hvalue
+    HEADER_PATTERN = &quot;(?:[^?=&amp;]*=[^?=&amp;]*)&quot;.freeze
+    HEADER_REGEXP  = Regexp.new(HEADER_PATTERN, 'N').freeze
+    # headers    =  &quot;?&quot; header *( &quot;&amp;&quot; header )
+    # to         =  #mailbox
+    # mailtoURL  =  &quot;mailto:&quot; [ to ] [ headers ]
+    MAILBOX_PATTERN = &quot;(?:#{PATTERN::ESCAPED}|[^(),%?=&amp;])&quot;.freeze
+    MAILTO_REGEXP = Regexp.new(&quot; # :nodoc:
+      \\A
+      (#{MAILBOX_PATTERN}*?)                          (?# 1: to)
+      (?:
+        \\?
+        (#{HEADER_PATTERN}(?:\\&amp;#{HEADER_PATTERN})*)  (?# 2: headers)
+      )?
+      (?:
+        \\#
+        (#{PATTERN::FRAGMENT})                        (?# 3: fragment)
+      )?
+      \\z
+    &quot;, Regexp::EXTENDED, 'N').freeze
+    # :startdoc:
+
+    #
+    # == Description
+    #
+    # Creates a new URI::MailTo object from components, with syntax checking.
+    #
+    # Components can be provided as an Array or Hash. If an Array is used,
+    # the components must be supplied as [to, headers].
+    #
+    # If a Hash is used, the keys are the component names preceded by colons.
+    #
+    # The headers can be supplied as a pre-encoded string, such as 
+    # &quot;subject=subscribe&amp;cc=address&quot;, or as an Array of Arrays like
+    # [['subject', 'subscribe'], ['cc', 'address']]
+    #
+    # Examples:
+    # 
+    #    require 'uri'
+    #    
+    #    m1 = URI::MailTo.build(['joe@example.com', 'subject=Ruby'])
+    #    puts m1.to_s  -&gt;  mailto:joe@example.com?subject=Ruby
+    #    
+    #    m2 = URI::MailTo.build(['john@example.com', [['Subject', 'Ruby'], ['Cc', 'jack@example.com']]])
+    #    puts m2.to_s  -&gt;  mailto:john@example.com?Subject=Ruby&amp;Cc=jack@example.com
+    #    
+    #    m3 = URI::MailTo.build({:to =&gt; 'listman@example.com', :headers =&gt; [['subject', 'subscribe']]})
+    #    puts m3.to_s  -&gt;  mailto:listman@example.com?subject=subscribe
+    #
+    def self.build(args)
+      tmp = Util::make_components_hash(self, args)
+
+      if tmp[:to]
+        tmp[:opaque] = tmp[:to]
+      else
+        tmp[:opaque] = ''
+      end
+
+      if tmp[:headers]
+        tmp[:opaque] &lt;&lt; '?'
+
+        if tmp[:headers].kind_of?(Array)
+          tmp[:opaque] &lt;&lt; tmp[:headers].collect { |x|
+            if x.kind_of?(Array)
+              x[0] + '=' + x[1..-1].to_s
+            else
+              x.to_s
+            end
+          }.join('&amp;')
+
+        elsif tmp[:headers].kind_of?(Hash)
+          tmp[:opaque] &lt;&lt; tmp[:headers].collect { |h,v|
+            h + '=' + v
+          }.join('&amp;')
+
+        else
+          tmp[:opaque] &lt;&lt; tmp[:headers].to_s
+        end
+      end
+
+      return super(tmp)
+    end
+
+    #
+    # == Description
+    #
+    # Creates a new URI::MailTo object from generic URL components with
+    # no syntax checking.
+    #
+    # This method is usually called from URI::parse, which checks
+    # the validity of each component.
+    #
+    def initialize(*arg)
+      super(*arg)
+
+      @to = nil
+      @headers = []
+
+      if MAILTO_REGEXP =~ @opaque
+         if arg[-1]
+          self.to = $1
+          self.headers = $2
+        else
+          set_to($1)
+          set_headers($2)
+        end
+
+      else
+        raise InvalidComponentError,
+          &quot;unrecognised opaque part for mailtoURL: #{@opaque}&quot;
+      end
+    end
+
+    # The primary e-mail address of the URL, as a String
+    attr_reader :to
+
+    # E-mail headers set by the URL, as an Array of Arrays
+    attr_reader :headers
+
+    def check_to(v)
+      return true unless v
+      return true if v.size == 0
+
+      if OPAQUE !~ v || /\A#{MAILBOX_PATTERN}*\z/o !~ v
+        raise InvalidComponentError,
+          &quot;bad component(expected opaque component): #{v}&quot;
+      end
+
+      return true
+    end
+    private :check_to
+
+    def set_to(v)
+      @to = v
+    end
+    protected :set_to
+
+    def to=(v)
+      check_to(v)
+      set_to(v)
+      v
+    end
+
+    def check_headers(v)
+      return true unless v
+      return true if v.size == 0
+
+      if OPAQUE !~ v || 
+          /\A(#{HEADER_PATTERN}(?:\&amp;#{HEADER_PATTERN})*)\z/o !~ v
+        raise InvalidComponentError,
+          &quot;bad component(expected opaque component): #{v}&quot;
+      end
+
+      return true
+    end
+    private :check_headers
+
+    def set_headers(v)
+      @headers = []
+      if v
+        v.scan(HEADER_REGEXP) do |x|
+          @headers &lt;&lt; x.split(/=/o, 2)
+        end
+      end
+    end
+    protected :set_headers
+
+    def headers=(v)
+      check_headers(v)
+      set_headers(v)
+      v
+    end
+
+    def to_s
+      @scheme + ':' + 
+        if @to 
+          @to
+        else
+          ''
+        end + 
+        if @headers.size &gt; 0
+          '?' + @headers.collect{|x| x.join('=')}.join('&amp;')
+        else
+          ''
+        end +
+        if @fragment
+          '#' + @fragment
+        else
+          ''
+        end
+    end
+    
+    # Returns the RFC822 e-mail text equivalent of the URL, as a String.
+    #
+    # Example:
+    #
+    #   require 'uri'
+    #
+    #   uri = URI.parse(&quot;mailto:ruby-list@ruby-lang.org?Subject=subscribe&amp;cc=myaddr&quot;)
+    #   uri.to_mailtext
+    #   # =&gt; &quot;To: ruby-list@ruby-lang.org\nSubject: subscribe\nCc: myaddr\n\n\n&quot;
+    #
+    def to_mailtext
+      to = URI::unescape(@to)
+      head = ''
+      body = ''
+      @headers.each do |x|
+        case x[0]
+        when 'body'
+          body = URI::unescape(x[1])
+        when 'to'
+          to &lt;&lt; ', ' + URI::unescape(x[1])
+        else
+          head &lt;&lt; URI::unescape(x[0]).capitalize + ': ' +
+            URI::unescape(x[1])  + &quot;\n&quot;
+        end
+      end
+
+      return &quot;To: #{to}
+#{head}
+#{body}
+&quot;
+    end
+    alias to_rfc822text to_mailtext
+  end
+
+  @@schemes['MAILTO'] = MailTo
+end
+</pre>
+    </div>

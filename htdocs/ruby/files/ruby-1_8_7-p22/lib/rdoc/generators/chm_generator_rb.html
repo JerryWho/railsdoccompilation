@@ -1,0 +1,132 @@
+  <div id="fileHeader">
+    <h1>chm_generator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/generators/chm_generator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rdoc/generators/html_generator'
+
+module Generators
+
+  class CHMGenerator &lt; HTMLGenerator
+
+    HHC_PATH = &quot;c:/Program Files/HTML Help Workshop/hhc.exe&quot;
+
+    # Standard generator factory
+    def CHMGenerator.for(options)
+      CHMGenerator.new(options)
+    end
+
+    
+    def initialize(*args)
+      super
+      @op_name = @options.op_name || &quot;rdoc&quot;
+      check_for_html_help_workshop
+    end
+
+    def check_for_html_help_workshop
+      stat = File.stat(HHC_PATH)
+    rescue
+      $stderr &lt;&lt;
+	&quot;\n.chm output generation requires that Microsoft's Html Help\n&quot; &lt;&lt;
+	&quot;Workshop is installed. RDoc looks for it in:\n\n    &quot; &lt;&lt;
+	HHC_PATH &lt;&lt;
+	&quot;\n\nYou can download a copy for free from:\n\n&quot; &lt;&lt;
+	&quot;    http://msdn.microsoft.com/library/default.asp?&quot; &lt;&lt;
+	&quot;url=/library/en-us/htmlhelp/html/hwMicrosoftHTMLHelpDownloads.asp\n\n&quot;
+      
+      exit 99
+    end
+
+    # Generate the html as normal, then wrap it
+    # in a help project
+    def generate(info)
+      super
+      @project_name = @op_name + &quot;.hhp&quot;
+      create_help_project
+    end
+
+    # The project contains the project file, a table of contents
+    # and an index
+    def create_help_project
+      create_project_file
+      create_contents_and_index
+      compile_project
+    end
+
+    # The project file links together all the various
+    # files that go to make up the help.
+
+    def create_project_file
+      template = TemplatePage.new(RDoc::Page::HPP_FILE)
+      values = { &quot;title&quot; =&gt; @options.title, &quot;opname&quot; =&gt; @op_name }
+      files = []
+      @files.each do |f|
+	files &lt;&lt; { &quot;html_file_name&quot; =&gt; f.path }
+      end
+
+      values['all_html_files'] = files
+      
+      File.open(@project_name, &quot;w&quot;) do |f|
+        template.write_html_on(f, values)
+      end
+    end
+
+    # The contents is a list of all files and modules.
+    # For each we include  as sub-entries the list
+    # of methods they contain. As we build the contents
+    # we also build an index file
+
+    def create_contents_and_index
+      contents = []
+      index    = []
+
+      (@files+@classes).sort.each do |entry|
+	content_entry = { &quot;c_name&quot; =&gt; entry.name, &quot;ref&quot; =&gt; entry.path }
+	index &lt;&lt; { &quot;name&quot; =&gt; entry.name, &quot;aref&quot; =&gt; entry.path }
+
+	internals = []
+
+	methods = entry.build_method_summary_list(entry.path)
+
+	content_entry[&quot;methods&quot;] = methods unless methods.empty?
+        contents &lt;&lt; content_entry
+	index.concat methods
+      end
+
+      values = { &quot;contents&quot; =&gt; contents }
+      template = TemplatePage.new(RDoc::Page::CONTENTS)
+      File.open(&quot;contents.hhc&quot;, &quot;w&quot;) do |f|
+	template.write_html_on(f, values)
+      end
+
+      values = { &quot;index&quot; =&gt; index }
+      template = TemplatePage.new(RDoc::Page::CHM_INDEX)
+      File.open(&quot;index.hhk&quot;, &quot;w&quot;) do |f|
+	template.write_html_on(f, values)
+      end      
+    end
+
+    # Invoke the windows help compiler to compiler the project
+    def compile_project
+      system(HHC_PATH, @project_name)
+    end
+
+  end
+
+
+end
+</pre>
+    </div>

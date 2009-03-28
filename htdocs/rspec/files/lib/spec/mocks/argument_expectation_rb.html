@@ -1,0 +1,70 @@
+  <div id="fileHeader">
+    <h1>argument_expectation.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/mocks/argument_expectation.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Mocks
+    
+    class ArgumentExpectation
+      attr_reader :args
+      
+      def initialize(args, &amp;block)
+        @args = args
+        @matchers_block = block
+        @match_any_args = false
+        @matchers = nil
+        
+        if ArgumentMatchers::AnyArgsMatcher === args.first
+          @match_any_args = true
+        elsif ArgumentMatchers::NoArgsMatcher === args.first
+          @matchers = []
+        else
+          @matchers = args.collect {|arg| matcher_for(arg)}
+        end
+      end
+      
+      def matcher_for(arg)
+        return ArgumentMatchers::MatcherMatcher.new(arg)   if is_matcher?(arg)
+        return ArgumentMatchers::RegexpMatcher.new(arg) if arg.is_a?(Regexp)
+        return ArgumentMatchers::EqualityProxy.new(arg)
+      end
+      
+      def is_matcher?(obj)
+        return obj.respond_to?(:matches?) &amp; obj.respond_to?(:description)
+      end
+      
+      def args_match?(given_args)
+        match_any_args? || matchers_block_matches?(given_args) || matchers_match?(given_args)
+      end
+      
+      def matchers_block_matches?(given_args)
+        @matchers_block ? @matchers_block.call(*given_args) : nil
+      end
+      
+      def matchers_match?(given_args)
+        @matchers == given_args
+      end
+      
+      def match_any_args?
+        @match_any_args
+      end
+      
+    end
+    
+  end
+end
+</pre>
+    </div>

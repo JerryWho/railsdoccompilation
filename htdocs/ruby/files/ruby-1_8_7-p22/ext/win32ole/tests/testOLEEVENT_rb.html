@@ -1,0 +1,111 @@
+  <div id="fileHeader">
+    <h1>testOLEEVENT.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/ext/win32ole/tests/testOLEEVENT.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rubyunit'
+require 'win32ole'
+
+class TestWIN32OLE_EVENT &lt; RUNIT::TestCase
+  def setup
+    @excel = WIN32OLE.new(&quot;Excel.Application&quot;)
+    @excel.visible = true
+    @event = &quot;&quot;
+    @event2 = &quot;&quot;
+  end
+  def test_on_event
+    book = @excel.workbooks.Add
+    value = &quot;&quot;
+    begin
+      ev = WIN32OLE_EVENT.new(book, 'WorkbookEvents')
+      ev.on_event('SheetChange'){|arg1, arg2| 
+        begin
+          value = arg1.value
+        rescue
+          value = $!.message
+        end
+      }
+      book.Worksheets(1).Range(&quot;A1&quot;).value = &quot;OK&quot;
+    ensure
+      book.saved = true
+    end
+    assert_equal(&quot;OK&quot;, value)
+  end
+
+  def handler1
+    @event += &quot;handler1&quot;
+  end
+  def handler2
+    @event += &quot;handler2&quot;
+  end
+
+  def handler3
+    @event += &quot;handler3&quot;
+  end
+
+  def test_on_event2
+    book = @excel.workbooks.Add
+    begin
+      ev = WIN32OLE_EVENT.new(book, 'WorkbookEvents')
+      ev.on_event('SheetChange'){|arg1, arg2| 
+        handler1
+      }
+      ev.on_event('SheetChange'){|arg1, arg2| 
+        handler2
+      }
+      book.Worksheets(1).Range(&quot;A1&quot;).value = &quot;OK&quot;
+    ensure
+      book.saved = true
+    end
+    assert_equal(&quot;handler2&quot;, @event)
+  end
+
+  def test_on_event3
+    book = @excel.workbooks.Add
+    begin
+      ev = WIN32OLE_EVENT.new(book, 'WorkbookEvents')
+      ev.on_event{ handler1 }
+      ev.on_event{ handler2 }
+      book.Worksheets(1).Range(&quot;A1&quot;).value = &quot;OK&quot;
+    ensure
+      book.saved = true
+    end
+    assert_equal(&quot;handler2&quot;, @event)
+  end
+
+  def test_on_event4
+    book = @excel.workbooks.Add
+    begin
+      ev = WIN32OLE_EVENT.new(book, 'WorkbookEvents')
+      ev.on_event{ handler1 }
+      ev.on_event{ handler2 }
+      ev.on_event('SheetChange'){|arg1, arg2| handler3 }
+      book.Worksheets(1).Range(&quot;A1&quot;).value = &quot;OK&quot;
+    ensure
+      book.saved = true
+    end
+    assert_equal(&quot;handler3&quot;, @event)
+  end
+
+  def teardown
+    @excel.quit
+    @excel = nil
+    GC.start
+  end
+end
+
+</pre>
+    </div>

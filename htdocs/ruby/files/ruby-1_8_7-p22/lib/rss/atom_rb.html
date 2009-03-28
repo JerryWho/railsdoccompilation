@@ -1,0 +1,769 @@
+  <div id="fileHeader">
+    <h1>atom.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/atom.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Oct 21 07:19:43 -0500 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'base64'
+require 'rss/parser'
+
+module RSS
+  module Atom
+    URI = &quot;http://www.w3.org/2005/Atom&quot;
+    XHTML_URI = &quot;http://www.w3.org/1999/xhtml&quot;
+
+    module CommonModel
+      NSPOOL = {}
+      ELEMENTS = []
+
+      def self.append_features(klass)
+        super
+        klass.install_must_call_validator(&quot;atom&quot;, URI)
+        [
+         [&quot;lang&quot;, :xml],
+         [&quot;base&quot;, :xml],
+        ].each do |name, uri, required|
+          klass.install_get_attribute(name, uri, required, [nil, :inherit])
+        end
+        klass.class_eval do
+          class &lt;&lt; self
+            def required_uri
+              URI
+            end
+
+            def need_parent?
+              true
+            end
+          end
+        end
+      end
+    end
+
+    module ContentModel
+      module ClassMethods
+        def content_type
+          @content_type ||= nil
+        end
+      end
+
+      class &lt;&lt; self
+        def append_features(klass)
+          super
+          klass.extend(ClassMethods)
+          klass.content_setup(klass.content_type, klass.tag_name)
+        end
+      end
+
+      def maker_target(target)
+        target
+      end
+
+      private
+      def setup_maker_element_writer
+        &quot;#{self.class.name.split(/::/).last.downcase}=&quot;
+      end
+
+      def setup_maker_element(target)
+        target.__send__(setup_maker_element_writer, content)
+        super
+      end
+    end
+
+    module URIContentModel
+      class  &lt;&lt; self
+        def append_features(klass)
+          super
+          klass.class_eval do
+            @content_type = [nil, :uri]
+            include(ContentModel)
+          end
+        end
+      end
+    end
+
+    module TextConstruct
+      def self.append_features(klass)
+        super
+        klass.class_eval do
+          [
+           [&quot;type&quot;, &quot;&quot;],
+          ].each do |name, uri, required|
+            install_get_attribute(name, uri, required, :text_type)
+          end
+
+          content_setup
+          add_need_initialize_variable(&quot;xhtml&quot;)
+
+          class &lt;&lt; self
+            def xml_getter
+              &quot;xhtml&quot;
+            end
+
+            def xml_setter
+              &quot;xhtml=&quot;
+            end
+          end
+        end
+      end
+
+      attr_writer :xhtml
+      def xhtml
+        return @xhtml if @xhtml.nil?
+        if @xhtml.is_a?(XML::Element) and
+            [@xhtml.name, @xhtml.uri] == [&quot;div&quot;, XHTML_URI]
+          return @xhtml
+        end
+
+        children = @xhtml
+        children = [children] unless children.is_a?(Array)
+        XML::Element.new(&quot;div&quot;, nil, XHTML_URI,
+                         {&quot;xmlns&quot; =&gt; XHTML_URI}, children)
+      end
+
+      def have_xml_content?
+        @type == &quot;xhtml&quot;
+      end
+
+      def atom_validate(ignore_unknown_element, tags, uri)
+        if have_xml_content?
+          if @xhtml.nil?
+            raise MissingTagError.new(&quot;div&quot;, tag_name)
+          end
+          unless [@xhtml.name, @xhtml.uri] == [&quot;div&quot;, XHTML_URI]
+            raise NotExpectedTagError.new(@xhtml.name, @xhtml.uri, tag_name)
+          end
+        end
+      end
+
+      private
+      def maker_target(target)
+        target.__send__(self.class.name.split(/::/).last.downcase) {|x| x}
+      end
+
+      def setup_maker_attributes(target)
+        target.type = type
+        target.content = content
+        target.xml_content = @xhtml
+      end
+    end
+
+    module PersonConstruct
+      def self.append_features(klass)
+        super
+        klass.class_eval do
+          [
+           [&quot;name&quot;, nil],
+           [&quot;uri&quot;, &quot;?&quot;],
+           [&quot;email&quot;, &quot;?&quot;],
+          ].each do |tag, occurs|
+            install_have_attribute_element(tag, URI, occurs, nil, :content)
+          end
+        end
+      end
+
+      def maker_target(target)
+        target.__send__(&quot;new_#{self.class.name.split(/::/).last.downcase}&quot;)
+      end
+
+      class Name &lt; RSS::Element
+        include CommonModel
+        include ContentModel
+      end
+
+      class Uri &lt; RSS::Element
+        include CommonModel
+        include URIContentModel
+      end
+
+      class Email &lt; RSS::Element
+        include CommonModel
+        include ContentModel
+      end
+    end
+
+    module DateConstruct
+      def self.append_features(klass)
+        super
+        klass.class_eval do
+          @content_type = :w3cdtf
+          include(ContentModel)
+        end
+      end
+
+      def atom_validate(ignore_unknown_element, tags, uri)
+        raise NotAvailableValueError.new(tag_name, &quot;&quot;) if content.nil?
+      end
+    end
+
+    module DuplicateLinkChecker
+      def validate_duplicate_links(links)
+        link_infos = {}
+        links.each do |link|
+          rel = link.rel || &quot;alternate&quot;
+          next unless rel == &quot;alternate&quot;
+          key = [link.hreflang, link.type]
+          if link_infos.has_key?(key)
+            raise TooMuchTagError.new(&quot;link&quot;, tag_name)
+          end
+          link_infos[key] = true
+        end
+      end
+    end
+
+    class Feed &lt; RSS::Element
+      include RootElementMixin
+      include CommonModel
+      include DuplicateLinkChecker
+
+      install_ns('', URI)
+
+      [
+       [&quot;author&quot;, &quot;*&quot;, :children],
+       [&quot;category&quot;, &quot;*&quot;, :children, &quot;categories&quot;],
+       [&quot;contributor&quot;, &quot;*&quot;, :children],
+       [&quot;generator&quot;, &quot;?&quot;],
+       [&quot;icon&quot;, &quot;?&quot;, nil, :content],
+       [&quot;id&quot;, nil, nil, :content],
+       [&quot;link&quot;, &quot;*&quot;, :children],
+       [&quot;logo&quot;, &quot;?&quot;],
+       [&quot;rights&quot;, &quot;?&quot;],
+       [&quot;subtitle&quot;, &quot;?&quot;, nil, :content],
+       [&quot;title&quot;, nil, nil, :content],
+       [&quot;updated&quot;, nil, nil, :content],
+       [&quot;entry&quot;, &quot;*&quot;, :children, &quot;entries&quot;],
+      ].each do |tag, occurs, type, *args|
+        type ||= :child
+        __send__(&quot;install_have_#{type}_element&quot;,
+                 tag, URI, occurs, tag, *args)
+      end
+
+      def initialize(version=nil, encoding=nil, standalone=nil)
+        super(&quot;1.0&quot;, version, encoding, standalone)
+        @feed_type = &quot;atom&quot;
+        @feed_subtype = &quot;feed&quot;
+      end
+
+      alias_method :items, :entries
+
+      def have_author?
+        authors.any? {|author| !author.to_s.empty?} or
+          entries.any? {|entry| entry.have_author?(false)}
+      end
+
+      private
+      def atom_validate(ignore_unknown_element, tags, uri)
+        unless have_author?
+          raise MissingTagError.new(&quot;author&quot;, tag_name)
+        end
+        validate_duplicate_links(links)
+      end
+
+      def have_required_elements?
+        super and have_author?
+      end
+
+      def maker_target(maker)
+        maker.channel
+      end
+
+      def setup_maker_element(channel)
+        prev_dc_dates = channel.dc_dates.to_a.dup
+        super
+        channel.about = id.content if id
+        channel.dc_dates.replace(prev_dc_dates)
+      end
+
+      def setup_maker_elements(channel)
+        super
+        items = channel.maker.items
+        entries.each do |entry|
+          entry.setup_maker(items)
+        end
+      end
+
+      class Author &lt; RSS::Element
+        include CommonModel
+        include PersonConstruct
+      end
+
+      class Category &lt; RSS::Element
+        include CommonModel
+
+        [
+         [&quot;term&quot;, &quot;&quot;, true],
+         [&quot;scheme&quot;, &quot;&quot;, false, [nil, :uri]],
+         [&quot;label&quot;, &quot;&quot;],
+        ].each do |name, uri, required, type|
+          install_get_attribute(name, uri, required, type)
+        end
+
+        private
+        def maker_target(target)
+          target.new_category
+        end
+      end
+
+      class Contributor &lt; RSS::Element
+        include CommonModel
+        include PersonConstruct
+      end
+
+      class Generator &lt; RSS::Element
+        include CommonModel
+        include ContentModel
+
+        [
+         [&quot;uri&quot;, &quot;&quot;, false, [nil, :uri]],
+         [&quot;version&quot;, &quot;&quot;],
+        ].each do |name, uri, required, type|
+          install_get_attribute(name, uri, required, type)
+        end
+
+        private
+        def setup_maker_attributes(target)
+          target.generator do |generator|
+            generator.uri = uri if uri
+            generator.version = version if version
+          end
+        end
+      end
+
+      class Icon &lt; RSS::Element
+        include CommonModel
+        include URIContentModel
+      end
+
+      class Id &lt; RSS::Element
+        include CommonModel
+        include URIContentModel
+      end
+
+      class Link &lt; RSS::Element
+        include CommonModel
+
+        [
+         [&quot;href&quot;, &quot;&quot;, true, [nil, :uri]],
+         [&quot;rel&quot;, &quot;&quot;],
+         [&quot;type&quot;, &quot;&quot;],
+         [&quot;hreflang&quot;, &quot;&quot;],
+         [&quot;title&quot;, &quot;&quot;],
+         [&quot;length&quot;, &quot;&quot;],
+        ].each do |name, uri, required, type|
+          install_get_attribute(name, uri, required, type)
+        end
+
+        private
+        def maker_target(target)
+          target.new_link
+        end
+      end
+
+      class Logo &lt; RSS::Element
+        include CommonModel
+        include URIContentModel
+
+        def maker_target(target)
+          target.maker.image
+        end
+
+        private
+        def setup_maker_element_writer
+          &quot;url=&quot;
+        end
+      end
+
+      class Rights &lt; RSS::Element
+        include CommonModel
+        include TextConstruct
+      end
+
+      class Subtitle &lt; RSS::Element
+        include CommonModel
+        include TextConstruct
+      end
+
+      class Title &lt; RSS::Element
+        include CommonModel
+        include TextConstruct
+      end
+
+      class Updated &lt; RSS::Element
+        include CommonModel
+        include DateConstruct
+      end
+
+      class Entry &lt; RSS::Element
+        include CommonModel
+        include DuplicateLinkChecker
+
+        [
+         [&quot;author&quot;, &quot;*&quot;, :children],
+         [&quot;category&quot;, &quot;*&quot;, :children, &quot;categories&quot;],
+         [&quot;content&quot;, &quot;?&quot;, :child],
+         [&quot;contributor&quot;, &quot;*&quot;, :children],
+         [&quot;id&quot;, nil, nil, :content],
+         [&quot;link&quot;, &quot;*&quot;, :children],
+         [&quot;published&quot;, &quot;?&quot;, :child, :content],
+         [&quot;rights&quot;, &quot;?&quot;, :child],
+         [&quot;source&quot;, &quot;?&quot;],
+         [&quot;summary&quot;, &quot;?&quot;, :child],
+         [&quot;title&quot;, nil],
+         [&quot;updated&quot;, nil, :child, :content],
+        ].each do |tag, occurs, type, *args|
+          type ||= :attribute
+          __send__(&quot;install_have_#{type}_element&quot;,
+                   tag, URI, occurs, tag, *args)
+        end
+
+        def have_author?(check_parent=true)
+          authors.any? {|author| !author.to_s.empty?} or
+            (check_parent and @parent and @parent.have_author?) or
+            (source and source.have_author?)
+        end
+
+        private
+        def atom_validate(ignore_unknown_element, tags, uri)
+          unless have_author?
+            raise MissingTagError.new(&quot;author&quot;, tag_name)
+          end
+          validate_duplicate_links(links)
+        end
+
+        def have_required_elements?
+          super and have_author?
+        end
+
+        def maker_target(items)
+          if items.respond_to?(&quot;items&quot;)
+            # For backward compatibility
+            items = items.items
+          end
+          items.new_item
+        end
+
+        Author = Feed::Author
+        Category = Feed::Category
+
+        class Content &lt; RSS::Element
+          include CommonModel
+
+          class &lt;&lt; self
+            def xml_setter
+              &quot;xml=&quot;
+            end
+
+            def xml_getter
+              &quot;xml&quot;
+            end
+          end
+
+          [
+           [&quot;type&quot;, &quot;&quot;],
+           [&quot;src&quot;, &quot;&quot;, false, [nil, :uri]],
+          ].each do |name, uri, required, type|
+            install_get_attribute(name, uri, required, type)
+          end
+
+          content_setup
+          add_need_initialize_variable(&quot;xml&quot;)
+
+          attr_writer :xml
+          def have_xml_content?
+            inline_xhtml? or inline_other_xml?
+          end
+
+          def xml
+            return @xml unless inline_xhtml?
+            return @xml if @xml.nil?
+            if @xml.is_a?(XML::Element) and
+                [@xml.name, @xml.uri] == [&quot;div&quot;, XHTML_URI]
+              return @xml
+            end
+
+            children = @xml
+            children = [children] unless children.is_a?(Array)
+            XML::Element.new(&quot;div&quot;, nil, XHTML_URI,
+                             {&quot;xmlns&quot; =&gt; XHTML_URI}, children)
+          end
+
+          def xhtml
+            if inline_xhtml?
+              xml
+            else
+              nil
+            end
+          end
+
+          def atom_validate(ignore_unknown_element, tags, uri)
+            if out_of_line?
+              raise MissingAttributeError.new(tag_name, &quot;type&quot;) if @type.nil?
+              unless (content.nil? or content.empty?)
+                raise NotAvailableValueError.new(tag_name, content)
+              end
+            elsif inline_xhtml?
+              if @xml.nil?
+                raise MissingTagError.new(&quot;div&quot;, tag_name)
+              end
+              unless @xml.name == &quot;div&quot; and @xml.uri == XHTML_URI
+                raise NotExpectedTagError.new(@xml.name, @xml.uri, tag_name)
+              end
+            end
+          end
+
+          def inline_text?
+            !out_of_line? and [nil, &quot;text&quot;, &quot;html&quot;].include?(@type)
+          end
+
+          def inline_html?
+            return false if out_of_line?
+            @type == &quot;html&quot; or mime_split == [&quot;text&quot;, &quot;html&quot;]
+          end
+
+          def inline_xhtml?
+            !out_of_line? and @type == &quot;xhtml&quot;
+          end
+
+          def inline_other?
+            return false if out_of_line?
+            media_type, subtype = mime_split
+            return false if media_type.nil? or subtype.nil?
+            true
+          end
+
+          def inline_other_text?
+            return false unless inline_other?
+            return false if inline_other_xml?
+
+            media_type, subtype = mime_split
+            return true if &quot;text&quot; == media_type.downcase
+            false
+          end
+
+          def inline_other_xml?
+            return false unless inline_other?
+
+            media_type, subtype = mime_split
+            normalized_mime_type = &quot;#{media_type}/#{subtype}&quot;.downcase
+            if /(?:\+xml|^xml)$/ =~ subtype or
+                %w(text/xml-external-parsed-entity
+                   application/xml-external-parsed-entity
+                   application/xml-dtd).find {|x| x == normalized_mime_type}
+              return true
+            end
+            false
+          end
+
+          def inline_other_base64?
+            inline_other? and !inline_other_text? and !inline_other_xml?
+          end
+
+          def out_of_line?
+            not @src.nil?
+          end
+
+          def mime_split
+            media_type = subtype = nil
+            if /\A\s*([a-z]+)\/([a-z\+]+)\s*(?:;.*)?\z/i =~ @type.to_s
+              media_type = $1.downcase
+              subtype = $2.downcase
+            end
+            [media_type, subtype]
+          end
+
+          def need_base64_encode?
+            inline_other_base64?
+          end
+
+          private
+          def empty_content?
+            out_of_line? or super
+          end
+        end
+
+        Contributor = Feed::Contributor
+        Id = Feed::Id
+        Link = Feed::Link
+
+        class Published &lt; RSS::Element
+          include CommonModel
+          include DateConstruct
+        end
+
+        Rights = Feed::Rights
+
+        class Source &lt; RSS::Element
+          include CommonModel
+
+          [
+           [&quot;author&quot;, &quot;*&quot;, :children],
+           [&quot;category&quot;, &quot;*&quot;, :children, &quot;categories&quot;],
+           [&quot;contributor&quot;, &quot;*&quot;, :children],
+           [&quot;generator&quot;, &quot;?&quot;],
+           [&quot;icon&quot;, &quot;?&quot;],
+           [&quot;id&quot;, &quot;?&quot;, nil, :content],
+           [&quot;link&quot;, &quot;*&quot;, :children],
+           [&quot;logo&quot;, &quot;?&quot;],
+           [&quot;rights&quot;, &quot;?&quot;],
+           [&quot;subtitle&quot;, &quot;?&quot;],
+           [&quot;title&quot;, &quot;?&quot;],
+           [&quot;updated&quot;, &quot;?&quot;, nil, :content],
+          ].each do |tag, occurs, type, *args|
+            type ||= :attribute
+            __send__(&quot;install_have_#{type}_element&quot;,
+                     tag, URI, occurs, tag, *args)
+          end
+
+          def have_author?
+            !author.to_s.empty?
+          end
+
+          Author = Feed::Author
+          Category = Feed::Category
+          Contributor = Feed::Contributor
+          Generator = Feed::Generator
+          Icon = Feed::Icon
+          Id = Feed::Id
+          Link = Feed::Link
+          Logo = Feed::Logo
+          Rights = Feed::Rights
+          Subtitle = Feed::Subtitle
+          Title = Feed::Title
+          Updated = Feed::Updated
+        end
+
+        class Summary &lt; RSS::Element
+          include CommonModel
+          include TextConstruct
+        end
+
+        Title = Feed::Title
+        Updated = Feed::Updated
+      end
+    end
+
+    class Entry &lt; RSS::Element
+      include RootElementMixin
+      include CommonModel
+      include DuplicateLinkChecker
+
+      [
+       [&quot;author&quot;, &quot;*&quot;, :children],
+       [&quot;category&quot;, &quot;*&quot;, :children, &quot;categories&quot;],
+       [&quot;content&quot;, &quot;?&quot;],
+       [&quot;contributor&quot;, &quot;*&quot;, :children],
+       [&quot;id&quot;, nil, nil, :content],
+       [&quot;link&quot;, &quot;*&quot;, :children],
+       [&quot;published&quot;, &quot;?&quot;, :child, :content],
+       [&quot;rights&quot;, &quot;?&quot;],
+       [&quot;source&quot;, &quot;?&quot;],
+       [&quot;summary&quot;, &quot;?&quot;],
+       [&quot;title&quot;, nil],
+       [&quot;updated&quot;, nil, nil, :content],
+      ].each do |tag, occurs, type, *args|
+        type ||= :attribute
+        __send__(&quot;install_have_#{type}_element&quot;,
+                 tag, URI, occurs, tag, *args)
+      end
+
+      def initialize(version=nil, encoding=nil, standalone=nil)
+        super(&quot;1.0&quot;, version, encoding, standalone)
+        @feed_type = &quot;atom&quot;
+        @feed_subtype = &quot;entry&quot;
+      end
+
+      def items
+        [self]
+      end
+
+      def setup_maker(maker)
+        maker = maker.maker if maker.respond_to?(&quot;maker&quot;)
+        super(maker)
+      end
+
+      def have_author?
+        authors.any? {|author| !author.to_s.empty?} or
+          (source and source.have_author?)
+      end
+
+      private
+      def atom_validate(ignore_unknown_element, tags, uri)
+        unless have_author?
+          raise MissingTagError.new(&quot;author&quot;, tag_name)
+        end
+        validate_duplicate_links(links)
+      end
+
+      def have_required_elements?
+        super and have_author?
+      end
+
+      def maker_target(maker)
+        maker.items.new_item
+      end
+
+      Author = Feed::Entry::Author
+      Category = Feed::Entry::Category
+      Content = Feed::Entry::Content
+      Contributor = Feed::Entry::Contributor
+      Id = Feed::Entry::Id
+      Link = Feed::Entry::Link
+      Published = Feed::Entry::Published
+      Rights = Feed::Entry::Rights
+      Source = Feed::Entry::Source
+      Summary = Feed::Entry::Summary
+      Title = Feed::Entry::Title
+      Updated = Feed::Entry::Updated
+    end
+  end
+
+  Atom::CommonModel::ELEMENTS.each do |name|
+    BaseListener.install_get_text_element(Atom::URI, name, &quot;#{name}=&quot;)
+  end
+
+  module ListenerMixin
+    private
+    def initial_start_feed(tag_name, prefix, attrs, ns)
+      check_ns(tag_name, prefix, ns, Atom::URI)
+
+      @rss = Atom::Feed.new(@version, @encoding, @standalone)
+      @rss.do_validate = @do_validate
+      @rss.xml_stylesheets = @xml_stylesheets
+      @rss.lang = attrs[&quot;xml:lang&quot;]
+      @rss.base = attrs[&quot;xml:base&quot;]
+      @last_element = @rss
+      pr = Proc.new do |text, tags|
+        @rss.validate_for_stream(tags) if @do_validate
+      end
+      @proc_stack.push(pr)
+    end
+
+    def initial_start_entry(tag_name, prefix, attrs, ns)
+      check_ns(tag_name, prefix, ns, Atom::URI)
+
+      @rss = Atom::Entry.new(@version, @encoding, @standalone)
+      @rss.do_validate = @do_validate
+      @rss.xml_stylesheets = @xml_stylesheets
+      @rss.lang = attrs[&quot;xml:lang&quot;]
+      @rss.base = attrs[&quot;xml:base&quot;]
+      @last_element = @rss
+      pr = Proc.new do |text, tags|
+        @rss.validate_for_stream(tags) if @do_validate
+      end
+      @proc_stack.push(pr)
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,243 @@
+  <div id="fileHeader">
+    <h1>helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/haml/helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:18:53 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+require File.dirname(__FILE__) + '/../test_helper'
+require 'haml/template'
+
+class ActionView::Base
+  def nested_tag
+    content_tag(:span) {content_tag(:div) {&quot;something&quot;}}
+  end
+end
+
+class HelperTest &lt; Test::Unit::TestCase
+  Post = Struct.new('Post', :body)
+  
+  def setup
+    @base = ActionView::Base.new
+    @base.controller = ActionController::Base.new
+    @base.instance_variable_set('@post', Post.new(&quot;Foo bar\nbaz&quot;))
+  end
+
+  def render(text, options = {})
+    if options == :action_view
+      @base.render :inline =&gt; text, :type =&gt; :haml
+    else
+      scope = options.delete :scope_object
+      Haml::Engine.new(text, options).to_html(scope ? scope : Object.new)
+    end
+  end
+
+  def test_flatten
+    assert_equal(&quot;FooBar&quot;, Haml::Helpers.flatten(&quot;FooBar&quot;))
+
+    assert_equal(&quot;FooBar&quot;, Haml::Helpers.flatten(&quot;Foo\rBar&quot;))
+
+    assert_equal(&quot;Foo&amp;#x000A;Bar&quot;, Haml::Helpers.flatten(&quot;Foo\nBar&quot;))
+
+    assert_equal(&quot;Hello&amp;#x000A;World!&amp;#x000A;YOU ARE FLAT?&amp;#x000A;OMGZ!&quot;,
+      Haml::Helpers.flatten(&quot;Hello\nWorld!\nYOU ARE \rFLAT?\n\rOMGZ!&quot;))
+  end
+
+  def test_list_of_should_render_correctly
+    assert_equal(&quot;&lt;li&gt;1&lt;/li&gt;\n&lt;li&gt;2&lt;/li&gt;\n&quot;, render(&quot;= list_of([1, 2]) do |i|\n  = i&quot;))
+    assert_equal(&quot;&lt;li&gt;[1]&lt;/li&gt;\n&quot;, render(&quot;= list_of([[1]]) do |i|\n  = i.inspect&quot;))
+    assert_equal(&quot;&lt;li&gt;\n  &lt;h1&gt;Fee&lt;/h1&gt;\n  &lt;p&gt;A word!&lt;/p&gt;\n&lt;/li&gt;\n&lt;li&gt;\n  &lt;h1&gt;Fi&lt;/h1&gt;\n  &lt;p&gt;A word!&lt;/p&gt;\n&lt;/li&gt;\n&lt;li&gt;\n  &lt;h1&gt;Fo&lt;/h1&gt;\n  &lt;p&gt;A word!&lt;/p&gt;\n&lt;/li&gt;\n&lt;li&gt;\n  &lt;h1&gt;Fum&lt;/h1&gt;\n  &lt;p&gt;A word!&lt;/p&gt;\n&lt;/li&gt;\n&quot;,
+      render(&quot;= list_of(['Fee', 'Fi', 'Fo', 'Fum']) do |title|\n  %h1= title\n  %p A word!&quot;))
+  end
+
+  def test_buffer_access
+    assert(render(&quot;= buffer&quot;) =~ /#&lt;Haml::Buffer:0x[a-z0-9]+&gt;/)
+    assert_equal(render(&quot;= (buffer == _hamlout)&quot;), &quot;true\n&quot;)
+  end
+
+  def test_tabs
+    assert_equal(&quot;foo\n  bar\nbaz\n&quot;, render(&quot;foo\n- tab_up\nbar\n- tab_down\nbaz&quot;))
+    assert_equal(&quot;          &lt;p&gt;tabbed&lt;/p&gt;\n&quot;, render(&quot;- buffer.tabulation=5\n%p tabbed&quot;))
+  end
+  
+  def test_helpers_dont_leak
+    # Haml helpers shouldn't be accessible from ERB
+    render(&quot;foo&quot;)
+    proper_behavior = false
+
+    begin
+      ActionView::Base.new.render(:inline =&gt; &quot;&lt;%= flatten('Foo\\nBar') %&gt;&quot;)
+    rescue NoMethodError
+      proper_behavior = true
+    end
+    assert(proper_behavior)
+
+    begin
+      ActionView::Base.new.render(:inline =&gt; &quot;&lt;%= concat('foo') %&gt;&quot;)
+    rescue ArgumentError, NameError
+      proper_behavior = true
+    end    
+    assert(proper_behavior)
+  end
+  
+  def test_action_view_included
+    assert(Haml::Helpers.action_view?)
+  end
+  
+  def test_form_tag
+    # This is usually provided by ActionController::Base.
+    def @base.protect_against_forgery?; false; end
+    result = render(&quot;- form_tag 'foo' do\n  %p bar\n  %strong baz&quot;, :action_view)
+    should_be = &quot;&lt;form action=\&quot;foo\&quot; method=\&quot;post\&quot;&gt;\n  &lt;p&gt;bar&lt;/p&gt;\n  &lt;strong&gt;baz&lt;/strong&gt;\n&lt;/form&gt;\n&quot;
+    assert_equal(should_be, result)
+  end
+
+  def test_text_area
+    assert_equal(%(&lt;textarea id=&quot;body&quot; name=&quot;body&quot;&gt;Foo&amp;#x000A;Bar&amp;#x000A; Baz&amp;#x000A;   Boom&lt;/textarea&gt;\n),
+                 render('= text_area_tag &quot;body&quot;, &quot;Foo\nBar\n Baz\n   Boom&quot;', :action_view))
+
+    assert_equal(%(&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Foo bar&amp;#x000A;baz&lt;/textarea&gt;\n),
+                 render('= text_area :post, :body', :action_view))    
+
+    assert_equal(%(&lt;pre&gt;Foo bar&amp;#x000A;   baz&lt;/pre&gt;\n),
+                 render('= content_tag &quot;pre&quot;, &quot;Foo bar\n   baz&quot;', :action_view))    
+  end
+  
+  def test_capture_haml
+    assert_equal(&quot;\&quot;&lt;p&gt;13&lt;/p&gt;\\n\&quot;\n&quot;, render(&quot;- foo = capture_haml(13) do |a|\n  %p= a\n= foo.dump&quot;))
+  end
+
+  def test_content_tag_block
+    assert_equal(&lt;&lt;HTML.strip, render(&lt;&lt;HAML, :action_view))
+&lt;div&gt;&lt;p&gt;bar&lt;/p&gt;
+&lt;strong&gt;bar&lt;/strong&gt;
+&lt;/div&gt;
+HTML
+- content_tag :div do
+  %p bar
+  %strong bar
+HAML
+  end
+
+  def test_haml_tag_attribute_html_escaping
+    assert_equal(&quot;&lt;p id='foo&amp;amp;bar'&gt;baz&lt;/p&gt;\n&quot;, render(&quot;%p{:id =&gt; 'foo&amp;bar'} baz&quot;, :escape_html =&gt; true))
+  end
+
+  def test_haml_tag_autoclosed_tags_are_closed
+    assert_equal(&quot;&lt;br class='foo' /&gt;\n&quot;, render(&quot;- haml_tag :br, :class =&gt; 'foo'&quot;))
+  end
+
+  def test_haml_tag_non_autoclosed_tags_arent_closed
+    assert_equal(&quot;&lt;p&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag :p&quot;))
+  end
+
+  def test_haml_tag_renders_text_on_a_single_line
+    assert_equal(&quot;&lt;p&gt;#{'a' * 100}&lt;/p&gt;\n&quot;, render(&quot;- haml_tag :p, 'a' * 100&quot;))
+  end
+
+  def test_haml_tag_raises_error_for_multiple_content
+    assert_raise(Haml::Error) { render(&quot;- haml_tag :p, 'foo' do\n  bar&quot;) }
+  end
+
+  def test_haml_tag_flags
+    assert_equal(&quot;&lt;p /&gt;\n&quot;, render(&quot;- haml_tag :p, :/&quot;))
+    assert_equal(&quot;&lt;p&gt;kumquat&lt;/p&gt;\n&quot;, render(&quot;- haml_tag :p, :&lt; do\n  kumquat&quot;))
+
+    assert_raise(Haml::Error) { render(&quot;- haml_tag :p, 'foo', :/&quot;) }
+    assert_raise(Haml::Error) { render(&quot;- haml_tag :p, :/ do\n  foo&quot;) }
+  end
+
+  def test_is_haml
+    assert(!ActionView::Base.new.is_haml?)
+    assert_equal(&quot;true\n&quot;, render(&quot;= is_haml?&quot;))
+    assert_equal(&quot;true\n&quot;, render(&quot;= is_haml?&quot;, :action_view))
+    assert_equal(&quot;false&quot;, @base.render(:inline =&gt; '&lt;%= is_haml? %&gt;'))
+    assert_equal(&quot;false\n&quot;, render(&quot;= render :inline =&gt; '&lt;%= is_haml? %&gt;'&quot;, :action_view))
+  end
+
+  def test_page_class
+    controller = Struct.new(:controller_name, :action_name).new('troller', 'tion')
+    scope = Struct.new(:controller).new(controller)
+    result = render(&quot;%div{:class =&gt; page_class} MyDiv&quot;, :scope_object =&gt; scope)
+    expected = &quot;&lt;div class='troller tion'&gt;MyDiv&lt;/div&gt;\n&quot;
+    assert_equal expected, result
+  end
+
+  def test_indented_capture
+    assert_equal(&quot;  \n  Foo\n  &quot;, @base.render(:inline =&gt; &quot;  &lt;% res = capture do %&gt;\n  Foo\n  &lt;% end %&gt;&lt;%= res %&gt;&quot;))
+  end
+
+  def test_capture_deals_properly_with_collections
+    Haml::Helpers.module_eval do 
+      def trc(collection, &amp;block)
+        collection.each do |record|
+          haml_concat capture_haml(record, &amp;block)
+        end
+      end
+    end
+
+    assert_equal(&quot;1\n\n2\n\n3\n\n&quot;, render(&quot;- trc([1, 2, 3]) do |i|\n  = i.inspect&quot;))
+  end
+
+  def test_find_and_preserve_with_block
+    assert_equal(&quot;&lt;pre&gt;Foo&amp;#x000A;Bar&lt;/pre&gt;\nFoo\nBar\n&quot;,
+                 render(&quot;= find_and_preserve do\n  %pre\n    Foo\n    Bar\n  Foo\n  Bar&quot;))
+  end
+
+  def test_preserve_with_block
+    assert_equal(&quot;&lt;pre&gt;Foo&amp;#x000A;Bar&lt;/pre&gt;&amp;#x000A;Foo&amp;#x000A;Bar\n&quot;,
+                 render(&quot;= preserve do\n  %pre\n    Foo\n    Bar\n  Foo\n  Bar&quot;))
+  end
+
+  def test_init_haml_helpers
+    context = Object.new
+    class &lt;&lt; context
+      include Haml::Helpers
+    end
+    context.init_haml_helpers
+
+    result = context.capture_haml do
+      context.haml_tag :p, :attr =&gt; &quot;val&quot; do
+        context.haml_concat &quot;Blah&quot;
+      end
+    end
+
+    assert_equal(&quot;&lt;p attr='val'&gt;\n  Blah\n&lt;/p&gt;\n&quot;, result)
+  end
+
+  def test_non_haml
+    assert_equal(&quot;false\n&quot;, render(&quot;= non_haml { is_haml? }&quot;))
+  end
+
+  def test_content_tag_nested
+    assert_equal &quot;&lt;span&gt;&lt;div&gt;something&lt;/div&gt;&lt;/span&gt;&quot;, render(&quot;= nested_tag&quot;, :action_view).strip
+  end
+  
+  class ActsLikeTag
+    # We want to be able to have people include monkeypatched ActionView helpers
+    # without redefining is_haml?.
+    # This is accomplished via Object#is_haml?, and this is a test for it.
+    include ActionView::Helpers::TagHelper
+    def to_s
+      content_tag :p, 'some tag content'
+    end
+  end
+
+  def test_random_class_includes_tag_helper
+    assert_equal &quot;&lt;p&gt;some tag content&lt;/p&gt;&quot;, ActsLikeTag.new.to_s
+  end
+end
+
+</pre>
+    </div>

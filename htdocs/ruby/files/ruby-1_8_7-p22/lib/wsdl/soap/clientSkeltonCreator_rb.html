@@ -1,0 +1,98 @@
+  <div id="fileHeader">
+    <h1>clientSkeltonCreator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/wsdl/soap/clientSkeltonCreator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># WSDL4R - Creating client skelton code from WSDL.
+# Copyright (C) 2002, 2003  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'wsdl/info'
+require 'wsdl/soap/classDefCreatorSupport'
+
+
+module WSDL
+module SOAP
+
+
+class ClientSkeltonCreator
+  include ClassDefCreatorSupport
+
+  attr_reader :definitions
+
+  def initialize(definitions)
+    @definitions = definitions
+  end
+
+  def dump(service_name)
+    result = &quot;&quot;
+    @definitions.service(service_name).ports.each do |port|
+      result &lt;&lt; dump_porttype(port.porttype.name)
+      result &lt;&lt; &quot;\n&quot;
+    end
+    result
+  end
+
+private
+
+  def dump_porttype(name)
+    drv_name = create_class_name(name)
+
+    result = &quot;&quot;
+    result &lt;&lt; &lt;&lt;__EOD__
+endpoint_url = ARGV.shift
+obj = #{ drv_name }.new(endpoint_url)
+
+# run ruby with -d to see SOAP wiredumps.
+obj.wiredump_dev = STDERR if $DEBUG
+
+__EOD__
+    @definitions.porttype(name).operations.each do |operation|
+      result &lt;&lt; dump_method_signature(operation)
+      result &lt;&lt; dump_input_init(operation.input) &lt;&lt; &quot;\n&quot;
+      result &lt;&lt; dump_operation(operation) &lt;&lt; &quot;\n\n&quot;
+    end
+    result
+  end
+
+  def dump_operation(operation)
+    name = operation.name
+    input = operation.input
+    &quot;puts obj.#{ safemethodname(name.name) }#{ dump_inputparam(input) }&quot;
+  end
+
+  def dump_input_init(input)
+    result = input.find_message.parts.collect { |part|
+      safevarname(part.name)
+    }.join(&quot; = &quot;)
+    if result.empty?
+      &quot;&quot;
+    else
+      result &lt;&lt; &quot; = nil&quot;
+    end
+    result
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

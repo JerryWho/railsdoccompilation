@@ -1,0 +1,390 @@
+  <div id="C00000347">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Enumerator<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/enumerator_c.html');">ruby-1.8.7-p22/enumerator.c</a>
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/generator_rb.html');">ruby-1.8.7-p22/lib/generator.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+A class which provides a method `each&#8217; to be used as an <a
+href="index.html?a=C00000346&name=Enumerable">Enumerable</a> object.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M003114&name=each" >each</a></li>
+  <li><a href="index.html?a=M003115&name=each_with_index" >each_with_index</a></li>
+  <li><a href="index.html?a=M003113&name=new" >new</a></li>
+  <li><a href="index.html?a=M003119&name=next" >next</a></li>
+  <li><a href="index.html?a=M003117&name=next" >next</a></li>
+  <li><a href="index.html?a=M003118&name=rewind" >rewind</a></li>
+  <li><a href="index.html?a=M003120&name=rewind" >rewind</a></li>
+  <li><a href="index.html?a=M003116&name=with_index" >with_index</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('classes/Enumerable.html');">Enumerable</a></li>
+</ul>
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M003113" class="method">
+  <div id="M003113_title" class="title">
+    <b>Enumerable::Enumerator.new(obj, method = :each, *args)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Creates a new <a
+href="index.html?a=C00000347&name=Enumerable::Enumerator">Enumerable::Enumerator</a>
+object, which is to be used as an <a
+href="index.html?a=C00000346&name=Enumerable">Enumerable</a> object using
+the given object&#8217;s given method with the given arguments.
+</p>
+<p>
+Use of this method is discouraged. Use Kernel#enum_for() instead.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003113_source')" id="l_M003113_source">show source</a> ]</p>
+  <div id="M003113_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    Enumerable::Enumerator.new(obj, method = :each, *args)
+ *
+ *  Creates a new Enumerable::Enumerator object, which is to be
+ *  used as an Enumerable object using the given object's given
+ *  method with the given arguments.
+ *
+ *  Use of this method is discouraged.  Use Kernel#enum_for() instead.
+ */
+static VALUE
+enumerator_initialize(argc, argv, obj)
+    int argc;
+    VALUE *argv;
+    VALUE obj;
+{
+    VALUE recv, meth = sym_each;
+
+    if (argc == 0)
+        rb_raise(rb_eArgError, &quot;wrong number of argument (0 for 1)&quot;);
+    recv = *argv++;
+    if (--argc) {
+        meth = *argv++;
+        --argc;
+    }
+    return enumerator_init(obj, recv, meth, argc, argv);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M003114" class="method">
+  <div id="M003114_title" class="title">
+    <b>enum.each {...}<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Iterates the given block using the object and the method specified in the
+first place. If no block is given, returns self.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003114_source')" id="l_M003114_source">show source</a> ]</p>
+  <div id="M003114_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    enum.each {...}
+ *
+ *  Iterates the given block using the object and the method specified
+ *  in the first place.  If no block is given, returns self.
+ *
+ */
+static VALUE
+enumerator_each(obj)
+    VALUE obj;
+{
+    struct enumerator *e;
+    int argc = 0;
+    VALUE *argv = 0;
+
+    if (!rb_block_given_p()) return obj;
+    e = enumerator_ptr(obj);
+    if (e-&gt;args) {
+        argc = RARRAY_LEN(e-&gt;args);
+        argv = RARRAY_PTR(e-&gt;args);
+    }
+    return rb_block_call(e-&gt;obj, e-&gt;meth, argc, argv, e-&gt;iter, (VALUE)e);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003115" class="method">
+  <div id="M003115_title" class="title">
+    <b>e.with_index {|(*args), idx| ... }<br />
+e.with_index<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Iterates the given block for each elements with an index, which start from
+0. If no block is given, returns an enumerator.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003115_source')" id="l_M003115_source">show source</a> ]</p>
+  <div id="M003115_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    e.with_index {|(*args), idx| ... }
+ *    e.with_index
+ *
+ *  Iterates the given block for each elements with an index, which
+ *  start from 0.  If no block is given, returns an enumerator.
+ *
+ */
+static VALUE
+enumerator_with_index(obj)
+    VALUE obj;
+{
+    struct enumerator *e = enumerator_ptr(obj);
+    VALUE memo = 0;
+    int argc = 0;
+    VALUE *argv = 0;
+
+    RETURN_ENUMERATOR(obj, 0, 0);
+    if (e-&gt;args) {
+        argc = RARRAY_LEN(e-&gt;args);
+        argv = RARRAY_PTR(e-&gt;args);
+    }
+    return rb_block_call(e-&gt;obj, e-&gt;meth, argc, argv,
+                         enumerator_with_index_i, (VALUE)&amp;memo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003119" class="method">
+  <div id="M003119_title" class="title">
+    <b>e.next   => object<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the next object in the enumerator, and move the internal position
+forward. When the position reached at the end, internal position is
+rewinded then <a
+href="index.html?a=C00000317&name=StopIteration">StopIteration</a> is
+raised.
+</p>
+<p>
+Note that enumeration sequence by next method does not affect other
+non-external enumeration methods, unless underlying iteration methods
+itself has side-effect, e.g. <a
+href="index.html?a=M002173&name=IO#each_line">IO#each_line</a>.
+</p>
+<p>
+Caution: This feature internally uses <a
+href="index.html?a=C00000109&name=Generator">Generator</a>, which uses
+callcc to stop and resume enumeration to fetch each value. Use with care
+and be aware of the performance loss.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003119_source')" id="l_M003119_source">show source</a> ]</p>
+  <div id="M003119_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/generator.rb, line 188</span>
+188:   <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">next</span>
+189:     <span class="ruby-identifier">g</span> = <span class="ruby-identifier">__generator</span>
+190:     <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">g</span>.<span class="ruby-identifier">next</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">g</span>.<span class="ruby-identifier">end?</span>
+191: 
+192:     <span class="ruby-identifier">g</span>.<span class="ruby-identifier">rewind</span>
+193:     <span class="ruby-identifier">raise</span> <span class="ruby-constant">StopIteration</span>, <span class="ruby-value str">'iteration reached at end'</span> 
+194:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003117" class="method">
+  <div id="M003117_title" class="title">
+    <b>e.next   => object<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the next object in the enumerator, and move the internal position
+forward. When the position reached at the end, internal position is
+rewinded then <a
+href="index.html?a=C00000317&name=StopIteration">StopIteration</a> is
+raised.
+</p>
+<p>
+Note that enumeration sequence by next method does not affect other
+non-external enumeration methods, unless underlying iteration methods
+itself has side-effect, e.g. <a
+href="index.html?a=M002173&name=IO#each_line">IO#each_line</a>.
+</p>
+<p>
+Caution: Calling this method causes the &quot;generator&quot; library to be
+loaded.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003117_source')" id="l_M003117_source">show source</a> ]</p>
+  <div id="M003117_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   e.next   =&gt; object
+ *
+ * Returns the next object in the enumerator, and move the internal
+ * position forward.  When the position reached at the end, internal
+ * position is rewinded then StopIteration is raised.
+ *
+ * Note that enumeration sequence by next method does not affect other
+ * non-external enumeration methods, unless underlying iteration
+ * methods itself has side-effect, e.g. IO#each_line.
+ *
+ * Caution: Calling this method causes the &quot;generator&quot; library to be
+ * loaded.
+ */
+
+static VALUE
+enumerator_next(obj)
+    VALUE obj;
+{
+    rb_require(&quot;generator&quot;);
+    return rb_funcall(obj, rb_intern(&quot;next&quot;), 0, 0);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003118" class="method">
+  <div id="M003118_title" class="title">
+    <b>e.rewind   => e<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Rewinds the enumeration sequence by the next method.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003118_source')" id="l_M003118_source">show source</a> ]</p>
+  <div id="M003118_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   e.rewind   =&gt; e
+ *
+ * Rewinds the enumeration sequence by the next method.
+ */
+
+static VALUE
+enumerator_rewind(obj)
+    VALUE obj;
+{
+    rb_require(&quot;generator&quot;);
+    return rb_funcall(obj, rb_intern(&quot;rewind&quot;), 0, 0);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003120" class="method">
+  <div id="M003120_title" class="title">
+    <b>e.rewind   => e<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Rewinds the enumeration sequence by the next method.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003120_source')" id="l_M003120_source">show source</a> ]</p>
+  <div id="M003120_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/generator.rb, line 200</span>
+200:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rewind</span>
+201:     <span class="ruby-identifier">__generator</span>.<span class="ruby-identifier">rewind</span>
+202:     <span class="ruby-keyword kw">self</span>
+203:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M003116" class="method">
+  <div id="M003116_title" class="title">
+    <b>e.with_index {|(*args), idx| ... }<br />
+e.with_index<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Iterates the given block for each elements with an index, which start from
+0. If no block is given, returns an enumerator.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M003116_source')" id="l_M003116_source">show source</a> ]</p>
+  <div id="M003116_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    e.with_index {|(*args), idx| ... }
+ *    e.with_index
+ *
+ *  Iterates the given block for each elements with an index, which
+ *  start from 0.  If no block is given, returns an enumerator.
+ *
+ */
+static VALUE
+enumerator_with_index(obj)
+    VALUE obj;
+{
+    struct enumerator *e = enumerator_ptr(obj);
+    VALUE memo = 0;
+    int argc = 0;
+    VALUE *argv = 0;
+
+    RETURN_ENUMERATOR(obj, 0, 0);
+    if (e-&gt;args) {
+        argc = RARRAY_LEN(e-&gt;args);
+        argv = RARRAY_PTR(e-&gt;args);
+    }
+    return rb_block_call(e-&gt;obj, e-&gt;meth, argc, argv,
+                         enumerator_with_index_i, (VALUE)&amp;memo);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

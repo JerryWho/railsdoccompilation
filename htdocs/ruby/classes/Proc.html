@@ -1,0 +1,626 @@
+  <div id="C00000198">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Proc<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/eval_c.html');">ruby-1.8.7-p22/eval.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<tt><a href="index.html?a=C00000198&name=Proc">Proc</a></tt> objects are
+blocks of code that have been bound to a set of local variables. Once
+bound, the code may be called in different contexts and still access those
+variables.
+</p>
+<pre>
+   def gen_times(factor)
+     return Proc.new {|n| n*factor }
+   end
+
+   times3 = gen_times(3)
+   times5 = gen_times(5)
+
+   times3.call(12)               #=&gt; 36
+   times5.call(5)                #=&gt; 25
+   times3.call(times5.call(4))   #=&gt; 60
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001454&name===" >==</a></li>
+  <li><a href="index.html?a=M001453&name=[]" >[]</a></li>
+  <li><a href="index.html?a=M001452&name=arity" >arity</a></li>
+  <li><a href="index.html?a=M001457&name=binding" >binding</a></li>
+  <li><a href="index.html?a=M001451&name=call" >call</a></li>
+  <li><a href="index.html?a=M001450&name=clone" >clone</a></li>
+  <li><a href="index.html?a=M001449&name=new" >new</a></li>
+  <li><a href="index.html?a=M001456&name=to_proc" >to_proc</a></li>
+  <li><a href="index.html?a=M001455&name=to_s" >to_s</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001449" class="method">
+  <div id="M001449_title" class="title">
+    <b>Proc.new {|...| block } => a_proc <br />
+Proc.new                => a_proc <br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Creates a new <tt><a href="index.html?a=C00000198&name=Proc">Proc</a></tt>
+object, bound to the current context. <tt>Proc::new</tt> may be called
+without a block only within a method with an attached block, in which case
+that block is converted to the <tt><a
+href="index.html?a=C00000198&name=Proc">Proc</a></tt> object.
+</p>
+<pre>
+   def proc_from
+     Proc.new
+   end
+   proc = proc_from { &quot;hello&quot; }
+   proc.call   #=&gt; &quot;hello&quot;
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001449_source')" id="l_M001449_source">show source</a> ]</p>
+  <div id="M001449_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     Proc.new {|...| block } =&gt; a_proc 
+ *     Proc.new                =&gt; a_proc 
+ *  
+ *  Creates a new &lt;code&gt;Proc&lt;/code&gt; object, bound to the current
+ *  context. &lt;code&gt;Proc::new&lt;/code&gt; may be called without a block only
+ *  within a method with an attached block, in which case that block is
+ *  converted to the &lt;code&gt;Proc&lt;/code&gt; object.
+ *     
+ *     def proc_from
+ *       Proc.new
+ *     end
+ *     proc = proc_from { &quot;hello&quot; }
+ *     proc.call   #=&gt; &quot;hello&quot;
+ */
+
+static VALUE
+proc_s_new(argc, argv, klass)
+    int argc;
+    VALUE *argv;
+    VALUE klass;
+{
+    VALUE block = proc_alloc(klass, Qfalse);
+
+    rb_obj_call_init(block, argc, argv);
+    return block;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001454" class="method">
+  <div id="M001454_title" class="title">
+    <b>prc == other_proc   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Return <tt>true</tt> if <em>prc</em> is the same object as
+<em>other_proc</em>, or if they are both procs with the same body.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001454_source')" id="l_M001454_source">show source</a> ]</p>
+  <div id="M001454_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   prc == other_proc   =&gt;  true or false
+ *
+ * Return &lt;code&gt;true&lt;/code&gt; if &lt;i&gt;prc&lt;/i&gt; is the same object as
+ * &lt;i&gt;other_proc&lt;/i&gt;, or if they are both procs with the same body.
+ */
+
+static VALUE
+proc_eq(self, other)
+    VALUE self, other;
+{
+    struct BLOCK *data, *data2;
+
+    if (self == other) return Qtrue;
+    if (TYPE(other) != T_DATA) return Qfalse;
+    if (RDATA(other)-&gt;dmark != (RUBY_DATA_FUNC)blk_mark) return Qfalse;
+    if (CLASS_OF(self) != CLASS_OF(other)) return Qfalse;
+    Data_Get_Struct(self, struct BLOCK, data);
+    Data_Get_Struct(other, struct BLOCK, data2);
+    if (data-&gt;body != data2-&gt;body) return Qfalse;
+    if (data-&gt;var != data2-&gt;var) return Qfalse;
+    if (data-&gt;scope != data2-&gt;scope) return Qfalse;
+    if (data-&gt;dyna_vars != data2-&gt;dyna_vars) return Qfalse;
+    if (data-&gt;flags != data2-&gt;flags) return Qfalse;
+
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001453" class="method">
+  <div id="M001453_title" class="title">
+    <b>prc.call(params,...)   => obj<br />
+prc[params,...]        => obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Invokes the block, setting the block&#8217;s parameters to the values in
+<em>params</em> using something close to method calling semantics.
+Generates a warning if multiple values are passed to a proc that expects
+just one (previously this silently converted the parameters to an array).
+</p>
+<p>
+For procs created using <tt><a
+href="index.html?a=M006196&name=Kernel.proc">Kernel.proc</a></tt>,
+generates an error if the wrong number of parameters are passed to a proc
+with multiple parameters. For procs created using <tt><a
+href="index.html?a=M001449&name=Proc.new">Proc.new</a></tt>, extra
+parameters are silently discarded.
+</p>
+<p>
+Returns the value of the last expression evaluated in the block. See also
+<tt>Proc#yield</tt>.
+</p>
+<pre>
+   a_proc = Proc.new {|a, *b| b.collect {|i| i*a }}
+   a_proc.call(9, 1, 2, 3)   #=&gt; [9, 18, 27]
+   a_proc[9, 1, 2, 3]        #=&gt; [9, 18, 27]
+   a_proc = Proc.new {|a,b| a}
+   a_proc.call(1,2,3)
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre>
+   prog.rb:5: wrong number of arguments (3 for 2) (ArgumentError)
+    from prog.rb:4:in `call'
+    from prog.rb:5
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001453_source')" id="l_M001453_source">show source</a> ]</p>
+  <div id="M001453_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     prc.call(params,...)   =&gt; obj
+ *     prc[params,...]        =&gt; obj
+ *  
+ *  Invokes the block, setting the block's parameters to the values in
+ *  &lt;i&gt;params&lt;/i&gt; using something close to method calling semantics.
+ *  Generates a warning if multiple values are passed to a proc that
+ *  expects just one (previously this silently converted the parameters
+ *  to an array). 
+ *
+ *  For procs created using &lt;code&gt;Kernel.proc&lt;/code&gt;, generates an 
+ *  error if the wrong number of parameters
+ *  are passed to a proc with multiple parameters. For procs created using
+ *  &lt;code&gt;Proc.new&lt;/code&gt;, extra parameters are silently discarded.
+ *
+ *  Returns the value of the last expression evaluated in the block. See
+ *  also &lt;code&gt;Proc#yield&lt;/code&gt;.
+ *     
+ *     a_proc = Proc.new {|a, *b| b.collect {|i| i*a }}
+ *     a_proc.call(9, 1, 2, 3)   #=&gt; [9, 18, 27]
+ *     a_proc[9, 1, 2, 3]        #=&gt; [9, 18, 27]
+ *     a_proc = Proc.new {|a,b| a}
+ *     a_proc.call(1,2,3)
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     prog.rb:5: wrong number of arguments (3 for 2) (ArgumentError)
+ *      from prog.rb:4:in `call'
+ *      from prog.rb:5
+ */
+
+VALUE
+rb_proc_call(proc, args)
+    VALUE proc, args;           /* OK */
+{
+    return proc_invoke(proc, args, Qundef, 0);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001452" class="method">
+  <div id="M001452_title" class="title">
+    <b>prc.arity &rarr; fixnum<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the number of arguments that would not be ignored. If the block is
+declared to take no arguments, returns 0. If the block is known to take
+exactly n arguments, returns n. If the block has optional arguments, return
+-n-1, where n is the number of mandatory arguments. A <tt>proc</tt> with no
+argument declarations is the same a block declaring <tt>||</tt> as its
+arguments.
+</p>
+<pre>
+   Proc.new {}.arity          #=&gt;  0
+   Proc.new {||}.arity        #=&gt;  0
+   Proc.new {|a|}.arity       #=&gt;  1
+   Proc.new {|a,b|}.arity     #=&gt;  2
+   Proc.new {|a,b,c|}.arity   #=&gt;  3
+   Proc.new {|*a|}.arity      #=&gt; -1
+   Proc.new {|a,*b|}.arity    #=&gt; -2
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001452_source')" id="l_M001452_source">show source</a> ]</p>
+  <div id="M001452_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     prc.arity -&gt; fixnum
+ *  
+ *  Returns the number of arguments that would not be ignored. If the block
+ *  is declared to take no arguments, returns 0. If the block is known
+ *  to take exactly n arguments, returns n. If the block has optional
+ *  arguments, return -n-1, where n is the number of mandatory
+ *  arguments. A &lt;code&gt;proc&lt;/code&gt; with no argument declarations
+ *  is the same a block declaring &lt;code&gt;||&lt;/code&gt; as its arguments.
+ *     
+ *     Proc.new {}.arity          #=&gt;  0
+ *     Proc.new {||}.arity        #=&gt;  0
+ *     Proc.new {|a|}.arity       #=&gt;  1
+ *     Proc.new {|a,b|}.arity     #=&gt;  2
+ *     Proc.new {|a,b,c|}.arity   #=&gt;  3
+ *     Proc.new {|*a|}.arity      #=&gt; -1
+ *     Proc.new {|a,*b|}.arity    #=&gt; -2
+ */
+
+static VALUE
+proc_arity(proc)
+    VALUE proc;
+{
+    struct BLOCK *data;
+    NODE *var, *list;
+    int n;
+
+    Data_Get_Struct(proc, struct BLOCK, data);
+    var = data-&gt;var;
+    if (var == 0) {
+        if (data-&gt;body &amp;&amp; nd_type(data-&gt;body) == NODE_IFUNC &amp;&amp;
+            data-&gt;body-&gt;nd_cfnc == bmcall) {
+            return method_arity(data-&gt;body-&gt;nd_tval);
+        }
+        return INT2FIX(-1);
+    }
+    if (var == (NODE*)1) return INT2FIX(0);
+    if (var == (NODE*)2) return INT2FIX(0);
+    if (nd_type(var) == NODE_BLOCK_ARG) {
+        var = var-&gt;nd_args;
+        if (var == (NODE*)1) return INT2FIX(0);
+        if (var == (NODE*)2) return INT2FIX(0);
+    }
+    switch (nd_type(var)) {
+      default:
+        return INT2FIX(1);
+      case NODE_MASGN:
+        list = var-&gt;nd_head;
+        n = 0;
+        while (list) {
+            n++;
+            list = list-&gt;nd_next;
+        }
+        if (var-&gt;nd_args) return INT2FIX(-n-1);
+        return INT2FIX(n);
+    }
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001457" class="method">
+  <div id="M001457_title" class="title">
+    <b>prc.binding    => binding<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the binding associated with <em>prc</em>. Note that <tt><a
+href="index.html?a=M006173&name=Kernel#eval">Kernel#eval</a></tt> accepts
+either a <tt><a href="index.html?a=C00000198&name=Proc">Proc</a></tt> or a
+<tt><a href="index.html?a=C00000021&name=Binding">Binding</a></tt> object
+as its second parameter.
+</p>
+<pre>
+   def fred(param)
+     proc {}
+   end
+
+   b = fred(99)
+   eval(&quot;param&quot;, b.binding)   #=&gt; 99
+   eval(&quot;param&quot;, b)           #=&gt; 99
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001457_source')" id="l_M001457_source">show source</a> ]</p>
+  <div id="M001457_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     prc.binding    =&gt; binding
+ *  
+ *  Returns the binding associated with &lt;i&gt;prc&lt;/i&gt;. Note that
+ *  &lt;code&gt;Kernel#eval&lt;/code&gt; accepts either a &lt;code&gt;Proc&lt;/code&gt; or a
+ *  &lt;code&gt;Binding&lt;/code&gt; object as its second parameter.
+ *     
+ *     def fred(param)
+ *       proc {}
+ *     end
+ *     
+ *     b = fred(99)
+ *     eval(&quot;param&quot;, b.binding)   #=&gt; 99
+ *     eval(&quot;param&quot;, b)           #=&gt; 99
+ */
+
+static VALUE
+proc_binding(proc)
+    VALUE proc;
+{
+    struct BLOCK *orig, *data;
+    VALUE bind;
+
+    Data_Get_Struct(proc, struct BLOCK, orig);
+    bind = Data_Make_Struct(rb_cBinding,struct BLOCK,blk_mark,blk_free,data);
+    MEMCPY(data, orig, struct BLOCK, 1);
+    frame_dup(&amp;data-&gt;frame);
+
+    if (data-&gt;iter) {
+        blk_copy_prev(data);
+    }
+    else {
+        data-&gt;prev = 0;
+    }
+
+    return bind;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001451" class="method">
+  <div id="M001451_title" class="title">
+    <b>prc.call(params,...)   => obj<br />
+prc[params,...]        => obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Invokes the block, setting the block&#8217;s parameters to the values in
+<em>params</em> using something close to method calling semantics.
+Generates a warning if multiple values are passed to a proc that expects
+just one (previously this silently converted the parameters to an array).
+</p>
+<p>
+For procs created using <tt><a
+href="index.html?a=M006196&name=Kernel.proc">Kernel.proc</a></tt>,
+generates an error if the wrong number of parameters are passed to a proc
+with multiple parameters. For procs created using <tt><a
+href="index.html?a=M001449&name=Proc.new">Proc.new</a></tt>, extra
+parameters are silently discarded.
+</p>
+<p>
+Returns the value of the last expression evaluated in the block. See also
+<tt>Proc#yield</tt>.
+</p>
+<pre>
+   a_proc = Proc.new {|a, *b| b.collect {|i| i*a }}
+   a_proc.call(9, 1, 2, 3)   #=&gt; [9, 18, 27]
+   a_proc[9, 1, 2, 3]        #=&gt; [9, 18, 27]
+   a_proc = Proc.new {|a,b| a}
+   a_proc.call(1,2,3)
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre>
+   prog.rb:5: wrong number of arguments (3 for 2) (ArgumentError)
+    from prog.rb:4:in `call'
+    from prog.rb:5
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001451_source')" id="l_M001451_source">show source</a> ]</p>
+  <div id="M001451_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     prc.call(params,...)   =&gt; obj
+ *     prc[params,...]        =&gt; obj
+ *  
+ *  Invokes the block, setting the block's parameters to the values in
+ *  &lt;i&gt;params&lt;/i&gt; using something close to method calling semantics.
+ *  Generates a warning if multiple values are passed to a proc that
+ *  expects just one (previously this silently converted the parameters
+ *  to an array). 
+ *
+ *  For procs created using &lt;code&gt;Kernel.proc&lt;/code&gt;, generates an 
+ *  error if the wrong number of parameters
+ *  are passed to a proc with multiple parameters. For procs created using
+ *  &lt;code&gt;Proc.new&lt;/code&gt;, extra parameters are silently discarded.
+ *
+ *  Returns the value of the last expression evaluated in the block. See
+ *  also &lt;code&gt;Proc#yield&lt;/code&gt;.
+ *     
+ *     a_proc = Proc.new {|a, *b| b.collect {|i| i*a }}
+ *     a_proc.call(9, 1, 2, 3)   #=&gt; [9, 18, 27]
+ *     a_proc[9, 1, 2, 3]        #=&gt; [9, 18, 27]
+ *     a_proc = Proc.new {|a,b| a}
+ *     a_proc.call(1,2,3)
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     prog.rb:5: wrong number of arguments (3 for 2) (ArgumentError)
+ *      from prog.rb:4:in `call'
+ *      from prog.rb:5
+ */
+
+VALUE
+rb_proc_call(proc, args)
+    VALUE proc, args;           /* OK */
+{
+    return proc_invoke(proc, args, Qundef, 0);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001450" class="method">
+  <div id="M001450_title" class="title">
+    <b>clone</b>()
+  </div>
+  <div class="description">
+  <p>
+MISSING: documentation
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001450_source')" id="l_M001450_source">show source</a> ]</p>
+  <div id="M001450_source" class="dyn-source">
+<pre>
+/*
+ * MISSING: documentation
+ */
+
+static VALUE
+proc_clone(self)
+    VALUE self;
+{
+    struct BLOCK *orig, *data;
+    VALUE bind;
+
+    Data_Get_Struct(self, struct BLOCK, orig);
+    bind = Data_Make_Struct(rb_obj_class(self),struct BLOCK,blk_mark,blk_free,data);
+    CLONESETUP(bind, self);
+    blk_dup(data, orig);
+
+    return bind;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001456" class="method">
+  <div id="M001456_title" class="title">
+    <b>prc.to_proc &rarr; prc<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Part of the protocol for converting objects to <tt><a
+href="index.html?a=C00000198&name=Proc">Proc</a></tt> objects. Instances of
+class <tt><a href="index.html?a=C00000198&name=Proc">Proc</a></tt> simply
+return themselves.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001456_source')" id="l_M001456_source">show source</a> ]</p>
+  <div id="M001456_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     prc.to_proc -&gt; prc
+ *  
+ *  Part of the protocol for converting objects to &lt;code&gt;Proc&lt;/code&gt;
+ *  objects. Instances of class &lt;code&gt;Proc&lt;/code&gt; simply return
+ *  themselves.
+ */
+
+static VALUE
+proc_to_self(self)
+    VALUE self;
+{
+    return self;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001455" class="method">
+  <div id="M001455_title" class="title">
+    <b>prc.to_s   => string<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Shows the unique identifier for this proc, along with an indication of
+where the proc was defined.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001455_source')" id="l_M001455_source">show source</a> ]</p>
+  <div id="M001455_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   prc.to_s   =&gt; string
+ *
+ * Shows the unique identifier for this proc, along with
+ * an indication of where the proc was defined.
+ */
+
+static VALUE
+proc_to_s(self)
+    VALUE self;
+{
+    struct BLOCK *data;
+    NODE *node;
+    const char *cname = rb_obj_classname(self);
+    const int w = (sizeof(VALUE) * CHAR_BIT) / 4;
+    long len = strlen(cname)+6+w; /* 6:tags 16:addr */
+    VALUE str;
+
+    Data_Get_Struct(self, struct BLOCK, data);
+    if ((node = data-&gt;frame.node) || (node = data-&gt;body)) {
+        len += strlen(node-&gt;nd_file) + 2 + (SIZEOF_LONG*CHAR_BIT-NODE_LSHIFT)/3;
+        str = rb_str_new(0, len);
+        snprintf(RSTRING(str)-&gt;ptr, len+1,
+                 &quot;#&lt;%s:0x%.*lx@%s:%d&gt;&quot;, cname, w, (VALUE)data-&gt;body,
+                 node-&gt;nd_file, nd_line(node));
+    }
+    else {
+        str = rb_str_new(0, len);
+        snprintf(RSTRING(str)-&gt;ptr, len+1,
+                 &quot;#&lt;%s:0x%.*lx&gt;&quot;, cname, w, (VALUE)data-&gt;body);
+    }
+    RSTRING(str)-&gt;len = strlen(RSTRING(str)-&gt;ptr);
+    if (OBJ_TAINTED(self)) OBJ_TAINT(str);
+
+    return str;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

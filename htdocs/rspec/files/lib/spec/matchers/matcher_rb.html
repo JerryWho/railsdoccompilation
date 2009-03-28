@@ -1,0 +1,74 @@
+  <div id="fileHeader">
+    <h1>matcher.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/matchers/matcher.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Matchers
+    class Matcher
+      include Spec::Matchers::Pretty
+      
+      def initialize(name, *expected, &amp;declarations)
+        @name = name
+        @expected = expected
+        @declarations = declarations
+        @messages = {
+          :description =&gt; lambda {&quot;#{name_to_sentence}#{expected_to_sentence}&quot;},
+          :failure_message_for_should =&gt; lambda {|actual| &quot;expected #{actual} to #{name_to_sentence}#{expected_to_sentence}&quot;},
+          :failure_message_for_should_not =&gt; lambda {|actual| &quot;expected #{actual} not to #{name_to_sentence}#{expected_to_sentence}&quot;}
+        }
+      end
+      
+      def matches?(actual)
+        @actual = actual
+        instance_exec(*@expected, &amp;@declarations)
+        instance_exec(@actual,    &amp;@match_block)
+      end
+      
+      def description(&amp;block)
+        cache_or_call_cached(:description, &amp;block)
+      end
+      
+      def failure_message_for_should(&amp;block)
+        cache_or_call_cached(:failure_message_for_should, @actual, &amp;block)
+      end
+      
+      def failure_message_for_should_not(&amp;block)
+        cache_or_call_cached(:failure_message_for_should_not, @actual, &amp;block)
+      end
+      
+      def match(&amp;block)
+        @match_block = block
+      end
+      
+    private
+
+      def cache_or_call_cached(key, actual=nil, &amp;block)
+        block ? @messages[key] = block : 
+                actual.nil? ? @messages[key].call : @messages[key].call(actual)
+      end
+    
+      def name_to_sentence
+        split_words(@name)
+      end
+      
+      def expected_to_sentence
+        to_sentence(@expected)
+      end
+    
+    end
+  end
+end</pre>
+    </div>

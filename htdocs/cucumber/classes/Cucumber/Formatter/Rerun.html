@@ -1,0 +1,125 @@
+  <div id="C00000099">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Rerun<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/cucumber/formatter/rerun_rb.html');">lib/cucumber/formatter/rerun.rb</a>
+
+Parent:&nbsp;
+Ast::Visitor
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+This formatter keeps track of all failing features and print out their
+location. Example:
+</p>
+<pre>
+  features/foo.feature:34 features/bar.feature:11:76:81
+</pre>
+<p>
+This formatter is used by AutoTest - it will use the output to decide what
+to run the next time, simply passing the output string on the command line.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000286&name=new" >new</a></li>
+  <li><a href="index.html?a=M000288&name=visit_feature_element" >visit_feature_element</a></li>
+  <li><a href="index.html?a=M000287&name=visit_features" >visit_features</a></li>
+  <li><a href="index.html?a=M000289&name=visit_step_name" >visit_step_name</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000286" class="method">
+  <div id="M000286_title" class="title">
+    <b>new</b>(step_mother, io, options)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000286_source')" id="l_M000286_source">show source</a> ]</p>
+  <div id="M000286_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/formatter/rerun.rb, line 12</span>
+12:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">step_mother</span>, <span class="ruby-identifier">io</span>, <span class="ruby-identifier">options</span>)
+13:         <span class="ruby-keyword kw">super</span>(<span class="ruby-identifier">step_mother</span>)
+14:         <span class="ruby-ivar">@io</span> = <span class="ruby-identifier">io</span>
+15:         <span class="ruby-ivar">@file_names</span> = []
+16:         <span class="ruby-ivar">@file_colon_lines</span> = <span class="ruby-constant">Hash</span>.<span class="ruby-identifier">new</span>{<span class="ruby-operator">|</span><span class="ruby-identifier">h</span>,<span class="ruby-identifier">k</span><span class="ruby-operator">|</span> <span class="ruby-identifier">h</span>[<span class="ruby-identifier">k</span>] = []}
+17:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000288" class="method">
+  <div id="M000288_title" class="title">
+    <b>visit_feature_element</b>(feature_element)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000288_source')" id="l_M000288_source">show source</a> ]</p>
+  <div id="M000288_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/formatter/rerun.rb, line 28</span>
+28:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">visit_feature_element</span>(<span class="ruby-identifier">feature_element</span>)
+29:         <span class="ruby-ivar">@rerun</span> = <span class="ruby-keyword kw">false</span>
+30:         <span class="ruby-keyword kw">super</span>
+31:         <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@rerun</span>
+32:           <span class="ruby-identifier">file</span>, <span class="ruby-identifier">line</span> = <span class="ruby-operator">*</span><span class="ruby-identifier">feature_element</span>.<span class="ruby-identifier">file_colon_line</span>.<span class="ruby-identifier">split</span>(<span class="ruby-value str">':'</span>)
+33:           <span class="ruby-ivar">@file_colon_lines</span>[<span class="ruby-identifier">file</span>] <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">line</span>
+34:           <span class="ruby-ivar">@file_names</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">file</span>
+35:         <span class="ruby-keyword kw">end</span>
+36:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000287" class="method">
+  <div id="M000287_title" class="title">
+    <b>visit_features</b>(features)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000287_source')" id="l_M000287_source">show source</a> ]</p>
+  <div id="M000287_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/formatter/rerun.rb, line 19</span>
+19:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">visit_features</span>(<span class="ruby-identifier">features</span>)
+20:         <span class="ruby-keyword kw">super</span>
+21:         <span class="ruby-identifier">files</span> = <span class="ruby-ivar">@file_names</span>.<span class="ruby-identifier">uniq</span>.<span class="ruby-identifier">map</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">file</span><span class="ruby-operator">|</span>
+22:           <span class="ruby-identifier">lines</span> = <span class="ruby-ivar">@file_colon_lines</span>[<span class="ruby-identifier">file</span>]
+23:           <span class="ruby-node">&quot;#{file}:#{lines.join(':')}&quot;</span>
+24:         <span class="ruby-keyword kw">end</span>
+25:         <span class="ruby-ivar">@io</span>.<span class="ruby-identifier">puts</span> <span class="ruby-identifier">files</span>.<span class="ruby-identifier">join</span>(<span class="ruby-value str">' '</span>)
+26:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000289" class="method">
+  <div id="M000289_title" class="title">
+    <b>visit_step_name</b>(keyword, step_match, status, source_indent, background)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000289_source')" id="l_M000289_source">show source</a> ]</p>
+  <div id="M000289_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/formatter/rerun.rb, line 38</span>
+38:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">visit_step_name</span>(<span class="ruby-identifier">keyword</span>, <span class="ruby-identifier">step_match</span>, <span class="ruby-identifier">status</span>, <span class="ruby-identifier">source_indent</span>, <span class="ruby-identifier">background</span>)
+39:         <span class="ruby-ivar">@rerun</span> = <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> [<span class="ruby-identifier">:failed</span>].<span class="ruby-identifier">index</span>(<span class="ruby-identifier">status</span>)
+40:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

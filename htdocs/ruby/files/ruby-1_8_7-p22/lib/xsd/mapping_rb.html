@@ -1,0 +1,62 @@
+  <div id="fileHeader">
+    <h1>mapping.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/mapping.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - XML Mapping for Ruby
+# Copyright (C) 2005  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require &quot;soap/parser&quot;
+require 'soap/encodingstyle/literalHandler'
+require &quot;soap/generator&quot;
+require &quot;soap/mapping&quot;
+require &quot;soap/mapping/wsdlliteralregistry&quot;
+
+
+module XSD
+
+
+module Mapping
+  MappingRegistry = SOAP::Mapping::WSDLLiteralRegistry.new
+  MappingOpt = {:default_encodingstyle =&gt; SOAP::LiteralNamespace}
+
+  def self.obj2xml(obj, elename = nil, io = nil)
+    if !elename.nil? and !elename.is_a?(XSD::QName)
+      elename = XSD::QName.new(nil, elename)
+    end
+    elename ||= XSD::QName.new(nil, SOAP::Mapping.name2elename(obj.class.to_s))
+    soap = SOAP::Mapping.obj2soap(obj, MappingRegistry)
+    soap.elename = elename
+    generator = SOAP::SOAPGenerator.new(MappingOpt)
+    generator.generate(soap, io)
+  end
+
+  def self.xml2obj(stream)
+    parser = SOAP::Parser.new(MappingOpt)
+    soap = parser.parse(stream)
+    SOAP::Mapping.soap2obj(soap, MappingRegistry)
+  end
+end
+
+
+end
+</pre>
+    </div>

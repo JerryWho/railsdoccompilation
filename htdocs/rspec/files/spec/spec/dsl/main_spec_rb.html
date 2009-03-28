@@ -1,0 +1,86 @@
+  <div id="fileHeader">
+    <h1>main_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/dsl/main_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module Spec
+  module DSL
+    describe Main do
+      before(:each) do
+        @main = Class.new do; include Main; end
+      end
+
+      [:describe, :context].each do |method|
+        describe &quot;##{method}&quot; do
+          it &quot;should delegate to Spec::Example::ExampleGroupFactory.create_example_group&quot; do
+            block = lambda {}
+            Spec::Example::ExampleGroupFactory.should_receive(:create_example_group).with(
+              &quot;The ExampleGroup&quot;, hash_including(:spec_path), &amp;block
+            )
+            @main.__send__ method, &quot;The ExampleGroup&quot;, &amp;block
+          end
+        end
+      end
+      
+      [:share_examples_for, :shared_examples_for].each do |method|
+        describe &quot;##{method}&quot; do
+          it &quot;should create a shared ExampleGroup&quot; do
+            block = lambda {}
+            Spec::Example::ExampleGroupFactory.should_receive(:create_shared_example_group).with(
+              &quot;shared group&quot;, hash_including(:spec_path), &amp;block
+            )
+            @main.__send__ method, &quot;shared group&quot;, &amp;block
+          end
+        end
+      end
+    
+      describe &quot;#share_as&quot; do
+        def self.next_group_name
+          @group_number ||= 0
+          @group_number += 1
+          &quot;Group#{@group_number}&quot;
+        end
+        
+        def group_name
+          @group_name ||= self.class.next_group_name
+        end
+        
+        it &quot;registers a shared ExampleGroup&quot; do
+          block = lambda {}
+          Spec::Example::ExampleGroupFactory.should_receive(:create_shared_example_group).with(
+            group_name, hash_including(:spec_path), &amp;block
+          )
+          @main.share_as group_name, &amp;block
+        end
+      
+        it &quot;creates a constant that points to a Module&quot; do
+          group = @main.share_as group_name do end
+          Object.const_get(group_name).should equal(group)
+        end
+      
+        it &quot;complains if you pass it a not-constantizable name&quot; do
+          lambda do
+            @group = @main.share_as &quot;Non Constant&quot; do end
+          end.should raise_error(NameError, /The first argument to share_as must be a legal name for a constant/)
+        end
+      
+      end
+    end
+  end
+end
+  </pre>
+    </div>

@@ -1,0 +1,75 @@
+  <div id="fileHeader">
+    <h1>merb.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/plugin/merb.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:18:53 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>unless defined?(Sass::MERB_LOADED)
+  Sass::MERB_LOADED = true
+
+  version = Merb::VERSION.split('.').map { |n| n.to_i }
+  if version[0] &lt;= 0 &amp;&amp; version[1] &lt; 5
+    root = MERB_ROOT
+    env  = MERB_ENV
+  else
+    root = Merb.root.to_s
+    env  = Merb.environment
+  end
+
+  Sass::Plugin.options.merge!(:template_location  =&gt; root + '/public/stylesheets/sass',
+                              :css_location       =&gt; root + '/public/stylesheets',
+                              :always_check       =&gt; env != &quot;production&quot;,
+                              :full_exception     =&gt; env != &quot;production&quot;)
+  config = Merb::Plugins.config[:sass] || Merb::Plugins.config[&quot;sass&quot;] || {}
+
+  if defined? config.symbolize_keys!
+    config.symbolize_keys!
+  end
+
+  Sass::Plugin.options.merge!(config)
+
+  if version[0] &gt; 0 || version[1] &gt;= 9
+
+    class Merb::Rack::Application # :nodoc:
+      def call_with_sass(env)
+        if !Sass::Plugin.checked_for_updates ||
+            Sass::Plugin.options[:always_update] || Sass::Plugin.options[:always_check]
+          Sass::Plugin.update_stylesheets
+        end
+
+        call_without_sass(env)
+      end
+      alias_method :call_without_sass, :call
+      alias_method :call, :call_with_sass
+    end
+
+  else
+
+    class MerbHandler # :nodoc:
+      def process_with_sass(request, response)
+        if !Sass::Plugin.checked_for_updates ||
+            Sass::Plugin.options[:always_update] || Sass::Plugin.options[:always_check]
+          Sass::Plugin.update_stylesheets
+        end
+
+        process_without_sass(request, response)
+      end
+      alias_method :process_without_sass, :process
+      alias_method :process, :process_with_sass
+    end
+
+  end
+end
+</pre>
+    </div>

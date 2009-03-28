@@ -1,0 +1,2625 @@
+  <div id="fileHeader">
+    <h1>parse_rb.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/parsers/parse_rb.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/local/bin/ruby
+
+# Parse a Ruby source file, building a set of objects
+# representing the modules, classes, methods,
+# requires, and includes we find (these classes
+# are defined in code_objects.rb).
+
+# This file contains stuff stolen outright from:
+#
+#   rtags.rb - 
+#   ruby-lex.rb - ruby lexcal analizer
+#   ruby-token.rb - ruby tokens 
+#   	by Keiju ISHITSUKA (Nippon Rational Inc.)
+#
+
+require &quot;e2mmap&quot;
+require &quot;irb/slex&quot;
+
+require &quot;rdoc/code_objects&quot;
+require &quot;rdoc/tokenstream&quot;
+
+require &quot;rdoc/markup/simple_markup/preprocess&quot;
+
+require &quot;rdoc/parsers/parserfactory&quot;
+
+$TOKEN_DEBUG = $DEBUG
+
+# Definitions of all tokens involved in the lexical analysis
+
+module RubyToken
+  EXPR_BEG   = :EXPR_BEG
+  EXPR_MID   = :EXPR_MID
+  EXPR_END   = :EXPR_END
+  EXPR_ARG   = :EXPR_ARG
+  EXPR_FNAME = :EXPR_FNAME
+  EXPR_DOT   = :EXPR_DOT
+  EXPR_CLASS = :EXPR_CLASS
+  
+  class Token
+    NO_TEXT = &quot;??&quot;.freeze
+    attr :text
+
+    def initialize(line_no, char_no)
+      @line_no = line_no
+      @char_no = char_no
+      @text    = NO_TEXT
+    end
+
+    # Because we're used in contexts that expect to return a token,
+    # we set the text string and then return ourselves
+    def set_text(text)
+      @text = text
+      self
+    end
+
+    attr_reader :line_no, :char_no, :text
+  end
+
+  class TkNode &lt; Token
+    attr :node
+  end
+
+  class TkId &lt; Token
+    def initialize(line_no, char_no, name)
+      super(line_no, char_no)
+      @name = name
+    end
+    attr :name
+  end
+
+  class TkKW &lt; TkId
+  end
+
+  class TkVal &lt; Token
+    def initialize(line_no, char_no, value = nil)
+      super(line_no, char_no)
+      set_text(value)
+    end
+  end
+
+  class TkOp &lt; Token
+    def name
+      self.class.op_name
+    end
+  end
+
+  class TkOPASGN &lt; TkOp
+    def initialize(line_no, char_no, op)
+      super(line_no, char_no)
+      op = TkReading2Token[op] unless op.kind_of?(Symbol)
+      @op = op
+    end
+    attr :op
+  end
+
+  class TkUnknownChar &lt; Token
+    def initialize(line_no, char_no, id)
+      super(line_no, char_no)
+      @name = char_no.chr
+    end
+    attr :name
+  end
+
+  class TkError &lt; Token
+  end
+
+  def set_token_position(line, char)
+    @prev_line_no = line
+    @prev_char_no = char
+  end
+
+  def Token(token, value = nil)
+    tk = nil
+    case token
+    when String, Symbol
+      source = token.kind_of?(String) ? TkReading2Token : TkSymbol2Token
+      if (tk = source[token]).nil?
+	IRB.fail TkReading2TokenNoKey, token
+      end
+      tk = Token(tk[0], value) 
+    else 
+      tk = if (token.ancestors &amp; [TkId, TkVal, TkOPASGN, TkUnknownChar]).empty?
+             token.new(@prev_line_no, @prev_char_no)
+           else
+             token.new(@prev_line_no, @prev_char_no, value)
+           end
+    end
+    tk
+  end
+
+  TokenDefinitions = [
+    [:TkCLASS,      TkKW,  &quot;class&quot;,  EXPR_CLASS],
+    [:TkMODULE,     TkKW,  &quot;module&quot;, EXPR_BEG],
+    [:TkDEF,	    TkKW,  &quot;def&quot;,    EXPR_FNAME],
+    [:TkUNDEF,      TkKW,  &quot;undef&quot;,  EXPR_FNAME],
+    [:TkBEGIN,      TkKW,  &quot;begin&quot;,  EXPR_BEG],
+    [:TkRESCUE,     TkKW,  &quot;rescue&quot;, EXPR_MID],
+    [:TkENSURE,     TkKW,  &quot;ensure&quot;, EXPR_BEG],
+    [:TkEND,	    TkKW,  &quot;end&quot;,    EXPR_END],
+    [:TkIF,         TkKW,  &quot;if&quot;,     EXPR_BEG, :TkIF_MOD],
+    [:TkUNLESS,     TkKW,  &quot;unless&quot;, EXPR_BEG, :TkUNLESS_MOD],
+    [:TkTHEN,	    TkKW,  &quot;then&quot;,   EXPR_BEG],
+    [:TkELSIF,      TkKW,  &quot;elsif&quot;,  EXPR_BEG],
+    [:TkELSE,	    TkKW,  &quot;else&quot;,   EXPR_BEG],
+    [:TkCASE,	    TkKW,  &quot;case&quot;,   EXPR_BEG],
+    [:TkWHEN,	    TkKW,  &quot;when&quot;,   EXPR_BEG],
+    [:TkWHILE,      TkKW,  &quot;while&quot;,  EXPR_BEG, :TkWHILE_MOD],
+    [:TkUNTIL,      TkKW,  &quot;until&quot;,  EXPR_BEG, :TkUNTIL_MOD],
+    [:TkFOR,	    TkKW,  &quot;for&quot;,    EXPR_BEG],
+    [:TkBREAK,      TkKW,  &quot;break&quot;,  EXPR_END],
+    [:TkNEXT,	    TkKW,  &quot;next&quot;,   EXPR_END],
+    [:TkREDO,	    TkKW,  &quot;redo&quot;,   EXPR_END],
+    [:TkRETRY,      TkKW,  &quot;retry&quot;,  EXPR_END],
+    [:TkIN,	    TkKW,  &quot;in&quot;,     EXPR_BEG],
+    [:TkDO,	    TkKW,  &quot;do&quot;,     EXPR_BEG],
+    [:TkRETURN,     TkKW,  &quot;return&quot;, EXPR_MID],
+    [:TkYIELD,      TkKW,  &quot;yield&quot;,  EXPR_END],
+    [:TkSUPER,      TkKW,  &quot;super&quot;,  EXPR_END],
+    [:TkSELF,	    TkKW,  &quot;self&quot;,   EXPR_END],
+    [:TkNIL, 	    TkKW,  &quot;nil&quot;,    EXPR_END],
+    [:TkTRUE,	    TkKW,  &quot;true&quot;,   EXPR_END],
+    [:TkFALSE,      TkKW,  &quot;false&quot;,  EXPR_END],
+    [:TkAND,	    TkKW,  &quot;and&quot;,    EXPR_BEG],
+    [:TkOR, 	    TkKW,  &quot;or&quot;,     EXPR_BEG],
+    [:TkNOT,	    TkKW,  &quot;not&quot;,    EXPR_BEG],
+    [:TkIF_MOD,     TkKW],
+    [:TkUNLESS_MOD, TkKW],
+    [:TkWHILE_MOD,  TkKW],
+    [:TkUNTIL_MOD,  TkKW],
+    [:TkALIAS,      TkKW,  &quot;alias&quot;,    EXPR_FNAME],
+    [:TkDEFINED,    TkKW,  &quot;defined?&quot;, EXPR_END],
+    [:TklBEGIN,     TkKW,  &quot;BEGIN&quot;,    EXPR_END],
+    [:TklEND,	    TkKW,  &quot;END&quot;,      EXPR_END],
+    [:Tk__LINE__,   TkKW,  &quot;__LINE__&quot;, EXPR_END],
+    [:Tk__FILE__,   TkKW,  &quot;__FILE__&quot;, EXPR_END],
+
+    [:TkIDENTIFIER, TkId],
+    [:TkFID,	    TkId],
+    [:TkGVAR,	    TkId],
+    [:TkIVAR,	    TkId],
+    [:TkCONSTANT,   TkId],
+
+    [:TkINTEGER,    TkVal],
+    [:TkFLOAT,      TkVal],
+    [:TkSTRING,     TkVal],
+    [:TkXSTRING,    TkVal],
+    [:TkREGEXP,     TkVal],
+    [:TkCOMMENT,    TkVal],
+
+    [:TkDSTRING,    TkNode],
+    [:TkDXSTRING,   TkNode],
+    [:TkDREGEXP,    TkNode],
+    [:TkNTH_REF,    TkId],
+    [:TkBACK_REF,   TkId],
+
+    [:TkUPLUS,      TkOp,   &quot;+@&quot;],
+    [:TkUMINUS,     TkOp,   &quot;-@&quot;],
+    [:TkPOW,	    TkOp,   &quot;**&quot;],
+    [:TkCMP,	    TkOp,   &quot;&lt;=&gt;&quot;],
+    [:TkEQ,	    TkOp,   &quot;==&quot;],
+    [:TkEQQ,	    TkOp,   &quot;===&quot;],
+    [:TkNEQ,	    TkOp,   &quot;!=&quot;],
+    [:TkGEQ,	    TkOp,   &quot;&gt;=&quot;],
+    [:TkLEQ,	    TkOp,   &quot;&lt;=&quot;],
+    [:TkANDOP,      TkOp,   &quot;&amp;&amp;&quot;],
+    [:TkOROP,	    TkOp,   &quot;||&quot;],
+    [:TkMATCH,      TkOp,   &quot;=~&quot;],
+    [:TkNMATCH,     TkOp,   &quot;!~&quot;],
+    [:TkDOT2,	    TkOp,   &quot;..&quot;],
+    [:TkDOT3,	    TkOp,   &quot;...&quot;],
+    [:TkAREF,	    TkOp,   &quot;[]&quot;],
+    [:TkASET,	    TkOp,   &quot;[]=&quot;],
+    [:TkLSHFT,      TkOp,   &quot;&lt;&lt;&quot;],
+    [:TkRSHFT,      TkOp,   &quot;&gt;&gt;&quot;],
+    [:TkCOLON2,     TkOp],
+    [:TkCOLON3,     TkOp],
+#   [:OPASGN,	    TkOp],               # +=, -=  etc. #
+    [:TkASSOC,      TkOp,   &quot;=&gt;&quot;],
+    [:TkQUESTION,   TkOp,   &quot;?&quot;],	 #?
+    [:TkCOLON,      TkOp,   &quot;:&quot;],        #:
+    
+    [:TkfLPAREN],         # func( #
+    [:TkfLBRACK],         # func[ #
+    [:TkfLBRACE],         # func{ #
+    [:TkSTAR],            # *arg
+    [:TkAMPER],           # &amp;arg #
+    [:TkSYMBOL,     TkId],          # :SYMBOL
+    [:TkSYMBEG,     TkId], 
+    [:TkGT,	    TkOp,   &quot;&gt;&quot;],
+    [:TkLT,	    TkOp,   &quot;&lt;&quot;],
+    [:TkPLUS,	    TkOp,   &quot;+&quot;],
+    [:TkMINUS,      TkOp,   &quot;-&quot;],
+    [:TkMULT,	    TkOp,   &quot;*&quot;],
+    [:TkDIV,	    TkOp,   &quot;/&quot;],
+    [:TkMOD,	    TkOp,   &quot;%&quot;],
+    [:TkBITOR,      TkOp,   &quot;|&quot;],
+    [:TkBITXOR,     TkOp,   &quot;^&quot;],
+    [:TkBITAND,     TkOp,   &quot;&amp;&quot;],
+    [:TkBITNOT,     TkOp,   &quot;~&quot;],
+    [:TkNOTOP,      TkOp,   &quot;!&quot;],
+
+    [:TkBACKQUOTE,  TkOp,   &quot;`&quot;],
+
+    [:TkASSIGN,     Token,  &quot;=&quot;],
+    [:TkDOT,	    Token,  &quot;.&quot;],
+    [:TkLPAREN,     Token,  &quot;(&quot;],  #(exp)
+    [:TkLBRACK,     Token,  &quot;[&quot;],  #[arry]
+    [:TkLBRACE,     Token,  &quot;{&quot;],  #{hash}
+    [:TkRPAREN,     Token,  &quot;)&quot;],
+    [:TkRBRACK,     Token,  &quot;]&quot;],
+    [:TkRBRACE,     Token,  &quot;}&quot;],
+    [:TkCOMMA,      Token,  &quot;,&quot;],
+    [:TkSEMICOLON,  Token,  &quot;;&quot;],
+
+    [:TkRD_COMMENT],
+    [:TkSPACE],
+    [:TkNL],
+    [:TkEND_OF_SCRIPT],
+
+    [:TkBACKSLASH,  TkUnknownChar,  &quot;\\&quot;],
+    [:TkAT,	    TkUnknownChar,  &quot;@&quot;],
+    [:TkDOLLAR,     TkUnknownChar,  &quot;\$&quot;], #&quot;
+  ]
+
+  # {reading =&gt; token_class}
+  # {reading =&gt; [token_class, *opt]}
+  TkReading2Token = {}
+  TkSymbol2Token = {}
+
+  def RubyToken.def_token(token_n, super_token = Token, reading = nil, *opts)
+    token_n = token_n.id2name unless token_n.kind_of?(String)
+    if RubyToken.const_defined?(token_n)
+      IRB.fail AlreadyDefinedToken, token_n
+    end
+
+    token_c =  Class.new super_token
+    RubyToken.const_set token_n, token_c
+#    token_c.inspect
+ 
+    if reading
+      if TkReading2Token[reading]
+	IRB.fail TkReading2TokenDuplicateError, token_n, reading
+      end
+      if opts.empty?
+	TkReading2Token[reading] = [token_c]
+      else
+	TkReading2Token[reading] = [token_c].concat(opts)
+      end
+    end
+    TkSymbol2Token[token_n.intern] = token_c
+
+    if token_c &lt;= TkOp
+      token_c.class_eval %{
+        def self.op_name; &quot;#{reading}&quot;; end
+      }
+    end
+  end
+
+  for defs in TokenDefinitions
+    def_token(*defs)
+  end
+
+  NEWLINE_TOKEN = TkNL.new(0,0)
+  NEWLINE_TOKEN.set_text(&quot;\n&quot;)
+
+end
+
+
+
+# Lexical analyzer for Ruby source
+
+class RubyLex
+
+  ######################################################################
+  #
+  # Read an input stream character by character. We allow for unlimited
+  # ungetting of characters just read.
+  #
+  # We simplify the implementation greatly by reading the entire input
+  # into a buffer initially, and then simply traversing it using
+  # pointers.
+  #
+  # We also have to allow for the &lt;i&gt;here document diversion&lt;/i&gt;. This
+  # little gem comes about when the lexer encounters a here
+  # document. At this point we effectively need to split the input
+  # stream into two parts: one to read the body of the here document,
+  # the other to read the rest of the input line where the here
+  # document was initially encountered. For example, we might have
+  #
+  #   do_something(&lt;&lt;-A, &lt;&lt;-B)
+  #     stuff
+  #     for
+  #   A
+  #     stuff
+  #     for
+  #   B
+  #
+  # When the lexer encounters the &lt;&lt;A, it reads until the end of the
+  # line, and keeps it around for later. It then reads the body of the
+  # here document.  Once complete, it needs to read the rest of the
+  # original line, but then skip the here document body.
+  #
+  
+  class BufferedReader
+    
+    attr_reader :line_num
+    
+    def initialize(content)
+      if /\t/ =~ content
+        tab_width = Options.instance.tab_width
+        content = content.split(/\n/).map do |line|
+          1 while line.gsub!(/\t+/) { ' ' * (tab_width*$&amp;.length - $`.length % tab_width)}  &amp;&amp; $~ #`
+          line
+        end .join(&quot;\n&quot;)
+      end
+      @content   = content
+      @content &lt;&lt; &quot;\n&quot; unless @content[-1,1] == &quot;\n&quot;
+      @size      = @content.size
+      @offset    = 0
+      @hwm       = 0
+      @line_num  = 1
+      @read_back_offset = 0
+      @last_newline = 0
+      @newline_pending = false
+    end
+    
+    def column
+      @offset - @last_newline
+    end
+    
+    def getc
+      return nil if @offset &gt;= @size
+      ch = @content[@offset, 1]
+      
+      @offset += 1
+      @hwm = @offset if @hwm &lt; @offset
+      
+      if @newline_pending
+        @line_num += 1
+        @last_newline = @offset - 1
+        @newline_pending = false
+      end
+      
+      if ch == &quot;\n&quot;
+        @newline_pending = true
+      end
+      ch
+    end
+    
+    def getc_already_read
+      getc
+    end
+    
+    def ungetc(ch)
+      raise &quot;unget past beginning of file&quot; if @offset &lt;= 0
+      @offset -= 1
+      if @content[@offset] == ?\n
+        @newline_pending = false
+      end
+    end
+    
+    def get_read
+      res = @content[@read_back_offset...@offset]
+      @read_back_offset = @offset
+      res
+    end
+    
+    def peek(at)
+      pos = @offset + at
+      if pos &gt;= @size
+        nil
+      else
+        @content[pos, 1]
+      end
+    end
+    
+    def peek_equal(str)
+      @content[@offset, str.length] == str
+    end
+    
+    def divert_read_from(reserve)
+      @content[@offset, 0] = reserve
+      @size      = @content.size
+    end
+  end
+
+  # end of nested class BufferedReader
+
+  extend Exception2MessageMapper
+  def_exception(:AlreadyDefinedToken, &quot;Already defined token(%s)&quot;)
+  def_exception(:TkReading2TokenNoKey, &quot;key nothing(key='%s')&quot;)
+  def_exception(:TkSymbol2TokenNoKey, &quot;key nothing(key='%s')&quot;)
+  def_exception(:TkReading2TokenDuplicateError, 
+		&quot;key duplicate(token_n='%s', key='%s')&quot;)
+  def_exception(:SyntaxError, &quot;%s&quot;)
+  
+  include RubyToken
+  include IRB
+
+  attr_reader :continue
+  attr_reader :lex_state
+
+  def RubyLex.debug?
+    false
+  end
+
+  def initialize(content)
+    lex_init
+
+    @reader = BufferedReader.new(content)
+
+    @exp_line_no = @line_no = 1
+    @base_char_no = 0
+    @indent = 0
+
+    @ltype = nil
+    @quoted = nil
+    @lex_state = EXPR_BEG
+    @space_seen = false
+    
+    @continue = false
+    @line = &quot;&quot;
+
+    @skip_space = false
+    @read_auto_clean_up = false
+    @exception_on_syntax_error = true
+  end
+
+  attr :skip_space, true
+  attr :read_auto_clean_up, true
+  attr :exception_on_syntax_error, true
+
+  attr :indent
+
+  # io functions
+  def line_no
+    @reader.line_num
+  end
+
+  def char_no
+    @reader.column
+  end
+
+  def get_read
+    @reader.get_read
+  end
+
+  def getc
+    @reader.getc
+  end
+
+  def getc_of_rests
+    @reader.getc_already_read
+  end
+
+  def gets
+    c = getc or return
+    l = &quot;&quot;
+    begin
+      l.concat c unless c == &quot;\r&quot;
+      break if c == &quot;\n&quot;
+    end while c = getc
+    l
+  end
+
+
+  def ungetc(c = nil)
+    @reader.ungetc(c)
+  end
+
+  def peek_equal?(str)
+    @reader.peek_equal(str)
+  end
+
+  def peek(i = 0)
+    @reader.peek(i)
+  end
+
+  def lex
+    until (((tk = token).kind_of?(TkNL) || tk.kind_of?(TkEND_OF_SCRIPT)) &amp;&amp;
+	     !@continue or
+	     tk.nil?)
+    end
+    line = get_read
+
+    if line == &quot;&quot; and tk.kind_of?(TkEND_OF_SCRIPT) || tk.nil?
+      nil
+    else
+      line
+    end
+  end
+
+  def token
+    set_token_position(line_no, char_no)
+    begin
+      begin
+	tk = @OP.match(self)
+	@space_seen = tk.kind_of?(TkSPACE)
+      rescue SyntaxError
+	abort if @exception_on_syntax_error
+	tk = TkError.new(line_no, char_no)
+      end
+    end while @skip_space and tk.kind_of?(TkSPACE)
+    if @read_auto_clean_up
+      get_read
+    end
+#   throw :eof unless tk
+    p tk if $DEBUG
+    tk
+  end
+  
+  ENINDENT_CLAUSE = [
+    &quot;case&quot;, &quot;class&quot;, &quot;def&quot;, &quot;do&quot;, &quot;for&quot;, &quot;if&quot;,
+    &quot;module&quot;, &quot;unless&quot;, &quot;until&quot;, &quot;while&quot;, &quot;begin&quot; #, &quot;when&quot;
+  ]
+  DEINDENT_CLAUSE = [&quot;end&quot; #, &quot;when&quot;
+  ]
+
+  PERCENT_LTYPE = {
+    &quot;q&quot; =&gt; &quot;\'&quot;,
+    &quot;Q&quot; =&gt; &quot;\&quot;&quot;,
+    &quot;x&quot; =&gt; &quot;\`&quot;,
+    &quot;r&quot; =&gt; &quot;/&quot;,
+    &quot;w&quot; =&gt; &quot;]&quot;
+  }
+  
+  PERCENT_PAREN = {
+    &quot;{&quot; =&gt; &quot;}&quot;,
+    &quot;[&quot; =&gt; &quot;]&quot;,
+    &quot;&lt;&quot; =&gt; &quot;&gt;&quot;,
+    &quot;(&quot; =&gt; &quot;)&quot;
+  }
+
+  Ltype2Token = {
+    &quot;\'&quot; =&gt; TkSTRING,
+    &quot;\&quot;&quot; =&gt; TkSTRING,
+    &quot;\`&quot; =&gt; TkXSTRING,
+    &quot;/&quot; =&gt; TkREGEXP,
+    &quot;]&quot; =&gt; TkDSTRING
+  }
+  Ltype2Token.default = TkSTRING
+
+  DLtype2Token = {
+    &quot;\&quot;&quot; =&gt; TkDSTRING,
+    &quot;\`&quot; =&gt; TkDXSTRING,
+    &quot;/&quot; =&gt; TkDREGEXP,
+  }
+
+  def lex_init()
+    @OP = SLex.new
+    @OP.def_rules(&quot;\0&quot;, &quot;\004&quot;, &quot;\032&quot;) do |chars, io|
+      Token(TkEND_OF_SCRIPT).set_text(chars)
+    end
+
+    @OP.def_rules(&quot; &quot;, &quot;\t&quot;, &quot;\f&quot;, &quot;\r&quot;, &quot;\13&quot;) do |chars, io|
+      @space_seen = TRUE
+      while (ch = getc) =~ /[ \t\f\r\13]/
+        chars &lt;&lt; ch
+      end
+      ungetc
+      Token(TkSPACE).set_text(chars)
+    end
+
+    @OP.def_rule(&quot;#&quot;) do
+      |op, io|
+      identify_comment
+    end
+
+    @OP.def_rule(&quot;=begin&quot;, proc{@prev_char_no == 0 &amp;&amp; peek(0) =~ /\s/}) do
+      |op, io|
+      str = op
+      @ltype = &quot;=&quot;
+
+
+      begin
+        line = &quot;&quot;
+        begin
+          ch = getc
+          line &lt;&lt; ch
+        end until ch == &quot;\n&quot;
+        str &lt;&lt; line
+      end until line =~ /^=end/
+
+      ungetc
+
+      @ltype = nil
+
+      if str =~ /\A=begin\s+rdoc/i
+        str.sub!(/\A=begin.*\n/, '')
+        str.sub!(/^=end.*/m, '')
+        Token(TkCOMMENT).set_text(str)
+      else
+        Token(TkRD_COMMENT)#.set_text(str)
+      end
+    end
+
+    @OP.def_rule(&quot;\n&quot;) do
+      print &quot;\\n\n&quot; if RubyLex.debug?
+      case @lex_state
+      when EXPR_BEG, EXPR_FNAME, EXPR_DOT
+	@continue = TRUE
+      else
+	@continue = FALSE
+	@lex_state = EXPR_BEG
+      end
+      Token(TkNL).set_text(&quot;\n&quot;)
+    end
+
+    @OP.def_rules(&quot;*&quot;, &quot;**&quot;,	
+		  &quot;!&quot;, &quot;!=&quot;, &quot;!~&quot;,
+		  &quot;=&quot;, &quot;==&quot;, &quot;===&quot;, 
+		  &quot;=~&quot;, &quot;&lt;=&gt;&quot;,	
+		  &quot;&lt;&quot;, &quot;&lt;=&quot;,
+		  &quot;&gt;&quot;, &quot;&gt;=&quot;, &quot;&gt;&gt;&quot;) do
+      |op, io|
+      @lex_state = EXPR_BEG
+      Token(op).set_text(op)
+    end
+
+    @OP.def_rules(&quot;&lt;&lt;&quot;) do
+      |op, io|
+      tk = nil
+      if @lex_state != EXPR_END &amp;&amp; @lex_state != EXPR_CLASS &amp;&amp;
+	  (@lex_state != EXPR_ARG || @space_seen)
+	c = peek(0)
+	if /[-\w_\&quot;\'\`]/ =~ c
+	  tk = identify_here_document
+	end
+      end
+      if !tk
+        @lex_state = EXPR_BEG
+        tk = Token(op).set_text(op)
+      end
+      tk
+    end
+
+    @OP.def_rules(&quot;'&quot;, '&quot;') do
+      |op, io|
+      identify_string(op)
+    end
+
+    @OP.def_rules(&quot;`&quot;) do
+      |op, io|
+      if @lex_state == EXPR_FNAME
+	Token(op).set_text(op)
+      else
+	identify_string(op)
+      end
+    end
+
+    @OP.def_rules('?') do
+      |op, io|
+      if @lex_state == EXPR_END
+	@lex_state = EXPR_BEG
+	Token(TkQUESTION).set_text(op)
+      else
+	ch = getc
+	if @lex_state == EXPR_ARG &amp;&amp; ch !~ /\s/
+	  ungetc
+	  @lex_state = EXPR_BEG;
+	  Token(TkQUESTION).set_text(op)
+	else
+          str = op
+          str &lt;&lt; ch
+	  if (ch == '\\') #'
+	    str &lt;&lt; read_escape
+	  end
+	  @lex_state = EXPR_END
+	  Token(TkINTEGER).set_text(str)
+	end
+      end
+    end
+
+    @OP.def_rules(&quot;&amp;&quot;, &quot;&amp;&amp;&quot;, &quot;|&quot;, &quot;||&quot;) do
+      |op, io|
+      @lex_state = EXPR_BEG
+      Token(op).set_text(op)
+    end
+    
+    @OP.def_rules(&quot;+=&quot;, &quot;-=&quot;, &quot;*=&quot;, &quot;**=&quot;, 
+		  &quot;&amp;=&quot;, &quot;|=&quot;, &quot;^=&quot;, &quot;&lt;&lt;=&quot;, &quot;&gt;&gt;=&quot;, &quot;||=&quot;, &quot;&amp;&amp;=&quot;) do
+      |op, io|
+      @lex_state = EXPR_BEG
+      op =~ /^(.*)=$/
+      Token(TkOPASGN, $1).set_text(op)
+    end
+
+    @OP.def_rule(&quot;+@&quot;, proc{@lex_state == EXPR_FNAME}) do |op, io|
+      Token(TkUPLUS).set_text(op)
+    end
+
+    @OP.def_rule(&quot;-@&quot;, proc{@lex_state == EXPR_FNAME}) do |op, io|
+      Token(TkUMINUS).set_text(op)
+    end
+
+    @OP.def_rules(&quot;+&quot;, &quot;-&quot;) do
+      |op, io|
+      catch(:RET) do
+	if @lex_state == EXPR_ARG
+	  if @space_seen and peek(0) =~ /[0-9]/
+	    throw :RET, identify_number(op)
+	  else
+	    @lex_state = EXPR_BEG
+	  end
+	elsif @lex_state != EXPR_END and peek(0) =~ /[0-9]/
+	  throw :RET, identify_number(op)
+	else
+	  @lex_state = EXPR_BEG
+	end
+	Token(op).set_text(op)
+      end
+    end
+
+    @OP.def_rule(&quot;.&quot;) do
+      @lex_state = EXPR_BEG
+      if peek(0) =~ /[0-9]/
+	ungetc
+	identify_number(&quot;&quot;)
+      else
+	# for obj.if
+	@lex_state = EXPR_DOT
+	Token(TkDOT).set_text(&quot;.&quot;)
+      end
+    end
+
+    @OP.def_rules(&quot;..&quot;, &quot;...&quot;) do
+      |op, io|
+      @lex_state = EXPR_BEG
+      Token(op).set_text(op)
+    end
+
+    lex_int2
+  end
+  
+  def lex_int2
+    @OP.def_rules(&quot;]&quot;, &quot;}&quot;, &quot;)&quot;) do
+      |op, io|
+      @lex_state = EXPR_END
+      @indent -= 1
+      Token(op).set_text(op)
+    end
+
+    @OP.def_rule(&quot;:&quot;) do
+      if @lex_state == EXPR_END || peek(0) =~ /\s/
+	@lex_state = EXPR_BEG
+	tk = Token(TkCOLON)
+      else
+	@lex_state = EXPR_FNAME;
+	tk = Token(TkSYMBEG)
+      end
+      tk.set_text(&quot;:&quot;)
+    end
+
+    @OP.def_rule(&quot;::&quot;) do
+#      p @lex_state.id2name, @space_seen
+      if @lex_state == EXPR_BEG or @lex_state == EXPR_ARG &amp;&amp; @space_seen
+	@lex_state = EXPR_BEG
+	tk = Token(TkCOLON3)
+      else
+	@lex_state = EXPR_DOT
+	tk = Token(TkCOLON2)
+      end
+      tk.set_text(&quot;::&quot;)
+    end
+
+    @OP.def_rule(&quot;/&quot;) do
+      |op, io|
+      if @lex_state == EXPR_BEG || @lex_state == EXPR_MID
+	identify_string(op)
+      elsif peek(0) == '='
+	getc
+	@lex_state = EXPR_BEG
+	Token(TkOPASGN, :/).set_text(&quot;/=&quot;) #&quot;)
+      elsif @lex_state == EXPR_ARG and @space_seen and peek(0) !~ /\s/
+	identify_string(op)
+      else 
+	@lex_state = EXPR_BEG
+        Token(&quot;/&quot;).set_text(op)
+      end
+    end
+
+    @OP.def_rules(&quot;^&quot;) do
+      @lex_state = EXPR_BEG
+      Token(&quot;^&quot;).set_text(&quot;^&quot;)
+    end
+
+    #       @OP.def_rules(&quot;^=&quot;) do
+    # 	@lex_state = EXPR_BEG
+    # 	Token(TkOPASGN, :^)
+    #       end
+    
+    @OP.def_rules(&quot;,&quot;, &quot;;&quot;) do
+      |op, io|
+      @lex_state = EXPR_BEG
+      Token(op).set_text(op)
+    end
+
+    @OP.def_rule(&quot;~&quot;) do
+      @lex_state = EXPR_BEG
+      Token(&quot;~&quot;).set_text(&quot;~&quot;)
+    end
+
+    @OP.def_rule(&quot;~@&quot;, proc{@lex_state = EXPR_FNAME}) do
+      @lex_state = EXPR_BEG
+      Token(&quot;~&quot;).set_text(&quot;~@&quot;)
+    end
+    
+    @OP.def_rule(&quot;(&quot;) do
+      @indent += 1
+      if @lex_state == EXPR_BEG || @lex_state == EXPR_MID
+	@lex_state = EXPR_BEG
+	tk = Token(TkfLPAREN)
+      else
+	@lex_state = EXPR_BEG
+	tk = Token(TkLPAREN)
+      end
+      tk.set_text(&quot;(&quot;)
+    end
+
+    @OP.def_rule(&quot;[]&quot;, proc{@lex_state == EXPR_FNAME}) do
+      Token(&quot;[]&quot;).set_text(&quot;[]&quot;)
+    end
+
+    @OP.def_rule(&quot;[]=&quot;, proc{@lex_state == EXPR_FNAME}) do
+      Token(&quot;[]=&quot;).set_text(&quot;[]=&quot;)
+    end
+
+    @OP.def_rule(&quot;[&quot;) do
+      @indent += 1
+      if @lex_state == EXPR_FNAME
+	t = Token(TkfLBRACK)
+      else
+	if @lex_state == EXPR_BEG || @lex_state == EXPR_MID
+	  t = Token(TkLBRACK)
+	elsif @lex_state == EXPR_ARG &amp;&amp; @space_seen
+	  t = Token(TkLBRACK)
+	else
+	  t = Token(TkfLBRACK)
+	end
+	@lex_state = EXPR_BEG
+      end
+      t.set_text(&quot;[&quot;)
+    end
+
+    @OP.def_rule(&quot;{&quot;) do
+      @indent += 1
+      if @lex_state != EXPR_END &amp;&amp; @lex_state != EXPR_ARG
+	t = Token(TkLBRACE)
+      else
+	t = Token(TkfLBRACE)
+      end
+      @lex_state = EXPR_BEG
+      t.set_text(&quot;{&quot;)
+    end
+
+    @OP.def_rule('\\') do   #'
+      if getc == &quot;\n&quot; 
+	@space_seen = true
+	@continue = true
+	Token(TkSPACE).set_text(&quot;\\\n&quot;)
+      else 
+	ungetc
+	Token(&quot;\\&quot;).set_text(&quot;\\&quot;)  #&quot;
+      end 
+    end 
+
+    @OP.def_rule('%') do
+      |op, io|
+      if @lex_state == EXPR_BEG || @lex_state == EXPR_MID
+	identify_quotation('%')
+      elsif peek(0) == '='
+	getc
+	Token(TkOPASGN, &quot;%&quot;).set_text(&quot;%=&quot;)
+      elsif @lex_state == EXPR_ARG and @space_seen and peek(0) !~ /\s/
+	identify_quotation('%')
+      else
+	@lex_state = EXPR_BEG
+	Token(&quot;%&quot;).set_text(&quot;%&quot;)
+      end
+    end
+
+    @OP.def_rule('$') do  #'
+      identify_gvar
+    end
+
+    @OP.def_rule('@') do
+      if peek(0) =~ /[@\w_]/
+	ungetc
+	identify_identifier
+      else
+	Token(&quot;@&quot;).set_text(&quot;@&quot;)
+      end
+    end
+
+    #       @OP.def_rule(&quot;def&quot;, proc{|op, io| /\s/ =~ io.peek(0)}) do 
+    # 	|op, io|
+    # 	@indent += 1
+    # 	@lex_state = EXPR_FNAME
+    # #	@lex_state = EXPR_END
+    # #	until @rests[0] == &quot;\n&quot; or @rests[0] == &quot;;&quot;
+    # #	  rests.shift
+    # #	end
+    #       end
+
+    @OP.def_rule(&quot;__END__&quot;, proc{@prev_char_no == 0 &amp;&amp; peek(0) =~ /[\r\n]/}) do
+      throw :eof
+    end
+
+    @OP.def_rule(&quot;&quot;) do
+      |op, io|
+      printf &quot;MATCH: start %s: %s\n&quot;, op, io.inspect if RubyLex.debug?
+      if peek(0) =~ /[0-9]/
+	t = identify_number(&quot;&quot;)
+      elsif peek(0) =~ /[\w_]/
+	t = identify_identifier
+      end
+      printf &quot;MATCH: end %s: %s\n&quot;, op, io.inspect if RubyLex.debug?
+      t
+    end
+    
+    p @OP if RubyLex.debug?
+  end
+  
+  def identify_gvar
+    @lex_state = EXPR_END
+    str = &quot;$&quot;
+
+    tk = case ch = getc
+         when /[~_*$?!@\/\\;,=:&lt;&gt;&quot;.]/   #&quot;
+           str &lt;&lt; ch
+           Token(TkGVAR, str)
+           
+         when &quot;-&quot;
+           str &lt;&lt; &quot;-&quot; &lt;&lt; getc
+           Token(TkGVAR, str)
+           
+         when &quot;&amp;&quot;, &quot;`&quot;, &quot;'&quot;, &quot;+&quot;
+           str &lt;&lt; ch
+           Token(TkBACK_REF, str)
+           
+         when /[1-9]/
+           str &lt;&lt; ch
+           while (ch = getc) =~ /[0-9]/
+             str &lt;&lt; ch
+           end
+           ungetc
+           Token(TkNTH_REF)
+         when /\w/
+           ungetc
+           ungetc
+           return identify_identifier
+         else 
+           ungetc
+           Token(&quot;$&quot;)     
+         end
+    tk.set_text(str)
+  end
+  
+  def identify_identifier
+    token = &quot;&quot;
+    token.concat getc if peek(0) =~ /[$@]/
+    token.concat getc if peek(0) == &quot;@&quot;
+
+    while (ch = getc) =~ /\w|_/
+      print &quot;:&quot;, ch, &quot;:&quot; if RubyLex.debug?
+      token.concat ch
+    end
+    ungetc
+    
+    if ch == &quot;!&quot; or ch == &quot;?&quot;
+      token.concat getc
+    end
+    # fix token
+
+    # $stderr.puts &quot;identifier - #{token}, state = #@lex_state&quot;
+
+    case token
+    when /^\$/
+      return Token(TkGVAR, token).set_text(token)
+    when /^\@/
+      @lex_state = EXPR_END
+      return Token(TkIVAR, token).set_text(token)
+    end
+    
+    if @lex_state != EXPR_DOT
+      print token, &quot;\n&quot; if RubyLex.debug?
+
+      token_c, *trans = TkReading2Token[token]
+      if token_c
+	# reserved word?
+
+	if (@lex_state != EXPR_BEG &amp;&amp;
+	    @lex_state != EXPR_FNAME &amp;&amp;
+	    trans[1])
+	  # modifiers
+	  token_c = TkSymbol2Token[trans[1]]
+	  @lex_state = trans[0]
+	else
+	  if @lex_state != EXPR_FNAME
+	    if ENINDENT_CLAUSE.include?(token)
+	      @indent += 1
+	    elsif DEINDENT_CLAUSE.include?(token)
+	      @indent -= 1
+	    end
+	    @lex_state = trans[0]
+	  else
+	    @lex_state = EXPR_END
+	  end
+	end
+	return Token(token_c, token).set_text(token)
+      end
+    end
+
+    if @lex_state == EXPR_FNAME
+      @lex_state = EXPR_END
+      if peek(0) == '='
+	token.concat getc
+      end
+    elsif @lex_state == EXPR_BEG || @lex_state == EXPR_DOT
+      @lex_state = EXPR_ARG
+    else
+      @lex_state = EXPR_END
+    end
+
+    if token[0, 1] =~ /[A-Z]/
+      return Token(TkCONSTANT, token).set_text(token)
+    elsif token[token.size - 1, 1] =~ /[!?]/
+      return Token(TkFID, token).set_text(token)
+    else
+      return Token(TkIDENTIFIER, token).set_text(token)
+    end
+  end
+
+  def identify_here_document
+    ch = getc
+    if ch == &quot;-&quot;
+      ch = getc
+      indent = true
+    end
+    if /['&quot;`]/ =~ ch            # '
+      lt = ch
+      quoted = &quot;&quot;
+      while (c = getc) &amp;&amp; c != lt
+	quoted.concat c
+      end
+    else
+      lt = '&quot;'
+      quoted = ch.dup
+      while (c = getc) &amp;&amp; c =~ /\w/
+	quoted.concat c
+      end
+      ungetc
+    end
+
+    ltback, @ltype = @ltype, lt
+    reserve = &quot;&quot;
+
+    while ch = getc
+      reserve &lt;&lt; ch
+      if ch == &quot;\\&quot;    #&quot;
+        ch = getc
+	reserve &lt;&lt; ch
+      elsif ch == &quot;\n&quot;
+	break
+      end
+    end
+
+    str = &quot;&quot;
+    while (l = gets)
+      l.chomp!
+      l.strip! if indent
+      break if l == quoted
+      str &lt;&lt; l.chomp &lt;&lt; &quot;\n&quot;
+    end
+
+    @reader.divert_read_from(reserve)
+
+    @ltype = ltback
+    @lex_state = EXPR_END
+    Token(Ltype2Token[lt], str).set_text(str.dump)
+  end
+  
+  def identify_quotation(initial_char)
+    ch = getc
+    if lt = PERCENT_LTYPE[ch]
+      initial_char += ch
+      ch = getc
+    elsif ch =~ /\W/
+      lt = &quot;\&quot;&quot;
+    else
+      RubyLex.fail SyntaxError, &quot;unknown type of %string ('#{ch}')&quot;
+    end
+#     if ch !~ /\W/
+#       ungetc
+#       next
+#     end
+    #@ltype = lt
+    @quoted = ch unless @quoted = PERCENT_PAREN[ch]
+    identify_string(lt, @quoted, ch, initial_char)
+  end
+
+  def identify_number(start)
+    str = start.dup
+
+    if start == &quot;+&quot; or start == &quot;-&quot; or start == &quot;&quot;
+      start = getc
+      str &lt;&lt; start
+    end
+
+    @lex_state = EXPR_END
+
+    if start == &quot;0&quot;
+      if peek(0) == &quot;x&quot;
+        ch = getc
+        str &lt;&lt; ch
+        match = /[0-9a-f_]/
+      else
+        match = /[0-7_]/
+      end
+      while ch = getc
+        if ch !~ match
+          ungetc
+          break
+        else
+          str &lt;&lt; ch
+        end
+      end
+      return Token(TkINTEGER).set_text(str)
+    end
+
+    type = TkINTEGER
+    allow_point = TRUE
+    allow_e = TRUE
+    while ch = getc
+      case ch
+      when /[0-9_]/
+        str &lt;&lt; ch
+
+      when allow_point &amp;&amp; &quot;.&quot;
+	type = TkFLOAT
+	if peek(0) !~ /[0-9]/
+	  ungetc
+	  break
+	end
+        str &lt;&lt; ch
+	allow_point = false
+
+      when allow_e &amp;&amp; &quot;e&quot;, allow_e &amp;&amp; &quot;E&quot;
+        str &lt;&lt; ch
+	type = TkFLOAT
+	if peek(0) =~ /[+-]/
+	  str &lt;&lt; getc
+	end
+	allow_e = false
+	allow_point = false
+      else
+	ungetc
+	break
+      end
+    end
+    Token(type).set_text(str)
+  end
+  
+  def identify_string(ltype, quoted = ltype, opener=nil, initial_char = nil)
+    @ltype = ltype
+    @quoted = quoted
+    subtype = nil
+
+    str = &quot;&quot;
+    str &lt;&lt; initial_char if initial_char
+    str &lt;&lt; (opener||quoted)
+
+    nest = 0
+    begin
+      while ch = getc 
+	str &lt;&lt; ch
+	if @quoted == ch 
+          if nest == 0
+            break
+          else
+            nest -= 1
+          end
+        elsif opener == ch
+          nest += 1
+	elsif @ltype != &quot;'&quot; &amp;&amp; @ltype != &quot;]&quot; and ch == &quot;#&quot;
+          ch = getc
+          if ch == &quot;{&quot;
+            subtype = true
+            str &lt;&lt; ch &lt;&lt; skip_inner_expression
+          else
+            ungetc(ch)
+          end
+	elsif ch == '\\' #'
+	  str &lt;&lt; read_escape
+	end
+      end
+      if @ltype == &quot;/&quot;
+	if peek(0) =~ /i|o|n|e|s/
+	  str &lt;&lt; getc
+	end
+      end
+      if subtype
+	Token(DLtype2Token[ltype], str)
+      else
+	Token(Ltype2Token[ltype], str)
+      end.set_text(str)
+    ensure
+      @ltype = nil
+      @quoted = nil
+      @lex_state = EXPR_END
+    end
+  end
+
+  def skip_inner_expression
+    res = &quot;&quot;
+    nest = 0
+    while (ch = getc)
+      res &lt;&lt; ch
+      if ch == '}'
+        break if nest.zero?
+        nest -= 1
+      elsif ch == '{'
+        nest += 1
+      end
+    end
+    res
+  end
+
+  def identify_comment
+    @ltype = &quot;#&quot;
+    comment = &quot;#&quot;
+    while ch = getc
+      if ch == &quot;\\&quot;
+        ch = getc
+        if ch == &quot;\n&quot;
+          ch = &quot; &quot;
+        else
+          comment &lt;&lt; &quot;\\&quot; 
+        end
+      else
+        if ch == &quot;\n&quot;
+          @ltype = nil
+          ungetc
+          break
+        end
+      end
+      comment &lt;&lt; ch
+    end
+    return Token(TkCOMMENT).set_text(comment)
+  end
+  
+  def read_escape
+    res = &quot;&quot;
+    case ch = getc
+    when /[0-7]/
+      ungetc ch
+      3.times do
+	case ch = getc
+	when /[0-7]/
+	when nil
+	  break
+	else
+	  ungetc
+	  break
+	end
+        res &lt;&lt; ch
+      end
+      
+    when &quot;x&quot;
+      res &lt;&lt; ch
+      2.times do
+	case ch = getc
+	when /[0-9a-fA-F]/
+	when nil
+	  break
+	else
+	  ungetc
+	  break
+	end
+        res &lt;&lt; ch
+      end
+
+    when &quot;M&quot;
+      res &lt;&lt; ch
+      if (ch = getc) != '-'
+	ungetc
+      else
+        res &lt;&lt; ch
+	if (ch = getc) == &quot;\\&quot; #&quot;
+          res &lt;&lt; ch
+	  res &lt;&lt; read_escape
+        else
+          res &lt;&lt; ch
+	end
+      end
+
+    when &quot;C&quot;, &quot;c&quot; #, &quot;^&quot;
+      res &lt;&lt; ch
+      if ch == &quot;C&quot; and (ch = getc) != &quot;-&quot;
+	ungetc
+      else
+        res &lt;&lt; ch
+        if (ch = getc) == &quot;\\&quot; #&quot;
+          res &lt;&lt; ch
+          res &lt;&lt; read_escape
+        else
+          res &lt;&lt; ch
+        end
+      end
+    else
+      res &lt;&lt; ch
+    end
+    res
+  end
+end
+
+
+
+# Extract code elements from a source file, returning a TopLevel
+# object containing the constituent file elements.
+#
+# This file is based on rtags
+
+module RDoc
+
+  GENERAL_MODIFIERS = [ 'nodoc' ].freeze
+
+  CLASS_MODIFIERS = GENERAL_MODIFIERS
+
+  ATTR_MODIFIERS  = GENERAL_MODIFIERS
+
+  CONSTANT_MODIFIERS = GENERAL_MODIFIERS
+
+  METHOD_MODIFIERS = GENERAL_MODIFIERS + 
+    [ 'arg', 'args', 'yield', 'yields', 'notnew', 'not-new', 'not_new', 'doc' ]
+
+
+  class RubyParser
+    include RubyToken
+    include TokenStream
+
+    extend ParserFactory
+
+    parse_files_matching(/\.rbw?$/)
+
+
+    def initialize(top_level, file_name, content, options, stats)
+      @options = options
+      @stats   = stats
+      @size = 0
+      @token_listeners = nil
+      @input_file_name = file_name
+      @scanner = RubyLex.new(content)
+      @scanner.exception_on_syntax_error = false
+      @top_level = top_level
+      @progress = $stderr unless options.quiet
+    end
+
+    def scan
+      @tokens = []
+      @unget_read = []
+      @read = []
+      catch(:eof) do
+        catch(:enddoc) do
+          begin
+            parse_toplevel_statements(@top_level)
+          rescue Exception =&gt; e
+            $stderr.puts &quot;\n\n&quot;
+            $stderr.puts &quot;RDoc failure in #@input_file_name at or around &quot; +
+                         &quot;line #{@scanner.line_no} column #{@scanner.char_no}&quot;
+            $stderr.puts 
+            $stderr.puts &quot;Before reporting this, could you check that the file&quot;
+            $stderr.puts &quot;you're documenting compiles cleanly--RDoc is not a&quot;
+            $stderr.puts &quot;full Ruby parser, and gets confused easily if fed&quot;
+            $stderr.puts &quot;invalid programs.&quot;
+            $stderr.puts
+            $stderr.puts &quot;The internal error was:\n\n&quot;
+            
+            e.set_backtrace(e.backtrace[0,4])
+            raise
+          end
+        end
+      end
+      @top_level
+    end
+
+    private 
+
+    def make_message(msg)
+      prefix = &quot;\n&quot; + @input_file_name + &quot;:&quot;
+      if @scanner
+        prefix &lt;&lt; &quot;#{@scanner.line_no}:#{@scanner.char_no}: &quot;
+      end
+      return prefix + msg
+    end
+
+    def warn(msg)
+      return if @options.quiet
+      msg = make_message msg
+      $stderr.puts msg
+    end
+
+    def error(msg)
+      msg = make_message msg
+      $stderr.puts msg
+      exit(1)
+    end
+
+    def progress(char)
+      unless @options.quiet
+        @progress.print(char)
+	@progress.flush
+      end
+    end
+
+    def add_token_listener(obj)
+      @token_listeners ||= []
+      @token_listeners &lt;&lt; obj
+    end
+
+    def remove_token_listener(obj)
+      @token_listeners.delete(obj)
+    end
+
+    def get_tk
+      tk = nil
+      if @tokens.empty?
+	tk = @scanner.token
+	@read.push @scanner.get_read
+	puts &quot;get_tk1 =&gt; #{tk.inspect}&quot; if $TOKEN_DEBUG
+      else
+	@read.push @unget_read.shift
+	tk = @tokens.shift
+	puts &quot;get_tk2 =&gt; #{tk.inspect}&quot; if $TOKEN_DEBUG
+      end
+
+      if tk.kind_of?(TkSYMBEG)
+        set_token_position(tk.line_no, tk.char_no)
+        tk1 = get_tk
+        if tk1.kind_of?(TkId) || tk1.kind_of?(TkOp)
+          tk = Token(TkSYMBOL).set_text(&quot;:&quot; + tk1.name)
+          # remove the identifier we just read (we're about to
+          # replace it with a symbol)
+          @token_listeners.each do |obj|
+            obj.pop_token
+          end if @token_listeners
+        else
+          warn(&quot;':' not followed by identifier or operator&quot;)
+          tk = tk1
+        end
+      end
+
+      # inform any listeners of our shiny new token
+      @token_listeners.each do |obj|
+        obj.add_token(tk)
+      end if @token_listeners
+
+      tk
+    end
+
+    def peek_tk
+      unget_tk(tk = get_tk)
+      tk
+    end
+
+    def unget_tk(tk)
+      @tokens.unshift tk
+      @unget_read.unshift @read.pop
+
+      # Remove this token from any listeners
+      @token_listeners.each do |obj|
+        obj.pop_token
+      end if @token_listeners
+    end
+
+    def skip_tkspace(skip_nl = true)
+      tokens = []
+      while ((tk = get_tk).kind_of?(TkSPACE) ||
+	     (skip_nl &amp;&amp; tk.kind_of?(TkNL)))
+	tokens.push tk
+      end
+      unget_tk(tk)
+      tokens
+    end
+
+    def get_tkread
+      read = @read.join(&quot;&quot;)
+      @read = []
+      read
+    end
+
+    def peek_read
+      @read.join('')
+    end
+
+    NORMAL = &quot;::&quot;
+    SINGLE = &quot;&lt;&lt;&quot;
+
+    # Look for the first comment in a file that isn't
+    # a shebang line.
+
+    def collect_first_comment
+      skip_tkspace
+      res = ''
+      first_line = true
+
+      tk = get_tk
+      while tk.kind_of?(TkCOMMENT)
+        if first_line &amp;&amp; tk.text[0,2] == &quot;#!&quot;
+          skip_tkspace
+          tk = get_tk
+        else
+          res &lt;&lt; tk.text &lt;&lt; &quot;\n&quot;
+          tk = get_tk
+          if tk.kind_of? TkNL
+            skip_tkspace(false)
+            tk = get_tk
+          end
+        end
+        first_line = false
+      end
+      unget_tk(tk)
+      res
+    end
+
+    def parse_toplevel_statements(container)
+      comment = collect_first_comment
+      look_for_directives_in(container, comment)
+      container.comment = comment unless comment.empty?
+      parse_statements(container, NORMAL, nil, comment)
+    end
+    
+    def parse_statements(container, single=NORMAL, current_method=nil, comment='')
+      nest = 1
+      save_visibility = container.visibility
+      
+#      if container.kind_of?(TopLevel)
+#      else
+#        comment = ''
+#      end
+
+      non_comment_seen = true
+      
+      while tk = get_tk
+        
+        keep_comment = false
+        
+        non_comment_seen = true unless tk.kind_of?(TkCOMMENT)
+        
+	case tk
+
+        when TkNL
+          skip_tkspace(true)   # Skip blanks and newlines
+          tk = get_tk
+          if tk.kind_of?(TkCOMMENT)
+            if non_comment_seen
+              comment = ''
+              non_comment_seen = false
+            end
+            while tk.kind_of?(TkCOMMENT)
+              comment &lt;&lt; tk.text &lt;&lt; &quot;\n&quot;
+              tk = get_tk          # this is the newline 
+              skip_tkspace(false)  # leading spaces
+              tk = get_tk
+            end
+            unless comment.empty?
+              look_for_directives_in(container, comment) 
+              if container.done_documenting
+                container.ongoing_visibility = save_visibility
+#                return
+              end
+            end
+            keep_comment = true
+          else
+            non_comment_seen = true
+          end
+          unget_tk(tk)
+          keep_comment = true
+
+
+	when TkCLASS
+	  if container.document_children
+            parse_class(container, single, tk, comment)
+	  else
+	    nest += 1
+          end
+
+	when TkMODULE
+	  if container.document_children
+            parse_module(container, single, tk, comment)
+	  else
+	    nest += 1
+          end
+
+	when TkDEF
+	  if container.document_self
+	    parse_method(container, single, tk, comment)
+	  else
+	    nest += 1
+          end
+
+        when TkCONSTANT
+          if container.document_self
+            parse_constant(container, single, tk, comment)
+          end
+
+	when TkALIAS
+ 	  if container.document_self
+	    parse_alias(container, single, tk, comment)
+	  end
+
+        when TkYIELD
+          if current_method.nil?
+            warn(&quot;Warning: yield outside of method&quot;) if container.document_self
+          else
+            parse_yield(container, single, tk, current_method)
+          end
+
+          # Until and While can have a 'do', which shouldn't increas
+          # the nesting. We can't solve the general case, but we can
+          # handle most occurrences by ignoring a do at the end of a line
+
+        when  TkUNTIL, TkWHILE
+          nest += 1
+          puts &quot;FOUND #{tk.class} in #{container.name}, nest = #{nest}, &quot; +
+            &quot;line #{tk.line_no}&quot; if $DEBUG
+          skip_optional_do_after_expression
+
+          # 'for' is trickier
+        when TkFOR
+          nest += 1
+          puts &quot;FOUND #{tk.class} in #{container.name}, nest = #{nest}, &quot; +
+            &quot;line #{tk.line_no}&quot; if $DEBUG
+          skip_for_variable
+          skip_optional_do_after_expression
+
+	when TkCASE, TkDO, TkIF, TkUNLESS, TkBEGIN
+	  nest += 1
+          puts &quot;Found #{tk.class} in #{container.name}, nest = #{nest}, &quot; +
+            &quot;line #{tk.line_no}&quot; if $DEBUG
+
+	when TkIDENTIFIER
+          if nest == 1 and current_method.nil?
+            case tk.name
+            when &quot;private&quot;, &quot;protected&quot;, &quot;public&quot;,
+                 &quot;private_class_method&quot;, &quot;public_class_method&quot;
+              parse_visibility(container, single, tk)
+              keep_comment = true
+            when &quot;attr&quot;
+              parse_attr(container, single, tk, comment)
+            when /^attr_(reader|writer|accessor)$/, @options.extra_accessors
+              parse_attr_accessor(container, single, tk, comment)
+            when &quot;alias_method&quot;
+              if container.document_self
+	        parse_alias(container, single, tk, comment)
+	      end
+            end
+	  end
+	  
+	  case tk.name
+	  when &quot;require&quot;
+	    parse_require(container, comment)
+	  when &quot;include&quot;
+	    parse_include(container, comment)
+	  end
+
+
+	when TkEND
+          nest -= 1
+          puts &quot;Found 'end' in #{container.name}, nest = #{nest}, line #{tk.line_no}&quot; if $DEBUG
+          puts &quot;Method = #{current_method.name}&quot; if $DEBUG and current_method
+	  if nest == 0
+            read_documentation_modifiers(container, CLASS_MODIFIERS)
+            container.ongoing_visibility = save_visibility
+            return
+          end
+
+	end
+
+        comment = '' unless keep_comment
+	begin
+	  get_tkread
+	  skip_tkspace(false)
+	end while peek_tk == TkNL
+
+      end
+    end
+    
+    def parse_class(container, single, tk, comment, &amp;block)
+      progress(&quot;c&quot;)
+
+      @stats.num_classes += 1
+
+      container, name_t = get_class_or_module(container)
+
+      case name_t
+      when TkCONSTANT
+	name = name_t.name
+        superclass = &quot;Object&quot;
+
+        if peek_tk.kind_of?(TkLT)
+          get_tk
+          skip_tkspace(true)
+          superclass = get_class_specification
+          superclass = &quot;&lt;unknown&gt;&quot; if superclass.empty?
+        end
+
+	if single == SINGLE
+	  cls_type = SingleClass
+	else
+	  cls_type = NormalClass
+	end
+
+        cls = container.add_class(cls_type, name, superclass)
+        read_documentation_modifiers(cls, CLASS_MODIFIERS)
+        cls.record_location(@top_level)
+	parse_statements(cls)
+        cls.comment = comment
+
+      when TkLSHFT
+	case name = get_class_specification
+	when &quot;self&quot;, container.name
+	  parse_statements(container, SINGLE, &amp;block)
+	else
+          other = TopLevel.find_class_named(name)
+          unless other
+#            other = @top_level.add_class(NormalClass, name, nil)
+#            other.record_location(@top_level)
+#            other.comment = comment
+            other = NormalClass.new(&quot;Dummy&quot;, nil)
+          end
+          read_documentation_modifiers(other, CLASS_MODIFIERS)
+          parse_statements(other, SINGLE, &amp;block)
+	end
+
+      else
+	warn(&quot;Expected class name or '&lt;&lt;'. Got #{name_t.class}: #{name_t.text.inspect}&quot;)
+      end
+    end
+
+    def parse_module(container, single, tk, comment)
+      progress(&quot;m&quot;)
+      @stats.num_modules += 1
+      container, name_t  = get_class_or_module(container)
+#      skip_tkspace
+      name = name_t.name
+      mod = container.add_module(NormalModule, name)
+      mod.record_location(@top_level)
+      read_documentation_modifiers(mod, CLASS_MODIFIERS)
+      parse_statements(mod)
+      mod.comment = comment
+    end
+
+    # Look for the name of a class of module (optionally with a leading :: or
+    # with :: separated named) and return the ultimate name and container
+
+    def get_class_or_module(container)
+      skip_tkspace
+      name_t = get_tk
+
+      # class ::A -&gt; A is in the top level
+      if name_t.kind_of?(TkCOLON2)
+        name_t = get_tk
+        container = @top_level
+      end
+
+      skip_tkspace(false)
+
+      while peek_tk.kind_of?(TkCOLON2)
+        prev_container = container
+        container = container.find_module_named(name_t.name)
+        if !container
+#          warn(&quot;Couldn't find module #{name_t.name}&quot;)
+          container = prev_container.add_module(NormalModule, name_t.name)
+        end
+        get_tk
+        name_t = get_tk
+      end
+      skip_tkspace(false)
+      return [container, name_t]
+    end
+
+    def parse_constant(container, single, tk, comment)
+      name = tk.name
+      skip_tkspace(false)
+      eq_tk = get_tk
+
+      unless eq_tk.kind_of?(TkASSIGN)
+        unget_tk(eq_tk)
+        return
+      end
+
+
+      nest = 0
+      get_tkread
+
+      tk = get_tk
+      if tk.kind_of? TkGT
+        unget_tk(tk)
+        unget_tk(eq_tk)
+        return
+      end
+
+      loop do
+        puts(&quot;Param: #{tk}, #{@scanner.continue} &quot; +
+          &quot;#{@scanner.lex_state} #{nest}&quot;)  if $DEBUG
+
+        case tk
+        when TkSEMICOLON
+          break
+        when TkLPAREN, TkfLPAREN
+          nest += 1
+        when TkRPAREN
+          nest -= 1
+        when TkCOMMENT
+          if nest &lt;= 0 &amp;&amp; @scanner.lex_state == EXPR_END
+            unget_tk(tk)
+            break
+          end
+        when TkNL
+          if (@scanner.lex_state == EXPR_END and nest &lt;= 0) || !@scanner.continue
+            unget_tk(tk)
+            break
+          end
+        end
+        tk = get_tk
+      end
+
+      res = get_tkread.tr(&quot;\n&quot;, &quot; &quot;).strip
+      res = &quot;&quot; if res == &quot;;&quot;
+      con = Constant.new(name, res, comment)
+      read_documentation_modifiers(con, CONSTANT_MODIFIERS)
+      if con.document_self
+	container.add_constant(con)
+      end
+    end
+
+    def parse_method(container, single, tk, comment)
+      progress(&quot;.&quot;)
+      @stats.num_methods += 1
+      line_no = tk.line_no
+      column  = tk.char_no
+      
+      start_collecting_tokens
+      add_token(tk)
+      add_token_listener(self)
+      
+      @scanner.instance_eval{@lex_state = EXPR_FNAME}
+      skip_tkspace(false)
+      name_t = get_tk
+      back_tk = skip_tkspace
+      meth = nil
+      added_container = false
+
+      dot = get_tk
+      if dot.kind_of?(TkDOT) or dot.kind_of?(TkCOLON2)
+	@scanner.instance_eval{@lex_state = EXPR_FNAME}
+	skip_tkspace
+	name_t2 = get_tk
+	case name_t
+	when TkSELF
+	  name = name_t2.name
+	when TkCONSTANT
+          name = name_t2.name
+          prev_container = container
+          container = container.find_module_named(name_t.name)
+          if !container
+            added_container = true
+            obj = name_t.name.split(&quot;::&quot;).inject(Object) do |state, item|
+              state.const_get(item)
+            end rescue nil
+
+            type = obj.class == Class ? NormalClass : NormalModule
+            if not [Class, Module].include?(obj.class)
+              warn(&quot;Couldn't find #{name_t.name}. Assuming it's a module&quot;)
+            end
+
+            if type == NormalClass then
+              container = prev_container.add_class(type, name_t.name, obj.superclass.name)
+            else
+              container = prev_container.add_module(type, name_t.name)
+            end
+          end
+	else
+	  # warn(&quot;Unexpected token '#{name_t2.inspect}'&quot;)
+	  # break
+          skip_method(container)
+          return
+	end
+	meth =  AnyMethod.new(get_tkread, name)
+        meth.singleton = true
+      else
+	unget_tk dot
+	back_tk.reverse_each do
+	  |tk|
+	  unget_tk tk
+	end
+	name = name_t.name
+
+        meth =  AnyMethod.new(get_tkread, name)
+        meth.singleton = (single == SINGLE)
+      end
+
+      remove_token_listener(self)
+
+      meth.start_collecting_tokens
+      indent = TkSPACE.new(1,1)
+      indent.set_text(&quot; &quot; * column)
+
+      meth.add_tokens([TkCOMMENT.new(line_no,
+                                     1,
+                                     &quot;# File #{@top_level.file_absolute_name}, line #{line_no}&quot;),
+                        NEWLINE_TOKEN,
+                        indent])
+
+      meth.add_tokens(@token_stream)
+
+      add_token_listener(meth)
+
+      @scanner.instance_eval{@continue = false}
+      parse_method_parameters(meth)
+
+      if meth.document_self
+        container.add_method(meth)
+      elsif added_container
+        container.document_self = false
+      end
+
+      # Having now read the method parameters and documentation modifiers, we
+      # now know whether we have to rename #initialize to ::new
+
+      if name == &quot;initialize&quot; &amp;&amp; !meth.singleton
+        if meth.dont_rename_initialize
+          meth.visibility = :protected
+        else
+          meth.singleton = true
+          meth.name = &quot;new&quot;
+          meth.visibility = :public
+        end
+      end
+      
+      parse_statements(container, single, meth)
+      
+      remove_token_listener(meth)
+
+      # Look for a 'call-seq' in the comment, and override the
+      # normal parameter stuff
+
+      if comment.sub!(/:?call-seq:(.*?)^\s*\#?\s*$/m, '')
+        seq = $1
+        seq.gsub!(/^\s*\#\s*/, '')
+        meth.call_seq = seq
+      end
+      
+      meth.comment = comment
+
+    end
+    
+    def skip_method(container)
+      meth =  AnyMethod.new(&quot;&quot;, &quot;anon&quot;)
+      parse_method_parameters(meth)
+      parse_statements(container, false, meth)
+    end
+    
+    # Capture the method's parameters. Along the way,
+    # look for a comment containing 
+    #
+    #    # yields: ....
+    #
+    # and add this as the block_params for the method
+
+    def parse_method_parameters(method)
+      res = parse_method_or_yield_parameters(method)
+      res = &quot;(&quot; + res + &quot;)&quot; unless res[0] == ?(
+      method.params = res unless method.params
+      if method.block_params.nil?
+          skip_tkspace(false)
+	  read_documentation_modifiers(method, METHOD_MODIFIERS)
+      end
+    end
+
+    def parse_method_or_yield_parameters(method=nil, modifiers=METHOD_MODIFIERS)
+      skip_tkspace(false)
+      tk = get_tk
+
+      # Little hack going on here. In the statement
+      #  f = 2*(1+yield)
+      # We see the RPAREN as the next token, so we need
+      # to exit early. This still won't catch all cases
+      # (such as &quot;a = yield + 1&quot;
+      end_token = case tk
+                  when TkLPAREN, TkfLPAREN
+                    TkRPAREN
+                  when TkRPAREN
+                    return &quot;&quot;
+                  else
+                    TkNL
+                  end
+      nest = 0
+
+      loop do
+        puts(&quot;Param: #{tk.inspect}, #{@scanner.continue} &quot; +
+          &quot;#{@scanner.lex_state} #{nest}&quot;)  if $DEBUG
+        case tk
+        when TkSEMICOLON
+          break
+        when TkLBRACE
+          nest += 1
+        when TkRBRACE
+          # we might have a.each {|i| yield i }
+          unget_tk(tk) if nest.zero?
+          nest -= 1
+          break if nest &lt;= 0
+        when TkLPAREN, TkfLPAREN
+          nest += 1
+        when end_token
+          if end_token == TkRPAREN
+            nest -= 1
+            break if @scanner.lex_state == EXPR_END and nest &lt;= 0
+          else
+            break unless @scanner.continue
+          end
+        when method &amp;&amp; method.block_params.nil? &amp;&amp; TkCOMMENT
+	  unget_tk(tk)
+	  read_documentation_modifiers(method, modifiers)
+        end
+        tk = get_tk
+      end
+      res = get_tkread.tr(&quot;\n&quot;, &quot; &quot;).strip
+      res = &quot;&quot; if res == &quot;;&quot;
+      res
+    end
+
+    # skip the var [in] part of a 'for' statement
+    def skip_for_variable
+      skip_tkspace(false)
+      tk = get_tk
+      skip_tkspace(false)
+      tk = get_tk
+      unget_tk(tk) unless tk.kind_of?(TkIN)
+    end
+
+    # while, until, and for have an optional 
+    def skip_optional_do_after_expression
+      skip_tkspace(false)
+      tk = get_tk
+      case tk
+      when TkLPAREN, TkfLPAREN
+        end_token = TkRPAREN
+      else
+        end_token = TkNL
+      end
+
+      nest = 0
+      @scanner.instance_eval{@continue = false}
+
+      loop do
+        puts(&quot;\nWhile: #{tk}, #{@scanner.continue} &quot; +
+          &quot;#{@scanner.lex_state} #{nest}&quot;) if $DEBUG
+        case tk
+        when TkSEMICOLON
+          break
+        when TkLPAREN, TkfLPAREN
+          nest += 1
+        when TkDO
+          break if nest.zero?
+        when end_token
+          if end_token == TkRPAREN
+            nest -= 1
+            break if @scanner.lex_state == EXPR_END and nest.zero?
+          else
+            break unless @scanner.continue
+          end
+        end
+        tk = get_tk
+      end
+      skip_tkspace(false)
+      if peek_tk.kind_of? TkDO
+        get_tk
+      end
+    end
+    
+    # Return a superclass, which can be either a constant
+    # of an expression
+
+    def get_class_specification
+      tk = get_tk
+      return &quot;self&quot; if tk.kind_of?(TkSELF)
+        
+      res = &quot;&quot;
+      while tk.kind_of?(TkCOLON2) ||
+          tk.kind_of?(TkCOLON3)   ||
+          tk.kind_of?(TkCONSTANT)   
+        
+        res += tk.text
+        tk = get_tk
+      end
+
+      unget_tk(tk)
+      skip_tkspace(false)
+
+      get_tkread # empty out read buffer
+
+      tk = get_tk
+
+      case tk
+      when TkNL, TkCOMMENT, TkSEMICOLON
+        unget_tk(tk)
+        return res
+      end
+
+      res += parse_call_parameters(tk)
+      res
+    end
+
+    def parse_call_parameters(tk)
+
+      end_token = case tk
+                  when TkLPAREN, TkfLPAREN
+                    TkRPAREN
+                  when TkRPAREN
+                    return &quot;&quot;
+                  else
+                    TkNL
+                  end
+      nest = 0
+
+      loop do
+        puts(&quot;Call param: #{tk}, #{@scanner.continue} &quot; +
+          &quot;#{@scanner.lex_state} #{nest}&quot;) if $DEBUG
+        case tk
+        when TkSEMICOLON
+          break
+        when TkLPAREN, TkfLPAREN
+          nest += 1
+        when end_token
+          if end_token == TkRPAREN
+            nest -= 1
+            break if @scanner.lex_state == EXPR_END and nest &lt;= 0
+          else
+            break unless @scanner.continue
+          end
+        when TkCOMMENT
+	  unget_tk(tk)
+	  break
+        end
+        tk = get_tk
+      end
+      res = get_tkread.tr(&quot;\n&quot;, &quot; &quot;).strip
+      res = &quot;&quot; if res == &quot;;&quot;
+      res
+    end
+
+
+    # Parse a constant, which might be qualified by
+    # one or more class or module names
+
+    def get_constant
+      res = &quot;&quot;
+      skip_tkspace(false)
+      tk = get_tk
+
+      while tk.kind_of?(TkCOLON2) ||
+          tk.kind_of?(TkCOLON3)   ||
+          tk.kind_of?(TkCONSTANT)          
+        
+        res += tk.text
+        tk = get_tk
+      end
+
+#      if res.empty?
+#        warn(&quot;Unexpected token #{tk} in constant&quot;)
+#      end 
+      unget_tk(tk)
+      res
+    end
+
+    # Get a constant that may be surrounded by parens
+    
+    def get_constant_with_optional_parens
+      skip_tkspace(false)
+      nest = 0
+      while (tk = peek_tk).kind_of?(TkLPAREN)  || tk.kind_of?(TkfLPAREN)
+        get_tk
+        skip_tkspace(true)
+        nest += 1
+      end
+
+      name = get_constant
+
+      while nest &gt; 0
+        skip_tkspace(true)
+        tk = get_tk
+        nest -= 1 if tk.kind_of?(TkRPAREN)
+      end
+      name
+    end
+
+    # Directives are modifier comments that can appear after class, module,
+    # or method names. For example
+    #
+    #   def fred    # :yields:  a, b
+    #
+    # or
+    #
+    #   class SM  # :nodoc:
+    #
+    # we return the directive name and any parameters as a two element array
+    
+    def read_directive(allowed)
+      tk = get_tk
+      puts &quot;directive: #{tk.inspect}&quot; if $DEBUG
+      result = nil
+      if tk.kind_of?(TkCOMMENT) 
+        if tk.text =~ /\s*:?(\w+):\s*(.*)/
+          directive = $1.downcase
+          if allowed.include?(directive)
+            result = [directive, $2]
+          end
+        end
+      else
+        unget_tk(tk)
+      end
+      result
+    end
+
+    
+    def read_documentation_modifiers(context, allow)
+      dir = read_directive(allow)
+
+      case dir[0]
+
+      when &quot;notnew&quot;, &quot;not_new&quot;, &quot;not-new&quot;
+        context.dont_rename_initialize = true
+
+      when &quot;nodoc&quot;
+        context.document_self = false
+	if dir[1].downcase == &quot;all&quot;
+	  context.document_children = false
+	end
+
+      when &quot;doc&quot;
+        context.document_self = true
+        context.force_documentation = true
+
+      when &quot;yield&quot;, &quot;yields&quot;
+        unless context.params.nil?
+          context.params.sub!(/(,|)\s*&amp;\w+/,'') # remove parameter &amp;proc
+        end
+	context.block_params = dir[1]
+
+      when &quot;arg&quot;, &quot;args&quot;
+        context.params = dir[1]
+      end if dir
+    end
+
+    
+    # Look for directives in a normal comment block:
+    #
+    #   #--       - don't display comment from this point forward
+    #  
+    #
+    # This routine modifies it's parameter
+
+    def look_for_directives_in(context, comment)
+
+      preprocess = SM::PreProcess.new(@input_file_name,
+                                      @options.rdoc_include)
+
+      preprocess.handle(comment) do |directive, param|
+        case directive
+        when &quot;stopdoc&quot;
+          context.stop_doc
+          &quot;&quot;
+        when &quot;startdoc&quot;
+          context.start_doc
+          context.force_documentation = true
+          &quot;&quot;
+
+        when &quot;enddoc&quot;
+          #context.done_documenting = true
+          #&quot;&quot;
+          throw :enddoc
+
+        when &quot;main&quot;
+          options = Options.instance
+          options.main_page = param
+	  &quot;&quot;
+
+        when &quot;title&quot;
+          options = Options.instance
+          options.title = param
+          &quot;&quot;
+
+        when &quot;section&quot;
+          context.set_current_section(param, comment)
+          comment.replace(&quot;&quot;) # 1.8 doesn't support #clear
+          break 
+        else
+          warn &quot;Unrecognized directive '#{directive}'&quot;
+          break
+        end
+      end
+
+      remove_private_comments(comment)
+    end
+
+    def remove_private_comments(comment)
+      comment.gsub!(/^#--.*?^#\+\+/m, '')
+      comment.sub!(/^#--.*/m, '')
+    end
+
+
+
+    def get_symbol_or_name
+      tk = get_tk
+      case tk
+      when  TkSYMBOL
+        tk.text.sub(/^:/, '')
+      when TkId, TkOp
+        tk.name
+      when TkSTRING
+        tk.text
+      else
+        raise &quot;Name or symbol expected (got #{tk})&quot;
+      end
+    end
+    
+    def parse_alias(context, single, tk, comment)
+      skip_tkspace
+      if (peek_tk.kind_of? TkLPAREN)
+        get_tk
+        skip_tkspace
+      end
+      new_name = get_symbol_or_name
+      @scanner.instance_eval{@lex_state = EXPR_FNAME}
+      skip_tkspace
+      if (peek_tk.kind_of? TkCOMMA)
+        get_tk
+        skip_tkspace
+      end
+      old_name = get_symbol_or_name
+
+      al = Alias.new(get_tkread, old_name, new_name, comment)
+      read_documentation_modifiers(al, ATTR_MODIFIERS)
+      if al.document_self
+	context.add_alias(al)
+      end
+    end
+
+    def parse_yield_parameters
+      parse_method_or_yield_parameters
+    end
+
+  def parse_yield(context, single, tk, method)
+    if method.block_params.nil?
+      get_tkread
+      @scanner.instance_eval{@continue = false}
+      method.block_params = parse_yield_parameters
+    end
+  end
+
+  def parse_require(context, comment)
+    skip_tkspace_comment
+    tk = get_tk
+    if tk.kind_of? TkLPAREN
+      skip_tkspace_comment
+      tk = get_tk
+    end
+
+    name = nil
+    case tk
+    when TkSTRING
+      name = tk.text
+#    when TkCONSTANT, TkIDENTIFIER, TkIVAR, TkGVAR
+#      name = tk.name
+    when TkDSTRING
+      warn &quot;Skipping require of dynamic string: #{tk.text}&quot;
+ #   else
+ #     warn &quot;'require' used as variable&quot;
+    end
+    if name
+      context.add_require(Require.new(name, comment))
+    else
+      unget_tk(tk)
+    end
+  end
+
+  def parse_include(context, comment)
+    loop do
+      skip_tkspace_comment
+      name = get_constant_with_optional_parens
+      unless name.empty?
+        context.add_include(Include.new(name, comment))
+      end
+      return unless peek_tk.kind_of?(TkCOMMA)
+      get_tk
+    end
+  end
+
+    def get_bool
+      skip_tkspace
+      tk = get_tk
+      case tk
+      when TkTRUE
+        true
+      when TkFALSE, TkNIL
+        false
+      else
+        unget_tk tk
+        true
+      end
+    end
+
+    def parse_attr(context, single, tk, comment)
+      args = parse_symbol_arg(1)
+      if args.size &gt; 0
+	name = args[0]
+        rw = &quot;R&quot;
+        skip_tkspace(false)
+        tk = get_tk
+        if tk.kind_of? TkCOMMA
+          rw = &quot;RW&quot; if get_bool
+        else
+          unget_tk tk
+        end
+	att = Attr.new(get_tkread, name, rw, comment)
+	read_documentation_modifiers(att, ATTR_MODIFIERS)
+	if att.document_self
+	  context.add_attribute(att)
+	end
+      else
+	warn(&quot;'attr' ignored - looks like a variable&quot;)
+      end    
+
+    end
+
+    def parse_visibility(container, single, tk)
+      singleton = (single == SINGLE)
+      vis = case tk.name
+            when &quot;private&quot;   then :private
+            when &quot;protected&quot; then :protected
+            when &quot;public&quot;    then :public
+            when &quot;private_class_method&quot;
+              singleton = true
+              :private
+            when &quot;public_class_method&quot;
+              singleton = true
+              :public
+            else raise &quot;Invalid visibility: #{tk.name}&quot;
+            end
+            
+      skip_tkspace_comment(false)
+      case peek_tk
+        # Ryan Davis suggested the extension to ignore modifiers, because he
+        # often writes
+        #
+        #   protected unless $TESTING
+        #
+      when TkNL, TkUNLESS_MOD, TkIF_MOD
+#        error(&quot;Missing argument&quot;) if singleton        
+        container.ongoing_visibility = vis
+      else
+        args = parse_symbol_arg
+        container.set_visibility_for(args, vis, singleton)
+      end
+    end
+
+    def parse_attr_accessor(context, single, tk, comment)
+      args = parse_symbol_arg
+      read = get_tkread
+      rw = &quot;?&quot;
+
+      # If nodoc is given, don't document any of them
+
+      tmp = CodeObject.new
+      read_documentation_modifiers(tmp, ATTR_MODIFIERS)
+      return unless tmp.document_self
+
+      case tk.name
+      when &quot;attr_reader&quot;   then rw = &quot;R&quot;
+      when &quot;attr_writer&quot;   then rw = &quot;W&quot;
+      when &quot;attr_accessor&quot; then rw = &quot;RW&quot;
+      else
+        rw = @options.extra_accessor_flags[tk.name]
+      end
+      
+      for name in args
+	att = Attr.new(get_tkread, name, rw, comment)
+        context.add_attribute(att)
+      end    
+    end
+
+    def skip_tkspace_comment(skip_nl = true)
+      loop do
+        skip_tkspace(skip_nl)
+        return unless peek_tk.kind_of? TkCOMMENT
+        get_tk
+      end
+    end
+
+    def parse_symbol_arg(no = nil)
+
+      args = []
+      skip_tkspace_comment
+      case tk = get_tk
+      when TkLPAREN
+	loop do
+	  skip_tkspace_comment
+	  if tk1 = parse_symbol_in_arg
+	    args.push tk1
+	    break if no and args.size &gt;= no
+	  end
+	  
+	  skip_tkspace_comment
+	  case tk2 = get_tk
+	  when TkRPAREN
+	    break
+	  when TkCOMMA
+	  else
+           warn(&quot;unexpected token: '#{tk2.inspect}'&quot;) if $DEBUG
+	    break
+	  end
+	end
+      else
+	unget_tk tk
+	if tk = parse_symbol_in_arg
+	  args.push tk
+	  return args if no and args.size &gt;= no
+	end
+
+	loop do
+#	  skip_tkspace_comment(false)
+	  skip_tkspace(false)
+
+	  tk1 = get_tk
+	  unless tk1.kind_of?(TkCOMMA) 
+	    unget_tk tk1
+	    break
+	  end
+	  
+	  skip_tkspace_comment
+	  if tk = parse_symbol_in_arg
+	    args.push tk
+	    break if no and args.size &gt;= no
+	  end
+	end
+      end
+      args
+    end
+
+    def parse_symbol_in_arg
+      case tk = get_tk
+      when TkSYMBOL
+        tk.text.sub(/^:/, '')
+      when TkSTRING
+	eval @read[-1]
+      else
+	warn(&quot;Expected symbol or string, got #{tk.inspect}&quot;) if $DEBUG
+	nil
+      end
+    end
+  end
+
+end
+</pre>
+    </div>

@@ -1,0 +1,76 @@
+  <div id="fileHeader">
+    <h1>entitydecl.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rexml/dtd/entitydecl.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rexml/child&quot;
+module REXML
+	module DTD
+		class EntityDecl &lt; Child
+			START = &quot;&lt;!ENTITY&quot;
+			START_RE = /^\s*#{START}/um
+			PUBLIC = /^\s*#{START}\s+(?:%\s+)?(\w+)\s+PUBLIC\s+(([&quot;']).*?\3)\s+(([&quot;']).*?\5)\s*&gt;/um
+			SYSTEM = /^\s*#{START}\s+(?:%\s+)?(\w+)\s+SYSTEM\s+(([&quot;']).*?\3)(?:\s+NDATA\s+\w+)?\s*&gt;/um
+			PLAIN = /^\s*#{START}\s+(\w+)\s+(([&quot;']).*?\3)\s*&gt;/um
+			PERCENT = /^\s*#{START}\s+%\s+(\w+)\s+(([&quot;']).*?\3)\s*&gt;/um
+			# &lt;!ENTITY name SYSTEM &quot;...&quot;&gt;
+			# &lt;!ENTITY name &quot;...&quot;&gt;
+			def initialize src
+				super()
+				md = nil
+				if src.match( PUBLIC )
+					md = src.match( PUBLIC, true )
+					@middle = &quot;PUBLIC&quot;
+					@content = &quot;#{md[2]} #{md[4]}&quot;
+				elsif src.match( SYSTEM )
+					md = src.match( SYSTEM, true )
+					@middle = &quot;SYSTEM&quot;
+					@content = md[2]
+				elsif src.match( PLAIN )
+					md = src.match( PLAIN, true )
+					@middle = &quot;&quot;
+					@content = md[2]
+				elsif src.match( PERCENT )
+					md = src.match( PERCENT, true )
+					@middle = &quot;&quot;
+					@content = md[2]
+				end
+				raise ParseException.new(&quot;failed Entity match&quot;, src) if md.nil?
+				@name = md[1]
+			end
+
+			def to_s
+				rv = &quot;&lt;!ENTITY #@name &quot;
+				rv &lt;&lt; &quot;#@middle &quot; if @middle.size &gt; 0
+				rv &lt;&lt; @content
+				rv
+			end
+
+			def write( output, indent )
+        indent( output, indent )
+				output &lt;&lt; to_s
+			end
+
+			def EntityDecl.parse_source source, listener
+				md = source.match( PATTERN_RE, true )
+				thing = md[0].squeeze(&quot; \t\n\r&quot;)
+				listener.send inspect.downcase, thing 
+			end
+		end
+	end
+end
+</pre>
+    </div>

@@ -1,0 +1,1058 @@
+  <div id="C00001614">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />FileTest<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/file_c.html');">ruby-1.8.7-p22/file.c</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<tt><a href="index.html?a=C00001614&name=FileTest">FileTest</a></tt>
+implements file test operations similar to those used in <tt><a
+href="index.html?a=C00000278&name=File::Stat">File::Stat</a></tt>. It
+exists as a standalone module, and its methods are also insinuated into the
+<tt><a href="index.html?a=C00000276&name=File">File</a></tt> class. (Note
+that this is not done by inclusion: the interpreter cheats).
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M007936&name=blockdev?" >blockdev?</a></li>
+  <li><a href="index.html?a=M007937&name=chardev?" >chardev?</a></li>
+  <li><a href="index.html?a=M007918&name=directory?" >directory?</a></li>
+  <li><a href="index.html?a=M007925&name=executable?" >executable?</a></li>
+  <li><a href="index.html?a=M007926&name=executable_real?" >executable_real?</a></li>
+  <li><a href="index.html?a=M007919&name=exist?" >exist?</a></li>
+  <li><a href="index.html?a=M007920&name=exists?" >exists?</a></li>
+  <li><a href="index.html?a=M007927&name=file?" >file?</a></li>
+  <li><a href="index.html?a=M007932&name=grpowned?" >grpowned?</a></li>
+  <li><a href="index.html?a=M007941&name=identical?" >identical?</a></li>
+  <li><a href="index.html?a=M007931&name=owned?" >owned?</a></li>
+  <li><a href="index.html?a=M007933&name=pipe?" >pipe?</a></li>
+  <li><a href="index.html?a=M007921&name=readable?" >readable?</a></li>
+  <li><a href="index.html?a=M007922&name=readable_real?" >readable_real?</a></li>
+  <li><a href="index.html?a=M007939&name=setgid?" >setgid?</a></li>
+  <li><a href="index.html?a=M007938&name=setuid?" >setuid?</a></li>
+  <li><a href="index.html?a=M007930&name=size" >size</a></li>
+  <li><a href="index.html?a=M007929&name=size?" >size?</a></li>
+  <li><a href="index.html?a=M007935&name=socket?" >socket?</a></li>
+  <li><a href="index.html?a=M007940&name=sticky?" >sticky?</a></li>
+  <li><a href="index.html?a=M007934&name=symlink?" >symlink?</a></li>
+  <li><a href="index.html?a=M007923&name=writable?" >writable?</a></li>
+  <li><a href="index.html?a=M007924&name=writable_real?" >writable_real?</a></li>
+  <li><a href="index.html?a=M007928&name=zero?" >zero?</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M007936" class="method">
+  <div id="M007936_title" class="title">
+    <b>File.blockdev?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a block device.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007936_source')" id="l_M007936_source">show source</a> ]</p>
+  <div id="M007936_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.blockdev?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a block device.
+ */
+
+static VALUE
+test_b(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef S_ISBLK
+#   ifdef S_IFBLK
+#       define S_ISBLK(m) ((m &amp; S_IFMT) == S_IFBLK)
+#   else
+#       define S_ISBLK(m) (0)  /* anytime false */
+#   endif
+#endif
+
+#ifdef S_ISBLK
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISBLK(st.st_mode)) return Qtrue;
+
+#endif
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007937" class="method">
+  <div id="M007937_title" class="title">
+    <b>File.chardev?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a character device.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007937_source')" id="l_M007937_source">show source</a> ]</p>
+  <div id="M007937_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.chardev?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a character device.
+ */
+static VALUE
+test_c(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef S_ISCHR
+#   define S_ISCHR(m) ((m &amp; S_IFMT) == S_IFCHR)
+#endif
+
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISCHR(st.st_mode)) return Qtrue;
+
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007918" class="method">
+  <div id="M007918_title" class="title">
+    <b>File.directory?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a directory, <tt>false</tt>
+otherwise.
+</p>
+<pre>
+   File.directory?(&quot;.&quot;)
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007918_source')" id="l_M007918_source">show source</a> ]</p>
+  <div id="M007918_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.directory?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a directory,
+ * &lt;code&gt;false&lt;/code&gt; otherwise.
+ *
+ *    File.directory?(&quot;.&quot;)
+ */
+
+static VALUE
+test_d(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef S_ISDIR
+#   define S_ISDIR(m) ((m &amp; S_IFMT) == S_IFDIR)
+#endif
+
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISDIR(st.st_mode)) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007925" class="method">
+  <div id="M007925_title" class="title">
+    <b>File.executable?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is executable by the effective user
+id of this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007925_source')" id="l_M007925_source">show source</a> ]</p>
+  <div id="M007925_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.executable?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is executable by the effective
+ * user id of this process.
+ */
+
+static VALUE
+test_x(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (eaccess(StringValueCStr(fname), X_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007926" class="method">
+  <div id="M007926_title" class="title">
+    <b>File.executable_real?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is executable by the real user id
+of this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007926_source')" id="l_M007926_source">show source</a> ]</p>
+  <div id="M007926_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.executable_real?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is executable by the real
+ * user id of this process.
+ */
+
+static VALUE
+test_X(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (access(StringValueCStr(fname), X_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007919" class="method">
+  <div id="M007919_title" class="title">
+    <b>File.exist?(file_name)    =>  true or false<br />
+File.exists?(file_name)   =>  true or false    (obsolete)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Return <tt>true</tt> if the named file exists.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007919_source')" id="l_M007919_source">show source</a> ]</p>
+  <div id="M007919_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.exist?(file_name)    =&gt;  true or false
+ *    File.exists?(file_name)   =&gt;  true or false    (obsolete)
+ *
+ * Return &lt;code&gt;true&lt;/code&gt; if the named file exists.
+ */
+
+static VALUE
+test_e(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007920" class="method">
+  <div id="M007920_title" class="title">
+    <b>File.exist?(file_name)    =>  true or false<br />
+File.exists?(file_name)   =>  true or false    (obsolete)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Return <tt>true</tt> if the named file exists.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007920_source')" id="l_M007920_source">show source</a> ]</p>
+  <div id="M007920_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.exist?(file_name)    =&gt;  true or false
+ *    File.exists?(file_name)   =&gt;  true or false    (obsolete)
+ *
+ * Return &lt;code&gt;true&lt;/code&gt; if the named file exists.
+ */
+
+static VALUE
+test_e(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007927" class="method">
+  <div id="M007927_title" class="title">
+    <b>File.file?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file exists and is a regular file.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007927_source')" id="l_M007927_source">show source</a> ]</p>
+  <div id="M007927_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.file?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file exists and is a
+ * regular file.
+ */
+
+static VALUE
+test_f(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISREG(st.st_mode)) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007932" class="method">
+  <div id="M007932_title" class="title">
+    <b>File.grpowned?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file exists and the effective group id
+of the calling process is the owner of the file. Returns <tt>false</tt> on
+Windows.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007932_source')" id="l_M007932_source">show source</a> ]</p>
+  <div id="M007932_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.grpowned?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file exists and the
+ * effective group id of the calling process is the owner of
+ * the file. Returns &lt;code&gt;false&lt;/code&gt; on Windows.
+ */
+
+static VALUE
+test_grpowned(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef _WIN32
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (group_member(st.st_gid)) return Qtrue;
+#endif
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007941" class="method">
+  <div id="M007941_title" class="title">
+    <b>File.identical?(file_1, file_2)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named files are identical.
+</p>
+<pre>
+    open(&quot;a&quot;, &quot;w&quot;) {}
+    p File.identical?(&quot;a&quot;, &quot;a&quot;)      #=&gt; true
+    p File.identical?(&quot;a&quot;, &quot;./a&quot;)    #=&gt; true
+    File.link(&quot;a&quot;, &quot;b&quot;)
+    p File.identical?(&quot;a&quot;, &quot;b&quot;)      #=&gt; true
+    File.symlink(&quot;a&quot;, &quot;c&quot;)
+    p File.identical?(&quot;a&quot;, &quot;c&quot;)      #=&gt; true
+    open(&quot;d&quot;, &quot;w&quot;) {}
+    p File.identical?(&quot;a&quot;, &quot;d&quot;)      #=&gt; false
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007941_source')" id="l_M007941_source">show source</a> ]</p>
+  <div id="M007941_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.identical?(file_1, file_2)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named files are identical.
+ *
+ *     open(&quot;a&quot;, &quot;w&quot;) {}
+ *     p File.identical?(&quot;a&quot;, &quot;a&quot;)      #=&gt; true
+ *     p File.identical?(&quot;a&quot;, &quot;./a&quot;)    #=&gt; true
+ *     File.link(&quot;a&quot;, &quot;b&quot;)
+ *     p File.identical?(&quot;a&quot;, &quot;b&quot;)      #=&gt; true
+ *     File.symlink(&quot;a&quot;, &quot;c&quot;)
+ *     p File.identical?(&quot;a&quot;, &quot;c&quot;)      #=&gt; true
+ *     open(&quot;d&quot;, &quot;w&quot;) {}
+ *     p File.identical?(&quot;a&quot;, &quot;d&quot;)      #=&gt; false
+ */
+
+static VALUE
+test_identical(obj, fname1, fname2)
+    VALUE obj, fname1, fname2;
+{
+#ifndef DOSISH
+    struct stat st1, st2;
+
+    if (rb_stat(fname1, &amp;st1) &lt; 0) return Qfalse;
+    if (rb_stat(fname2, &amp;st2) &lt; 0) return Qfalse;
+    if (st1.st_dev != st2.st_dev) return Qfalse;
+    if (st1.st_ino != st2.st_ino) return Qfalse;
+#else
+#ifdef _WIN32
+    BY_HANDLE_FILE_INFORMATION st1, st2;
+    HANDLE f1 = 0, f2 = 0;
+#endif
+
+    rb_secure(2);
+#ifdef _WIN32
+    f1 = w32_io_info(&amp;fname1, &amp;st1);
+    if (f1 == INVALID_HANDLE_VALUE) return Qfalse;
+    f2 = w32_io_info(&amp;fname2, &amp;st2);
+    if (f1) CloseHandle(f1);
+    if (f2 == INVALID_HANDLE_VALUE) return Qfalse;
+    if (f2) CloseHandle(f2);
+
+    if (st1.dwVolumeSerialNumber == st2.dwVolumeSerialNumber &amp;&amp;
+        st1.nFileIndexHigh == st2.nFileIndexHigh &amp;&amp;
+        st1.nFileIndexLow == st2.nFileIndexLow)
+        return Qtrue;
+    if (!f1 || !f2) return Qfalse;
+    if (rb_w32_iswin95()) return Qfalse;
+#else
+    SafeStringValue(fname1);
+    fname1 = rb_str_new4(fname1);
+    SafeStringValue(fname2);
+    if (access(RSTRING(fname1)-&gt;ptr, 0)) return Qfalse;
+    if (access(RSTRING(fname2)-&gt;ptr, 0)) return Qfalse;
+#endif
+    fname1 = rb_file_expand_path(fname1, Qnil);
+    fname2 = rb_file_expand_path(fname2, Qnil);
+    if (RSTRING(fname1)-&gt;len != RSTRING(fname2)-&gt;len) return Qfalse;
+    if (rb_memcicmp(RSTRING(fname1)-&gt;ptr, RSTRING(fname2)-&gt;ptr, RSTRING(fname1)-&gt;len))
+        return Qfalse;
+#endif
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007931" class="method">
+  <div id="M007931_title" class="title">
+    <b>File.owned?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file exists and the effective used id of
+the calling process is the owner of the file.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007931_source')" id="l_M007931_source">show source</a> ]</p>
+  <div id="M007931_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.owned?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file exists and the
+ * effective used id of the calling process is the owner of
+ * the file.
+ */
+
+static VALUE
+test_owned(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (st.st_uid == geteuid()) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007933" class="method">
+  <div id="M007933_title" class="title">
+    <b>File.pipe?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a pipe.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007933_source')" id="l_M007933_source">show source</a> ]</p>
+  <div id="M007933_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.pipe?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a pipe.
+ */
+
+static VALUE
+test_p(obj, fname)
+    VALUE obj, fname;
+{
+#ifdef S_IFIFO
+#  ifndef S_ISFIFO
+#    define S_ISFIFO(m) ((m &amp; S_IFMT) == S_IFIFO)
+#  endif
+
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISFIFO(st.st_mode)) return Qtrue;
+
+#endif
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007921" class="method">
+  <div id="M007921_title" class="title">
+    <b>File.readable?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is readable by the effective user
+id of this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007921_source')" id="l_M007921_source">show source</a> ]</p>
+  <div id="M007921_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.readable?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is readable by the effective
+ * user id of this process.
+ */
+
+static VALUE
+test_r(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (eaccess(StringValueCStr(fname), R_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007922" class="method">
+  <div id="M007922_title" class="title">
+    <b>File.readable_real?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is readable by the real user id of
+this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007922_source')" id="l_M007922_source">show source</a> ]</p>
+  <div id="M007922_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.readable_real?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is readable by the real
+ * user id of this process.
+ */
+
+static VALUE
+test_R(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (access(StringValueCStr(fname), R_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007939" class="method">
+  <div id="M007939_title" class="title">
+    <b>File.setgid?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file has the setgid bit set.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007939_source')" id="l_M007939_source">show source</a> ]</p>
+  <div id="M007939_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.setgid?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file has the setgid bit set.
+ */
+
+static VALUE
+test_sgid(obj, fname)
+    VALUE obj, fname;
+{
+#ifdef S_ISGID
+    return check3rdbyte(fname, S_ISGID);
+#else
+    return Qfalse;
+#endif
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007938" class="method">
+  <div id="M007938_title" class="title">
+    <b>File.setuid?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file has the setuid bit set.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007938_source')" id="l_M007938_source">show source</a> ]</p>
+  <div id="M007938_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.setuid?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file has the setuid bit set.
+ */
+
+static VALUE
+test_suid(obj, fname)
+    VALUE obj, fname;
+{
+#ifdef S_ISUID
+    return check3rdbyte(fname, S_ISUID);
+#else
+    return Qfalse;
+#endif
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007930" class="method">
+  <div id="M007930_title" class="title">
+    <b>File.size(file_name)   => integer<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the size of <tt>file_name</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007930_source')" id="l_M007930_source">show source</a> ]</p>
+  <div id="M007930_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.size(file_name)   =&gt; integer
+ *
+ * Returns the size of &lt;code&gt;file_name&lt;/code&gt;.
+ */
+
+static VALUE
+rb_file_s_size(klass, fname)
+    VALUE klass, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0)
+        rb_sys_fail(StringValueCStr(fname));
+    return OFFT2NUM(st.st_size);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007929" class="method">
+  <div id="M007929_title" class="title">
+    <b>File.size?(file_name)   => Integer or nil<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>nil</tt> if <tt>file_name</tt> doesn&#8217;t exist or has zero
+size, the size of the file otherwise.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007929_source')" id="l_M007929_source">show source</a> ]</p>
+  <div id="M007929_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.size?(file_name)   =&gt; Integer or nil
+ *
+ * Returns +nil+ if +file_name+ doesn't exist or has zero size, the size of the
+ * file otherwise.
+ */
+
+static VALUE
+test_s(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qnil;
+    if (st.st_size == 0) return Qnil;
+    return OFFT2NUM(st.st_size);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007935" class="method">
+  <div id="M007935_title" class="title">
+    <b>File.socket?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a socket.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007935_source')" id="l_M007935_source">show source</a> ]</p>
+  <div id="M007935_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.socket?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a socket.
+ */
+
+static VALUE
+test_S(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef S_ISSOCK
+#  ifdef _S_ISSOCK
+#    define S_ISSOCK(m) _S_ISSOCK(m)
+#  elif defined __BORLANDC__
+#    ifdef _S_IFSOCK
+#      define S_ISSOCK(m) (((unsigned short)(m) &amp; S_IFMT) == _S_IFSOCK)
+#    else
+#      ifdef S_IFSOCK
+#        define S_ISSOCK(m) (((unsigned short)(m) &amp; S_IFMT) == S_IFSOCK)
+#      endif
+#    endif
+#  else
+#    ifdef _S_IFSOCK
+#      define S_ISSOCK(m) ((m &amp; S_IFMT) == _S_IFSOCK)
+#    else
+#      ifdef S_IFSOCK
+#        define S_ISSOCK(m) ((m &amp; S_IFMT) == S_IFSOCK)
+#      endif
+#    endif
+#  endif
+#endif
+
+#ifdef S_ISSOCK
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (S_ISSOCK(st.st_mode)) return Qtrue;
+
+#endif
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007940" class="method">
+  <div id="M007940_title" class="title">
+    <b>File.sticky?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file has the sticky bit set.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007940_source')" id="l_M007940_source">show source</a> ]</p>
+  <div id="M007940_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.sticky?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file has the sticky bit set.
+ */
+
+static VALUE
+test_sticky(obj, fname)
+    VALUE obj, fname;
+{
+#ifdef S_ISVTX
+    return check3rdbyte(fname, S_ISVTX);
+#else
+    return Qnil;
+#endif
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007934" class="method">
+  <div id="M007934_title" class="title">
+    <b>File.symlink?(file_name)   =>  true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is a symbolic link.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007934_source')" id="l_M007934_source">show source</a> ]</p>
+  <div id="M007934_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   File.symlink?(file_name)   =&gt;  true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is a symbolic link.
+ */
+
+static VALUE
+test_l(obj, fname)
+    VALUE obj, fname;
+{
+#ifndef S_ISLNK
+#  ifdef _S_ISLNK
+#    define S_ISLNK(m) _S_ISLNK(m)
+#  elif defined __BORLANDC__
+#    ifdef _S_IFLNK
+#      define S_ISLNK(m) (((unsigned short)(m) &amp; S_IFMT) == _S_IFLNK)
+#    else
+#      ifdef S_IFLNK
+#        define S_ISLNK(m) (((unsigned short)(m) &amp; S_IFMT) == S_IFLNK)
+#      endif
+#    endif
+#  else
+#    ifdef _S_IFLNK
+#      define S_ISLNK(m) ((m &amp; S_IFMT) == _S_IFLNK)
+#    else
+#      ifdef S_IFLNK
+#        define S_ISLNK(m) ((m &amp; S_IFMT) == S_IFLNK)
+#      endif
+#    endif
+#  endif
+#endif
+
+#ifdef S_ISLNK
+    struct stat st;
+
+    SafeStringValue(fname);
+    if (lstat(StringValueCStr(fname), &amp;st) &lt; 0) return Qfalse;
+    if (S_ISLNK(st.st_mode)) return Qtrue;
+#endif
+
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007923" class="method">
+  <div id="M007923_title" class="title">
+    <b>File.writable?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is writable by the effective user
+id of this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007923_source')" id="l_M007923_source">show source</a> ]</p>
+  <div id="M007923_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.writable?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is writable by the effective
+ * user id of this process.
+ */
+
+static VALUE
+test_w(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (eaccess(StringValueCStr(fname), W_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007924" class="method">
+  <div id="M007924_title" class="title">
+    <b>File.writable_real?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file is writable by the real user id of
+this process.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007924_source')" id="l_M007924_source">show source</a> ]</p>
+  <div id="M007924_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.writable_real?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file is writable by the real
+ * user id of this process.
+ */
+
+static VALUE
+test_W(obj, fname)
+    VALUE obj, fname;
+{
+    SafeStringValue(fname);
+    if (access(StringValueCStr(fname), W_OK) &lt; 0) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007928" class="method">
+  <div id="M007928_title" class="title">
+    <b>File.zero?(file_name)   => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>true</tt> if the named file exists and has a zero size.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007928_source')" id="l_M007928_source">show source</a> ]</p>
+  <div id="M007928_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    File.zero?(file_name)   =&gt; true or false
+ *
+ * Returns &lt;code&gt;true&lt;/code&gt; if the named file exists and has
+ * a zero size.
+ */
+
+static VALUE
+test_z(obj, fname)
+    VALUE obj, fname;
+{
+    struct stat st;
+
+    if (rb_stat(fname, &amp;st) &lt; 0) return Qfalse;
+    if (st.st_size == 0) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

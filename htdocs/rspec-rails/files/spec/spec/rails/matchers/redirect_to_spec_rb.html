@@ -1,0 +1,228 @@
+  <div id="fileHeader">
+    <h1>redirect_to_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/rails/matchers/redirect_to_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:13:00 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+
+['isolation','integration'].each do |mode|
+  describe &quot;redirect_to behaviour&quot;, :type =&gt; :controller do
+    if mode == 'integration'
+      integrate_views
+    end
+    controller_name :redirect_spec
+    
+    it &quot;redirected to another action&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to(:action =&gt; 'somewhere')
+    end
+    
+    it &quot;redirected to another controller and action&quot; do
+      get 'action_with_redirect_to_other_somewhere'
+      response.should redirect_to(:controller =&gt; 'render_spec', :action =&gt; 'text_action')
+    end
+    
+    it &quot;redirected to another action (with 'and return')&quot; do
+      get 'action_with_redirect_to_somewhere_and_return'
+      response.should redirect_to(:action =&gt; 'somewhere')
+    end
+    
+    it &quot;redirected from an SSL action to a non-SSL action&quot; do
+      request.stub!(:ssl?).and_return true
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to(:action =&gt; 'somewhere')
+    end
+  
+    it &quot;redirected to correct path with leading /&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to('/redirect_spec/somewhere')
+    end
+    
+    it &quot;redirected to correct path without leading /&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to('redirect_spec/somewhere')
+    end
+    
+    it &quot;redirected to correct internal URL&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to(&quot;http://test.host/redirect_spec/somewhere&quot;)
+    end
+  
+    it &quot;redirected to correct external URL&quot; do
+      get 'action_with_redirect_to_rspec_site'
+      response.should redirect_to(&quot;http://rspec.rubyforge.org&quot;)
+    end
+  
+    it &quot;redirected :back&quot; do
+      request.env['HTTP_REFERER'] = &quot;http://test.host/previous/page&quot;
+      get 'action_with_redirect_back'
+      response.should redirect_to(:back)
+    end
+  
+    it &quot;redirected :back and should redirect_to URL matches&quot; do
+      request.env['HTTP_REFERER'] = &quot;http://test.host/previous/page&quot;
+      get 'action_with_redirect_back'
+      response.should redirect_to(&quot;http://test.host/previous/page&quot;)
+    end
+    
+    it &quot;redirected from within a respond_to block&quot; do
+      get 'action_with_redirect_in_respond_to'
+      response.should redirect_to('redirect_spec/somewhere')
+    end
+
+    params_as_hash = {:action =&gt; &quot;somewhere&quot;, :id =&gt; 1111, :param1 =&gt; &quot;value1&quot;, :param2 =&gt; &quot;value2&quot;}
+
+    it &quot;redirected to an internal URL containing a query string&quot; do
+      get &quot;action_with_redirect_which_creates_query_string&quot;
+      response.should redirect_to(params_as_hash)
+    end
+
+    it &quot;redirected to an internal URL containing a query string, one way it might be generated&quot; do
+      get &quot;action_with_redirect_with_query_string_order1&quot;
+      response.should redirect_to(params_as_hash)
+    end
+
+    it &quot;redirected to an internal URL containing a query string, another way it might be generated&quot; do
+      get &quot;action_with_redirect_with_query_string_order2&quot;
+      response.should redirect_to(params_as_hash)
+    end
+
+    it &quot;redirected to an internal URL which is unroutable but matched via a string&quot; do
+      get &quot;action_with_redirect_to_unroutable_url_inside_app&quot;
+      response.should redirect_to(&quot;http://test.host/nonexistant/none&quot;)
+    end
+
+  end
+
+  
+  describe &quot;redirect_to with a controller spec in #{mode} mode and a custom request.host&quot;, :type =&gt; :controller do
+    if mode == 'integration'
+      integrate_views
+    end
+    controller_name :redirect_spec
+    before do
+      request.host = &quot;some.custom.host&quot;
+    end
+  
+    it &quot;should pass when redirected to another action&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should redirect_to(:action =&gt; 'somewhere')
+    end
+  end
+  
+  describe &quot;Given a controller spec in #{mode} mode&quot;, :type =&gt; :controller do
+    if mode == 'integration'
+      integrate_views
+    end
+    controller_name :redirect_spec
+  
+    it &quot;an action that redirects should not result in an error if no should redirect_to expectation is called&quot; do
+      get 'action_with_redirect_to_somewhere'
+    end
+    
+    it &quot;an action that redirects should not result in an error if should_not redirect_to expectation was called, but not to that action&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should_not redirect_to(:action =&gt; 'another_destination')
+    end
+
+    it &quot;an action that redirects should result in an error if should_not redirect_to expectation was called to that action&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should_not redirect_to(:action =&gt; 'somewhere')
+      }.should fail_with(&quot;expected not to be redirected to {:action=&gt;\&quot;somewhere\&quot;}, but was&quot;)
+    end
+
+    it &quot;an action that does not redirects should not result in an error if should_not redirect_to expectation was called&quot; do
+      get 'action_with_no_redirect'
+      response.should_not redirect_to(:action =&gt; 'any_destination')
+    end
+
+    
+  end
+  
+  describe &quot;Given a controller spec in #{mode} mode, should redirect_to should fail when&quot;, :type =&gt; :controller do
+    if mode == 'integration'
+      integrate_views
+    end
+    controller_name :redirect_spec
+    
+    it &quot;redirected to wrong action&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should redirect_to(:action =&gt; 'somewhere_else')
+      }.should fail_with(&quot;expected redirect to {:action=&gt;\&quot;somewhere_else\&quot;}, got redirect to \&quot;http://test.host/redirect_spec/somewhere\&quot;&quot;)
+    end
+    
+    it &quot;redirected to incorrect path with leading /&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should redirect_to('/redirect_spec/somewhere_else')
+      }.should fail_with('expected redirect to &quot;/redirect_spec/somewhere_else&quot;, got redirect to &quot;http://test.host/redirect_spec/somewhere&quot;')
+    end
+  
+    it &quot;redirected to incorrect path without leading /&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should redirect_to('redirect_spec/somewhere_else')
+      }.should fail_with('expected redirect to &quot;redirect_spec/somewhere_else&quot;, got redirect to &quot;http://test.host/redirect_spec/somewhere&quot;')
+    end
+  
+    it &quot;redirected to incorrect internal URL (based on the action)&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should redirect_to(&quot;http://test.host/redirect_spec/somewhere_else&quot;)
+      }.should fail_with('expected redirect to &quot;http://test.host/redirect_spec/somewhere_else&quot;, got redirect to &quot;http://test.host/redirect_spec/somewhere&quot;')
+    end
+    
+    it &quot;redirected to wrong external URL&quot; do
+      get 'action_with_redirect_to_rspec_site'
+      lambda {
+        response.should redirect_to(&quot;http://test.unit.rubyforge.org&quot;)
+      }.should fail_with('expected redirect to &quot;http://test.unit.rubyforge.org&quot;, got redirect to &quot;http://rspec.rubyforge.org&quot;')
+    end
+  
+    it &quot;redirected to incorrect internal URL (based on the directory path)&quot; do
+      get 'action_with_redirect_to_somewhere'
+      lambda {
+        response.should redirect_to(&quot;http://test.host/non_existent_controller/somewhere&quot;)
+      }.should fail_with('expected redirect to &quot;http://test.host/non_existent_controller/somewhere&quot;, got redirect to &quot;http://test.host/redirect_spec/somewhere&quot;')
+    end
+  
+    it &quot;expected redirect :back, but redirected to a new URL&quot; do
+      get 'action_with_no_redirect'
+      lambda {
+        response.should redirect_to(:back)
+      }.should fail_with('expected redirect to :back, got no redirect')
+    end
+  
+    it &quot;no redirect at all&quot; do
+      get 'action_with_no_redirect'
+      lambda {
+        response.should redirect_to(:action =&gt; 'nowhere')
+      }.should fail_with(&quot;expected redirect to {:action=&gt;\&quot;nowhere\&quot;}, got no redirect&quot;)
+    end
+  
+    it &quot;redirected to an internal URL which is unroutable and matched via a hash&quot; do
+      get &quot;action_with_redirect_to_unroutable_url_inside_app&quot;
+      route = {:controller =&gt; &quot;nonexistant&quot;, :action =&gt; &quot;none&quot;}
+      lambda {
+        response.should redirect_to(route)
+      }.should raise_error(ActionController::RoutingError, /(no route found to match|No route matches) \&quot;\/nonexistant\/none\&quot; with \{\}/)
+    end
+
+  end
+end
+</pre>
+    </div>

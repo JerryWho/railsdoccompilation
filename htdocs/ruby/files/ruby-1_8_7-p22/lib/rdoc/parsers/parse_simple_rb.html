@@ -1,0 +1,61 @@
+  <div id="fileHeader">
+    <h1>parse_simple.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/parsers/parse_simple.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># Parse a non-source file. We basically take the whole thing 
+# as one big comment. If the first character in the file
+# is '#', we strip leading pound signs.
+
+
+require &quot;rdoc/code_objects&quot;
+require &quot;rdoc/markup/simple_markup/preprocess&quot;
+
+module RDoc
+  # See rdoc/parsers/parse_c.rb
+
+  class SimpleParser
+    
+    # prepare to parse a plain file
+    def initialize(top_level, file_name, body, options, stats)
+      
+      preprocess = SM::PreProcess.new(file_name, options.rdoc_include)
+      
+      preprocess.handle(body) do |directive, param|
+        $stderr.puts &quot;Unrecognized directive '#{directive}' in #{file_name}&quot;
+      end
+      
+      @body = body
+      @options = options
+      @top_level = top_level
+    end
+    
+    # Extract the file contents and attach them to the toplevel as a
+    # comment
+    
+    def scan
+      #    @body.gsub(/^(\s\n)+/, '')
+      @top_level.comment = remove_private_comments(@body)
+      @top_level
+    end
+
+    def remove_private_comments(comment)
+      comment.gsub(/^--.*?^\+\+/m, '').sub(/^--.*/m, '')
+    end
+  end
+end
+</pre>
+    </div>

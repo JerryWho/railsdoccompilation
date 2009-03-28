@@ -1,0 +1,212 @@
+  <div id="fileHeader">
+    <h1>css2sass_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/css2sass_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:18:53 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'test/unit'
+require File.dirname(__FILE__) + '/../test_helper'
+require 'sass/css'
+
+class CSS2SassTest &lt; Test::Unit::TestCase
+  def test_basic
+    css = &lt;&lt;CSS
+h1 {
+  color: red;
+}
+CSS
+    assert_equal(&lt;&lt;SASS, css2sass(css))
+h1
+  :color red
+SASS
+    assert_equal(&lt;&lt;SASS, css2sass(css, :alternate =&gt; true))
+h1
+  color: red
+SASS
+  end
+
+  def test_nesting
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+li
+  :display none
+
+  a
+    :text-decoration none
+
+    span
+      :color yellow
+
+    &amp;:hover
+      :text-decoration underline
+SASS
+li {
+  display: none;
+}
+
+li a {
+  text-decoration: none;
+}
+
+li a span {
+  color: yellow;
+}
+
+li a:hover {
+  text-decoration: underline;
+}
+CSS
+  end
+
+  def test_comments_multiline
+    css = &lt;&lt;CSS
+/* comment */
+elephant.rawr {
+  rampages: excessively;
+}
+
+/* actual multiline
+  comment */
+span.turkey {
+  isdinner: true;
+}
+
+.turducken {
+  /* Sounds funny
+     doesn't it */
+  chimera: not_really;
+}
+
+#overhere {
+  bored: sorta; /* it's for a good
+  cause */
+  better_than: thread_pools;
+}
+
+#one_more {
+  finally: srsly;
+} /* just a line here */
+CSS
+    sass = &lt;&lt;SASS
+elephant.rawr
+  :rampages excessively
+
+
+span.turkey
+  :isdinner true
+
+
+.turducken
+  :chimera not_really
+
+
+#overhere
+  :bored sorta
+  :better_than thread_pools
+
+
+#one_more
+  :finally srsly
+SASS
+    assert_equal(css2sass(css), sass)
+  end
+
+  def test_fold_commas
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+li
+  .one, .two
+    :color red
+SASS
+li .one {
+  color: red;
+}
+li .two {
+  color: red;
+}
+CSS
+
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+.one
+  :color green
+
+
+.two
+  :color green
+  :color red
+
+
+.three
+  :color red
+SASS
+.one, .two {
+  color: green;
+}
+
+.two, .three {
+  color: red;
+}
+CSS
+  end
+
+  def test_bad_formatting
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+hello
+  :parent true
+
+  there
+    :parent false
+
+  who
+    :hoo false
+
+  why
+    :y true
+
+  when
+    :wen nao
+
+
+down_here
+  :yeah true
+SASS
+hello {
+  parent: true;
+}
+
+hello  there {
+  parent: false;
+}
+hello who  {
+  hoo: false;
+}
+hello why {
+   y: true;
+}
+hello when {
+  wen:  nao;
+}
+
+
+
+down_here { yeah: true; }
+CSS
+  end
+
+  private
+
+  def css2sass(string, opts={})
+    Sass::CSS.new(string, opts).render
+  end
+end
+</pre>
+    </div>

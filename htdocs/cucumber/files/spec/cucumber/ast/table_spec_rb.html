@@ -1,0 +1,168 @@
+  <div id="fileHeader">
+    <h1>table_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/ast/table_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:14:35 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'cucumber/ast/table'
+
+module Cucumber
+  module Ast
+    describe Table do
+      before do
+        @table = Table.new([
+          %w{one four seven},
+          %w{4444 55555 666666}
+        ])
+        def @table.cells_rows; super; end
+        def @table.columns; super; end
+      end
+
+      it &quot;should have rows&quot; do
+        @table.cells_rows[0].map{|cell| cell.value}.should == %w{one four seven}
+      end
+
+      it &quot;should have columns&quot; do
+        @table.columns[1].map{|cell| cell.value}.should == %w{four 55555}
+      end
+
+      it &quot;should have same cell objects in rows and columns&quot; do
+        # 666666
+        @table.cells_rows[1].__send__(:[], 2).should equal(@table.columns[2].__send__(:[], 1))
+      end
+
+      it &quot;should know about max width of a row&quot; do
+        @table.columns[1].__send__(:width).should == 5
+      end
+
+      it &quot;should be convertible to an array of hashes&quot; do
+        @table.hashes.should == [
+          {'one' =&gt; '4444', 'four' =&gt; '55555', 'seven' =&gt; '666666'}
+        ]
+      end
+
+      it &quot;should accept symbols as keys for the hashes&quot; do
+        @table.hashes.first[:one].should == '4444'
+      end
+
+      it &quot;should allow map'ing columns&quot; do
+        @table.map_column!('one') { |v| v.to_i }
+        @table.hashes.first['one'].should == 4444
+      end
+
+      it &quot;should pass silently if a mapped column does not exist in non-strict mode&quot; do
+        lambda {
+          @table.map_column!('two', false) { |v| v.to_i }
+        }.should_not raise_error
+      end
+
+      it &quot;should fail if a mapped column does not exist in strict mode&quot; do
+        lambda {
+          @table.map_column!('two', true) { |v| v.to_i }
+        }.should raise_error('The column named &quot;two&quot; does not exist')
+      end
+
+      describe &quot;.transpose&quot; do
+        before(:each) do
+          @table = Table.new([
+            %w{one 1111},
+            %w{two 22222}
+          ])
+        end
+                
+        it &quot;should be convertible in to an array where each row is a hash&quot; do 
+          @table.transpose.hashes[0].should == {'one' =&gt; '1111', 'two' =&gt; '22222'}
+        end
+      end
+        
+      it &quot;should allow renaming columns&quot; do
+        table2 = @table.map_headers('one' =&gt; :three)
+        table2.hashes.first[:three].should == '4444'
+      end
+
+      it &quot;should copy column mappings when mapping headers&quot; do
+        @table.map_column!('one') { |v| v.to_i }
+        table2 = @table.map_headers('one' =&gt; 'three')
+        table2.hashes.first['three'].should == 4444
+      end
+
+      describe &quot;replacing arguments&quot; do
+
+        before(:each) do
+          @table = table = Table.new([
+            %w{qty book},
+            %w{&lt;qty&gt; &lt;book&gt;}
+            ])
+        end
+
+        it &quot;should return a new table with arguments replaced with values&quot; do
+          table_with_replaced_args = @table.arguments_replaced({'&lt;book&gt;' =&gt; 'Unbearable lightness of being', '&lt;qty&gt;' =&gt; '5'})
+
+          table_with_replaced_args.hashes[0]['book'].should == 'Unbearable lightness of being'
+          table_with_replaced_args.hashes[0]['qty'].should == '5'
+        end
+
+        it &quot;should replace nil values with nil&quot; do
+          table_with_replaced_args = @table.arguments_replaced({'&lt;book&gt;' =&gt; nil})
+
+          table_with_replaced_args.hashes[0]['book'].should == nil
+        end
+
+        it &quot;should preserve values which don't match a placeholder when replacing with nil&quot; do
+          table = Table.new([
+                              %w{book},
+                              %w{cat}
+                            ])
+          table_with_replaced_args = table.arguments_replaced({'&lt;book&gt;' =&gt; nil})
+          
+          table_with_replaced_args.hashes[0]['book'].should == 'cat'
+        end
+
+        it &quot;should not change the original table&quot; do
+          @table.arguments_replaced({'&lt;book&gt;' =&gt; 'Unbearable lightness of being'})
+
+          @table.hashes[0]['book'].should_not == 'Unbearable lightness of being'
+        end
+
+        it &quot;should not raise an error when there are nil values in the table&quot; do
+          table = Table.new([
+                              ['book', 'qty'],
+                              ['&lt;book&gt;', nil],
+                            ])
+          lambda{ 
+            table.arguments_replaced({'&lt;book&gt;' =&gt; nil, '&lt;qty&gt;' =&gt; '5'})
+          }.should_not raise_error
+        end
+
+      end
+      
+      it &quot;should convert to sexp&quot; do
+        @table.to_sexp.should == 
+          [:table, 
+            [:row, 
+              [:cell, &quot;one&quot;], 
+              [:cell, &quot;four&quot;],
+              [:cell, &quot;seven&quot;]
+            ],
+            [:row, 
+              [:cell, &quot;4444&quot;], 
+              [:cell, &quot;55555&quot;],
+              [:cell, &quot;666666&quot;]]]
+      end
+    end
+  end
+end
+</pre>
+    </div>

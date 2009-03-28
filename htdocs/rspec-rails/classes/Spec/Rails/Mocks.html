@@ -1,0 +1,138 @@
+  <div id="C00000027">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Mocks<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/spec/rails/mocks_rb.html');">lib/spec/rails/mocks.rb</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000018&name=mock_model" >mock_model</a></li>
+  <li><a href="index.html?a=M000019&name=stub_model" >stub_model</a></li>
+  </ul>
+
+
+
+  <div class="sectiontitle">Classes and Modules</div>
+  Module "<a href="#" onclick="jsHref('classes/Spec/Rails/Mocks/ModelStubber.html');" class="link">Spec::Rails::Mocks::ModelStubber</a>"<br />
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000018" class="method">
+  <div id="M000018_title" class="title">
+    <b>mock_model</b>(model_class, options_and_stubs = {}) {|m if block_given?| ...}
+  </div>
+  <div class="description">
+  <p>
+Creates a mock object instance for a <tt>model_class</tt> with common
+methods stubbed out. Additional methods may be easily stubbed (via
+add_stubs) if <tt>stubs</tt> is passed.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000018_source')" id="l_M000018_source">show source</a> ]</p>
+  <div id="M000018_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/spec/rails/mocks.rb, line 11</span>
+11:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mock_model</span>(<span class="ruby-identifier">model_class</span>, <span class="ruby-identifier">options_and_stubs</span> = {})
+12:         <span class="ruby-identifier">id</span> = <span class="ruby-identifier">options_and_stubs</span>[<span class="ruby-identifier">:id</span>] <span class="ruby-operator">||</span> <span class="ruby-identifier">next_id</span>
+13:         <span class="ruby-identifier">options_and_stubs</span> = <span class="ruby-identifier">options_and_stubs</span>.<span class="ruby-identifier">reverse_merge</span>({
+14:           <span class="ruby-identifier">:id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">id</span>,
+15:           <span class="ruby-identifier">:to_param</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">id</span>.<span class="ruby-identifier">to_s</span>,
+16:           <span class="ruby-identifier">:new_record?</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">false</span>,
+17:           <span class="ruby-identifier">:errors</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">stub</span>(<span class="ruby-value str">&quot;errors&quot;</span>, <span class="ruby-identifier">:count</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>)
+18:         })
+19:         <span class="ruby-identifier">m</span> = <span class="ruby-identifier">mock</span>(<span class="ruby-node">&quot;#{model_class.name}_#{id}&quot;</span>, <span class="ruby-identifier">options_and_stubs</span>)
+20:         <span class="ruby-identifier">m</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:__mock_proxy</span>).<span class="ruby-identifier">instance_eval</span> <span class="ruby-value str">&quot;def @target.as_new_record\nself.stub!(:id).and_return nil\nself.stub!(:to_param).and_return nil\nself.stub!(:new_record?).and_return true\nself\nend\ndef @target.is_a?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.kind_of?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.instance_of?(other)\nother == \#{model_class}\nend\ndef @target.class\n\#{model_class}\nend\n&quot;</span>
+21:         <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">m</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+22:         <span class="ruby-identifier">m</span>
+23:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000019" class="method">
+  <div id="M000019_title" class="title">
+    <b>stub_model(Model)<br />
+stub_model(Model).as_new_record<br />
+stub_model(Model, hash_of_stubs)<br />
+stub_model(Model, instance_variable_name, hash_of_stubs)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Creates an instance of <tt>Model</tt> that is prohibited from accessing the
+database*. For each key in <tt>hash_of_stubs</tt>, if the model has a
+matching attribute (determined by asking it) are simply assigned the
+submitted values. If the model does not have a matching attribute, the
+key/value pair is assigned as a stub return value using RSpec&#8217;s
+mocking/stubbing framework.
+</p>
+<p>
+<tt>new_record?</tt> is overridden to return the result of id.nil? This
+means that by default new_record? will return false. If you want the object
+to behave as a new record, sending it <tt>as_new_record</tt> will set the
+id to nil. You can also explicitly set :id =&gt; nil, in which case
+new_record? will return true, but using <tt>as_new_record</tt> makes the
+example a bit more descriptive.
+</p>
+<p>
+While you can use <a
+href="index.html?a=M000019&name=stub_model">stub_model</a> in any example
+(model, view, controller, helper), it is especially useful in view
+examples, which are inherently more state-based than interaction-based.
+</p>
+<h2>Database Independence</h2>
+<p>
+<tt><a href="index.html?a=M000019&name=stub_model">stub_model</a></tt> does
+not make your examples entirely database-independent. It does not stop the
+model class itself from loading up its columns from the database. It just
+prevents data access from the object itself. To completely decouple from
+the database, take a look at libraries like unit_record or NullDB.
+</p>
+<h2>Examples</h2>
+<pre>
+  stub_model(Person)
+  stub_model(Person).as_new_record
+  stub_model(Person, :id =&gt; 37)
+  stub_model(Person) do |person|
+    person.first_name = &quot;David&quot;
+  end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000019_source')" id="l_M000019_source">show source</a> ]</p>
+  <div id="M000019_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/spec/rails/mocks.rb, line 98</span>
+ 98:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stub_model</span>(<span class="ruby-identifier">model_class</span>, <span class="ruby-identifier">stubs</span>={})
+ 99:         <span class="ruby-identifier">stubs</span> = {<span class="ruby-identifier">:id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">next_id</span>}.<span class="ruby-identifier">merge</span>(<span class="ruby-identifier">stubs</span>)
+100:         <span class="ruby-identifier">returning</span> <span class="ruby-identifier">model_class</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">model</span><span class="ruby-operator">|</span>
+101:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">id</span> = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">:id</span>)
+102:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">extend</span> <span class="ruby-constant">ModelStubber</span>
+103:           <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">k</span>,<span class="ruby-identifier">v</span><span class="ruby-operator">|</span>
+104:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">model</span>.<span class="ruby-identifier">has_attribute?</span>(<span class="ruby-identifier">k</span>)
+105:               <span class="ruby-identifier">model</span>[<span class="ruby-identifier">k</span>] = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">k</span>)
+106:             <span class="ruby-keyword kw">end</span>
+107:           <span class="ruby-keyword kw">end</span>
+108:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">stub!</span>(<span class="ruby-identifier">stubs</span>)
+109:           <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">model</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+110:         <span class="ruby-keyword kw">end</span>
+111:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

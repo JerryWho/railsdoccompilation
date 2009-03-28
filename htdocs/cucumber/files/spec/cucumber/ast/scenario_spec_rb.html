@@ -1,0 +1,84 @@
+  <div id="fileHeader">
+    <h1>scenario_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/ast/scenario_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'cucumber/step_mother'
+require 'cucumber/ast'
+
+module Cucumber
+  module Ast
+    describe Scenario do
+      before do
+        @step_mother = Object.new
+        @step_mother.extend(StepMother)
+        $x = $y = nil
+        @step_mother.Given /y is (\d+)/ do |n|
+          $y = n.to_i
+        end
+        @visitor = Visitor.new(@step_mother)
+        @visitor.options = {}
+      end
+
+      it &quot;should skip steps when previous is not passed&quot; do
+        scenario = Scenario.new(
+          background=nil,
+          comment=Comment.new(&quot;&quot;),
+          tags=Tags.new(98, []), 
+          line=99,
+          keyword=&quot;&quot;,
+          name=&quot;&quot;, 
+          steps=[
+            Step.new(7, &quot;Given&quot;, &quot;this is missing&quot;),
+            Step.new(8, &quot;Given&quot;, &quot;y is 5&quot;)
+          ])
+        @visitor.visit_feature_element(scenario)
+
+        $y.should == nil
+      end
+
+      it &quot;should be at exact line&quot; do
+        s = Scenario.new(background=nil, comment=Comment.new(&quot;&quot;), 
+          tags=Tags.new(44, []), 45, keyword=&quot;&quot;, name=&quot;&quot;, steps=[])
+
+        s.should be_matches_lines([44])
+        s.should be_matches_lines([45])
+      end
+
+      it &quot;should be at line if tags or steps are&quot; do
+        s = Scenario.new(
+          background=nil,
+          comment=Comment.new(&quot;&quot;), 
+          tags=Tags.new(43, []), 
+          line=45,
+          keyword=&quot;&quot;,
+          name=&quot;&quot;, 
+          steps=[
+            Step.new(46, &quot;Given&quot;, &quot;&quot;),
+            Step.new(47, &quot;Given&quot;, &quot;&quot;),
+            Step.new(48, &quot;Given&quot;, &quot;&quot;),
+          ]
+        )
+
+        s.should be_matches_lines([43])
+        s.should be_matches_lines([47])
+        s.should_not be_matches_lines([49])
+      end
+    end
+  end
+end
+</pre>
+    </div>

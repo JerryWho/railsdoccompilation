@@ -1,0 +1,348 @@
+  <div id="fileHeader">
+    <h1>change_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/matchers/change_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#Based on patch from Wilson Bilkovich
+
+require File.dirname(__FILE__) + '/../../spec_helper.rb'
+class SomethingExpected
+  attr_accessor :some_value
+end
+
+describe &quot;should change(actual, message)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when actual is modified by the block&quot; do
+    lambda {@instance.some_value = 6}.should change(@instance, :some_value)
+  end
+
+  it &quot;should fail when actual is not modified by the block&quot; do
+    lambda do
+      lambda {}.should change(@instance, :some_value)
+    end.should fail_with(&quot;some_value should have changed, but is still 5&quot;)
+  end
+end
+
+describe &quot;should_not change(actual, message)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when actual is not modified by the block&quot; do
+    lambda { }.should_not change(@instance, :some_value)
+  end
+
+  it &quot;should fail when actual is not modified by the block&quot; do
+    lambda do
+      lambda {@instance.some_value = 6}.should_not change(@instance, :some_value)
+    end.should fail_with(&quot;some_value should not have changed, but did change from 5 to 6&quot;)
+  end
+end
+
+describe &quot;should change { block }&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when actual is modified by the block&quot; do
+    lambda {@instance.some_value = 6}.should change { @instance.some_value }
+  end
+
+  it &quot;should fail when actual is not modified by the block&quot; do
+    lambda do
+      lambda {}.should change{ @instance.some_value }
+    end.should fail_with(&quot;result should have changed, but is still 5&quot;)
+  end
+  
+  it &quot;should warn if passed a block using do/end instead of {}&quot; do
+    lambda do
+      lambda {}.should change do; end
+    end.should raise_error(Spec::Matchers::MatcherError, /block passed to should or should_not/)
+  end
+end
+
+describe &quot;should_not change { block }&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when actual is modified by the block&quot; do
+    lambda {}.should_not change{ @instance.some_value }
+  end
+
+  it &quot;should fail when actual is not modified by the block&quot; do
+    lambda do
+      lambda {@instance.some_value = 6}.should_not change { @instance.some_value }
+    end.should fail_with(&quot;result should not have changed, but did change from 5 to 6&quot;)
+  end
+  
+  it &quot;should warn if passed a block using do/end instead of {}&quot; do
+    lambda do
+      lambda {}.should_not change do; end
+    end.should raise_error(Spec::Matchers::MatcherError, /block passed to should or should_not/)
+  end
+end
+
+describe &quot;should change(actual, message).by(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by expected amount&quot; do
+    lambda { @instance.some_value += 1 }.should change(@instance, :some_value).by(1)
+  end
+
+  it &quot;should fail when the attribute is changed by unexpected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by(1)
+    end.should fail_with(&quot;some_value should have been changed by 1, but was changed by 2&quot;)
+  end
+
+  it &quot;should fail when the attribute is changed by unexpected amount in the opposite direction&quot; do
+    lambda do
+      lambda { @instance.some_value -= 1 }.should change(@instance, :some_value).by(1)
+    end.should fail_with(&quot;some_value should have been changed by 1, but was changed by -1&quot;)
+  end
+end
+
+describe &quot;should change{ block }.by(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by expected amount&quot; do
+    lambda { @instance.some_value += 1 }.should change{@instance.some_value}.by(1)
+  end
+
+  it &quot;should fail when the attribute is changed by unexpected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by(1)
+    end.should fail_with(&quot;result should have been changed by 1, but was changed by 2&quot;)
+  end
+
+  it &quot;should fail when the attribute is changed by unexpected amount in the opposite direction&quot; do
+    lambda do
+      lambda { @instance.some_value -= 1 }.should change{@instance.some_value}.by(1)
+    end.should fail_with(&quot;result should have been changed by 1, but was changed by -1&quot;)
+  end
+end
+
+describe &quot;should change(actual, message).by_at_least(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by greater than the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by_at_least(1)
+  end
+  
+  it &quot;should pass when attribute is changed by the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by_at_least(2)
+  end  
+
+  it &quot;should fail when the attribute is changed by less than the expected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 1 }.should change(@instance, :some_value).by_at_least(2)
+    end.should fail_with(&quot;some_value should have been changed by at least 2, but was changed by 1&quot;)
+  end
+
+end
+
+describe &quot;should change{ block }.by_at_least(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by greater than expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by_at_least(1)
+  end
+  
+  it &quot;should pass when attribute is changed by the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by_at_least(2)
+  end  
+
+  it &quot;should fail when the attribute is changed by less than the unexpected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 1 }.should change{@instance.some_value}.by_at_least(2)
+    end.should fail_with(&quot;result should have been changed by at least 2, but was changed by 1&quot;)
+  end
+end
+
+
+describe &quot;should change(actual, message).by_at_most(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by less than the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by_at_most(3)
+  end
+  
+  it &quot;should pass when attribute is changed by the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by_at_most(2)
+  end  
+
+  it &quot;should fail when the attribute is changed by greater than the expected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 2 }.should change(@instance, :some_value).by_at_most(1)
+    end.should fail_with(&quot;some_value should have been changed by at most 1, but was changed by 2&quot;)
+  end
+
+end
+
+describe &quot;should change{ block }.by_at_most(expected)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 5
+  end
+
+  it &quot;should pass when attribute is changed by less than expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by_at_most(3)
+  end
+  
+  it &quot;should pass when attribute is changed by the expected amount&quot; do
+    lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by_at_most(2)
+  end  
+
+  it &quot;should fail when the attribute is changed by greater than the unexpected amount&quot; do
+    lambda do
+      lambda { @instance.some_value += 2 }.should change{@instance.some_value}.by_at_most(1)
+    end.should fail_with(&quot;result should have been changed by at most 1, but was changed by 2&quot;)
+  end
+end
+
+describe &quot;should change(actual, message).from(old)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+
+  it &quot;should pass when attribute is == to expected value before executing block&quot; do
+    lambda { @instance.some_value = &quot;astring&quot; }.should change(@instance, :some_value).from(&quot;string&quot;)
+  end
+
+  it &quot;should fail when attribute is not == to expected value before executing block&quot; do
+    lambda do
+      lambda { @instance.some_value = &quot;knot&quot; }.should change(@instance, :some_value).from(&quot;cat&quot;)
+    end.should fail_with(&quot;some_value should have initially been \&quot;cat\&quot;, but was \&quot;string\&quot;&quot;)
+  end
+end
+
+describe &quot;should change{ block }.from(old)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+
+  it &quot;should pass when attribute is == to expected value before executing block&quot; do
+    lambda { @instance.some_value = &quot;astring&quot; }.should change{@instance.some_value}.from(&quot;string&quot;)
+  end
+
+  it &quot;should fail when attribute is not == to expected value before executing block&quot; do
+    lambda do
+      lambda { @instance.some_value = &quot;knot&quot; }.should change{@instance.some_value}.from(&quot;cat&quot;)
+    end.should fail_with(&quot;result should have initially been \&quot;cat\&quot;, but was \&quot;string\&quot;&quot;)
+  end
+end
+
+describe &quot;should change(actual, message).to(new)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+  
+  it &quot;should pass when attribute is == to expected value after executing block&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change(@instance, :some_value).to(&quot;cat&quot;)
+  end
+
+  it &quot;should fail when attribute is not == to expected value after executing block&quot; do
+    lambda do
+      lambda { @instance.some_value = &quot;cat&quot; }.should change(@instance, :some_value).from(&quot;string&quot;).to(&quot;dog&quot;)
+    end.should fail_with(&quot;some_value should have been changed to \&quot;dog\&quot;, but is now \&quot;cat\&quot;&quot;)
+  end
+end
+
+describe &quot;should change{ block }.to(new)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+  
+  it &quot;should pass when attribute is == to expected value after executing block&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change{@instance.some_value}.to(&quot;cat&quot;)
+  end
+
+  it &quot;should fail when attribute is not == to expected value after executing block&quot; do
+    lambda do
+      lambda { @instance.some_value = &quot;cat&quot; }.should change{@instance.some_value}.from(&quot;string&quot;).to(&quot;dog&quot;)
+    end.should fail_with(&quot;result should have been changed to \&quot;dog\&quot;, but is now \&quot;cat\&quot;&quot;)
+  end
+end
+
+describe &quot;should change(actual, message).from(old).to(new)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+  
+  it &quot;should pass when #to comes before #from&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change(@instance, :some_value).to(&quot;cat&quot;).from(&quot;string&quot;)
+  end
+
+  it &quot;should pass when #from comes before #to&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change(@instance, :some_value).from(&quot;string&quot;).to(&quot;cat&quot;)
+  end
+end
+
+describe &quot;should change{ block }.from(old).to(new)&quot; do
+  before(:each) do
+    @instance = SomethingExpected.new
+    @instance.some_value = 'string'
+  end
+  
+  it &quot;should pass when #to comes before #from&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change{@instance.some_value}.to(&quot;cat&quot;).from(&quot;string&quot;)
+  end
+
+  it &quot;should pass when #from comes before #to&quot; do
+    lambda { @instance.some_value = &quot;cat&quot; }.should change{@instance.some_value}.from(&quot;string&quot;).to(&quot;cat&quot;)
+  end
+end
+
+describe Spec::Matchers::Change do
+  it &quot;should work when the receiver has implemented #send&quot; do
+    @instance = SomethingExpected.new
+    @instance.some_value = &quot;string&quot;
+    def @instance.send(*args); raise &quot;DOH! Library developers shouldn't use #send!&quot; end
+    
+    lambda {
+      lambda { @instance.some_value = &quot;cat&quot; }.should change(@instance, :some_value)
+    }.should_not raise_error
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,169 @@
+  <div id="fileHeader">
+    <h1>handler_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/matchers/handler_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module ExampleExpectations
+  
+  class ArbitraryMatcher
+    def initialize(*args, &amp;block)
+      if args.last.is_a? Hash
+        @expected = args.last[:expected]
+      end
+      if block_given?
+        @expected = block.call
+      end
+      @block = block
+    end
+    
+    def matches?(target)
+      @target = target
+      return @expected == target
+    end
+    
+    def with(new_value)
+      @expected = new_value
+      self
+    end
+    
+    def failure_message
+      &quot;expected #{@expected}, got #{@target}&quot;
+    end
+    
+    def negative_failure_message
+      &quot;expected not #{@expected}, got #{@target}&quot;
+    end
+  end
+  
+  class PositiveOnlyMatcher &lt; ArbitraryMatcher
+    undef negative_failure_message rescue nil
+  end
+  
+  def arbitrary_matcher(*args, &amp;block)
+    ArbitraryMatcher.new(*args, &amp;block)
+  end
+  
+  def positive_only_matcher(*args, &amp;block)
+    PositiveOnlyMatcher.new(*args, &amp;block)
+  end
+  
+end
+
+module Spec
+  module Expectations
+    describe ExpectationMatcherHandler do
+      describe &quot;#handle_matcher&quot; do
+        it &quot;should ask the matcher if it matches&quot; do
+          matcher = mock(&quot;matcher&quot;)
+          actual = Object.new
+          matcher.should_receive(:matches?).with(actual).and_return(true)
+          Spec::Expectations::ExpectationMatcherHandler.handle_matcher(actual, matcher)
+        end
+      
+        it &quot;should explain when the matcher parameter is not a matcher&quot; do
+          begin
+            nonmatcher = mock(&quot;nonmatcher&quot;)
+            actual = Object.new
+            Spec::Expectations::ExpectationMatcherHandler.handle_matcher(actual, nonmatcher)
+          rescue Spec::Expectations::InvalidMatcherError =&gt; e
+          end
+
+          e.message.should =~ /^Expected a matcher, got /
+        end
+        
+        it &quot;should return the match value&quot; do
+          matcher = mock(&quot;matcher&quot;)
+          actual = Object.new
+          matcher.should_receive(:matches?).with(actual).and_return(:this_value)
+          Spec::Expectations::ExpectationMatcherHandler.handle_matcher(actual, matcher).should == :this_value
+        end
+      end
+    end
+
+    describe NegativeExpectationMatcherHandler do
+      describe &quot;#handle_matcher&quot; do
+        it &quot;should explain when matcher does not support should_not&quot; do
+          matcher = mock(&quot;matcher&quot;)
+          matcher.stub!(:matches?)
+          actual = Object.new
+          lambda {
+            Spec::Expectations::NegativeExpectationMatcherHandler.handle_matcher(actual, matcher)
+          }.should fail_with(/Matcher does not support should_not.\n/)
+        end      
+      
+        it &quot;should ask the matcher if it matches&quot; do
+          matcher = mock(&quot;matcher&quot;)
+          actual = Object.new
+          matcher.stub!(:negative_failure_message)
+          matcher.should_receive(:matches?).with(actual).and_return(false)
+          Spec::Expectations::NegativeExpectationMatcherHandler.handle_matcher(actual, matcher)
+        end
+      
+        it &quot;should explain when the matcher parameter is not a matcher&quot; do
+          begin
+            nonmatcher = mock(&quot;nonmatcher&quot;)
+            actual = Object.new
+            Spec::Expectations::NegativeExpectationMatcherHandler.handle_matcher(actual, nonmatcher)
+          rescue Spec::Expectations::InvalidMatcherError =&gt; e
+          end
+
+          e.message.should =~ /^Expected a matcher, got /
+        end
+
+        
+        it &quot;should return the match value&quot; do
+          matcher = mock(&quot;matcher&quot;)
+          actual = Object.new
+          matcher.should_receive(:matches?).with(actual).and_return(false)
+          matcher.stub!(:negative_failure_message).and_return(&quot;ignore&quot;)
+          Spec::Expectations::NegativeExpectationMatcherHandler.handle_matcher(actual, matcher).should be_false
+        end
+      end
+    end
+    
+    describe ExpectationMatcherHandler do
+      include ExampleExpectations
+      
+      it &quot;should handle submitted args&quot; do
+        5.should arbitrary_matcher(:expected =&gt; 5)
+        5.should arbitrary_matcher(:expected =&gt; &quot;wrong&quot;).with(5)
+        lambda { 5.should arbitrary_matcher(:expected =&gt; 4) }.should fail_with(&quot;expected 4, got 5&quot;)
+        lambda { 5.should arbitrary_matcher(:expected =&gt; 5).with(4) }.should fail_with(&quot;expected 4, got 5&quot;)
+        5.should_not arbitrary_matcher(:expected =&gt; 4)
+        5.should_not arbitrary_matcher(:expected =&gt; 5).with(4)
+        lambda { 5.should_not arbitrary_matcher(:expected =&gt; 5) }.should fail_with(&quot;expected not 5, got 5&quot;)
+        lambda { 5.should_not arbitrary_matcher(:expected =&gt; 4).with(5) }.should fail_with(&quot;expected not 5, got 5&quot;)
+      end
+
+      it &quot;should handle the submitted block&quot; do
+        5.should arbitrary_matcher { 5 }
+        5.should arbitrary_matcher(:expected =&gt; 4) { 5 }
+        5.should arbitrary_matcher(:expected =&gt; 4).with(5) { 3 }
+      end
+  
+      it &quot;should explain when matcher does not support should_not&quot; do
+        lambda {
+          5.should_not positive_only_matcher(:expected =&gt; 5)
+        }.should fail_with(/Matcher does not support should_not.\n/)
+      end
+
+
+    end
+  end
+end
+</pre>
+    </div>

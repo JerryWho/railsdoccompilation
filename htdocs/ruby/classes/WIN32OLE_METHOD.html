@@ -1,0 +1,856 @@
+  <div id="C00000112">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />WIN32OLE_METHOD<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/ext/win32ole/win32ole_c.html');">ruby-1.8.7-p22/ext/win32ole/win32ole.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<tt><a
+href="index.html?a=C00000112&name=WIN32OLE_METHOD">WIN32OLE_METHOD</a></tt>
+objects represent OLE method information.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001248&name=dispid" >dispid</a></li>
+  <li><a href="index.html?a=M001243&name=event?" >event?</a></li>
+  <li><a href="index.html?a=M001244&name=event_interface" >event_interface</a></li>
+  <li><a href="index.html?a=M001247&name=helpcontext" >helpcontext</a></li>
+  <li><a href="index.html?a=M001246&name=helpfile" >helpfile</a></li>
+  <li><a href="index.html?a=M001245&name=helpstring" >helpstring</a></li>
+  <li><a href="index.html?a=M001241&name=invkind" >invkind</a></li>
+  <li><a href="index.html?a=M001240&name=invoke_kind" >invoke_kind</a></li>
+  <li><a href="index.html?a=M001236&name=name" >name</a></li>
+  <li><a href="index.html?a=M001235&name=new" >new</a></li>
+  <li><a href="index.html?a=M001249&name=offset_vtbl" >offset_vtbl</a></li>
+  <li><a href="index.html?a=M001252&name=params" >params</a></li>
+  <li><a href="index.html?a=M001237&name=return_type" >return_type</a></li>
+  <li><a href="index.html?a=M001239&name=return_type_detail" >return_type_detail</a></li>
+  <li><a href="index.html?a=M001238&name=return_vtype" >return_vtype</a></li>
+  <li><a href="index.html?a=M001251&name=size_opt_params" >size_opt_params</a></li>
+  <li><a href="index.html?a=M001250&name=size_params" >size_params</a></li>
+  <li><a href="index.html?a=M001253&name=to_s" >to_s</a></li>
+  <li><a href="index.html?a=M001242&name=visible?" >visible?</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001235" class="method">
+  <div id="M001235_title" class="title">
+    <b>WIN32OLE_METHOD.new(ole_type,  method) &rarr; WIN32OLE_METHOD object<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns a new <a
+href="index.html?a=C00000112&name=WIN32OLE_METHOD">WIN32OLE_METHOD</a>
+object which represents the information about OLE method. The first
+argument <em>ole_type</em> specifies <a
+href="index.html?a=C00000220&name=WIN32OLE_TYPE">WIN32OLE_TYPE</a> object.
+The second argument <em>method</em> specifies OLE method name defined OLE
+class which represents <a
+href="index.html?a=C00000220&name=WIN32OLE_TYPE">WIN32OLE_TYPE</a> object.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001235_source')" id="l_M001235_source">show source</a> ]</p>
+  <div id="M001235_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD.new(ole_type,  method) -&gt; WIN32OLE_METHOD object
+ * 
+ *  Returns a new WIN32OLE_METHOD object which represents the information
+ *  about OLE method.
+ *  The first argument &lt;i&gt;ole_type&lt;/i&gt; specifies WIN32OLE_TYPE object.
+ *  The second argument &lt;i&gt;method&lt;/i&gt; specifies OLE method name defined OLE class
+ *  which represents WIN32OLE_TYPE object.
+ *
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+ */
+static VALUE
+folemethod_initialize(self, oletype, method)
+    VALUE self;
+    VALUE oletype;
+    VALUE method;
+{
+    struct oletypedata *ptype;
+    VALUE obj = Qnil;
+    if (rb_obj_is_kind_of(oletype, cWIN32OLE_TYPE)) {
+        Check_SafeStr(method);
+        Data_Get_Struct(oletype, struct oletypedata, ptype);
+        obj = olemethod_from_typeinfo(self, ptype-&gt;pTypeInfo, method);
+        if (obj == Qnil) {
+            rb_raise(eWIN32OLE_RUNTIME_ERROR, &quot;not found %s&quot;,
+                     StringValuePtr(method));
+        }
+    }
+    else {
+        rb_raise(rb_eTypeError, &quot;1st argument should be WIN32OLE_TYPE object&quot;);
+    }
+    return obj;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001248" class="method">
+  <div id="M001248_title" class="title">
+    <b>WIN32OLE_METHOD#dispid<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns dispatch ID.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.dispid # =&gt; 181
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001248_source')" id="l_M001248_source">show source</a> ]</p>
+  <div id="M001248_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#dispid
+ * 
+ *  Returns dispatch ID.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.dispid # =&gt; 181
+ */
+static VALUE
+folemethod_dispid(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_dispid(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001243" class="method">
+  <div id="M001243_title" class="title">
+    <b>WIN32OLE_METHOD#event?<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns true if the method is event.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SheetActivate')
+   puts method.event? # =&gt; true
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001243_source')" id="l_M001243_source">show source</a> ]</p>
+  <div id="M001243_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#event?
+ * 
+ *  Returns true if the method is event.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SheetActivate')
+ *     puts method.event? # =&gt; true
+ *
+ */
+static VALUE
+folemethod_event(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    if (!pmethod-&gt;pOwnerTypeInfo)
+        return Qfalse;
+    return ole_method_event(pmethod-&gt;pOwnerTypeInfo, 
+                            pmethod-&gt;index,
+                            rb_ivar_get(self, rb_intern(&quot;name&quot;)));
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001244" class="method">
+  <div id="M001244_title" class="title">
+    <b>WIN32OLE_METHOD#event_interface<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns event interface name if the method is event.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+  method = WIN32OLE_METHOD.new(tobj, 'SheetActivate')
+  puts method.event_interface # =&gt;  WorkbookEvents
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001244_source')" id="l_M001244_source">show source</a> ]</p>
+  <div id="M001244_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#event_interface
+ *
+ *  Returns event interface name if the method is event.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *    method = WIN32OLE_METHOD.new(tobj, 'SheetActivate')
+ *    puts method.event_interface # =&gt;  WorkbookEvents
+ */
+static VALUE
+folemethod_event_interface(self)
+    VALUE self;
+{
+    BSTR name;
+    struct olemethoddata *pmethod;
+    HRESULT hr;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    if(folemethod_event(self) == Qtrue) {
+        hr = ole_docinfo_from_type(pmethod-&gt;pTypeInfo, &amp;name, NULL, NULL, NULL);
+        if(SUCCEEDED(hr))
+            return WC2VSTR(name);
+    }
+    return Qnil;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001247" class="method">
+  <div id="M001247_title" class="title">
+    <b>WIN32OLE_METHOD#helpcontext<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns help context.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.helpcontext # =&gt; 65717
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001247_source')" id="l_M001247_source">show source</a> ]</p>
+  <div id="M001247_source" class="dyn-source">
+<pre>
+/* 
+ *  call-seq:
+ *     WIN32OLE_METHOD#helpcontext
+ * 
+ *  Returns help context.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.helpcontext # =&gt; 65717
+ */
+static VALUE
+folemethod_helpcontext(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_helpcontext(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001246" class="method">
+  <div id="M001246_title" class="title">
+    <b>WIN32OLE_METHOD#helpfile<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns help file. If help file is not found, then the method returns nil.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.helpfile # =&gt; C:\...\VBAXL9.CHM
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001246_source')" id="l_M001246_source">show source</a> ]</p>
+  <div id="M001246_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#helpfile
+ * 
+ *  Returns help file. If help file is not found, then 
+ *  the method returns nil.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.helpfile # =&gt; C:\...\VBAXL9.CHM
+ */
+static VALUE
+folemethod_helpfile(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+
+    return ole_method_helpfile(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001245" class="method">
+  <div id="M001245_title" class="title">
+    <b>WIN32OLE_METHOD#helpstring<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns help string of OLE method. If the help string is not found, then
+the method returns nil.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Internet Controls', 'IWebBrowser')
+   method = WIN32OLE_METHOD.new(tobj, 'Navigate')
+   puts method.helpstring # =&gt; Navigates to a URL or file.
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001245_source')" id="l_M001245_source">show source</a> ]</p>
+  <div id="M001245_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#helpstring
+ *
+ *  Returns help string of OLE method. If the help string is not found, 
+ *  then the method returns nil.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Internet Controls', 'IWebBrowser')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Navigate')
+ *     puts method.helpstring # =&gt; Navigates to a URL or file.
+ *
+ */
+static VALUE
+folemethod_helpstring(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_helpstring(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001241" class="method">
+  <div id="M001241_title" class="title">
+    <b>WIN32OLE_MTHOD#invkind<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the method invoke kind.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+  method = WIN32OLE_METHOD.new(tobj, 'Add')
+  puts method.invkind # =&gt; 1
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001241_source')" id="l_M001241_source">show source</a> ]</p>
+  <div id="M001241_source" class="dyn-source">
+<pre>
+/*
+ *   call-seq:
+ *      WIN32OLE_MTHOD#invkind
+ * 
+ *   Returns the method invoke kind. 
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.invkind # =&gt; 1
+ *
+ */
+static VALUE
+folemethod_invkind(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_invkind(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001240" class="method">
+  <div id="M001240_title" class="title">
+    <b>WIN32OLE_METHOD#invoke_kind<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the method kind string. The string is &quot;UNKNOWN&quot; or
+&quot;PROPERTY&quot; or &quot;PROPERTY&quot; or &quot;PROPERTYGET&quot; or
+&quot;PROPERTYPUT&quot; or &quot;PROPERTYPPUTREF&quot; or &quot;FUNC&quot;.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.invoke_kind # =&gt; &quot;FUNC&quot;
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001240_source')" id="l_M001240_source">show source</a> ]</p>
+  <div id="M001240_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#invoke_kind
+ * 
+ *  Returns the method kind string. The string is &quot;UNKNOWN&quot; or &quot;PROPERTY&quot; 
+ *  or &quot;PROPERTY&quot; or &quot;PROPERTYGET&quot; or &quot;PROPERTYPUT&quot; or &quot;PROPERTYPPUTREF&quot; 
+ *  or &quot;FUNC&quot;.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.invoke_kind # =&gt; &quot;FUNC&quot;
+ */
+static VALUE
+folemethod_invoke_kind(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_invoke_kind(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001236" class="method">
+  <div id="M001236_title" class="title">
+    <b>name</b>()
+  </div>
+  <div class="description">
+  <p>
+call-seq
+</p>
+<pre>
+   WIN32OLE_METHOD#name
+</pre>
+<p>
+Returns the name of the method.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+   puts method.name # =&gt; SaveAs
+</pre>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001253&name=to_s">to_s</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001236_source')" id="l_M001236_source">show source</a> ]</p>
+  <div id="M001236_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq
+ *     WIN32OLE_METHOD#name
+ *
+ *  Returns the name of the method.
+ *
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+ *     puts method.name # =&gt; SaveAs
+ *     
+ */
+static VALUE
+folemethod_name(self)
+    VALUE self;
+{
+    return rb_ivar_get(self, rb_intern(&quot;name&quot;));
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001249" class="method">
+  <div id="M001249_title" class="title">
+    <b>WIN32OLE_METHOD#offset_vtbl<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the offset ov VTBL.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.offset_vtbl # =&gt; 40
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001249_source')" id="l_M001249_source">show source</a> ]</p>
+  <div id="M001249_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#offset_vtbl
+ * 
+ *  Returns the offset ov VTBL.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.offset_vtbl # =&gt; 40
+ */
+static VALUE
+folemethod_offset_vtbl(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_offset_vtbl(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001252" class="method">
+  <div id="M001252_title" class="title">
+    <b>WIN32OLE_METHOD#params<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+returns array of <a
+href="index.html?a=C00000244&name=WIN32OLE_PARAM">WIN32OLE_PARAM</a> object
+corresponding with method parameters.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+   p method.params # =&gt; [Filename, FileFormat, Password, WriteResPassword,
+                         ReadOnlyRecommended, CreateBackup, AccessMode,
+                         ConflictResolution, AddToMru, TextCodepage,
+                         TextVisualLayout]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001252_source')" id="l_M001252_source">show source</a> ]</p>
+  <div id="M001252_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#params
+ * 
+ *  returns array of WIN32OLE_PARAM object corresponding with method parameters.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+ *     p method.params # =&gt; [Filename, FileFormat, Password, WriteResPassword, 
+ *                           ReadOnlyRecommended, CreateBackup, AccessMode, 
+ *                           ConflictResolution, AddToMru, TextCodepage, 
+ *                           TextVisualLayout]
+ */
+static VALUE
+folemethod_params(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_params(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001237" class="method">
+  <div id="M001237_title" class="title">
+    <b>WIN32OLE_METHOD#return_type<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns string of return value type of method.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.return_type # =&gt; Workbook
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001237_source')" id="l_M001237_source">show source</a> ]</p>
+  <div id="M001237_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#return_type
+ * 
+ *  Returns string of return value type of method.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.return_type # =&gt; Workbook
+ *
+ */
+static VALUE
+folemethod_return_type(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_return_type(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001239" class="method">
+  <div id="M001239_title" class="title">
+    <b>WIN32OLE_METHOD#return_type_detail<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns detail information of return value type of method. The information
+is array.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   p method.return_type_detail # =&gt; [&quot;PTR&quot;, &quot;USERDEFINED&quot;, &quot;Workbook&quot;]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001239_source')" id="l_M001239_source">show source</a> ]</p>
+  <div id="M001239_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#return_type_detail
+ * 
+ *  Returns detail information of return value type of method.
+ *  The information is array.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     p method.return_type_detail # =&gt; [&quot;PTR&quot;, &quot;USERDEFINED&quot;, &quot;Workbook&quot;]
+ */
+static VALUE
+folemethod_return_type_detail(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_return_type_detail(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001238" class="method">
+  <div id="M001238_title" class="title">
+    <b>WIN32OLE_METHOD#return_vtype<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns number of return value type of method.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.return_vtype # =&gt; 26
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001238_source')" id="l_M001238_source">show source</a> ]</p>
+  <div id="M001238_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#return_vtype
+ * 
+ *  Returns number of return value type of method.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.return_vtype # =&gt; 26
+ *
+ */
+static VALUE
+folemethod_return_vtype(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_return_vtype(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001251" class="method">
+  <div id="M001251_title" class="title">
+    <b>WIN32OLE_METHOD#size_opt_params<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the size of optional parameters.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+   puts method.size_opt_params # =&gt; 4
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001251_source')" id="l_M001251_source">show source</a> ]</p>
+  <div id="M001251_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#size_opt_params
+ * 
+ *  Returns the size of optional parameters.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+ *     puts method.size_opt_params # =&gt; 4
+ */
+static VALUE
+folemethod_size_opt_params(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_size_opt_params(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001250" class="method">
+  <div id="M001250_title" class="title">
+    <b>WIN32OLE_METHOD#size_params<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns the size of arguments of the method.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+   method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+   puts method.size_params # =&gt; 11
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001250_source')" id="l_M001250_source">show source</a> ]</p>
+  <div id="M001250_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#size_params
+ * 
+ *  Returns the size of arguments of the method.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbook')
+ *     method = WIN32OLE_METHOD.new(tobj, 'SaveAs')
+ *     puts method.size_params # =&gt; 11
+ *  
+ */
+static VALUE
+folemethod_size_params(self)
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_size_params(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001253" class="method">
+  <div id="M001253_title" class="title">
+    <b>to_s</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M001236&name=name">name</a>
+</p>
+  </div>
+</div>
+<div id="M001242" class="method">
+  <div id="M001242_title" class="title">
+    <b>WIN32OLE_METHOD#visible?<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns true if the method is public.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+   method = WIN32OLE_METHOD.new(tobj, 'Add')
+   puts method.visible? # =&gt; true
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001242_source')" id="l_M001242_source">show source</a> ]</p>
+  <div id="M001242_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_METHOD#visible?
+ * 
+ *  Returns true if the method is public.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Workbooks')
+ *     method = WIN32OLE_METHOD.new(tobj, 'Add')
+ *     puts method.visible? # =&gt; true
+ */
+static VALUE
+folemethod_visible(self) 
+    VALUE self;
+{
+    struct olemethoddata *pmethod;
+    Data_Get_Struct(self, struct olemethoddata, pmethod);
+    return ole_method_visible(pmethod-&gt;pTypeInfo, pmethod-&gt;index);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

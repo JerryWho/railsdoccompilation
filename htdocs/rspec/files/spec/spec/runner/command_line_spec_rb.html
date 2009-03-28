@@ -1,0 +1,159 @@
+  <div id="fileHeader">
+    <h1>command_line_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/runner/command_line_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module Spec
+  module Runner
+    describe CommandLine, &quot;.run&quot; do
+      with_sandboxed_options do
+        attr_reader :err, :out
+        before do
+          @err = options.error_stream
+          @out = options.output_stream
+        end
+      
+        it &quot;should run directory&quot; do
+          file = File.dirname(__FILE__) + '/../../../examples/passing'
+          run_with(OptionParser.parse([file,&quot;-p&quot;,&quot;**/*_spec.rb,**/*_example.rb&quot;], @err, @out))
+
+          @out.rewind
+          @out.read.should =~ /\d+ examples, 0 failures, 3 pending/n
+        end
+
+        it &quot;should run file&quot; do
+          file = File.dirname(__FILE__) + '/../../../examples/failing/predicate_example.rb'
+          run_with(OptionParser.parse([file], @err, @out))
+
+          @out.rewind
+          @out.read.should =~ /3 examples, 2 failures/n
+        end
+
+        it &quot;should raise when file does not exist&quot; do
+          file = File.dirname(__FILE__) + '/doesntexist'
+
+          lambda {
+            Spec::Runner::CommandLine.run(OptionParser.parse([file], @err, @out))
+          }.should raise_error
+        end
+
+        it &quot;should return true when in --generate-options mode&quot; do
+          # NOTE - this used to say /dev/null but jruby hangs on that for some reason
+          Spec::Runner::CommandLine.run(
+            OptionParser.parse(['--generate-options', '/tmp/foo'], @err, @out)
+          ).should be_true
+        end
+
+        it &quot;should dump even if Interrupt exception is occurred&quot; do
+          example_group = Class.new(::Spec::Example::ExampleGroup) do
+            describe(&quot;example_group&quot;)
+            it &quot;no error&quot; do
+            end
+
+            it &quot;should interrupt&quot; do
+              raise Interrupt, &quot;I'm interrupting&quot;
+            end
+          end
+
+          options = ::Spec::Runner::Options.new(@err, @out)
+          ::Spec::Runner::Options.should_receive(:new).with(@err, @out).and_return(options)
+          options.reporter.should_receive(:dump)
+          options.add_example_group(example_group)
+
+          Spec::Runner::CommandLine.run(OptionParser.parse([], @err, @out))
+        end
+
+        it &quot;should heckle when options have heckle_runner&quot; do
+          example_group = Class.new(::Spec::Example::ExampleGroup).describe(&quot;example_group&quot;) do
+            it &quot;no error&quot; do
+            end
+          end
+          options = ::Spec::Runner::Options.new(@err, @out)
+          ::Spec::Runner::Options.should_receive(:new).with(@err, @out).and_return(options)
+          options.add_example_group example_group
+
+          heckle_runner = mock(&quot;heckle_runner&quot;)
+          heckle_runner.should_receive(:heckle_with)
+          $rspec_mocks.__send__(:mocks).delete(heckle_runner)
+
+          options.heckle_runner = heckle_runner
+          options.add_example_group(example_group)
+
+          Spec::Runner::CommandLine.run(OptionParser.parse([], @err, @out))
+          heckle_runner.rspec_verify
+        end
+
+        it &quot;should run examples backwards if options.reverse is true&quot; do
+          options = ::Spec::Runner::Options.new(@err, @out)
+          ::Spec::Runner::Options.should_receive(:new).with(@err, @out).and_return(options)
+          options.reverse = true
+
+          b1 = Class.new(Spec::Example::ExampleGroup)
+          b2 = Class.new(Spec::Example::ExampleGroup)
+
+          b2.should_receive(:run).ordered
+          b1.should_receive(:run).ordered
+
+          options.add_example_group(b1)
+          options.add_example_group(b2)
+
+          Spec::Runner::CommandLine.run(OptionParser.parse([], @err, @out))
+        end
+
+        it &quot;should pass its ExampleGroup to the reporter&quot; do
+          example_group = describe(&quot;example_group&quot;) do
+            it &quot;should&quot; do
+            end
+          end
+          options = ::Spec::Runner::Options.new(@err, @out)
+          options.add_example_group(example_group)
+
+          ::Spec::Runner::Options.should_receive(:new).with(@err, @out).and_return(options)
+          options.reporter.should_receive(:add_example_group).with(example_group)
+        
+          Spec::Runner::CommandLine.run(OptionParser.parse([], @err, @out))
+        end
+
+        it &quot;runs only selected Examples when options.examples is set&quot; do
+          options = ::Spec::Runner::Options.new(@err, @out)
+          ::Spec::Runner::Options.should_receive(:new).with(@err, @out).and_return(options)
+
+          options.examples &lt;&lt; &quot;example group expected example&quot;
+          expected_example_was_run = false
+          unexpected_example_was_run = false
+          example_group = describe(&quot;example group&quot;) do
+            it &quot;expected example&quot; do
+              expected_example_was_run = true
+            end
+            it &quot;unexpected example&quot; do
+              unexpected_example_was_run = true
+            end
+          end
+
+          options.reporter.should_receive(:add_example_group).with(example_group)
+
+          options.add_example_group example_group
+          run_with(options)
+
+          expected_example_was_run.should be_true
+          unexpected_example_was_run.should be_false
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

@@ -1,0 +1,128 @@
+  <div id="C00001124">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Open3<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/open3_rb.html');">ruby-1.8.7-p22/lib/open3.rb</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00001124&name=Open3">Open3</a> grants you access to
+stdin, stdout, and stderr when running another program. Example:
+</p>
+<pre>
+  require &quot;open3&quot;
+  include Open3
+
+  stdin, stdout, stderr = popen3('nroff -man')
+</pre>
+<p>
+<a href="index.html?a=M005902&name=Open3.popen3">Open3.popen3</a> can also
+take a block which will receive stdin, stdout and stderr as parameters.
+This ensures stdin, stdout and stderr are closed once the block exits.
+Example:
+</p>
+<pre>
+  require &quot;open3&quot;
+
+  Open3.popen3('nroff -man') { |stdin, stdout, stderr| ... }
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M005902&name=popen3" >popen3</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M005902" class="method">
+  <div id="M005902_title" class="title">
+    <b>popen3</b>(*cmd) {|| ...}
+  </div>
+  <div class="description">
+  <p>
+Open stdin, stdout, and stderr streams and start external executable.
+Non-block form:
+</p>
+<pre>
+  require 'open3'
+
+  [stdin, stdout, stderr] = Open3.popen3(cmd)
+</pre>
+<p>
+Block form:
+</p>
+<pre>
+  require 'open3'
+
+  Open3.popen3(cmd) { |stdin, stdout, stderr| ... }
+</pre>
+<p>
+The parameter <tt>cmd</tt> is passed directly to <a
+href="index.html?a=M006220&name=Kernel#exec">Kernel#exec</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005902_source')" id="l_M005902_source">show source</a> ]</p>
+  <div id="M005902_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/open3.rb, line 46</span>
+46:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">popen3</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">cmd</span>)
+47:     <span class="ruby-identifier">pw</span> = <span class="ruby-constant">IO</span><span class="ruby-operator">::</span><span class="ruby-identifier">pipe</span>   <span class="ruby-comment cmt"># pipe[0] for read, pipe[1] for write</span>
+48:     <span class="ruby-identifier">pr</span> = <span class="ruby-constant">IO</span><span class="ruby-operator">::</span><span class="ruby-identifier">pipe</span>
+49:     <span class="ruby-identifier">pe</span> = <span class="ruby-constant">IO</span><span class="ruby-operator">::</span><span class="ruby-identifier">pipe</span>
+50: 
+51:     <span class="ruby-identifier">pid</span> = <span class="ruby-identifier">fork</span>{
+52:       <span class="ruby-comment cmt"># child</span>
+53:       <span class="ruby-identifier">fork</span>{
+54:         <span class="ruby-comment cmt"># grandchild</span>
+55:         <span class="ruby-identifier">pw</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">close</span>
+56:         <span class="ruby-constant">STDIN</span>.<span class="ruby-identifier">reopen</span>(<span class="ruby-identifier">pw</span>[<span class="ruby-value">0</span>])
+57:         <span class="ruby-identifier">pw</span>[<span class="ruby-value">0</span>].<span class="ruby-identifier">close</span>
+58: 
+59:         <span class="ruby-identifier">pr</span>[<span class="ruby-value">0</span>].<span class="ruby-identifier">close</span>
+60:         <span class="ruby-constant">STDOUT</span>.<span class="ruby-identifier">reopen</span>(<span class="ruby-identifier">pr</span>[<span class="ruby-value">1</span>])
+61:         <span class="ruby-identifier">pr</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">close</span>
+62: 
+63:         <span class="ruby-identifier">pe</span>[<span class="ruby-value">0</span>].<span class="ruby-identifier">close</span>
+64:         <span class="ruby-constant">STDERR</span>.<span class="ruby-identifier">reopen</span>(<span class="ruby-identifier">pe</span>[<span class="ruby-value">1</span>])
+65:         <span class="ruby-identifier">pe</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">close</span>
+66: 
+67:         <span class="ruby-identifier">exec</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">cmd</span>)
+68:       }
+69:       <span class="ruby-identifier">exit!</span>(<span class="ruby-value">0</span>)
+70:     }
+71: 
+72:     <span class="ruby-identifier">pw</span>[<span class="ruby-value">0</span>].<span class="ruby-identifier">close</span>
+73:     <span class="ruby-identifier">pr</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">close</span>
+74:     <span class="ruby-identifier">pe</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">close</span>
+75:     <span class="ruby-constant">Process</span>.<span class="ruby-identifier">waitpid</span>(<span class="ruby-identifier">pid</span>)
+76:     <span class="ruby-identifier">pi</span> = [<span class="ruby-identifier">pw</span>[<span class="ruby-value">1</span>], <span class="ruby-identifier">pr</span>[<span class="ruby-value">0</span>], <span class="ruby-identifier">pe</span>[<span class="ruby-value">0</span>]]
+77:     <span class="ruby-identifier">pw</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">sync</span> = <span class="ruby-keyword kw">true</span>
+78:     <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span> <span class="ruby-keyword kw">yield</span>
+79:       <span class="ruby-keyword kw">begin</span>
+80:         <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">yield</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">pi</span>)
+81:       <span class="ruby-keyword kw">ensure</span>
+82:         <span class="ruby-identifier">pi</span>.<span class="ruby-identifier">each</span>{<span class="ruby-operator">|</span><span class="ruby-identifier">p</span><span class="ruby-operator">|</span> <span class="ruby-identifier">p</span>.<span class="ruby-identifier">close</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">p</span>.<span class="ruby-identifier">closed?</span>}
+83:       <span class="ruby-keyword kw">end</span>
+84:     <span class="ruby-keyword kw">end</span>
+85:     <span class="ruby-identifier">pi</span>
+86:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

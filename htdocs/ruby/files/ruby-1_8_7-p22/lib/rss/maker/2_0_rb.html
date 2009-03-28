@@ -1,0 +1,243 @@
+  <div id="fileHeader">
+    <h1>2.0.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/maker/2.0.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 11 02:26:47 -0600 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rss/2.0&quot;
+
+require &quot;rss/maker/0.9&quot;
+
+module RSS
+  module Maker
+    
+    class RSS20 &lt; RSS09
+      
+      def initialize(feed_version=&quot;2.0&quot;)
+        super
+      end
+
+      class Channel &lt; RSS09::Channel
+
+        private
+        def required_variable_names
+          %w(link)
+        end
+        
+        class SkipDays &lt; RSS09::Channel::SkipDays
+          class Day &lt; RSS09::Channel::SkipDays::Day
+          end
+        end
+        
+        class SkipHours &lt; RSS09::Channel::SkipHours
+          class Hour &lt; RSS09::Channel::SkipHours::Hour
+          end
+        end
+        
+        class Cloud &lt; RSS09::Channel::Cloud
+          def to_feed(rss, channel)
+            cloud = Rss::Channel::Cloud.new
+            set = setup_values(cloud)
+            if set
+              channel.cloud = cloud
+              set_parent(cloud, channel)
+              setup_other_elements(rss, cloud)
+            end
+          end
+
+          private
+          def required_variable_names
+            %w(domain port path registerProcedure protocol)
+          end
+        end
+
+        class Categories &lt; RSS09::Channel::Categories
+          def to_feed(rss, channel)
+            @categories.each do |category|
+              category.to_feed(rss, channel)
+            end
+          end
+          
+          class Category &lt; RSS09::Channel::Categories::Category
+            def to_feed(rss, channel)
+              category = Rss::Channel::Category.new
+              set = setup_values(category)
+              if set
+                channel.categories &lt;&lt; category
+                set_parent(category, channel)
+                setup_other_elements(rss, category)
+              end
+            end
+
+            private
+            def required_variable_names
+              %w(content)
+            end
+          end
+        end
+
+        class Generator &lt; GeneratorBase
+          def to_feed(rss, channel)
+            channel.generator = content
+          end
+
+          private
+          def required_variable_names
+            %w(content)
+          end
+        end
+      end
+      
+      class Image &lt; RSS09::Image
+        private
+        def required_element?
+          false
+        end
+      end
+      
+      class Items &lt; RSS09::Items
+        class Item &lt; RSS09::Items::Item
+          private
+          def required_variable_names
+            []
+          end
+
+          def not_set_required_variables
+            vars = super
+            if !title {|t| t.have_required_values?} and
+                !description {|d| d.have_required_values?}
+              vars &lt;&lt; &quot;title or description&quot;
+            end
+            vars
+          end
+
+          def variables
+            super + [&quot;pubDate&quot;]
+          end
+
+          class Guid &lt; RSS09::Items::Item::Guid
+            def to_feed(rss, item)
+              guid = Rss::Channel::Item::Guid.new
+              set = setup_values(guid)
+              if set
+                item.guid = guid
+                set_parent(guid, item)
+                setup_other_elements(rss, guid)
+              end
+            end
+
+            private
+            def required_variable_names
+              %w(content)
+            end
+          end
+
+          class Enclosure &lt; RSS09::Items::Item::Enclosure
+            def to_feed(rss, item)
+              enclosure = Rss::Channel::Item::Enclosure.new
+              set = setup_values(enclosure)
+              if set
+                item.enclosure = enclosure
+                set_parent(enclosure, item)
+                setup_other_elements(rss, enclosure)
+              end
+            end
+
+            private
+            def required_variable_names
+              %w(url length type)
+            end
+          end
+
+          class Source &lt; RSS09::Items::Item::Source
+            def to_feed(rss, item)
+              source = Rss::Channel::Item::Source.new
+              set = setup_values(source)
+              if set
+                item.source = source
+                set_parent(source, item)
+                setup_other_elements(rss, source)
+              end
+            end
+
+            private
+            def required_variable_names
+              %w(url content)
+            end
+
+            class Links &lt; RSS09::Items::Item::Source::Links
+              def to_feed(rss, source)
+                return if @links.empty?
+                @links.first.to_feed(rss, source)
+              end
+
+              class Link &lt; RSS09::Items::Item::Source::Links::Link
+                def to_feed(rss, source)
+                  source.url = href
+                end
+              end
+            end
+          end
+
+          class Categories &lt; RSS09::Items::Item::Categories
+            def to_feed(rss, item)
+              @categories.each do |category|
+                category.to_feed(rss, item)
+              end
+            end
+          
+            class Category &lt; RSS09::Items::Item::Categories::Category
+              def to_feed(rss, item)
+                category = Rss::Channel::Item::Category.new
+                set = setup_values(category)
+                if set
+                  item.categories &lt;&lt; category
+                  set_parent(category, item)
+                  setup_other_elements(rss)
+                end
+              end
+
+              private
+              def required_variable_names
+                %w(content)
+              end
+            end
+          end
+
+          class Authors &lt; RSS09::Items::Item::Authors
+            def to_feed(rss, item)
+              return if @authors.empty?
+              @authors.first.to_feed(rss, item)
+            end
+
+            class Author &lt; RSS09::Items::Item::Authors::Author
+              def to_feed(rss, item)
+                item.author = name
+              end
+            end
+          end
+        end
+      end
+      
+      class Textinput &lt; RSS09::Textinput
+      end
+    end
+    
+    add_maker(&quot;2.0&quot;, &quot;2.0&quot;, RSS20)
+    add_maker(&quot;rss2.0&quot;, &quot;2.0&quot;, RSS20)
+  end
+end
+</pre>
+    </div>

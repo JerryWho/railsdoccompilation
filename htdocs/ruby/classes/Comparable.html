@@ -1,0 +1,310 @@
+  <div id="C00001584">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Comparable<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/compar_c.html');">ruby-1.8.7-p22/compar.c</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+The <tt><a
+href="index.html?a=C00001584&name=Comparable">Comparable</a></tt> mixin is
+used by classes whose objects may be ordered. The class must define the
+<tt>&lt;=&gt;</tt> operator, which compares the receiver against another
+object, returning -1, 0, or +1 depending on whether the receiver is less
+than, equal to, or greater than the other object. <tt><a
+href="index.html?a=C00001584&name=Comparable">Comparable</a></tt> uses
+<tt>&lt;=&gt;</tt> to implement the conventional comparison operators
+(<tt>&lt;</tt>, <tt>&lt;=</tt>, <tt>==</tt>, <tt>&gt;=</tt>, and
+<tt>&gt;</tt>) and the method <tt>between?</tt>.
+</p>
+<pre>
+   class SizeMatters
+     include Comparable
+     attr :str
+     def &lt;=&gt;(anOther)
+       str.size &lt;=&gt; anOther.str.size
+     end
+     def initialize(str)
+       @str = str
+     end
+     def inspect
+       @str
+     end
+   end
+
+   s1 = SizeMatters.new(&quot;Z&quot;)
+   s2 = SizeMatters.new(&quot;YY&quot;)
+   s3 = SizeMatters.new(&quot;XXX&quot;)
+   s4 = SizeMatters.new(&quot;WWWW&quot;)
+   s5 = SizeMatters.new(&quot;VVVVV&quot;)
+
+   s1 &lt; s2                       #=&gt; true
+   s4.between?(s1, s3)           #=&gt; false
+   s4.between?(s3, s5)           #=&gt; true
+   [ s3, s2, s5, s4, s1 ].sort   #=&gt; [Z, YY, XXX, WWWW, VVVVV]
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M007781&name=&lt;" >&lt;</a></li>
+  <li><a href="index.html?a=M007782&name=&lt;=" >&lt;=</a></li>
+  <li><a href="index.html?a=M007778&name===" >==</a></li>
+  <li><a href="index.html?a=M007779&name=&gt;" >&gt;</a></li>
+  <li><a href="index.html?a=M007780&name=&gt;=" >&gt;=</a></li>
+  <li><a href="index.html?a=M007783&name=between?" >between?</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M007781" class="method">
+  <div id="M007781_title" class="title">
+    <b>obj < other    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Compares two objects based on the receiver&#8217;s <tt>&lt;=&gt;</tt>
+method, returning true if it returns -1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007781_source')" id="l_M007781_source">show source</a> ]</p>
+  <div id="M007781_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj &lt; other    =&gt; true or false
+ *  
+ *  Compares two objects based on the receiver's &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  method, returning true if it returns -1.
+ */
+
+static VALUE
+cmp_lt(x, y)
+    VALUE x, y;
+{
+    VALUE c = rb_funcall(x, cmp, 1, y);
+
+    if (NIL_P(c)) return cmperr();
+    if (rb_cmpint(c, x, y) &lt; 0) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007782" class="method">
+  <div id="M007782_title" class="title">
+    <b>obj <= other    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Compares two objects based on the receiver&#8217;s <tt>&lt;=&gt;</tt>
+method, returning true if it returns -1 or 0.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007782_source')" id="l_M007782_source">show source</a> ]</p>
+  <div id="M007782_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj &lt;= other    =&gt; true or false
+ *  
+ *  Compares two objects based on the receiver's &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  method, returning true if it returns -1 or 0.
+ */
+
+static VALUE
+cmp_le(x, y)
+    VALUE x, y;
+{
+    VALUE c = rb_funcall(x, cmp, 1, y);
+
+    if (NIL_P(c)) return cmperr();
+    if (rb_cmpint(c, x, y) &lt;= 0) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007778" class="method">
+  <div id="M007778_title" class="title">
+    <b>obj == other    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Compares two objects based on the receiver&#8217;s <tt>&lt;=&gt;</tt>
+method, returning true if it returns 0. Also returns true if <em>obj</em>
+and <em>other</em> are the same object.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007778_source')" id="l_M007778_source">show source</a> ]</p>
+  <div id="M007778_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj == other    =&gt; true or false
+ *  
+ *  Compares two objects based on the receiver's &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  method, returning true if it returns 0. Also returns true if
+ *  _obj_ and _other_ are the same object.
+ */
+
+static VALUE
+cmp_equal(x, y)
+    VALUE x, y;
+{
+    VALUE a[2];
+
+    if (x == y) return Qtrue;
+
+    a[0] = x; a[1] = y;
+    return rb_rescue(cmp_eq, (VALUE)a, cmp_failed, 0);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007779" class="method">
+  <div id="M007779_title" class="title">
+    <b>obj > other    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Compares two objects based on the receiver&#8217;s <tt>&lt;=&gt;</tt>
+method, returning true if it returns 1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007779_source')" id="l_M007779_source">show source</a> ]</p>
+  <div id="M007779_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj &gt; other    =&gt; true or false
+ *  
+ *  Compares two objects based on the receiver's &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  method, returning true if it returns 1.
+ */
+
+static VALUE
+cmp_gt(x, y)
+    VALUE x, y;
+{
+    VALUE c = rb_funcall(x, cmp, 1, y);
+
+    if (NIL_P(c)) return cmperr();
+    if (rb_cmpint(c, x, y) &gt; 0) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007780" class="method">
+  <div id="M007780_title" class="title">
+    <b>obj >= other    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Compares two objects based on the receiver&#8217;s <tt>&lt;=&gt;</tt>
+method, returning true if it returns 0 or 1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007780_source')" id="l_M007780_source">show source</a> ]</p>
+  <div id="M007780_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj &gt;= other    =&gt; true or false
+ *  
+ *  Compares two objects based on the receiver's &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  method, returning true if it returns 0 or 1.
+ */
+
+static VALUE
+cmp_ge(x, y)
+    VALUE x, y;
+{
+    VALUE c = rb_funcall(x, cmp, 1, y);
+
+    if (NIL_P(c)) return cmperr();
+    if (rb_cmpint(c, x, y) &gt;= 0) return Qtrue;
+    return Qfalse;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007783" class="method">
+  <div id="M007783_title" class="title">
+    <b>obj.between?(min, max)    => true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns <tt>false</tt> if <em>obj</em> <tt>&lt;=&gt;</tt> <em>min</em> is
+less than zero or if <em>anObject</em> <tt>&lt;=&gt;</tt> <em>max</em> is
+greater than zero, <tt>true</tt> otherwise.
+</p>
+<pre>
+   3.between?(1, 5)               #=&gt; true
+   6.between?(1, 5)               #=&gt; false
+   'cat'.between?('ant', 'dog')   #=&gt; true
+   'gnu'.between?('ant', 'dog')   #=&gt; false
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007783_source')" id="l_M007783_source">show source</a> ]</p>
+  <div id="M007783_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     obj.between?(min, max)    =&gt; true or false
+ *  
+ *  Returns &lt;code&gt;false&lt;/code&gt; if &lt;i&gt;obj&lt;/i&gt; &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  &lt;i&gt;min&lt;/i&gt; is less than zero or if &lt;i&gt;anObject&lt;/i&gt; &lt;code&gt;&lt;=&gt;&lt;/code&gt;
+ *  &lt;i&gt;max&lt;/i&gt; is greater than zero, &lt;code&gt;true&lt;/code&gt; otherwise.
+ *     
+ *     3.between?(1, 5)               #=&gt; true
+ *     6.between?(1, 5)               #=&gt; false
+ *     'cat'.between?('ant', 'dog')   #=&gt; true
+ *     'gnu'.between?('ant', 'dog')   #=&gt; false
+ *     
+ */
+
+static VALUE
+cmp_between(x, min, max)
+    VALUE x, min, max;
+{
+    if (RTEST(cmp_lt(x, min))) return Qfalse;
+    if (RTEST(cmp_gt(x, max))) return Qfalse;
+    return Qtrue;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

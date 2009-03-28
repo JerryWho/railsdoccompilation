@@ -1,0 +1,111 @@
+  <div id="fileHeader">
+    <h1>simple_matcher_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/matchers/simple_matcher_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+module Spec
+  module Matchers
+    describe SimpleMatcher do
+      it &quot;should pass match arg to block&quot; do
+        actual = nil
+        matcher = simple_matcher(&quot;message&quot;) do |given| actual = given end
+        matcher.matches?(&quot;foo&quot;)
+        actual.should == &quot;foo&quot;
+      end
+      
+      it &quot;should provide a stock failure message&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do end
+        matcher.matches?(&quot;other&quot;)
+        matcher.failure_message.should =~ /expected \&quot;thing\&quot; but got \&quot;other\&quot;/
+      end
+      
+      it &quot;should provide a stock negative failure message&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do end
+        matcher.matches?(&quot;other&quot;)
+        matcher.negative_failure_message.should =~ /expected not to get \&quot;thing\&quot;, but got \&quot;other\&quot;/
+      end
+      
+      it &quot;should provide the given description&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do end
+        matcher.description.should ==&quot;thing&quot;
+      end
+      
+      it &quot;should fail if a wrapped 'should' fails&quot; do
+        matcher = simple_matcher(&quot;should fail&quot;) do
+          2.should == 3
+        end
+        lambda do
+          matcher.matches?(&quot;anything&quot;).should be_true
+        end.should fail_with(/expected: 3/)
+      end
+    end
+    
+    describe &quot;with arity of 2&quot; do
+      it &quot;should provide the matcher so you can access its messages&quot; do
+        provided_matcher = nil
+        matcher = simple_matcher(&quot;thing&quot;) do |given, matcher|
+          provided_matcher = matcher
+        end
+        matcher.matches?(&quot;anything&quot;)
+        provided_matcher.should equal(matcher)
+      end
+      
+      it &quot;should support a custom failure message&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do |given, matcher|
+          matcher.failure_message = &quot;custom message&quot;
+        end
+        matcher.matches?(&quot;other&quot;)
+        matcher.failure_message.should == &quot;custom message&quot;
+      end
+
+      it &quot;should complain when asked for a failure message if you don't give it a description or a message&quot; do
+        matcher = simple_matcher do |given, matcher| end
+        matcher.matches?(&quot;other&quot;)
+        matcher.failure_message.should =~ /No description provided/
+      end
+
+      it &quot;should support a custom negative failure message&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do |given, matcher|
+          matcher.negative_failure_message = &quot;custom message&quot;
+        end
+        matcher.matches?(&quot;other&quot;)
+        matcher.negative_failure_message.should == &quot;custom message&quot;
+      end
+      
+      it &quot;should complain when asked for a negative failure message if you don't give it a description or a message&quot; do
+        matcher = simple_matcher do |given, matcher| end
+        matcher.matches?(&quot;other&quot;)
+        matcher.negative_failure_message.should =~ /No description provided/
+      end
+
+      it &quot;should support a custom description&quot; do
+        matcher = simple_matcher(&quot;thing&quot;) do |given, matcher|
+          matcher.description = &quot;custom message&quot;
+        end
+        matcher.matches?(&quot;description&quot;)
+        matcher.description.should == &quot;custom message&quot;
+      end
+
+      it &quot;should tell you no description was provided when it doesn't receive one&quot; do
+        matcher = simple_matcher do end
+        matcher.description.should =~ /No description provided/
+      end
+    end
+    
+  end
+end</pre>
+    </div>

@@ -1,0 +1,412 @@
+  <div id="fileHeader">
+    <h1>protocol.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/net/protocol.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Mar 18 21:39:22 -0500 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# = net/protocol.rb
+#
+#--
+# Copyright (c) 1999-2005 Yukihiro Matsumoto
+# Copyright (c) 1999-2005 Minero Aoki
+#
+# written and maintained by Minero Aoki &lt;aamine@loveruby.net&gt;
+#
+# This program is free software. You can re-distribute and/or
+# modify this program under the same terms as Ruby itself,
+# Ruby Distribute License or GNU General Public License.
+#
+# $Id: protocol.rb 12092 2007-03-19 02:39:22Z aamine $
+#++
+#
+# WARNING: This file is going to remove.
+# Do not rely on the implementation written in this file.
+#
+
+require 'socket'
+require 'timeout'
+
+module Net # :nodoc:
+
+  class Protocol   #:nodoc: internal use only
+    private
+    def Protocol.protocol_param(name, val)
+      module_eval(&lt;&lt;-End, __FILE__, __LINE__ + 1)
+        def #{name}
+          #{val}
+        end
+      End
+    end
+  end
+
+
+  class ProtocolError          &lt; StandardError; end
+  class ProtoSyntaxError       &lt; ProtocolError; end
+  class ProtoFatalError        &lt; ProtocolError; end
+  class ProtoUnknownError      &lt; ProtocolError; end
+  class ProtoServerError       &lt; ProtocolError; end
+  class ProtoAuthError         &lt; ProtocolError; end
+  class ProtoCommandError      &lt; ProtocolError; end
+  class ProtoRetriableError    &lt; ProtocolError; end
+  ProtocRetryError = ProtoRetriableError
+
+
+  class BufferedIO   #:nodoc: internal use only
+    def initialize(io)
+      @io = io
+      @read_timeout = 60
+      @debug_output = nil
+      @rbuf = ''
+    end
+
+    attr_reader :io
+    attr_accessor :read_timeout
+    attr_accessor :debug_output
+
+    def inspect
+      &quot;#&lt;#{self.class} io=#{@io}&gt;&quot;
+    end
+
+    def closed?
+      @io.closed?
+    end
+
+    def close
+      @io.close
+    end
+
+    #
+    # Read
+    #
+
+    public
+
+    def read(len, dest = '', ignore_eof = false)
+      LOG &quot;reading #{len} bytes...&quot;
+      read_bytes = 0
+      begin
+        while read_bytes + @rbuf.size &lt; len
+          dest &lt;&lt; (s = rbuf_consume(@rbuf.size))
+          read_bytes += s.size
+          rbuf_fill
+        end
+        dest &lt;&lt; (s = rbuf_consume(len - read_bytes))
+        read_bytes += s.size
+      rescue EOFError
+        raise unless ignore_eof
+      end
+      LOG &quot;read #{read_bytes} bytes&quot;
+      dest
+    end
+
+    def read_all(dest = '')
+      LOG 'reading all...'
+      read_bytes = 0
+      begin
+        while true
+          dest &lt;&lt; (s = rbuf_consume(@rbuf.size))
+          read_bytes += s.size
+          rbuf_fill
+        end
+      rescue EOFError
+        ;
+      end
+      LOG &quot;read #{read_bytes} bytes&quot;
+      dest
+    end
+
+    def readuntil(terminator, ignore_eof = false)
+      begin
+        until idx = @rbuf.index(terminator)
+          rbuf_fill
+        end
+        return rbuf_consume(idx + terminator.size)
+      rescue EOFError
+        raise unless ignore_eof
+        return rbuf_consume(@rbuf.size)
+      end
+    end
+        
+    def readline
+      readuntil(&quot;\n&quot;).chop
+    end
+
+    private
+
+    BUFSIZE = 1024 * 16
+
+    def rbuf_fill
+      timeout(@read_timeout) {
+        @rbuf &lt;&lt; @io.sysread(BUFSIZE)
+      }
+    end
+
+    def rbuf_consume(len)
+      s = @rbuf.slice!(0, len)
+      @debug_output &lt;&lt; %Q[-&gt; #{s.dump}\n] if @debug_output
+      s
+    end
+
+    #
+    # Write
+    #
+
+    public
+
+    def write(str)
+      writing {
+        write0 str
+      }
+    end
+
+    def writeline(str)
+      writing {
+        write0 str + &quot;\r\n&quot;
+      }
+    end
+
+    private
+
+    def writing
+      @written_bytes = 0
+      @debug_output &lt;&lt; '&lt;- ' if @debug_output
+      yield
+      @debug_output &lt;&lt; &quot;\n&quot; if @debug_output
+      bytes = @written_bytes
+      @written_bytes = nil
+      bytes
+    end
+
+    def write0(str)
+      @debug_output &lt;&lt; str.dump if @debug_output
+      len = @io.write(str)
+      @written_bytes += len
+      len
+    end
+
+    #
+    # Logging
+    #
+
+    private
+
+    def LOG_off
+      @save_debug_out = @debug_output
+      @debug_output = nil
+    end
+
+    def LOG_on
+      @debug_output = @save_debug_out
+    end
+
+    def LOG(msg)
+      return unless @debug_output
+      @debug_output &lt;&lt; msg + &quot;\n&quot;
+    end
+  end
+
+
+  class InternetMessageIO &lt; BufferedIO   #:nodoc: internal use only
+    def InternetMessageIO.old_open(addr, port,
+        open_timeout = nil, read_timeout = nil, debug_output = nil)
+      debug_output &lt;&lt; &quot;opening connection to #{addr}...\n&quot; if debug_output
+      s = timeout(open_timeout) { TCPsocket.new(addr, port) }
+      io = new(s)
+      io.read_timeout = read_timeout
+      io.debug_output = debug_output
+      io
+    end
+
+    def initialize(io)
+      super
+      @wbuf = nil
+    end
+
+    #
+    # Read
+    #
+
+    def each_message_chunk
+      LOG 'reading message...'
+      LOG_off()
+      read_bytes = 0
+      while (line = readuntil(&quot;\r\n&quot;)) != &quot;.\r\n&quot;
+        read_bytes += line.size
+        yield line.sub(/\A\./, '')
+      end
+      LOG_on()
+      LOG &quot;read message (#{read_bytes} bytes)&quot;
+    end
+  
+    # *library private* (cannot handle 'break')
+    def each_list_item
+      while (str = readuntil(&quot;\r\n&quot;)) != &quot;.\r\n&quot;
+        yield str.chop
+      end
+    end
+
+    def write_message_0(src)
+      prev = @written_bytes
+      each_crlf_line(src) do |line|
+        write0 line.sub(/\A\./, '..')
+      end
+      @written_bytes - prev
+    end
+
+    #
+    # Write
+    #
+
+    def write_message(src)
+      LOG &quot;writing message from #{src.class}&quot;
+      LOG_off()
+      len = writing {
+        using_each_crlf_line {
+          write_message_0 src
+        }
+      }
+      LOG_on()
+      LOG &quot;wrote #{len} bytes&quot;
+      len
+    end
+
+    def write_message_by_block(&amp;block)
+      LOG 'writing message from block'
+      LOG_off()
+      len = writing {
+        using_each_crlf_line {
+          begin
+            block.call(WriteAdapter.new(self, :write_message_0))
+          rescue LocalJumpError
+            # allow `break' from writer block
+          end
+        }
+      }
+      LOG_on()
+      LOG &quot;wrote #{len} bytes&quot;
+      len
+    end
+
+    private
+
+    def using_each_crlf_line
+      @wbuf = ''
+      yield
+      if not @wbuf.empty?   # unterminated last line
+        write0 @wbuf.chomp + &quot;\r\n&quot;
+      elsif @written_bytes == 0   # empty src
+        write0 &quot;\r\n&quot;
+      end
+      write0 &quot;.\r\n&quot;
+      @wbuf = nil
+    end
+
+    def each_crlf_line(src)
+      buffer_filling(@wbuf, src) do
+        while line = @wbuf.slice!(/\A.*(?:\n|\r\n|\r(?!\z))/n)
+          yield line.chomp(&quot;\n&quot;) + &quot;\r\n&quot;
+        end
+      end
+    end
+
+    def buffer_filling(buf, src)
+      case src
+      when String    # for speeding up.
+        0.step(src.size - 1, 1024) do |i|
+          buf &lt;&lt; src[i, 1024]
+          yield
+        end
+      when File    # for speeding up.
+        while s = src.read(1024)
+          buf &lt;&lt; s
+          yield
+        end
+      else    # generic reader
+        src.each do |s|
+          buf &lt;&lt; s
+          yield if buf.size &gt; 1024
+        end
+        yield unless buf.empty?
+      end
+    end
+  end
+
+
+  #
+  # The writer adapter class
+  #
+  class WriteAdapter
+    def initialize(socket, method)
+      @socket = socket
+      @method_id = method
+    end
+
+    def inspect
+      &quot;#&lt;#{self.class} socket=#{@socket.inspect}&gt;&quot;
+    end
+
+    def write(str)
+      @socket.__send__(@method_id, str)
+    end
+
+    alias print write
+
+    def &lt;&lt;(str)
+      write str
+      self
+    end
+
+    def puts(str = '')
+      write str.chomp(&quot;\n&quot;) + &quot;\n&quot;
+    end
+
+    def printf(*args)
+      write sprintf(*args)
+    end
+  end
+
+
+  class ReadAdapter   #:nodoc: internal use only
+    def initialize(block)
+      @block = block
+    end
+
+    def inspect
+      &quot;#&lt;#{self.class}&gt;&quot;
+    end
+
+    def &lt;&lt;(str)
+      call_block(str, &amp;@block) if @block
+    end
+
+    private
+
+    # This method is needed because @block must be called by yield,
+    # not Proc#call.  You can see difference when using `break' in
+    # the block.
+    def call_block(str)
+      yield str
+    end
+  end
+
+
+  module NetPrivate   #:nodoc: obsolete
+    Socket = ::Net::InternetMessageIO
+  end
+
+end   # module Net
+</pre>
+    </div>

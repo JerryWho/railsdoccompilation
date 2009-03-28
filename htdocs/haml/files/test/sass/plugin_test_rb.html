@@ -1,0 +1,180 @@
+  <div id="fileHeader">
+    <h1>plugin_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/plugin_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+require File.dirname(__FILE__) + '/../test_helper'
+require 'sass/plugin'
+require 'fileutils'
+
+class SassPluginTest &lt; Test::Unit::TestCase
+  @@templates = %w{
+    complex constants parent_ref import alt
+    subdir/subdir subdir/nested_subdir/nested_subdir
+  }
+
+  def setup
+    FileUtils.mkdir File.dirname(__FILE__) + '/tmp'
+    set_plugin_opts
+    Sass::Plugin.update_stylesheets
+  end
+
+  def teardown
+    FileUtils.rm_r File.dirname(__FILE__) + '/tmp'
+  end
+
+  def test_templates_should_render_correctly
+    @@templates.each { |name| assert_renders_correctly(name) }
+  end
+
+  def test_no_update
+    File.delete(tempfile_loc('basic'))
+    assert Sass::Plugin.stylesheet_needs_update?('basic')
+    Sass::Plugin.update_stylesheets
+    assert !Sass::Plugin.stylesheet_needs_update?('basic')
+  end
+
+  def test_update_needed_when_modified
+    sleep(1)
+    FileUtils.touch(template_loc('basic'))
+    assert Sass::Plugin.stylesheet_needs_update?('basic')
+    Sass::Plugin.update_stylesheets
+    assert !Sass::Plugin.stylesheet_needs_update?('basic')
+  end
+
+  def test_update_needed_when_dependency_modified
+    sleep(1)
+    FileUtils.touch(template_loc('basic'))
+    assert Sass::Plugin.stylesheet_needs_update?('import')
+    Sass::Plugin.update_stylesheets
+    assert !Sass::Plugin.stylesheet_needs_update?('import')
+  end
+
+  def test_full_exception_handling
+    File.delete(tempfile_loc('bork'))
+    Sass::Plugin.update_stylesheets
+    File.open(tempfile_loc('bork')) do |file|
+      assert_equal(&quot;/*\nSass::SyntaxError: Undefined constant: \&quot;!bork\&quot;.\non line 2 of #{File.dirname(__FILE__) + '/templates/bork.sass'}\n\n1: bork\n2:   :bork= !bork&quot;, file.read.split(&quot;\n&quot;)[0...6].join(&quot;\n&quot;))
+    end
+    File.delete(tempfile_loc('bork'))
+  end
+
+  def test_nonfull_exception_handling
+    Sass::Plugin.options[:full_exception] = false
+
+    File.delete(tempfile_loc('bork'))
+    Sass::Plugin.update_stylesheets
+    assert_equal(&quot;/* Internal stylesheet error */&quot;, File.read(tempfile_loc('bork')))
+    File.delete(tempfile_loc('bork'))
+
+    Sass::Plugin.options[:full_exception] = true
+  end
+
+  def test_rails_update    
+    File.delete(tempfile_loc('basic'))
+    assert Sass::Plugin.stylesheet_needs_update?('basic')
+
+    ActionController::Base.new.process
+
+    assert !Sass::Plugin.stylesheet_needs_update?('basic')
+  end
+
+  def test_merb_update
+    begin
+      require 'merb'
+    rescue LoadError
+      puts &quot;\nmerb couldn't be loaded, skipping a test&quot;
+      return
+    end
+    
+    require 'sass/plugin/merb'
+    if defined?(MerbHandler)
+      MerbHandler.send(:define_method, :process_without_sass) { |*args| }
+    else
+      Merb::Rack::Application.send(:define_method, :call_without_sass) { |*args| }
+    end
+
+    set_plugin_opts
+
+    File.delete(tempfile_loc('basic'))
+    assert Sass::Plugin.stylesheet_needs_update?('basic')
+    
+    if defined?(MerbHandler)
+      MerbHandler.new('.').process nil, nil
+    else
+      Merb::Rack::Application.new.call(::Rack::MockRequest.env_for('/'))
+    end
+
+    assert !Sass::Plugin.stylesheet_needs_update?('basic')
+  end
+
+  def test_doesnt_render_partials
+    assert !File.exists?(tempfile_loc('_partial'))
+  end
+
+ private
+
+  def assert_renders_correctly(name)
+    File.read(result_loc(name)).split(&quot;\n&quot;).zip(File.read(tempfile_loc(name)).split(&quot;\n&quot;)).each_with_index do |pair, line|
+      message = &quot;template: #{name}\nline:     #{line + 1}&quot;
+      assert_equal(pair.first, pair.last, message)
+    end
+  end
+
+  def template_loc(name)
+    File.dirname(__FILE__) + &quot;/templates/#{name}.sass&quot;
+  end
+
+  def tempfile_loc(name)
+    File.dirname(__FILE__) + &quot;/tmp/#{name}.css&quot;
+  end
+
+  def result_loc(name)
+    File.dirname(__FILE__) + &quot;/results/#{name}.css&quot;
+  end
+
+  def set_plugin_opts
+    Sass::Plugin.options = {
+      :template_location =&gt; File.dirname(__FILE__) + '/templates',
+      :css_location =&gt; File.dirname(__FILE__) + '/tmp',
+      :style =&gt; :compact,
+      :load_paths =&gt; [File.dirname(__FILE__) + '/results'],
+      :always_update =&gt; true,
+    }
+  end
+end
+
+module Sass::Plugin
+  class &lt;&lt; self
+    public :stylesheet_needs_update?
+  end
+end
+
+class Sass::Engine
+  alias_method :old_render, :render
+
+  def render
+    raise &quot;bork bork bork!&quot; if @template[0] == &quot;{bork now!}&quot;
+    old_render
+  end
+end
+
+class ActionController::Base
+  undef :sass_old_process
+  def sass_old_process(*args); end
+end
+</pre>
+    </div>

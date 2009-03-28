@@ -1,0 +1,168 @@
+  <div id="fileHeader">
+    <h1>partial_mock_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/mocks/partial_mock_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module Spec
+  module Mocks
+    describe &quot;using a Partial Mock,&quot; do
+      before(:each) do
+        @object = Object.new
+      end
+    
+      it &quot;should name the class in the failure message&quot; do
+        @object.should_receive(:foo)
+        lambda do
+          @object.rspec_verify
+        end.should raise_error(Spec::Mocks::MockExpectationError, /&lt;Object:.*&gt; expected/)
+      end
+    
+      it &quot;should name the class in the failure message when expectation is on class&quot; do
+        Object.should_receive(:foo)
+        lambda do
+          Object.rspec_verify
+        end.should raise_error(Spec::Mocks::MockExpectationError, /&lt;Object \(class\)&gt;/)
+      end
+    
+      it &quot;should not conflict with @options in the object&quot; do
+        @object.instance_eval { @options = Object.new }
+        @object.should_receive(:blah)
+        @object.blah
+      end
+            
+      it &quot;should_not_receive should mock out the method&quot; do
+        @object.should_not_receive(:fuhbar)
+        lambda do
+          @object.fuhbar
+        end.should raise_error(MockExpectationError, /&lt;Object:.*&gt; expected :fuhbar with \(no args\) 0 times/)
+      end
+    
+      it &quot;should_not_receive should return a negative message expectation&quot; do
+        @object.should_not_receive(:foobar).should be_kind_of(NegativeMessageExpectation)
+      end
+    
+      it &quot;should_receive should mock out the method&quot; do
+        @object.should_receive(:foobar).with(:test_param).and_return(1)
+        @object.foobar(:test_param).should equal(1)
+      end
+    
+      it &quot;should_receive should handle a hash&quot; do
+        @object.should_receive(:foobar).with(:key =&gt; &quot;value&quot;).and_return(1)
+        @object.foobar(:key =&gt; &quot;value&quot;).should equal(1)
+      end
+    
+      it &quot;should_receive should handle an inner hash&quot; do
+        hash = {:a =&gt; {:key =&gt; &quot;value&quot;}}
+        @object.should_receive(:foobar).with(:key =&gt; &quot;value&quot;).and_return(1)
+        @object.foobar(hash[:a]).should equal(1)
+      end
+    
+      it &quot;should_receive should return a message expectation&quot; do
+        @object.should_receive(:foobar).should be_kind_of(MessageExpectation)
+        @object.foobar
+      end
+    
+      it &quot;should_receive should verify method was called&quot; do
+        @object.should_receive(:foobar).with(:test_param).and_return(1)
+        lambda do
+          @object.rspec_verify
+        end.should raise_error(Spec::Mocks::MockExpectationError)
+      end
+    
+      it &quot;should_receive should also take a String argument&quot; do
+        @object.should_receive('foobar')
+        @object.foobar
+      end
+      
+      it &quot;should_not_receive should also take a String argument&quot; do
+        @object.should_not_receive('foobar')
+        lambda do
+          @object.foobar   
+        end.should raise_error(Spec::Mocks::MockExpectationError)
+      end
+      
+      it &quot;should use report nil in the error message&quot; do
+        allow_message_expectations_on_nil
+        
+        @this_will_resolve_to_nil.should_receive(:foobar)
+        lambda do
+          @this_will_resolve_to_nil.rspec_verify
+        end.should raise_error(Spec::Mocks::MockExpectationError, /nil expected :foobar with/)
+      end
+    end
+    
+    describe &quot;Partially mocking an object that defines ==, after another mock has been defined&quot; do
+      before(:each) do
+        stub(&quot;existing mock&quot;, :foo =&gt; :foo)
+      end
+      
+      class PartiallyMockedEquals
+        attr_reader :val
+        def initialize(val)
+          @val = val
+        end
+        
+        def ==(other)
+          @val == other.val
+        end
+      end
+      
+      it &quot;should not raise an error when stubbing the object&quot; do
+        o = PartiallyMockedEquals.new :foo
+        lambda { o.stub!(:bar) }.should_not raise_error(NoMethodError)
+      end
+    end
+
+    describe &quot;Method visibility when using partial mocks&quot; do
+      class MockableClass
+        def public_method
+          private_method
+          protected_method
+        end
+        protected
+        def protected_method; end
+        private
+        def private_method; end
+      end
+
+      before(:each) do
+        @object = MockableClass.new
+      end
+
+      it 'should keep public methods public' do
+        @object.should_receive(:public_method)
+        @object.public_methods.should include('public_method')
+        @object.public_method
+      end
+
+      it 'should keep private methods private' do
+        @object.should_receive(:private_method)
+        @object.private_methods.should include('private_method')
+        @object.public_method
+      end
+
+      it 'should keep protected methods protected' do
+        @object.should_receive(:protected_method)
+        @object.protected_methods.should include('protected_method')
+        @object.public_method
+      end
+
+    end
+  end
+end
+</pre>
+    </div>

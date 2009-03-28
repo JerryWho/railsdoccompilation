@@ -1,0 +1,1292 @@
+  <div id="C00000852">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />POP3<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/net/pop_rb.html');">ruby-1.8.7-p22/lib/net/pop.rb</a>
+
+Parent:&nbsp;
+Protocol
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><h1><a href="index.html?a=C00000852&name=Net::POP3">Net::POP3</a></h1>
+<h2>What is This Library?</h2>
+<p>
+This library provides functionality for retrieving email via <a
+href="index.html?a=C00000852&name=POP3">POP3</a>, the Post Office Protocol
+version 3. For details of <a
+href="index.html?a=C00000852&name=POP3">POP3</a>, see [RFC1939] (<a
+href="http://www.ietf.org/rfc/rfc1939.txt"
+target="_blank">http://www.ietf.org/rfc/rfc1939.txt</a>).
+</p>
+<h2>Examples</h2>
+<h3>Retrieving Messages</h3>
+<p>
+This example retrieves messages from the server and deletes them on the
+server.
+</p>
+<p>
+Messages are written to files named &#8216;inbox/1&#8217;,
+&#8216;inbox/2&#8217;, .&#8230; Replace &#8216;pop.example.com&#8217; with
+your <a href="index.html?a=C00000852&name=POP3">POP3</a> server address,
+and &#8216;YourAccount&#8217; and &#8216;YourPassword&#8217; with the
+appropriate account details.
+</p>
+<pre>
+    require 'net/pop'
+
+    pop = Net::POP3.new('pop.example.com')
+    pop.start('YourAccount', 'YourPassword')             # (1)
+    if pop.mails.empty?
+      puts 'No mail.'
+    else
+      i = 0
+      pop.each_mail do |m|   # or &quot;pop.mails.each ...&quot;   # (2)
+        File.open(&quot;inbox/#{i}&quot;, 'w') do |f|
+          f.write m.pop
+        end
+        m.delete
+        i += 1
+      end
+      puts &quot;#{pop.mails.size} mails popped.&quot;
+    end
+    pop.finish                                           # (3)
+</pre>
+<ol>
+<li>Call <a
+href="index.html?a=M004401&name=Net::POP3#start">Net::POP3#start</a> and
+start POP session.
+
+</li>
+<li>Access messages by using <a
+href="index.html?a=M004418&name=POP3#each_mail">POP3#each_mail</a> and/or
+<a href="index.html?a=M004417&name=POP3#mails">POP3#mails</a>.
+
+</li>
+<li>Close POP session by calling <a
+href="index.html?a=M004414&name=POP3#finish">POP3#finish</a> or use the
+block form of <a href="index.html?a=M004401&name=start">start</a>.
+
+</li>
+</ol>
+<h3>Shortened Code</h3>
+<p>
+The example above is very verbose. You can shorten the code by using some
+utility methods. First, the block form of <a
+href="index.html?a=M004401&name=Net::POP3.start">Net::POP3.start</a> can be
+used instead of <a href="index.html?a=M004402&name=POP3.new">POP3.new</a>,
+<a href="index.html?a=M004401&name=POP3#start">POP3#start</a> and <a
+href="index.html?a=M004414&name=POP3#finish">POP3#finish</a>.
+</p>
+<pre>
+    require 'net/pop'
+
+    Net::POP3.start('pop.example.com', 110,
+                    'YourAccount', 'YourPassword') do |pop|
+      if pop.mails.empty?
+        puts 'No mail.'
+      else
+        i = 0
+        pop.each_mail do |m|   # or &quot;pop.mails.each ...&quot;
+          File.open(&quot;inbox/#{i}&quot;, 'w') do |f|
+            f.write m.pop
+          end
+          m.delete
+          i += 1
+        end
+        puts &quot;#{pop.mails.size} mails popped.&quot;
+      end
+    end
+</pre>
+<p>
+<a href="index.html?a=M004391&name=POP3#delete_all">POP3#delete_all</a> is
+an alternative for <a
+href="index.html?a=M004418&name=each_mail">each_mail</a> and delete.
+</p>
+<pre>
+    require 'net/pop'
+
+    Net::POP3.start('pop.example.com', 110,
+                    'YourAccount', 'YourPassword') do |pop|
+      if pop.mails.empty?
+        puts 'No mail.'
+      else
+        i = 1
+        pop.delete_all do |m|
+          File.open(&quot;inbox/#{i}&quot;, 'w') do |f|
+            f.write m.pop
+          end
+          i += 1
+        end
+      end
+    end
+</pre>
+<p>
+And here is an even shorter example.
+</p>
+<pre>
+    require 'net/pop'
+
+    i = 0
+    Net::POP3.delete_all('pop.example.com', 110,
+                         'YourAccount', 'YourPassword') do |m|
+      File.open(&quot;inbox/#{i}&quot;, 'w') do |f|
+        f.write m.pop
+      end
+      i += 1
+    end
+</pre>
+<h3>Memory Space Issues</h3>
+<p>
+All the examples above get each message as one big string. This example
+avoids this.
+</p>
+<pre>
+    require 'net/pop'
+
+    i = 1
+    Net::POP3.delete_all('pop.example.com', 110,
+                         'YourAccount', 'YourPassword') do |m|
+      File.open(&quot;inbox/#{i}&quot;, 'w') do |f|
+        m.pop do |chunk|    # get a message little by little.
+          f.write chunk
+        end
+        i += 1
+      end
+    end
+</pre>
+<h3>Using <a href="index.html?a=M004389&name=APOP">APOP</a></h3>
+<p>
+The net/pop library supports <a
+href="index.html?a=M004389&name=APOP">APOP</a> authentication. To use <a
+href="index.html?a=M004389&name=APOP">APOP</a>, use the <a
+href="index.html?a=C00000897&name=Net::APOP">Net::APOP</a> class instead of
+the <a href="index.html?a=C00000852&name=Net::POP3">Net::POP3</a> class.
+You can use the utility method, <a
+href="index.html?a=M004389&name=Net::POP3.APOP">Net::POP3.APOP</a>(). For
+example:
+</p>
+<pre>
+    require 'net/pop'
+
+    # Use APOP authentication if $isapop == true
+    pop = Net::POP3.APOP($is_apop).new('apop.example.com', 110)
+    pop.start(YourAccount', 'YourPassword') do |pop|
+      # Rest of the code is the same.
+    end
+</pre>
+<h3>Fetch Only Selected <a href="index.html?a=C00000139&name=Mail">Mail</a> Using &#8216;UIDL&#8217; POP Command</h3>
+<p>
+If your POP server provides UIDL functionality, you can grab only selected
+mails from the POP server. e.g.
+</p>
+<pre>
+    def need_pop?( id )
+      # determine if we need pop this mail...
+    end
+
+    Net::POP3.start('pop.example.com', 110,
+                    'Your account', 'Your password') do |pop|
+      pop.mails.select { |m| need_pop?(m.unique_id) }.each do |m|
+        do_something(m.pop)
+      end
+    end
+</pre>
+<p>
+The <a
+href="index.html?a=M004433&name=POPMail#unique_id">POPMail#unique_id</a>()
+method returns the unique-id of the message as a <a
+href="index.html?a=C00000055&name=String">String</a>. Normally the
+unique-id is a hash of the message.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M004389&name=APOP" >APOP</a></li>
+  <li><a href="index.html?a=M004412&name=active?" >active?</a></li>
+  <li><a href="index.html?a=M004403&name=apop?" >apop?</a></li>
+  <li><a href="index.html?a=M004392&name=auth_only" >auth_only</a></li>
+  <li><a href="index.html?a=M004393&name=auth_only" >auth_only</a></li>
+  <li><a href="index.html?a=M004400&name=certs" >certs</a></li>
+  <li><a href="index.html?a=M004395&name=create_ssl_params" >create_ssl_params</a></li>
+  <li><a href="index.html?a=M004387&name=default_pop3_port" >default_pop3_port</a></li>
+  <li><a href="index.html?a=M004388&name=default_pop3s_port" >default_pop3s_port</a></li>
+  <li><a href="index.html?a=M004386&name=default_port" >default_port</a></li>
+  <li><a href="index.html?a=M004391&name=delete_all" >delete_all</a></li>
+  <li><a href="index.html?a=M004420&name=delete_all" >delete_all</a></li>
+  <li><a href="index.html?a=M004396&name=disable_ssl" >disable_ssl</a></li>
+  <li><a href="index.html?a=M004406&name=disable_ssl" >disable_ssl</a></li>
+  <li><a href="index.html?a=M004419&name=each" >each</a></li>
+  <li><a href="index.html?a=M004418&name=each_mail" >each_mail</a></li>
+  <li><a href="index.html?a=M004394&name=enable_ssl" >enable_ssl</a></li>
+  <li><a href="index.html?a=M004405&name=enable_ssl" >enable_ssl</a></li>
+  <li><a href="index.html?a=M004414&name=finish" >finish</a></li>
+  <li><a href="index.html?a=M004390&name=foreach" >foreach</a></li>
+  <li><a href="index.html?a=M004407&name=inspect" >inspect</a></li>
+  <li><a href="index.html?a=M004422&name=logging" >logging</a></li>
+  <li><a href="index.html?a=M004417&name=mails" >mails</a></li>
+  <li><a href="index.html?a=M004416&name=n_bytes" >n_bytes</a></li>
+  <li><a href="index.html?a=M004415&name=n_mails" >n_mails</a></li>
+  <li><a href="index.html?a=M004402&name=new" >new</a></li>
+  <li><a href="index.html?a=M004409&name=port" >port</a></li>
+  <li><a href="index.html?a=M004410&name=read_timeout=" >read_timeout=</a></li>
+  <li><a href="index.html?a=M004421&name=reset" >reset</a></li>
+  <li><a href="index.html?a=M004408&name=set_debug_output" >set_debug_output</a></li>
+  <li><a href="index.html?a=M004397&name=ssl_params" >ssl_params</a></li>
+  <li><a href="index.html?a=M004413&name=start" >start</a></li>
+  <li><a href="index.html?a=M004401&name=start" >start</a></li>
+  <li><a href="index.html?a=M004411&name=started?" >started?</a></li>
+  <li><a href="index.html?a=M004398&name=use_ssl?" >use_ssl?</a></li>
+  <li><a href="index.html?a=M004404&name=use_ssl?" >use_ssl?</a></li>
+  <li><a href="index.html?a=M004399&name=verify" >verify</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">Revision</td>
+    <td>=</td>
+    <td class="attr-value">%q$Revision: 16193 $.split[1]</td>
+  </tr>
+  </table>
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>address</td>
+    <td class='attr-desc'>
+The address to connect to.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[RW]
+    </td>
+    <td class='attr-name'>open_timeout</td>
+    <td class='attr-desc'>
+Seconds to wait until a connection is opened. If the <a
+href="index.html?a=C00000852&name=POP3">POP3</a> object cannot open a
+connection within this time, it raises a TimeoutError exception.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>read_timeout</td>
+    <td class='attr-desc'>
+Seconds to wait until reading one block (by one read(1) call). If the <a
+href="index.html?a=C00000852&name=POP3">POP3</a> object cannot complete a
+read() within this time, it raises a TimeoutError exception.
+
+</td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M004389" class="method">
+  <div id="M004389_title" class="title">
+    <b>APOP</b>(isapop)
+  </div>
+  <div class="description">
+  <p>
+Returns the <a href="index.html?a=M004389&name=APOP">APOP</a> class if
+<tt>isapop</tt> is true; otherwise, returns the POP class. For example:
+</p>
+<pre>
+    # Example 1
+    pop = Net::POP3::APOP($is_apop).new(addr, port)
+
+    # Example 2
+    Net::POP3::APOP($is_apop).start(addr, port) do |pop|
+      ....
+    end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004389_source')" id="l_M004389_source">show source</a> ]</p>
+  <div id="M004389_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 238</span>
+238:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-constant">APOP</span>(<span class="ruby-identifier">isapop</span>)
+239:       <span class="ruby-identifier">isapop</span> <span class="ruby-value">? </span><span class="ruby-constant">APOP</span> <span class="ruby-operator">:</span> <span class="ruby-constant">POP3</span>
+240:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004392" class="method">
+  <div id="M004392_title" class="title">
+    <b>auth_only</b>(address, port = nil, account = nil, password = nil, isapop = false)
+  </div>
+  <div class="description">
+  <p>
+Opens a <a href="index.html?a=C00000852&name=POP3">POP3</a> session,
+attempts authentication, and quits.
+</p>
+<p>
+This method raises <a
+href="index.html?a=C00000898&name=POPAuthenticationError">POPAuthenticationError</a>
+if authentication fails.
+</p>
+<h3>Example: normal <a href="index.html?a=C00000852&name=POP3">POP3</a></h3>
+<pre>
+    Net::POP3.auth_only('pop.example.com', 110,
+                        'YourAccount', 'YourPassword')
+</pre>
+<h3>Example: <a href="index.html?a=M004389&name=APOP">APOP</a></h3>
+<pre>
+    Net::POP3.auth_only('pop.example.com', 110,
+                        'YourAccount', 'YourPassword', true)
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004392_source')" id="l_M004392_source">show source</a> ]</p>
+  <div id="M004392_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 305</span>
+305:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">auth_only</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>,
+306:                        <span class="ruby-identifier">account</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">password</span> = <span class="ruby-keyword kw">nil</span>,
+307:                        <span class="ruby-identifier">isapop</span> = <span class="ruby-keyword kw">false</span>)
+308:       <span class="ruby-identifier">new</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span>, <span class="ruby-identifier">isapop</span>).<span class="ruby-identifier">auth_only</span> <span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>
+309:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004400" class="method">
+  <div id="M004400_title" class="title">
+    <b>certs</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004400_source')" id="l_M004400_source">show source</a> ]</p>
+  <div id="M004400_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 370</span>
+370:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">certs</span>
+371:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@ssl_params</span>[<span class="ruby-identifier">:ca_file</span>] <span class="ruby-operator">||</span> <span class="ruby-ivar">@ssl_params</span>[<span class="ruby-identifier">:ca_path</span>]
+372:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004395" class="method">
+  <div id="M004395_title" class="title">
+    <b>create_ssl_params</b>(verify_or_params = {}, certs = nil)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004395_source')" id="l_M004395_source">show source</a> ]</p>
+  <div id="M004395_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 336</span>
+336:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">create_ssl_params</span>(<span class="ruby-identifier">verify_or_params</span> = {}, <span class="ruby-identifier">certs</span> = <span class="ruby-keyword kw">nil</span>)
+337:       <span class="ruby-keyword kw">begin</span>
+338:         <span class="ruby-identifier">params</span> = <span class="ruby-identifier">verify_or_params</span>.<span class="ruby-identifier">to_hash</span>
+339:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">NoMethodError</span>
+340:         <span class="ruby-identifier">params</span> = {}
+341:         <span class="ruby-identifier">params</span>[<span class="ruby-identifier">:verify_mode</span>] = <span class="ruby-identifier">verify_or_params</span>
+342:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">certs</span>
+343:           <span class="ruby-keyword kw">if</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">file?</span>(<span class="ruby-identifier">certs</span>)
+344:             <span class="ruby-identifier">params</span>[<span class="ruby-identifier">:ca_file</span>] = <span class="ruby-identifier">certs</span>
+345:           <span class="ruby-keyword kw">elsif</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">directory?</span>(<span class="ruby-identifier">certs</span>)
+346:             <span class="ruby-identifier">params</span>[<span class="ruby-identifier">:ca_path</span>] = <span class="ruby-identifier">certs</span>
+347:           <span class="ruby-keyword kw">end</span>
+348:         <span class="ruby-keyword kw">end</span>
+349:       <span class="ruby-keyword kw">end</span>
+350:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">params</span>
+351:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004387" class="method">
+  <div id="M004387_title" class="title">
+    <b>default_pop3_port</b>()
+  </div>
+  <div class="description">
+  <p>
+The default port for <a href="index.html?a=C00000852&name=POP3">POP3</a>
+connections, port 110
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004387_source')" id="l_M004387_source">show source</a> ]</p>
+  <div id="M004387_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 210</span>
+210:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">default_pop3_port</span>
+211:       <span class="ruby-value">110</span>
+212:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004388" class="method">
+  <div id="M004388_title" class="title">
+    <b>default_pop3s_port</b>()
+  </div>
+  <div class="description">
+  <p>
+The default port for POP3S connections, port 995
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004388_source')" id="l_M004388_source">show source</a> ]</p>
+  <div id="M004388_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 215</span>
+215:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">default_pop3s_port</span>
+216:       <span class="ruby-value">995</span>
+217:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004386" class="method">
+  <div id="M004386_title" class="title">
+    <b>default_port</b>()
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=C00000299&name=Class">Class</a> Parameters
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004386_source')" id="l_M004386_source">show source</a> ]</p>
+  <div id="M004386_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 205</span>
+205:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">default_port</span>
+206:       <span class="ruby-identifier">default_pop3_port</span>()
+207:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004391" class="method">
+  <div id="M004391_title" class="title">
+    <b>delete_all</b>(address, port = nil, account = nil, password = nil, isapop = false, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+Starts a <a href="index.html?a=C00000852&name=POP3">POP3</a> session and
+deletes all messages on the server. If a block is given, each <a
+href="index.html?a=C00000857&name=POPMail">POPMail</a> object is yielded to
+it before being deleted.
+</p>
+<p>
+This method raises a <a
+href="index.html?a=C00000898&name=POPAuthenticationError">POPAuthenticationError</a>
+if authentication fails.
+</p>
+<h3>Example</h3>
+<pre>
+    Net::POP3.delete_all('pop.example.com', 110,
+                         'YourAccount', 'YourPassword') do |m|
+      file.write m.pop
+    end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004391_source')" id="l_M004391_source">show source</a> ]</p>
+  <div id="M004391_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 283</span>
+283:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">delete_all</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>,
+284:                         <span class="ruby-identifier">account</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">password</span> = <span class="ruby-keyword kw">nil</span>,
+285:                         <span class="ruby-identifier">isapop</span> = <span class="ruby-keyword kw">false</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+286:       <span class="ruby-identifier">start</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span>, <span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>, <span class="ruby-identifier">isapop</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">pop</span><span class="ruby-operator">|</span>
+287:         <span class="ruby-identifier">pop</span>.<span class="ruby-identifier">delete_all</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+288:       }
+289:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004396" class="method">
+  <div id="M004396_title" class="title">
+    <b>disable_ssl</b>()
+  </div>
+  <div class="description">
+  <p>
+Disable SSL for all new instances.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004396_source')" id="l_M004396_source">show source</a> ]</p>
+  <div id="M004396_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 354</span>
+354:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">disable_ssl</span>
+355:       <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-keyword kw">nil</span>
+356:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004394" class="method">
+  <div id="M004394_title" class="title">
+    <b>Net::POP.enable_ssl(params = {})<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Enable SSL for all new instances. <tt>params</tt> is passed to
+OpenSSL::SSLContext#set_params.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004394_source')" id="l_M004394_source">show source</a> ]</p>
+  <div id="M004394_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 332</span>
+332:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">enable_ssl</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+333:       <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-identifier">create_ssl_params</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+334:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004390" class="method">
+  <div id="M004390_title" class="title">
+    <b>foreach</b>(address, port = nil, account = nil, password = nil, isapop = false) {|message| ...}
+  </div>
+  <div class="description">
+  <p>
+Starts a <a href="index.html?a=C00000852&name=POP3">POP3</a> session and
+iterates over each <a
+href="index.html?a=C00000857&name=POPMail">POPMail</a> object, yielding it
+to the <tt>block</tt>. This method is equivalent to:
+</p>
+<pre>
+    Net::POP3.start(address, port, account, password) do |pop|
+      pop.each_mail do |m|
+        yield m
+      end
+    end
+</pre>
+<p>
+This method raises a <a
+href="index.html?a=C00000898&name=POPAuthenticationError">POPAuthenticationError</a>
+if authentication fails.
+</p>
+<h3>Example</h3>
+<pre>
+    Net::POP3.foreach('pop.example.com', 110,
+                      'YourAccount', 'YourPassword') do |m|
+      file.write m.pop
+      m.delete if $DELETE
+    end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004390_source')" id="l_M004390_source">show source</a> ]</p>
+  <div id="M004390_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 262</span>
+262:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>,
+263:                      <span class="ruby-identifier">account</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">password</span> = <span class="ruby-keyword kw">nil</span>,
+264:                      <span class="ruby-identifier">isapop</span> = <span class="ruby-keyword kw">false</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)  <span class="ruby-comment cmt"># :yields: message</span>
+265:       <span class="ruby-identifier">start</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span>, <span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>, <span class="ruby-identifier">isapop</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">pop</span><span class="ruby-operator">|</span>
+266:         <span class="ruby-identifier">pop</span>.<span class="ruby-identifier">each_mail</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+267:       }
+268:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004402" class="method">
+  <div id="M004402_title" class="title">
+    <b>new</b>(addr, port = nil, isapop = false)
+  </div>
+  <div class="description">
+  <p>
+Creates a new <a href="index.html?a=C00000852&name=POP3">POP3</a> object.
+</p>
+<p>
+<tt>address</tt> is the hostname or ip address of your <a
+href="index.html?a=C00000852&name=POP3">POP3</a> server.
+</p>
+<p>
+The optional <tt>port</tt> is the port to connect to.
+</p>
+<p>
+The optional <tt>isapop</tt> specifies whether this connection is going to
+use <a href="index.html?a=M004389&name=APOP">APOP</a> authentication; it
+defaults to <tt>false</tt>.
+</p>
+<p>
+This method does <b>not</b> open the TCP connection.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004402_source')" id="l_M004402_source">show source</a> ]</p>
+  <div id="M004402_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 410</span>
+410:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">addr</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">isapop</span> = <span class="ruby-keyword kw">false</span>)
+411:       <span class="ruby-ivar">@address</span> = <span class="ruby-identifier">addr</span>
+412:       <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">ssl_params</span>
+413:       <span class="ruby-ivar">@port</span> = <span class="ruby-identifier">port</span>
+414:       <span class="ruby-ivar">@apop</span> = <span class="ruby-identifier">isapop</span>
+415:       
+416:       <span class="ruby-ivar">@command</span> = <span class="ruby-keyword kw">nil</span>
+417:       <span class="ruby-ivar">@socket</span> = <span class="ruby-keyword kw">nil</span>
+418:       <span class="ruby-ivar">@started</span> = <span class="ruby-keyword kw">false</span>
+419:       <span class="ruby-ivar">@open_timeout</span> = <span class="ruby-value">30</span>
+420:       <span class="ruby-ivar">@read_timeout</span> = <span class="ruby-value">60</span>
+421:       <span class="ruby-ivar">@debug_output</span> = <span class="ruby-keyword kw">nil</span>
+422: 
+423:       <span class="ruby-ivar">@mails</span> = <span class="ruby-keyword kw">nil</span>
+424:       <span class="ruby-ivar">@n_mails</span> = <span class="ruby-keyword kw">nil</span>
+425:       <span class="ruby-ivar">@n_bytes</span> = <span class="ruby-keyword kw">nil</span>
+426:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004397" class="method">
+  <div id="M004397_title" class="title">
+    <b>ssl_params</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004397_source')" id="l_M004397_source">show source</a> ]</p>
+  <div id="M004397_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 358</span>
+358:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">ssl_params</span>
+359:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@ssl_params</span>
+360:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004401" class="method">
+  <div id="M004401_title" class="title">
+    <b>start</b>(address, port = nil, account = nil, password = nil, isapop = false) {|pop| ...}
+  </div>
+  <div class="description">
+  <p>
+Creates a new <a href="index.html?a=C00000852&name=POP3">POP3</a> object
+and open the connection. Equivalent to
+</p>
+<pre>
+  Net::POP3.new(address, port, isapop).start(account, password)
+</pre>
+<p>
+If <tt>block</tt> is provided, yields the newly-opened <a
+href="index.html?a=C00000852&name=POP3">POP3</a> object to it, and
+automatically closes it at the end of the session.
+</p>
+<h3>Example</h3>
+<pre>
+   Net::POP3.start(addr, port, account, password) do |pop|
+     pop.each_mail do |m|
+       file.write m.pop
+       m.delete
+     end
+   end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004401_source')" id="l_M004401_source">show source</a> ]</p>
+  <div id="M004401_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 394</span>
+394:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">start</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>,
+395:                    <span class="ruby-identifier">account</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">password</span> = <span class="ruby-keyword kw">nil</span>,
+396:                    <span class="ruby-identifier">isapop</span> = <span class="ruby-keyword kw">false</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)   <span class="ruby-comment cmt"># :yield: pop</span>
+397:       <span class="ruby-identifier">new</span>(<span class="ruby-identifier">address</span>, <span class="ruby-identifier">port</span>, <span class="ruby-identifier">isapop</span>).<span class="ruby-identifier">start</span>(<span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+398:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004398" class="method">
+  <div id="M004398_title" class="title">
+    <b>use_ssl?</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004398_source')" id="l_M004398_source">show source</a> ]</p>
+  <div id="M004398_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 362</span>
+362:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">use_ssl?</span>
+363:       <span class="ruby-keyword kw">return</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@ssl_params</span>.<span class="ruby-identifier">nil?</span>
+364:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004399" class="method">
+  <div id="M004399_title" class="title">
+    <b>verify</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004399_source')" id="l_M004399_source">show source</a> ]</p>
+  <div id="M004399_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 366</span>
+366:     <span class="ruby-keyword kw">def</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">verify</span>
+367:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@ssl_params</span>[<span class="ruby-identifier">:verify_mode</span>]
+368:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M004412" class="method">
+  <div id="M004412_title" class="title">
+    <b>active?</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M004411&name=started?">started?</a>
+</p>
+  </div>
+</div>
+<div id="M004403" class="method">
+  <div id="M004403_title" class="title">
+    <b>apop?</b>()
+  </div>
+  <div class="description">
+  <p>
+Does this instance use <a href="index.html?a=M004389&name=APOP">APOP</a>
+authentication?
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004403_source')" id="l_M004403_source">show source</a> ]</p>
+  <div id="M004403_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 429</span>
+429:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">apop?</span>
+430:       <span class="ruby-ivar">@apop</span>
+431:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004393" class="method">
+  <div id="M004393_title" class="title">
+    <b>auth_only</b>(account, password)
+  </div>
+  <div class="description">
+  <p>
+Starts a pop3 session, attempts authentication, and quits. This method must
+not be called while <a href="index.html?a=C00000852&name=POP3">POP3</a>
+session is opened. This method raises <a
+href="index.html?a=C00000898&name=POPAuthenticationError">POPAuthenticationError</a>
+if authentication fails.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004393_source')" id="l_M004393_source">show source</a> ]</p>
+  <div id="M004393_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 314</span>
+314:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">auth_only</span>(<span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>)
+315:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">IOError</span>, <span class="ruby-value str">'opening previously opened POP session'</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">started?</span>
+316:       <span class="ruby-identifier">start</span>(<span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>) {
+317:         ;
+318:       }
+319:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004420" class="method">
+  <div id="M004420_title" class="title">
+    <b>delete_all</b>( {|message| ...}
+  </div>
+  <div class="description">
+  <p>
+Deletes all messages on the server.
+</p>
+<p>
+If called with a block, yields each message in turn before deleting it.
+</p>
+<h3>Example</h3>
+<pre>
+    n = 1
+    pop.delete_all do |m|
+      File.open(&quot;inbox/#{n}&quot;) do |f|
+        f.write m.pop
+      end
+      n += 1
+    end
+</pre>
+<p>
+This method raises a <a
+href="index.html?a=C00000836&name=POPError">POPError</a> if an error
+occurs.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004420_source')" id="l_M004420_source">show source</a> ]</p>
+  <div id="M004420_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 666</span>
+666:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">delete_all</span> <span class="ruby-comment cmt"># :yield: message</span>
+667:       <span class="ruby-identifier">mails</span>().<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">m</span><span class="ruby-operator">|</span>
+668:         <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">m</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+669:         <span class="ruby-identifier">m</span>.<span class="ruby-identifier">delete</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">m</span>.<span class="ruby-identifier">deleted?</span>
+670:       <span class="ruby-keyword kw">end</span>
+671:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004406" class="method">
+  <div id="M004406_title" class="title">
+    <b>disable_ssl</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004406_source')" id="l_M004406_source">show source</a> ]</p>
+  <div id="M004406_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 455</span>
+455:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">disable_ssl</span>
+456:       <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-keyword kw">nil</span>
+457:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004419" class="method">
+  <div id="M004419_title" class="title">
+    <b>each</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M004418&name=each_mail">each_mail</a>
+</p>
+  </div>
+</div>
+<div id="M004418" class="method">
+  <div id="M004418_title" class="title">
+    <b>each_mail</b>() {|message| ...}
+  </div>
+  <div class="description">
+  <p>
+Yields each message to the passed-in block in turn. Equivalent to:
+</p>
+<pre>
+  pop3.mails.each do |popmail|
+    ....
+  end
+</pre>
+<p>
+This method raises a <a
+href="index.html?a=C00000836&name=POPError">POPError</a> if an error
+occurs.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M004419&name=each">each</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004418_source')" id="l_M004418_source">show source</a> ]</p>
+  <div id="M004418_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 644</span>
+644:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">each_mail</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)  <span class="ruby-comment cmt"># :yield: message</span>
+645:       <span class="ruby-identifier">mails</span>().<span class="ruby-identifier">each</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+646:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004405" class="method">
+  <div id="M004405_title" class="title">
+    <b>Net::POP#enable_ssl(params = {})<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Enables SSL for this instance. Must be called before the connection is
+established to have any effect. +params[:port]+ is port to establish the
+SSL connection on; Defaults to 995. <tt>params</tt> (except :port) is
+passed to OpenSSL::SSLContext#set_params.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004405_source')" id="l_M004405_source">show source</a> ]</p>
+  <div id="M004405_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 445</span>
+445:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">enable_ssl</span>(<span class="ruby-identifier">verify_or_params</span> = {}, <span class="ruby-identifier">certs</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>)
+446:       <span class="ruby-keyword kw">begin</span>
+447:         <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-identifier">verify_or_params</span>.<span class="ruby-identifier">to_hash</span>.<span class="ruby-identifier">dup</span>
+448:         <span class="ruby-ivar">@port</span> = <span class="ruby-ivar">@ssl_params</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">:port</span>) <span class="ruby-operator">||</span> <span class="ruby-ivar">@port</span>
+449:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">NoMethodError</span>
+450:         <span class="ruby-ivar">@ssl_params</span> = <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">create_ssl_params</span>(<span class="ruby-identifier">verify_or_params</span>, <span class="ruby-identifier">certs</span>)
+451:         <span class="ruby-ivar">@port</span> = <span class="ruby-identifier">port</span> <span class="ruby-operator">||</span> <span class="ruby-ivar">@port</span>
+452:       <span class="ruby-keyword kw">end</span>
+453:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004414" class="method">
+  <div id="M004414_title" class="title">
+    <b>finish</b>()
+  </div>
+  <div class="description">
+  <p>
+Finishes a <a href="index.html?a=C00000852&name=POP3">POP3</a> session and
+closes TCP connection.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004414_source')" id="l_M004414_source">show source</a> ]</p>
+  <div id="M004414_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 573</span>
+573:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">finish</span>
+574:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">IOError</span>, <span class="ruby-value str">'POP session not yet started'</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">started?</span>
+575:       <span class="ruby-identifier">do_finish</span>
+576:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004407" class="method">
+  <div id="M004407_title" class="title">
+    <b>inspect</b>()
+  </div>
+  <div class="description">
+  <p>
+Provide human-readable stringification of class state.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004407_source')" id="l_M004407_source">show source</a> ]</p>
+  <div id="M004407_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 460</span>
+460:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">inspect</span>
+461:       <span class="ruby-node">&quot;#&lt;#{self.class} #{@address}:#{@port} open=#{@started}&gt;&quot;</span>
+462:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004422" class="method">
+  <div id="M004422_title" class="title">
+    <b>logging</b>(msg)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004422_source')" id="l_M004422_source">show source</a> ]</p>
+  <div id="M004422_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 691</span>
+691:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">logging</span>(<span class="ruby-identifier">msg</span>)
+692:       <span class="ruby-ivar">@debug_output</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">msg</span> <span class="ruby-operator">+</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@debug_output</span>
+693:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004417" class="method">
+  <div id="M004417_title" class="title">
+    <b>mails</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns an array of <a
+href="index.html?a=C00000857&name=Net::POPMail">Net::POPMail</a> objects,
+representing all the messages on the server. This array is renewed when the
+session restarts; otherwise, it is fetched from the server the first time
+this method is called (directly or indirectly) and cached.
+</p>
+<p>
+This method raises a <a
+href="index.html?a=C00000836&name=POPError">POPError</a> if an error
+occurs.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004417_source')" id="l_M004417_source">show source</a> ]</p>
+  <div id="M004417_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 622</span>
+622:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mails</span>
+623:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@mails</span>.<span class="ruby-identifier">dup</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@mails</span>
+624:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">n_mails</span>() <span class="ruby-operator">==</span> <span class="ruby-value">0</span>
+625:         <span class="ruby-comment cmt"># some popd raises error for LIST on the empty mailbox.</span>
+626:         <span class="ruby-ivar">@mails</span> = []
+627:         <span class="ruby-keyword kw">return</span> []
+628:       <span class="ruby-keyword kw">end</span>
+629: 
+630:       <span class="ruby-ivar">@mails</span> = <span class="ruby-identifier">command</span>().<span class="ruby-identifier">list</span>.<span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">num</span>, <span class="ruby-identifier">size</span><span class="ruby-operator">|</span>
+631:         <span class="ruby-constant">POPMail</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">num</span>, <span class="ruby-identifier">size</span>, <span class="ruby-keyword kw">self</span>, <span class="ruby-identifier">command</span>())
+632:       }
+633:       <span class="ruby-ivar">@mails</span>.<span class="ruby-identifier">dup</span>
+634:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004416" class="method">
+  <div id="M004416_title" class="title">
+    <b>n_bytes</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns the total size in bytes of all the messages on the POP server.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004416_source')" id="l_M004416_source">show source</a> ]</p>
+  <div id="M004416_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 610</span>
+610:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">n_bytes</span>
+611:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@n_bytes</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@n_bytes</span>
+612:       <span class="ruby-ivar">@n_mails</span>, <span class="ruby-ivar">@n_bytes</span> = <span class="ruby-identifier">command</span>().<span class="ruby-identifier">stat</span>
+613:       <span class="ruby-ivar">@n_bytes</span>
+614:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004415" class="method">
+  <div id="M004415_title" class="title">
+    <b>n_mails</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns the number of messages on the POP server.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004415_source')" id="l_M004415_source">show source</a> ]</p>
+  <div id="M004415_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 603</span>
+603:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">n_mails</span>
+604:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@n_mails</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@n_mails</span>
+605:       <span class="ruby-ivar">@n_mails</span>, <span class="ruby-ivar">@n_bytes</span> = <span class="ruby-identifier">command</span>().<span class="ruby-identifier">stat</span>
+606:       <span class="ruby-ivar">@n_mails</span>
+607:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004409" class="method">
+  <div id="M004409_title" class="title">
+    <b>port</b>()
+  </div>
+  <div class="description">
+  <p>
+The port number to connect to.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004409_source')" id="l_M004409_source">show source</a> ]</p>
+  <div id="M004409_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 485</span>
+485:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">port</span>
+486:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@port</span> <span class="ruby-operator">||</span> (<span class="ruby-identifier">use_ssl?</span> <span class="ruby-value">? </span><span class="ruby-constant">POP3</span>.<span class="ruby-identifier">default_pop3s_port</span> <span class="ruby-operator">:</span> <span class="ruby-constant">POP3</span>.<span class="ruby-identifier">default_pop3_port</span>)
+487:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004410" class="method">
+  <div id="M004410_title" class="title">
+    <b>read_timeout=</b>(sec)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=C00000201&name=Set">Set</a> the read timeout.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004410_source')" id="l_M004410_source">show source</a> ]</p>
+  <div id="M004410_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 500</span>
+500:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">read_timeout=</span>(<span class="ruby-identifier">sec</span>)
+501:       <span class="ruby-ivar">@command</span>.<span class="ruby-identifier">socket</span>.<span class="ruby-identifier">read_timeout</span> = <span class="ruby-identifier">sec</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@command</span>
+502:       <span class="ruby-ivar">@read_timeout</span> = <span class="ruby-identifier">sec</span>
+503:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004421" class="method">
+  <div id="M004421_title" class="title">
+    <b>reset</b>()
+  </div>
+  <div class="description">
+  <p>
+Resets the session. This clears all &quot;deleted&quot; marks from
+messages.
+</p>
+<p>
+This method raises a <a
+href="index.html?a=C00000836&name=POPError">POPError</a> if an error
+occurs.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004421_source')" id="l_M004421_source">show source</a> ]</p>
+  <div id="M004421_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 676</span>
+676:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reset</span>
+677:       <span class="ruby-identifier">command</span>().<span class="ruby-identifier">rset</span>
+678:       <span class="ruby-identifier">mails</span>().<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">m</span><span class="ruby-operator">|</span>
+679:         <span class="ruby-identifier">m</span>.<span class="ruby-identifier">instance_eval</span> {
+680:           <span class="ruby-ivar">@deleted</span> = <span class="ruby-keyword kw">false</span>
+681:         }
+682:       <span class="ruby-keyword kw">end</span>
+683:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004408" class="method">
+  <div id="M004408_title" class="title">
+    <b>set_debug_output</b>(arg)
+  </div>
+  <div class="description">
+  <p>
+<b>WARNING</b>: This method causes a serious security hole. Use this method
+only for debugging.
+</p>
+<p>
+<a href="index.html?a=C00000201&name=Set">Set</a> an output stream for
+debugging.
+</p>
+<h3>Example</h3>
+<pre>
+  pop = Net::POP.new(addr, port)
+  pop.set_debug_output $stderr
+  pop.start(account, passwd) do |pop|
+    ....
+  end
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004408_source')" id="l_M004408_source">show source</a> ]</p>
+  <div id="M004408_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 477</span>
+477:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">set_debug_output</span>(<span class="ruby-identifier">arg</span>)
+478:       <span class="ruby-ivar">@debug_output</span> = <span class="ruby-identifier">arg</span>
+479:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004413" class="method">
+  <div id="M004413_title" class="title">
+    <b>start</b>(account, password) {|pop| ...}
+  </div>
+  <div class="description">
+  <p>
+Starts a <a href="index.html?a=C00000852&name=POP3">POP3</a> session.
+</p>
+<p>
+When called with block, gives a <a
+href="index.html?a=C00000852&name=POP3">POP3</a> object to the block and
+closes the session after block call finishes.
+</p>
+<p>
+This method raises a <a
+href="index.html?a=C00000898&name=POPAuthenticationError">POPAuthenticationError</a>
+if authentication fails.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004413_source')" id="l_M004413_source">show source</a> ]</p>
+  <div id="M004413_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 518</span>
+518:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">start</span>(<span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>) <span class="ruby-comment cmt"># :yield: pop</span>
+519:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">IOError</span>, <span class="ruby-value str">'POP session already started'</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@started</span>
+520:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+521:         <span class="ruby-keyword kw">begin</span>
+522:           <span class="ruby-identifier">do_start</span> <span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>
+523:           <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">yield</span>(<span class="ruby-keyword kw">self</span>)
+524:         <span class="ruby-keyword kw">ensure</span>
+525:           <span class="ruby-identifier">do_finish</span>
+526:         <span class="ruby-keyword kw">end</span>
+527:       <span class="ruby-keyword kw">else</span>
+528:         <span class="ruby-identifier">do_start</span> <span class="ruby-identifier">account</span>, <span class="ruby-identifier">password</span>
+529:         <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">self</span>
+530:       <span class="ruby-keyword kw">end</span>
+531:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004411" class="method">
+  <div id="M004411_title" class="title">
+    <b>started?</b>()
+  </div>
+  <div class="description">
+  <p>
+<tt>true</tt> if the <a href="index.html?a=C00000852&name=POP3">POP3</a>
+session has started.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M004412&name=active?">active?</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004411_source')" id="l_M004411_source">show source</a> ]</p>
+  <div id="M004411_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 506</span>
+506:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">started?</span>
+507:       <span class="ruby-ivar">@started</span>
+508:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004404" class="method">
+  <div id="M004404_title" class="title">
+    <b>use_ssl?</b>()
+  </div>
+  <div class="description">
+  <p>
+does this instance use SSL?
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004404_source')" id="l_M004404_source">show source</a> ]</p>
+  <div id="M004404_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/pop.rb, line 434</span>
+434:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">use_ssl?</span>
+435:       <span class="ruby-keyword kw">return</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@ssl_params</span>.<span class="ruby-identifier">nil?</span>
+436:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

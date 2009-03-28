@@ -1,0 +1,146 @@
+  <div id="fileHeader">
+    <h1>default_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/expectations/differs/default_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper.rb'
+
+module Spec
+  module Fixtures
+    class Animal
+      def initialize(name,species)
+        @name,@species = name,species
+      end
+
+      def inspect
+        &lt;&lt;-EOA
+&lt;Animal
+  name=#{@name},
+  species=#{@species}
+&gt;
+        EOA
+      end
+    end
+  end
+end
+
+describe &quot;Diff&quot; do
+  before(:each) do
+    @options = ::Spec::Runner::Options.new(StringIO.new, StringIO.new)
+    @differ = Spec::Expectations::Differs::Default.new(@options)
+  end
+
+  it &quot;should output unified diff of two strings&quot; do
+    expected=&quot;foo\nbar\nzap\nthis\nis\nsoo\nvery\nvery\nequal\ninsert\na\nline\n&quot;
+    actual=&quot;foo\nzap\nbar\nthis\nis\nsoo\nvery\nvery\nequal\ninsert\na\nanother\nline\n&quot;
+    expected_diff= &lt;&lt;'EOD'
+
+
+@@ -1,6 +1,6 @@
+ foo
+-zap
+ bar
++zap
+ this
+ is
+ soo
+@@ -9,6 +9,5 @@
+ equal
+ insert
+ a
+-another
+ line
+EOD
+
+    diff = @differ.diff_as_string(expected, actual)
+    diff.should eql(expected_diff)
+  end
+
+  it &quot;should output unified diff message of two arrays&quot; do
+    expected = [ :foo, 'bar', :baz, 'quux', :metasyntactic, 'variable', :delta, 'charlie', :width, 'quite wide' ]
+    actual   = [ :foo, 'bar', :baz, 'quux', :metasyntactic, 'variable', :delta, 'tango'  , :width, 'very wide'  ]
+
+    expected_diff = &lt;&lt;'EOD'
+
+
+@@ -5,7 +5,7 @@
+  :metasyntactic,
+  &quot;variable&quot;,
+  :delta,
+- &quot;tango&quot;,
++ &quot;charlie&quot;,
+  :width,
+- &quot;very wide&quot;]
++ &quot;quite wide&quot;]
+EOD
+
+
+    diff = @differ.diff_as_object(expected,actual)
+    diff.should == expected_diff
+  end
+
+  it &quot;should output unified diff message of two objects&quot; do
+    expected = Spec::Fixtures::Animal.new &quot;bob&quot;, &quot;giraffe&quot;
+    actual   = Spec::Fixtures::Animal.new &quot;bob&quot;, &quot;tortoise&quot;
+
+    expected_diff = &lt;&lt;'EOD'
+
+@@ -1,5 +1,5 @@
+ &lt;Animal
+   name=bob,
+-  species=tortoise
++  species=giraffe
+ &gt;
+EOD
+
+    diff = @differ.diff_as_object(expected,actual)
+    diff.should == expected_diff
+  end
+
+end
+
+
+describe &quot;Diff in context format&quot; do
+  before(:each) do
+    @options = Spec::Runner::Options.new(StringIO.new, StringIO.new)
+    @options.diff_format = :context
+    @differ = Spec::Expectations::Differs::Default.new(@options)
+  end
+
+  it &quot;should output unified diff message of two objects&quot; do
+    expected = Spec::Fixtures::Animal.new &quot;bob&quot;, &quot;giraffe&quot;
+    actual   = Spec::Fixtures::Animal.new &quot;bob&quot;, &quot;tortoise&quot;
+
+    expected_diff = &lt;&lt;'EOD'
+
+***************
+*** 1,5 ****
+  &lt;Animal
+    name=bob,
+!   species=tortoise
+  &gt;
+--- 1,5 ----
+  &lt;Animal
+    name=bob,
+!   species=giraffe
+  &gt;
+EOD
+
+    diff = @differ.diff_as_object(expected,actual)
+    diff.should == expected_diff
+  end
+end
+</pre>
+    </div>

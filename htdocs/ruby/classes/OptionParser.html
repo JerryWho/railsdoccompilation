@@ -1,0 +1,306 @@
+  <div id="C00000121">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />OptionParser<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/optparse_rb.html');">ruby-1.8.7-p22/lib/optparse.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><h2>Developer Documentation (not for <a href="index.html?a=C00000966&name=RDoc">RDoc</a> output)</h2>
+<h3><a href="index.html?a=C00000299&name=Class">Class</a> tree</h3>
+<ul>
+<li><a href="index.html?a=C00000121&name=OptionParser">OptionParser</a>:: front
+end
+
+</li>
+<li><a
+href="index.html?a=C00000128&name=OptionParser::Switch">OptionParser::Switch</a>::
+each switches
+
+</li>
+<li><a
+href="index.html?a=C00000132&name=OptionParser::List">OptionParser::List</a>::
+options list
+
+</li>
+<li><a
+href="index.html?a=C00000093&name=OptionParser::ParseError">OptionParser::ParseError</a>::
+errors on parsing
+
+<ul>
+<li><a
+href="index.html?a=C00000142&name=OptionParser::AmbiguousOption">OptionParser::AmbiguousOption</a>
+
+</li>
+<li><a
+href="index.html?a=C00000149&name=OptionParser::NeedlessArgument">OptionParser::NeedlessArgument</a>
+
+</li>
+<li><a
+href="index.html?a=C00000018&name=OptionParser::MissingArgument">OptionParser::MissingArgument</a>
+
+</li>
+<li><a
+href="index.html?a=C00000117&name=OptionParser::InvalidOption">OptionParser::InvalidOption</a>
+
+</li>
+<li><a
+href="index.html?a=C00000022&name=OptionParser::InvalidArgument">OptionParser::InvalidArgument</a>
+
+<ul>
+<li><a
+href="index.html?a=C00000212&name=OptionParser::AmbiguousArgument">OptionParser::AmbiguousArgument</a>
+
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3><a href="index.html?a=C00000023&name=Object">Object</a> relationship diagram</h3>
+<pre>
+  +--------------+
+  | OptionParser |&lt;&gt;-----+
+  +--------------+       |                      +--------+
+                         |                    ,-| Switch |
+       on_head --------&gt;+---------------+    /  +--------+
+       accept/reject --&gt;| List          |&lt;|&gt;-
+                        |               |&lt;|&gt;-  +----------+
+       on -------------&gt;+---------------+    `-| argument |
+                          :           :        |  class   |
+                        +---------------+      |==========|
+       on_tail --------&gt;|               |      |pattern   |
+                        +---------------+      |----------|
+  OptionParser.accept -&gt;| DefaultList   |      |converter |
+               reject   |(shared between|      +----------+
+                        | all instances)|
+                        +---------------+
+</pre>
+<h2><a href="index.html?a=C00000121&name=OptionParser">OptionParser</a></h2>
+<h3>Introduction</h3>
+<p>
+<a href="index.html?a=C00000121&name=OptionParser">OptionParser</a> is a
+class for command-line option analysis. It is much more advanced, yet also
+easier to use, than <a
+href="index.html?a=C00000133&name=GetoptLong">GetoptLong</a>, and is a more
+Ruby-oriented solution.
+</p>
+<h3>Features</h3>
+<ol>
+<li>The argument specification and the code to handle it are written in the
+same place.
+
+</li>
+<li>It can output an option summary; you don&#8217;t need to maintain this
+string separately.
+
+</li>
+<li>Optional and mandatory arguments are specified very gracefully.
+
+</li>
+<li>Arguments can be automatically converted to a specified class.
+
+</li>
+<li>Arguments can be restricted to a certain set.
+
+</li>
+</ol>
+<p>
+All of these features are demonstrated in the examples below.
+</p>
+<h3>Minimal example</h3>
+<pre>
+  require 'optparse'
+
+  options = {}
+  OptionParser.new do |opts|
+    opts.banner = &quot;Usage: example.rb [options]&quot;
+
+    opts.on(&quot;-v&quot;, &quot;--[no-]verbose&quot;, &quot;Run verbosely&quot;) do |v|
+      options[:verbose] = v
+    end
+  end.parse!
+
+  p options
+  p ARGV
+</pre>
+<h3>Complete example</h3>
+<p>
+The following example is a complete Ruby program. You can run it and see
+the effect of specifying various options. This is probably the best way to
+learn the features of <tt>optparse</tt>.
+</p>
+<pre>
+  require 'optparse'
+  require 'optparse/time'
+  require 'ostruct'
+  require 'pp'
+
+  class OptparseExample
+
+    CODES = %w[iso-2022-jp shift_jis euc-jp utf8 binary]
+    CODE_ALIASES = { &quot;jis&quot; =&gt; &quot;iso-2022-jp&quot;, &quot;sjis&quot; =&gt; &quot;shift_jis&quot; }
+
+    #
+    # Return a structure describing the options.
+    #
+    def self.parse(args)
+      # The options specified on the command line will be collected in *options*.
+      # We set default values here.
+      options = OpenStruct.new
+      options.library = []
+      options.inplace = false
+      options.encoding = &quot;utf8&quot;
+      options.transfer_type = :auto
+      options.verbose = false
+
+      opts = OptionParser.new do |opts|
+        opts.banner = &quot;Usage: example.rb [options]&quot;
+
+        opts.separator &quot;&quot;
+        opts.separator &quot;Specific options:&quot;
+
+        # Mandatory argument.
+        opts.on(&quot;-r&quot;, &quot;--require LIBRARY&quot;,
+                &quot;Require the LIBRARY before executing your script&quot;) do |lib|
+          options.library &lt;&lt; lib
+        end
+
+        # Optional argument; multi-line description.
+        opts.on(&quot;-i&quot;, &quot;--inplace [EXTENSION]&quot;,
+                &quot;Edit ARGV files in place&quot;,
+                &quot;  (make backup if EXTENSION supplied)&quot;) do |ext|
+          options.inplace = true
+          options.extension = ext || ''
+          options.extension.sub!(/\A\.?(?=.)/, &quot;.&quot;)  # Ensure extension begins with dot.
+        end
+
+        # Cast 'delay' argument to a Float.
+        opts.on(&quot;--delay N&quot;, Float, &quot;Delay N seconds before executing&quot;) do |n|
+          options.delay = n
+        end
+
+        # Cast 'time' argument to a Time object.
+        opts.on(&quot;-t&quot;, &quot;--time [TIME]&quot;, Time, &quot;Begin execution at given time&quot;) do |time|
+          options.time = time
+        end
+
+        # Cast to octal integer.
+        opts.on(&quot;-F&quot;, &quot;--irs [OCTAL]&quot;, OptionParser::OctalInteger,
+                &quot;Specify record separator (default \\0)&quot;) do |rs|
+          options.record_separator = rs
+        end
+
+        # List of arguments.
+        opts.on(&quot;--list x,y,z&quot;, Array, &quot;Example 'list' of arguments&quot;) do |list|
+          options.list = list
+        end
+
+        # Keyword completion.  We are specifying a specific set of arguments (CODES
+        # and CODE_ALIASES - notice the latter is a Hash), and the user may provide
+        # the shortest unambiguous text.
+        code_list = (CODE_ALIASES.keys + CODES).join(',')
+        opts.on(&quot;--code CODE&quot;, CODES, CODE_ALIASES, &quot;Select encoding&quot;,
+                &quot;  (#{code_list})&quot;) do |encoding|
+          options.encoding = encoding
+        end
+
+        # Optional argument with keyword completion.
+        opts.on(&quot;--type [TYPE]&quot;, [:text, :binary, :auto],
+                &quot;Select transfer type (text, binary, auto)&quot;) do |t|
+          options.transfer_type = t
+        end
+
+        # Boolean switch.
+        opts.on(&quot;-v&quot;, &quot;--[no-]verbose&quot;, &quot;Run verbosely&quot;) do |v|
+          options.verbose = v
+        end
+
+        opts.separator &quot;&quot;
+        opts.separator &quot;Common options:&quot;
+
+        # No argument, shows at tail.  This will print an options summary.
+        # Try it and see!
+        opts.on_tail(&quot;-h&quot;, &quot;--help&quot;, &quot;Show this message&quot;) do
+          puts opts
+          exit
+        end
+
+        # Another typical switch to print the version.
+        opts.on_tail(&quot;--version&quot;, &quot;Show version&quot;) do
+          puts OptionParser::Version.join('.')
+          exit
+        end
+      end
+
+      opts.parse!(args)
+      options
+    end  # parse()
+
+  end  # class OptparseExample
+
+  options = OptparseExample.parse(ARGV)
+  pp options
+</pre>
+<h3>Further documentation</h3>
+<p>
+The above examples should be enough to learn how to use this class. If you
+have any questions, email me (gsinclair@soyabean.com.au) and I will update
+this document.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001305&name=switch_name" >switch_name</a></li>
+  </ul>
+
+
+
+  <div class="sectiontitle">Classes and Modules</div>
+  Module "<a href="#" onclick="jsHref('classes/OptionParser/Completion.html');" class="link">OptionParser::Completion</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/NoArgument.html');" class="link">OptionParser::NoArgument</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/OptionMap.html');" class="link">OptionParser::OptionMap</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/OptionalArgument.html');" class="link">OptionParser::OptionalArgument</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/PlacedArgument.html');" class="link">OptionParser::PlacedArgument</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/RequiredArgument.html');" class="link">OptionParser::RequiredArgument</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/OptionParser/Switch.html');" class="link">OptionParser::Switch</a>"<br />
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001305" class="method">
+  <div id="M001305_title" class="title">
+    <b>switch_name</b>()
+  </div>
+  <div class="description">
+  <p>
+Main name of the switch.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001305_source')" id="l_M001305_source">show source</a> ]</p>
+  <div id="M001305_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/optparse.rb, line 416</span>
+416:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">switch_name</span>
+417:       (<span class="ruby-identifier">long</span>.<span class="ruby-identifier">first</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">short</span>.<span class="ruby-identifier">first</span>).<span class="ruby-identifier">sub</span>(<span class="ruby-regexp re">/\A-+(?:\[no-\])?/</span>, <span class="ruby-value str">''</span>)
+418:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

@@ -1,0 +1,141 @@
+  <div id="fileHeader">
+    <h1>xmlscanner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/xmlscanner.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'xmlscan/scanner'
+require 'stringio'
+
+module RSS
+  
+  class XMLScanParser &lt; BaseParser
+    
+    class &lt;&lt; self
+      def listener
+        XMLScanListener
+      end
+    end
+    
+    private
+    def _parse
+      begin
+        if @rss.is_a?(String)
+          input = StringIO.new(@rss)
+        else
+          input = @rss
+        end
+        scanner = XMLScan::XMLScanner.new(@listener)
+        scanner.parse(input)
+      rescue XMLScan::Error =&gt; e
+        lineno = e.lineno || scanner.lineno || input.lineno
+        raise NotWellFormedError.new(lineno){e.message}
+      end
+    end
+    
+  end
+
+  class XMLScanListener &lt; BaseListener
+    
+    include XMLScan::Visitor
+    include ListenerMixin
+
+    ENTITIES = {
+      'lt' =&gt; '&lt;',
+      'gt' =&gt; '&gt;',
+      'amp' =&gt; '&amp;',
+      'quot' =&gt; '&quot;',
+      'apos' =&gt; '\''
+    }
+
+    def on_xmldecl_version(str)
+      @version = str
+    end
+
+    def on_xmldecl_encoding(str)
+      @encoding = str
+    end
+
+    def on_xmldecl_standalone(str)
+      @standalone = str
+    end
+
+    def on_xmldecl_end
+      xmldecl(@version, @encoding, @standalone == &quot;yes&quot;)
+    end
+
+    alias_method(:on_pi, :instruction)
+    alias_method(:on_chardata, :text)
+    alias_method(:on_cdata, :text)
+
+    def on_etag(name)
+      tag_end(name)
+    end
+
+    def on_entityref(ref)
+      text(entity(ref))
+    end
+
+    def on_charref(code)
+      text([code].pack('U'))
+    end
+
+    alias_method(:on_charref_hex, :on_charref)
+
+    def on_stag(name)
+      @attrs = {}
+    end
+
+    def on_attribute(name)
+      @attrs[name] = @current_attr = ''
+    end
+
+    def on_attr_value(str)
+      @current_attr &lt;&lt; str
+    end
+
+    def on_attr_entityref(ref)
+      @current_attr &lt;&lt; entity(ref)
+    end
+
+    def on_attr_charref(code)
+      @current_attr &lt;&lt; [code].pack('U')
+    end
+
+    alias_method(:on_attr_charref_hex, :on_attr_charref)
+
+    def on_stag_end(name)
+      tag_start(name, @attrs)
+    end
+
+    def on_stag_end_empty(name)
+      tag_start(name, @attrs)
+      tag_end(name)
+    end
+
+    private
+    def entity(ref)
+      ent = ENTITIES[ref]
+      if ent
+        ent
+      else
+        wellformed_error(&quot;undefined entity: #{ref}&quot;)
+      end
+    end
+  end
+
+end
+</pre>
+    </div>

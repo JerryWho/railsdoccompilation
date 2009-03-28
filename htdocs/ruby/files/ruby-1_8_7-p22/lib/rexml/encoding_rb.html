@@ -1,0 +1,91 @@
+  <div id="fileHeader">
+    <h1>encoding.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rexml/encoding.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Apr 18 02:22:13 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># -*- mode: ruby; ruby-indent-level: 2; indent-tabs-mode: t; tab-width: 2 -*- vim: sw=2 ts=2
+module REXML
+  module Encoding
+    @encoding_methods = {}
+    def self.register(enc, &amp;block)
+      @encoding_methods[enc] = block
+    end
+    def self.apply(obj, enc)
+      @encoding_methods[enc][obj]
+    end
+    def self.encoding_method(enc)
+      @encoding_methods[enc]
+    end
+
+    # Native, default format is UTF-8, so it is declared here rather than in
+    # an encodings/ definition.
+    UTF_8 = 'UTF-8'
+    UTF_16 = 'UTF-16'
+    UNILE = 'UNILE'
+
+    # ID ---&gt; Encoding name
+    attr_reader :encoding
+    def encoding=( enc )
+      old_verbosity = $VERBOSE
+      begin
+        $VERBOSE = false
+        enc = enc.nil? ? nil : enc.upcase
+        return false if defined? @encoding and enc == @encoding
+        if enc and enc != UTF_8
+          @encoding = enc
+          raise ArgumentError, &quot;Bad encoding name #@encoding&quot; unless @encoding =~ /^[\w-]+$/
+          @encoding.untaint 
+          begin
+            require 'rexml/encodings/ICONV.rb'
+            Encoding.apply(self, &quot;ICONV&quot;)
+          rescue LoadError, Exception
+            begin
+              enc_file = File.join( &quot;rexml&quot;, &quot;encodings&quot;, &quot;#@encoding.rb&quot; )
+              require enc_file
+              Encoding.apply(self, @encoding)
+            rescue LoadError =&gt; err
+              puts err.message
+              raise ArgumentError, &quot;No decoder found for encoding #@encoding.  Please install iconv.&quot;
+            end
+          end
+        else
+          @encoding = UTF_8
+          require 'rexml/encodings/UTF-8.rb'
+          Encoding.apply(self, @encoding)
+        end
+      ensure
+        $VERBOSE = old_verbosity
+      end
+      true
+    end
+
+    def check_encoding str
+      # We have to recognize UTF-16, LSB UTF-16, and UTF-8
+      if str[0] == 0xfe &amp;&amp; str[1] == 0xff
+        str[0,2] = &quot;&quot;
+        return UTF_16
+      elsif str[0] == 0xff &amp;&amp; str[1] == 0xfe
+        str[0,2] = &quot;&quot;
+        return UNILE
+      end
+      str =~ /^\s*&lt;\?xml\s+version\s*=\s*(['&quot;]).*?\1\s+encoding\s*=\s*([&quot;'])(.*?)\2/um
+      return $3.upcase if $3
+      return UTF_8
+    end
+  end
+end
+</pre>
+    </div>

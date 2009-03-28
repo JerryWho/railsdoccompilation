@@ -1,0 +1,5055 @@
+  <div id="fileHeader">
+    <h1>string.c</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/string.c
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Jun 20 04:28:35 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>/**********************************************************************
+
+  string.c -
+
+  $Author: shyouhei $
+  $Date: 2008-06-20 18:28:35 +0900 (Fri, 20 Jun 2008) $
+  created at: Mon Aug  9 17:12:58 JST 1993
+
+  Copyright (C) 1993-2003 Yukihiro Matsumoto
+  Copyright (C) 2000  Network Applied Communication Laboratory, Inc.
+  Copyright (C) 2000  Information-technology Promotion Agency, Japan
+
+**********************************************************************/
+
+#include &quot;ruby.h&quot;
+#include &quot;re.h&quot;
+
+#define BEG(no) regs-&gt;beg[no]
+#define END(no) regs-&gt;end[no]
+
+#include &lt;math.h&gt;
+#include &lt;ctype.h&gt;
+
+#ifdef HAVE_UNISTD_H
+#include &lt;unistd.h&gt;
+#endif
+
+VALUE rb_cString;
+
+#define STR_TMPLOCK FL_USER1
+#define STR_ASSOC   FL_USER3
+#define STR_NOCAPA  (ELTS_SHARED|STR_ASSOC)
+
+#define RESIZE_CAPA(str,capacity) do {\
+    REALLOC_N(RSTRING(str)-&gt;ptr, char, (capacity)+1);\
+    if (!FL_TEST(str, STR_NOCAPA))\
+        RSTRING(str)-&gt;aux.capa = (capacity);\
+} while (0)
+
+VALUE rb_fs;
+
+static inline void
+str_mod_check(s, p, len)
+    VALUE s;
+    char *p;
+    long len;
+{
+    if (RSTRING(s)-&gt;ptr != p || RSTRING(s)-&gt;len != len) {
+	rb_raise(rb_eRuntimeError, &quot;string modified&quot;);
+    }
+}
+
+static inline void
+str_frozen_check(s)
+    VALUE s;
+{
+    if (OBJ_FROZEN(s)) {
+	rb_raise(rb_eRuntimeError, &quot;string frozen&quot;);
+    }
+}
+
+static VALUE str_alloc _((VALUE));
+static VALUE
+str_alloc(klass)
+    VALUE klass;
+{
+    NEWOBJ(str, struct RString);
+    OBJSETUP(str, klass, T_STRING);
+
+    str-&gt;ptr = 0;
+    str-&gt;len = 0;
+    str-&gt;aux.capa = 0;
+
+    return (VALUE)str;
+}
+
+static VALUE
+str_new(klass, ptr, len)
+    VALUE klass;
+    const char *ptr;
+    long len;
+{
+    VALUE str;
+
+    if (len &lt; 0) {
+	rb_raise(rb_eArgError, &quot;negative string size (or size too big)&quot;);
+    }
+
+    str = str_alloc(klass);
+    RSTRING(str)-&gt;len = len;
+    RSTRING(str)-&gt;aux.capa = len;
+    RSTRING(str)-&gt;ptr = ALLOC_N(char,len+1);
+    if (ptr) {
+	memcpy(RSTRING(str)-&gt;ptr, ptr, len);
+    }
+    RSTRING(str)-&gt;ptr[len] = '\0';
+    return str;
+}
+
+VALUE
+rb_str_new(ptr, len)
+    const char *ptr;
+    long len;
+{
+    return str_new(rb_cString, ptr, len);
+}
+
+VALUE
+rb_str_new2(ptr)
+    const char *ptr;
+{
+    if (!ptr) {
+	rb_raise(rb_eArgError, &quot;NULL pointer given&quot;);
+    }
+    return rb_str_new(ptr, strlen(ptr));
+}
+
+VALUE
+rb_tainted_str_new(ptr, len)
+    const char *ptr;
+    long len;
+{
+    VALUE str = rb_str_new(ptr, len);
+
+    OBJ_TAINT(str);
+    return str;
+}
+
+VALUE
+rb_tainted_str_new2(ptr)
+    const char *ptr;
+{
+    VALUE str = rb_str_new2(ptr);
+
+    OBJ_TAINT(str);
+    return str;
+}
+
+static VALUE
+str_new3(klass, str)
+    VALUE klass, str;
+{
+    VALUE str2 = str_alloc(klass);
+
+    RSTRING(str2)-&gt;len = RSTRING(str)-&gt;len;
+    RSTRING(str2)-&gt;ptr = RSTRING(str)-&gt;ptr;
+    RSTRING(str2)-&gt;aux.shared = str;
+    FL_SET(str2, ELTS_SHARED);
+
+    return str2;
+}
+
+VALUE
+rb_str_new3(str)
+    VALUE str;
+{
+    VALUE str2 = str_new3(rb_obj_class(str), str);
+
+    OBJ_INFECT(str2, str);
+    return str2;
+}
+
+static VALUE
+str_new4(klass, str)
+    VALUE klass, str;
+{
+    VALUE str2 = str_alloc(klass);
+
+    RSTRING(str2)-&gt;len = RSTRING(str)-&gt;len;
+    RSTRING(str2)-&gt;ptr = RSTRING(str)-&gt;ptr;
+    if (FL_TEST(str, ELTS_SHARED)) {
+	FL_SET(str2, ELTS_SHARED);
+	RSTRING(str2)-&gt;aux.shared = RSTRING(str)-&gt;aux.shared;
+    }
+    else {
+	FL_SET(str, ELTS_SHARED);
+	RSTRING(str)-&gt;aux.shared = str2;
+    }
+
+    return str2;
+}
+
+VALUE
+rb_str_new4(orig)
+    VALUE orig;
+{
+    VALUE klass, str;
+
+    if (OBJ_FROZEN(orig)) return orig;
+    klass = rb_obj_class(orig);
+    if (FL_TEST(orig, ELTS_SHARED) &amp;&amp; (str = RSTRING(orig)-&gt;aux.shared) &amp;&amp; klass == RBASIC(str)-&gt;klass) {
+	long ofs;
+	ofs = RSTRING(str)-&gt;len - RSTRING(orig)-&gt;len;
+	if ((ofs &gt; 0) || (!OBJ_TAINTED(str) &amp;&amp; OBJ_TAINTED(orig))) {
+	    str = str_new3(klass, str);
+	    RSTRING(str)-&gt;ptr += ofs;
+	    RSTRING(str)-&gt;len -= ofs;
+	}
+    }
+    else if (FL_TEST(orig, STR_ASSOC)) {
+	str = str_new(klass, RSTRING(orig)-&gt;ptr, RSTRING(orig)-&gt;len);
+    }
+    else {
+	str = str_new4(klass, orig);
+    }
+    OBJ_INFECT(str, orig);
+    OBJ_FREEZE(str);
+    return str;
+}
+
+VALUE
+rb_str_new5(obj, ptr, len)
+    VALUE obj;
+    const char *ptr;
+    long len;
+{
+    return str_new(rb_obj_class(obj), ptr, len);
+}
+
+#define STR_BUF_MIN_SIZE 128
+
+VALUE
+rb_str_buf_new(capa)
+    long capa;
+{
+    VALUE str = str_alloc(rb_cString);
+
+    if (capa &lt; STR_BUF_MIN_SIZE) {
+	capa = STR_BUF_MIN_SIZE;
+    }
+    RSTRING(str)-&gt;ptr = 0;
+    RSTRING(str)-&gt;len = 0;
+    RSTRING(str)-&gt;aux.capa = capa;
+    RSTRING(str)-&gt;ptr = ALLOC_N(char, capa+1);
+    RSTRING(str)-&gt;ptr[0] = '\0';
+
+    return str;
+}
+
+VALUE
+rb_str_buf_new2(ptr)
+    const char *ptr;
+{
+    VALUE str;
+    long len = strlen(ptr);
+
+    str = rb_str_buf_new(len);
+    rb_str_buf_cat(str, ptr, len);
+
+    return str;
+}
+
+VALUE
+rb_str_tmp_new(len)
+    long len;
+{
+    return str_new(0, 0, len);
+}
+
+VALUE
+rb_str_to_str(str)
+    VALUE str;
+{
+    return rb_convert_type(str, T_STRING, &quot;String&quot;, &quot;to_str&quot;);
+}
+
+static void
+rb_str_shared_replace(str, str2)
+    VALUE str, str2;
+{
+    if (str == str2) return;
+    rb_str_modify(str);
+    if (!FL_TEST(str, ELTS_SHARED)) free(RSTRING(str)-&gt;ptr);
+    if (NIL_P(str2)) {
+	RSTRING(str)-&gt;ptr = 0;
+	RSTRING(str)-&gt;len = 0;
+	RSTRING(str)-&gt;aux.capa = 0;
+	FL_UNSET(str, STR_NOCAPA);
+	return;
+    }
+    RSTRING(str)-&gt;ptr = RSTRING(str2)-&gt;ptr;
+    RSTRING(str)-&gt;len = RSTRING(str2)-&gt;len;
+    FL_UNSET(str, STR_NOCAPA);
+    if (FL_TEST(str2, STR_NOCAPA)) {
+	FL_SET(str, RBASIC(str2)-&gt;flags &amp; STR_NOCAPA);
+	RSTRING(str)-&gt;aux.shared = RSTRING(str2)-&gt;aux.shared;
+    }
+    else {
+	RSTRING(str)-&gt;aux.capa = RSTRING(str2)-&gt;aux.capa;
+    }
+    RSTRING(str2)-&gt;ptr = 0;	/* abandon str2 */
+    RSTRING(str2)-&gt;len = 0;
+    RSTRING(str2)-&gt;aux.capa = 0;
+    FL_UNSET(str2, STR_NOCAPA);
+    if (OBJ_TAINTED(str2)) OBJ_TAINT(str);
+}
+
+static ID id_to_s;
+
+VALUE
+rb_obj_as_string(obj)
+    VALUE obj;
+{
+    VALUE str;
+
+    if (TYPE(obj) == T_STRING) {
+	return obj;
+    }
+    str = rb_funcall(obj, id_to_s, 0);
+    if (TYPE(str) != T_STRING)
+	return rb_any_to_s(obj);
+    if (OBJ_TAINTED(obj)) OBJ_TAINT(str);
+    return str;
+}
+
+static VALUE rb_str_replace _((VALUE, VALUE));
+
+VALUE
+rb_str_dup(str)
+    VALUE str;
+{
+    VALUE dup = str_alloc(rb_obj_class(str));
+    rb_str_replace(dup, str);
+    return dup;
+}
+
+
+/*
+ *  call-seq:
+ *     String.new(str=&quot;&quot;)   =&gt; new_str
+ *  
+ *  Returns a new string object containing a copy of &lt;i&gt;str&lt;/i&gt;.
+ */
+
+static VALUE
+rb_str_init(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE orig;
+
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;orig) == 1)
+	rb_str_replace(str, orig);
+    return str;
+}
+
+/*
+ *  call-seq:
+ *     str.length   =&gt; integer
+ *  
+ *  Returns the length of &lt;i&gt;str&lt;/i&gt;.
+ */
+
+static VALUE
+rb_str_length(str)
+    VALUE str;
+{
+    return LONG2NUM(RSTRING(str)-&gt;len);
+}
+
+/*
+ *  call-seq:
+ *     str.empty?   =&gt; true or false
+ *  
+ *  Returns &lt;code&gt;true&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt; has a length of zero.
+ *     
+ *     &quot;hello&quot;.empty?   #=&gt; false
+ *     &quot;&quot;.empty?        #=&gt; true
+ */
+
+static VALUE
+rb_str_empty(str)
+    VALUE str;
+{
+    if (RSTRING(str)-&gt;len == 0)
+	return Qtrue;
+    return Qfalse;
+}
+
+/*
+ *  call-seq:
+ *     str + other_str   =&gt; new_str
+ *  
+ *  Concatenation---Returns a new &lt;code&gt;String&lt;/code&gt; containing
+ *  &lt;i&gt;other_str&lt;/i&gt; concatenated to &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     &quot;Hello from &quot; + self.to_s   #=&gt; &quot;Hello from main&quot;
+ */
+
+VALUE
+rb_str_plus(str1, str2)
+    VALUE str1, str2;
+{
+    VALUE str3;
+
+    StringValue(str2);
+    str3 = rb_str_new(0, RSTRING(str1)-&gt;len+RSTRING(str2)-&gt;len);
+    memcpy(RSTRING(str3)-&gt;ptr, RSTRING(str1)-&gt;ptr, RSTRING(str1)-&gt;len);
+    memcpy(RSTRING(str3)-&gt;ptr + RSTRING(str1)-&gt;len,
+	   RSTRING(str2)-&gt;ptr, RSTRING(str2)-&gt;len);
+    RSTRING(str3)-&gt;ptr[RSTRING(str3)-&gt;len] = '\0';
+
+    if (OBJ_TAINTED(str1) || OBJ_TAINTED(str2))
+	OBJ_TAINT(str3);
+    return str3;
+}
+
+/*
+ *  call-seq:
+ *     str * integer   =&gt; new_str
+ *  
+ *  Copy---Returns a new &lt;code&gt;String&lt;/code&gt; containing &lt;i&gt;integer&lt;/i&gt; copies of
+ *  the receiver.
+ *     
+ *     &quot;Ho! &quot; * 3   #=&gt; &quot;Ho! Ho! Ho! &quot;
+ */
+
+VALUE
+rb_str_times(str, times)
+    VALUE str;
+    VALUE times;
+{
+    VALUE str2;
+    long i, len;
+
+    len = NUM2LONG(times);
+    if (len &lt; 0) {
+	rb_raise(rb_eArgError, &quot;negative argument&quot;);
+    }
+    if (len &amp;&amp; LONG_MAX/len &lt;  RSTRING(str)-&gt;len) {
+	rb_raise(rb_eArgError, &quot;argument too big&quot;);
+    }
+
+    str2 = rb_str_new5(str,0, len *= RSTRING(str)-&gt;len);
+    for (i = 0; i &lt; len; i += RSTRING(str)-&gt;len) {
+	memcpy(RSTRING(str2)-&gt;ptr + i,
+	       RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len);
+    }
+    RSTRING(str2)-&gt;ptr[RSTRING(str2)-&gt;len] = '\0';
+
+    OBJ_INFECT(str2, str);
+
+    return str2;
+}
+
+/*
+ *  call-seq:
+ *     str % arg   =&gt; new_str
+ *  
+ *  Format---Uses &lt;i&gt;str&lt;/i&gt; as a format specification, and returns the result
+ *  of applying it to &lt;i&gt;arg&lt;/i&gt;. If the format specification contains more than
+ *  one substitution, then &lt;i&gt;arg&lt;/i&gt; must be an &lt;code&gt;Array&lt;/code&gt; containing
+ *  the values to be substituted. See &lt;code&gt;Kernel::sprintf&lt;/code&gt; for details
+ *  of the format string.
+ *     
+ *     &quot;%05d&quot; % 123                       #=&gt; &quot;00123&quot;
+ *     &quot;%-5s: %08x&quot; % [ &quot;ID&quot;, self.id ]   #=&gt; &quot;ID   : 200e14d6&quot;
+ */
+
+static VALUE
+rb_str_format_m(str, arg)
+    VALUE str, arg;
+{
+    VALUE tmp = rb_check_array_type(arg);
+
+    if (!NIL_P(tmp)) {
+	return rb_str_format(RARRAY_LEN(tmp), RARRAY_PTR(tmp), str);
+    }
+    return rb_str_format(1, &amp;arg, str);
+}
+
+static int
+str_independent(str)
+    VALUE str;
+{
+    if (FL_TEST(str, STR_TMPLOCK)) {
+	rb_raise(rb_eRuntimeError, &quot;can't modify string; temporarily locked&quot;);
+    }
+    if (OBJ_FROZEN(str)) rb_error_frozen(&quot;string&quot;);
+    if (!OBJ_TAINTED(str) &amp;&amp; rb_safe_level() &gt;= 4)
+	rb_raise(rb_eSecurityError, &quot;Insecure: can't modify string&quot;);
+    if (!FL_TEST(str, ELTS_SHARED)) return 1;
+    return 0;
+}
+
+static void
+str_make_independent(str)
+    VALUE str;
+{
+    char *ptr;
+
+    ptr = ALLOC_N(char, RSTRING(str)-&gt;len+1);
+    if (RSTRING(str)-&gt;ptr) {
+	memcpy(ptr, RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len);
+    }
+    ptr[RSTRING(str)-&gt;len] = 0;
+    RSTRING(str)-&gt;ptr = ptr;
+    RSTRING(str)-&gt;aux.capa = RSTRING(str)-&gt;len;
+    FL_UNSET(str, STR_NOCAPA);
+}
+
+void
+rb_str_modify(str)
+    VALUE str;
+{
+    if (!str_independent(str))
+	str_make_independent(str);
+}
+
+void
+rb_str_associate(str, add)
+    VALUE str, add;
+{
+    if (FL_TEST(str, STR_ASSOC)) {
+	/* already associated */
+	rb_ary_concat(RSTRING(str)-&gt;aux.shared, add);
+    }
+    else {
+	if (FL_TEST(str, ELTS_SHARED)) {
+	    str_make_independent(str);
+	}
+	else if (RSTRING(str)-&gt;aux.capa != RSTRING(str)-&gt;len) {
+	    RESIZE_CAPA(str, RSTRING(str)-&gt;len);
+	}
+	RSTRING(str)-&gt;aux.shared = add;
+	FL_SET(str, STR_ASSOC);
+    }
+}
+
+VALUE
+rb_str_associated(str)
+    VALUE str;
+{
+    if (FL_TEST(str, STR_ASSOC)) {
+	return RSTRING(str)-&gt;aux.shared;
+    }
+    return Qfalse;
+}
+
+static const char null_str[] = &quot;&quot;;
+#define null_str ((char *)null_str)
+
+VALUE
+rb_string_value(ptr)
+    volatile VALUE *ptr;
+{
+    VALUE s = *ptr;
+    if (TYPE(s) != T_STRING) {
+	s = rb_str_to_str(s);
+	*ptr = s;
+    }
+    if (!RSTRING(s)-&gt;ptr) {
+	FL_SET(s, ELTS_SHARED);
+	RSTRING(s)-&gt;ptr = null_str;
+    }
+    return s;
+}
+
+char *
+rb_string_value_ptr(ptr)
+    volatile VALUE *ptr;
+{
+    return RSTRING(rb_string_value(ptr))-&gt;ptr;
+}
+
+char *
+rb_string_value_cstr(ptr)
+    volatile VALUE *ptr;
+{
+    VALUE str = rb_string_value(ptr);
+    char *s = RSTRING(str)-&gt;ptr;
+
+    if (!s || RSTRING(str)-&gt;len != strlen(s)) {
+	rb_raise(rb_eArgError, &quot;string contains null byte&quot;);
+    }
+    return s;
+}
+
+VALUE
+rb_check_string_type(str)
+    VALUE str;
+{
+    str = rb_check_convert_type(str, T_STRING, &quot;String&quot;, &quot;to_str&quot;);
+    if (!NIL_P(str) &amp;&amp; !RSTRING(str)-&gt;ptr) {
+	FL_SET(str, ELTS_SHARED);
+	RSTRING(str)-&gt;ptr = null_str;
+    }
+    return str;
+}
+
+VALUE
+rb_str_substr(str, beg, len)
+    VALUE str;
+    long beg, len;
+{
+    VALUE str2;
+
+    if (len &lt; 0) return Qnil;
+    if (beg &gt; RSTRING(str)-&gt;len) return Qnil;
+    if (beg &lt; 0) {
+	beg += RSTRING(str)-&gt;len;
+	if (beg &lt; 0) return Qnil;
+    }
+    if (beg + len &gt; RSTRING(str)-&gt;len) {
+	len = RSTRING(str)-&gt;len - beg;
+    }
+    if (len &lt; 0) {
+	len = 0;
+    }
+    if (len == 0) {
+	str2 = rb_str_new5(str,0,0);
+    }
+    else if (len &gt; sizeof(struct RString)/2 &amp;&amp;
+	beg + len == RSTRING(str)-&gt;len &amp;&amp; !FL_TEST(str, STR_ASSOC)) {
+	str2 = rb_str_new4(str);
+	str2 = str_new3(rb_obj_class(str2), str2);
+	RSTRING(str2)-&gt;ptr += RSTRING(str2)-&gt;len - len;
+	RSTRING(str2)-&gt;len = len;
+    }
+    else {
+	str2 = rb_str_new5(str, RSTRING(str)-&gt;ptr+beg, len);
+    }
+    OBJ_INFECT(str2, str);
+
+    return str2;
+}
+
+VALUE
+rb_str_freeze(str)
+    VALUE str;
+{
+    return rb_obj_freeze(str);
+}
+
+VALUE
+rb_str_dup_frozen(str)
+    VALUE str;
+{
+    if (FL_TEST(str, ELTS_SHARED) &amp;&amp; RSTRING(str)-&gt;aux.shared) {
+	VALUE shared = RSTRING(str)-&gt;aux.shared;
+	if (RSTRING(shared)-&gt;len == RSTRING(str)-&gt;len) {
+	    OBJ_FREEZE(shared);
+	    return shared;
+	}
+    }
+    if (OBJ_FROZEN(str)) return str;
+    str = rb_str_dup(str);
+    OBJ_FREEZE(str);
+    return str;
+}
+
+VALUE
+rb_str_locktmp(str)
+    VALUE str;
+{
+    if (FL_TEST(str, STR_TMPLOCK)) {
+	rb_raise(rb_eRuntimeError, &quot;temporal locking already locked string&quot;);
+    }
+    FL_SET(str, STR_TMPLOCK);
+    return str;
+}
+
+VALUE
+rb_str_unlocktmp(str)
+    VALUE str;
+{
+    if (!FL_TEST(str, STR_TMPLOCK)) {
+	rb_raise(rb_eRuntimeError, &quot;temporal unlocking already unlocked string&quot;);
+    }
+    FL_UNSET(str, STR_TMPLOCK);
+    return str;
+}
+
+void
+rb_str_set_len(VALUE str, long len)
+{
+    RSTRING(str)-&gt;len = len;
+    RSTRING(str)-&gt;ptr[len] = '\0';
+}
+
+VALUE
+rb_str_resize(str, len)
+    VALUE str;
+    long len;
+{
+    if (len &lt; 0) {
+	rb_raise(rb_eArgError, &quot;negative string size (or size too big)&quot;);
+    }
+
+    rb_str_modify(str);
+    if (len != RSTRING(str)-&gt;len) {
+	if (RSTRING(str)-&gt;len &lt; len || RSTRING(str)-&gt;len - len &gt; 1024) {
+	    REALLOC_N(RSTRING(str)-&gt;ptr, char, len+1);
+	    if (!FL_TEST(str, STR_NOCAPA)) {
+		RSTRING(str)-&gt;aux.capa = len;
+	    }
+	}
+	RSTRING(str)-&gt;len = len;
+	RSTRING(str)-&gt;ptr[len] = '\0';	/* sentinel */
+    }
+    return str;
+}
+
+static VALUE
+str_buf_cat(str, ptr, len)
+    VALUE str;
+    const char *ptr;
+    long len;
+{
+    long capa, total;
+
+    rb_str_modify(str);
+    if (FL_TEST(str, STR_ASSOC)) {
+	FL_UNSET(str, STR_ASSOC);
+	capa = RSTRING(str)-&gt;aux.capa = RSTRING(str)-&gt;len;
+    }
+    else {
+	capa = RSTRING(str)-&gt;aux.capa;
+    }
+    if (RSTRING(str)-&gt;len &gt;= LONG_MAX - len) {
+	rb_raise(rb_eArgError, &quot;string sizes too big&quot;);
+    }
+    total = RSTRING(str)-&gt;len+len;
+    if (capa &lt;= total) {
+	while (total &gt; capa) {
+	    if (capa + 1 &gt;= LONG_MAX / 2) {
+		capa = total;
+		break;
+	    }
+	    capa = (capa + 1) * 2;
+	}
+	RESIZE_CAPA(str, capa);
+    }
+    memcpy(RSTRING(str)-&gt;ptr + RSTRING(str)-&gt;len, ptr, len);
+    RSTRING(str)-&gt;len = total;
+    RSTRING(str)-&gt;ptr[total] = '\0'; /* sentinel */
+
+    return str;
+}
+
+VALUE
+rb_str_buf_cat(str, ptr, len)
+    VALUE str;
+    const char *ptr;
+    long len;
+{
+    if (len == 0) return str;
+    if (len &lt; 0) {
+	rb_raise(rb_eArgError, &quot;negative string size (or size too big)&quot;);
+    }
+    return str_buf_cat(str, ptr, len);
+}
+
+VALUE
+rb_str_buf_cat2(str, ptr)
+    VALUE str;
+    const char *ptr;
+{
+    return rb_str_buf_cat(str, ptr, strlen(ptr));
+}
+
+VALUE
+rb_str_cat(str, ptr, len)
+    VALUE str;
+    const char *ptr;
+    long len;
+{
+    if (len &lt; 0) {
+	rb_raise(rb_eArgError, &quot;negative string size (or size too big)&quot;);
+    }
+    if (FL_TEST(str, STR_ASSOC)) {
+	rb_str_modify(str);
+	REALLOC_N(RSTRING(str)-&gt;ptr, char, RSTRING(str)-&gt;len+len+1);
+	memcpy(RSTRING(str)-&gt;ptr + RSTRING(str)-&gt;len, ptr, len);
+	RSTRING(str)-&gt;len += len;
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0'; /* sentinel */
+	return str;
+    }
+
+    return rb_str_buf_cat(str, ptr, len);
+}
+
+VALUE
+rb_str_cat2(str, ptr)
+    VALUE str;
+    const char *ptr;
+{
+    return rb_str_cat(str, ptr, strlen(ptr));
+}
+
+VALUE
+rb_str_buf_append(str, str2)
+    VALUE str, str2;
+{
+    str_buf_cat(str, RSTRING(str2)-&gt;ptr, RSTRING(str2)-&gt;len);
+    OBJ_INFECT(str, str2);
+    return str;
+}
+
+VALUE
+rb_str_append(str, str2)
+    VALUE str, str2;
+{
+    StringValue(str2);
+    rb_str_modify(str);
+    if (RSTRING(str2)-&gt;len &gt; 0) {
+	if (FL_TEST(str, STR_ASSOC)) {
+	    long len = RSTRING(str)-&gt;len+RSTRING(str2)-&gt;len;
+	    REALLOC_N(RSTRING(str)-&gt;ptr, char, len+1);
+	    memcpy(RSTRING(str)-&gt;ptr + RSTRING(str)-&gt;len,
+		   RSTRING(str2)-&gt;ptr, RSTRING(str2)-&gt;len);
+	    RSTRING(str)-&gt;ptr[len] = '\0'; /* sentinel */
+	    RSTRING(str)-&gt;len = len;
+	}
+	else {
+	    return rb_str_buf_append(str, str2);
+	}
+    }
+    OBJ_INFECT(str, str2);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str &lt;&lt; fixnum        =&gt; str
+ *     str.concat(fixnum)   =&gt; str
+ *     str &lt;&lt; obj           =&gt; str
+ *     str.concat(obj)      =&gt; str
+ *  
+ *  Append---Concatenates the given object to &lt;i&gt;str&lt;/i&gt;. If the object is a
+ *  &lt;code&gt;Fixnum&lt;/code&gt; between 0 and 255, it is converted to a character before
+ *  concatenation.
+ *     
+ *     a = &quot;hello &quot;
+ *     a &lt;&lt; &quot;world&quot;   #=&gt; &quot;hello world&quot;
+ *     a.concat(33)   #=&gt; &quot;hello world!&quot;
+ */
+
+VALUE
+rb_str_concat(str1, str2)
+    VALUE str1, str2;
+{
+    if (FIXNUM_P(str2)) {
+	int i = FIX2INT(str2);
+	if (0 &lt;= i &amp;&amp; i &lt;= 0xff) { /* byte */
+	    char c = i;
+	    return rb_str_cat(str1, &amp;c, 1);
+	}
+    }
+    str1 = rb_str_append(str1, str2);
+
+    return str1;
+}
+
+int
+rb_str_hash(str)
+    VALUE str;
+{
+    register long len = RSTRING(str)-&gt;len;
+    register char *p = RSTRING(str)-&gt;ptr;
+    register int key = 0;
+
+#if defined(HASH_ELFHASH)
+    register unsigned int g;
+
+    while (len--) {
+	key = (key &lt;&lt; 4) + *p++;
+	if (g = key &amp; 0xF0000000)
+	    key ^= g &gt;&gt; 24;
+	key &amp;= ~g;
+    }
+#elif defined(HASH_PERL)
+    while (len--) {
+	key += *p++;
+	key += (key &lt;&lt; 10);
+	key ^= (key &gt;&gt; 6);
+    }
+    key += (key &lt;&lt; 3);
+    key ^= (key &gt;&gt; 11);
+    key += (key &lt;&lt; 15);
+#else
+    while (len--) {
+	key = key*65599 + *p;
+	p++;
+    }
+    key = key + (key&gt;&gt;5);
+#endif
+    return key;
+}
+
+/*
+ * call-seq:
+ *    str.hash   =&gt; fixnum
+ *
+ * Return a hash based on the string's length and content.
+ */
+
+static VALUE
+rb_str_hash_m(str)
+    VALUE str;
+{
+    int key = rb_str_hash(str);
+    return INT2FIX(key);
+}
+
+#define lesser(a,b) (((a)&gt;(b))?(b):(a))
+
+int
+rb_str_cmp(str1, str2)
+    VALUE str1, str2;
+{
+    long len;
+    int retval;
+
+    len = lesser(RSTRING(str1)-&gt;len, RSTRING(str2)-&gt;len);
+    retval = rb_memcmp(RSTRING(str1)-&gt;ptr, RSTRING(str2)-&gt;ptr, len);
+    if (retval == 0) {
+	if (RSTRING(str1)-&gt;len == RSTRING(str2)-&gt;len) return 0;
+	if (RSTRING(str1)-&gt;len &gt; RSTRING(str2)-&gt;len) return 1;
+	return -1;
+    }
+    if (retval &gt; 0) return 1;
+    return -1;
+}
+
+
+/*
+ *  call-seq:
+ *     str == obj   =&gt; true or false
+ *  
+ *  Equality---If &lt;i&gt;obj&lt;/i&gt; is not a &lt;code&gt;String&lt;/code&gt;, returns
+ *  &lt;code&gt;false&lt;/code&gt;. Otherwise, returns &lt;code&gt;true&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt;
+ *  &lt;code&gt;&lt;=&gt;&lt;/code&gt; &lt;i&gt;obj&lt;/i&gt; returns zero.
+ */
+
+static VALUE
+rb_str_equal(str1, str2)
+    VALUE str1, str2;
+{
+    if (str1 == str2) return Qtrue;
+    if (TYPE(str2) != T_STRING) {
+	if (!rb_respond_to(str2, rb_intern(&quot;to_str&quot;))) {
+	    return Qfalse;
+	}
+	return rb_equal(str2, str1);
+    }
+    if (RSTRING(str1)-&gt;len == RSTRING(str2)-&gt;len &amp;&amp;
+	rb_str_cmp(str1, str2) == 0) {
+	return Qtrue;
+    }
+    return Qfalse;
+}
+
+#define IS_EVSTR(p,e) ((p) &lt; (e) &amp;&amp; (*(p) == '$' || *(p) == '@' || *(p) == '{'))
+
+/*
+ * call-seq:
+ *   str.eql?(other)   =&gt; true or false
+ *
+ * Two strings are equal if the have the same length and content.
+ */
+
+static VALUE
+rb_str_eql(str1, str2)
+    VALUE str1, str2;
+{
+    if (TYPE(str2) != T_STRING || RSTRING(str1)-&gt;len != RSTRING(str2)-&gt;len)
+	return Qfalse;
+
+    if (memcmp(RSTRING(str1)-&gt;ptr, RSTRING(str2)-&gt;ptr,
+	       lesser(RSTRING(str1)-&gt;len, RSTRING(str2)-&gt;len)) == 0)
+	return Qtrue;
+
+    return Qfalse;
+}
+
+/*
+ *  call-seq:
+ *     str &lt;=&gt; other_str   =&gt; -1, 0, +1
+ *  
+ *  Comparison---Returns -1 if &lt;i&gt;other_str&lt;/i&gt; is less than, 0 if
+ *  &lt;i&gt;other_str&lt;/i&gt; is equal to, and +1 if &lt;i&gt;other_str&lt;/i&gt; is greater than
+ *  &lt;i&gt;str&lt;/i&gt;. If the strings are of different lengths, and the strings are
+ *  equal when compared up to the shortest length, then the longer string is
+ *  considered greater than the shorter one. If the variable &lt;code&gt;$=&lt;/code&gt; is
+ *  &lt;code&gt;false&lt;/code&gt;, the comparison is based on comparing the binary values
+ *  of each character in the string. In older versions of Ruby, setting
+ *  &lt;code&gt;$=&lt;/code&gt; allowed case-insensitive comparisons; this is now deprecated
+ *  in favor of using &lt;code&gt;String#casecmp&lt;/code&gt;.
+ *
+ *  &lt;code&gt;&lt;=&gt;&lt;/code&gt; is the basis for the methods &lt;code&gt;&lt;&lt;/code&gt;,
+ *  &lt;code&gt;&lt;=&lt;/code&gt;, &lt;code&gt;&gt;&lt;/code&gt;, &lt;code&gt;&gt;=&lt;/code&gt;, and &lt;code&gt;between?&lt;/code&gt;,
+ *  included from module &lt;code&gt;Comparable&lt;/code&gt;.  The method
+ *  &lt;code&gt;String#==&lt;/code&gt; does not use &lt;code&gt;Comparable#==&lt;/code&gt;.
+ *     
+ *     &quot;abcdef&quot; &lt;=&gt; &quot;abcde&quot;     #=&gt; 1
+ *     &quot;abcdef&quot; &lt;=&gt; &quot;abcdef&quot;    #=&gt; 0
+ *     &quot;abcdef&quot; &lt;=&gt; &quot;abcdefg&quot;   #=&gt; -1
+ *     &quot;abcdef&quot; &lt;=&gt; &quot;ABCDEF&quot;    #=&gt; 1
+ */
+
+static VALUE
+rb_str_cmp_m(str1, str2)
+    VALUE str1, str2;
+{
+    long result;
+
+    if (TYPE(str2) != T_STRING) {
+	if (!rb_respond_to(str2, rb_intern(&quot;to_str&quot;))) {
+	    return Qnil;
+	}
+	else if (!rb_respond_to(str2, rb_intern(&quot;&lt;=&gt;&quot;))) {
+	    return Qnil;
+	}
+	else {
+	    VALUE tmp = rb_funcall(str2, rb_intern(&quot;&lt;=&gt;&quot;), 1, str1);
+
+	    if (NIL_P(tmp)) return Qnil;
+	    if (!FIXNUM_P(tmp)) {
+		return rb_funcall(LONG2FIX(0), '-', 1, tmp);
+	    }
+	    result = -FIX2LONG(tmp);
+	}
+    }
+    else {
+	result = rb_str_cmp(str1, str2);
+    }
+    return LONG2NUM(result);
+}
+
+/*
+ *  call-seq:
+ *     str.casecmp(other_str)   =&gt; -1, 0, +1
+ *  
+ *  Case-insensitive version of &lt;code&gt;String#&lt;=&gt;&lt;/code&gt;.
+ *     
+ *     &quot;abcdef&quot;.casecmp(&quot;abcde&quot;)     #=&gt; 1
+ *     &quot;aBcDeF&quot;.casecmp(&quot;abcdef&quot;)    #=&gt; 0
+ *     &quot;abcdef&quot;.casecmp(&quot;abcdefg&quot;)   #=&gt; -1
+ *     &quot;abcdef&quot;.casecmp(&quot;ABCDEF&quot;)    #=&gt; 0
+ */
+
+static VALUE
+rb_str_casecmp(str1, str2)
+    VALUE str1, str2;
+{
+    long len;
+    int retval;
+
+    StringValue(str2);
+    len = lesser(RSTRING(str1)-&gt;len, RSTRING(str2)-&gt;len);
+    retval = rb_memcicmp(RSTRING(str1)-&gt;ptr, RSTRING(str2)-&gt;ptr, len);
+    if (retval == 0) {
+	if (RSTRING(str1)-&gt;len == RSTRING(str2)-&gt;len) return INT2FIX(0);
+	if (RSTRING(str1)-&gt;len &gt; RSTRING(str2)-&gt;len) return INT2FIX(1);
+	return INT2FIX(-1);
+    }
+    if (retval == 0) return INT2FIX(0);
+    if (retval &gt; 0) return INT2FIX(1);
+    return INT2FIX(-1);
+}
+
+static long
+rb_str_index(str, sub, offset)
+    VALUE str, sub;
+    long offset;
+{
+    long pos;
+
+    if (offset &lt; 0) {
+	offset += RSTRING(str)-&gt;len;
+	if (offset &lt; 0) return -1;
+    }
+    if (RSTRING(str)-&gt;len - offset &lt; RSTRING(sub)-&gt;len) return -1;
+    if (RSTRING(sub)-&gt;len == 0) return offset;
+    pos = rb_memsearch(RSTRING(sub)-&gt;ptr, RSTRING(sub)-&gt;len,
+		       RSTRING(str)-&gt;ptr+offset, RSTRING(str)-&gt;len-offset);
+    if (pos &lt; 0) return pos;
+    return pos + offset;
+}
+
+
+/*
+ *  call-seq:
+ *     str.index(substring [, offset])   =&gt; fixnum or nil
+ *     str.index(fixnum [, offset])      =&gt; fixnum or nil
+ *     str.index(regexp [, offset])      =&gt; fixnum or nil
+ *  
+ *  Returns the index of the first occurrence of the given &lt;i&gt;substring&lt;/i&gt;,
+ *  character (&lt;i&gt;fixnum&lt;/i&gt;), or pattern (&lt;i&gt;regexp&lt;/i&gt;) in &lt;i&gt;str&lt;/i&gt;. Returns
+ *  &lt;code&gt;nil&lt;/code&gt; if not found. If the second parameter is present, it
+ *  specifies the position in the string to begin the search.
+ *     
+ *     &quot;hello&quot;.index('e')             #=&gt; 1
+ *     &quot;hello&quot;.index('lo')            #=&gt; 3
+ *     &quot;hello&quot;.index('a')             #=&gt; nil
+ *     &quot;hello&quot;.index(101)             #=&gt; 1
+ *     &quot;hello&quot;.index(/[aeiou]/, -3)   #=&gt; 4
+ */
+
+static VALUE
+rb_str_index_m(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE sub;
+    VALUE initpos;
+    long pos;
+
+    if (rb_scan_args(argc, argv, &quot;11&quot;, &amp;sub, &amp;initpos) == 2) {
+	pos = NUM2LONG(initpos);
+    }
+    else {
+	pos = 0;
+    }
+    if (pos &lt; 0) {
+	pos += RSTRING(str)-&gt;len;
+	if (pos &lt; 0) {
+	    if (TYPE(sub) == T_REGEXP) {
+		rb_backref_set(Qnil);
+	    }
+	    return Qnil;
+	}
+    }
+
+    switch (TYPE(sub)) {
+      case T_REGEXP:
+	pos = rb_reg_adjust_startpos(sub, str, pos, 0);
+	pos = rb_reg_search(sub, str, pos, 0);
+	break;
+
+      case T_FIXNUM: {
+	int c = FIX2INT(sub);
+	long len = RSTRING(str)-&gt;len;
+	unsigned char *p = (unsigned char*)RSTRING(str)-&gt;ptr;
+
+	for (;pos&lt;len;pos++) {
+	    if (p[pos] == c) return LONG2NUM(pos);
+	}
+	return Qnil;
+      }
+
+      default: {
+	VALUE tmp;
+
+	tmp = rb_check_string_type(sub);
+	if (NIL_P(tmp)) {
+	    rb_raise(rb_eTypeError, &quot;type mismatch: %s given&quot;,
+		     rb_obj_classname(sub));
+	}
+	sub = tmp;
+      }
+	/* fall through */
+      case T_STRING:
+	pos = rb_str_index(str, sub, pos);
+	break;
+    }
+
+    if (pos == -1) return Qnil;
+    return LONG2NUM(pos);
+}
+
+static long
+rb_str_rindex(str, sub, pos)
+    VALUE str, sub;
+    long pos;
+{
+    long len = RSTRING(sub)-&gt;len;
+    char *s, *sbeg, *t;
+
+    /* substring longer than string */
+    if (RSTRING(str)-&gt;len &lt; len) return -1;
+    if (RSTRING(str)-&gt;len - pos &lt; len) {
+	pos = RSTRING(str)-&gt;len - len;
+    }
+    sbeg = RSTRING(str)-&gt;ptr;
+    s = RSTRING(str)-&gt;ptr + pos;
+    t = RSTRING(sub)-&gt;ptr;
+    if (len) {
+	while (sbeg &lt;= s) {
+	    if (rb_memcmp(s, t, len) == 0) {
+		return s - RSTRING(str)-&gt;ptr;
+	    }
+	    s--;
+	}
+	return -1;
+    }
+    else {
+	return pos;
+    }
+}
+
+
+/*
+ *  call-seq:
+ *     str.rindex(substring [, fixnum])   =&gt; fixnum or nil
+ *     str.rindex(fixnum [, fixnum])   =&gt; fixnum or nil
+ *     str.rindex(regexp [, fixnum])   =&gt; fixnum or nil
+ *  
+ *  Returns the index of the last occurrence of the given &lt;i&gt;substring&lt;/i&gt;,
+ *  character (&lt;i&gt;fixnum&lt;/i&gt;), or pattern (&lt;i&gt;regexp&lt;/i&gt;) in &lt;i&gt;str&lt;/i&gt;. Returns
+ *  &lt;code&gt;nil&lt;/code&gt; if not found. If the second parameter is present, it
+ *  specifies the position in the string to end the search---characters beyond
+ *  this point will not be considered.
+ *     
+ *     &quot;hello&quot;.rindex('e')             #=&gt; 1
+ *     &quot;hello&quot;.rindex('l')             #=&gt; 3
+ *     &quot;hello&quot;.rindex('a')             #=&gt; nil
+ *     &quot;hello&quot;.rindex(101)             #=&gt; 1
+ *     &quot;hello&quot;.rindex(/[aeiou]/, -2)   #=&gt; 1
+ */
+
+static VALUE
+rb_str_rindex_m(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE sub;
+    VALUE position;
+    long pos;
+
+    if (rb_scan_args(argc, argv, &quot;11&quot;, &amp;sub, &amp;position) == 2) {
+	pos = NUM2LONG(position);
+	if (pos &lt; 0) {
+	    pos += RSTRING(str)-&gt;len;
+	    if (pos &lt; 0) {
+		if (TYPE(sub) == T_REGEXP) {
+		    rb_backref_set(Qnil);
+		}
+		return Qnil;
+	    }
+	}
+	if (pos &gt; RSTRING(str)-&gt;len) pos = RSTRING(str)-&gt;len;
+    }
+    else {
+	pos = RSTRING(str)-&gt;len;
+    }
+
+    switch (TYPE(sub)) {
+      case T_REGEXP:
+	if (RREGEXP(sub)-&gt;len) {
+	    pos = rb_reg_adjust_startpos(sub, str, pos, 1);
+	    pos = rb_reg_search(sub, str, pos, 1);
+	}
+	if (pos &gt;= 0) return LONG2NUM(pos);
+	break;
+
+      default: {
+	VALUE tmp;
+
+	tmp = rb_check_string_type(sub);
+	if (NIL_P(tmp)) {
+	    rb_raise(rb_eTypeError, &quot;type mismatch: %s given&quot;,
+		     rb_obj_classname(sub));
+	}
+	sub = tmp;
+      }
+	/* fall through */
+      case T_STRING:
+	pos = rb_str_rindex(str, sub, pos);
+	if (pos &gt;= 0) return LONG2NUM(pos);
+	break;
+
+      case T_FIXNUM: {
+	int c = FIX2INT(sub);
+	unsigned char *p = (unsigned char*)RSTRING(str)-&gt;ptr + pos;
+	unsigned char *pbeg = (unsigned char*)RSTRING(str)-&gt;ptr;
+
+	if (pos == RSTRING(str)-&gt;len) {
+	    if (pos == 0) return Qnil;
+	    --p;
+	}
+	while (pbeg &lt;= p) {
+	    if (*p == c) return LONG2NUM((char*)p - RSTRING(str)-&gt;ptr);
+	    p--;
+	}
+	return Qnil;
+      }
+    }
+    return Qnil;
+}
+
+/*
+ *  call-seq:
+ *     str =~ obj   =&gt; fixnum or nil
+ *  
+ *  Match---If &lt;i&gt;obj&lt;/i&gt; is a &lt;code&gt;Regexp&lt;/code&gt;, use it as a pattern to match
+ *  against &lt;i&gt;str&lt;/i&gt;,and returns the position the match starts, or 
+ *  &lt;code&gt;nil&lt;/code&gt; if there is no match. Otherwise, invokes
+ *  &lt;i&gt;obj.=~&lt;/i&gt;, passing &lt;i&gt;str&lt;/i&gt; as an argument. The default
+ *  &lt;code&gt;=~&lt;/code&gt; in &lt;code&gt;Object&lt;/code&gt; returns &lt;code&gt;false&lt;/code&gt;.
+ *     
+ *     &quot;cat o' 9 tails&quot; =~ /\d/   #=&gt; 7
+ *     &quot;cat o' 9 tails&quot; =~ 9      #=&gt; false
+ */
+
+static VALUE
+rb_str_match(x, y)
+    VALUE x, y;
+{
+    switch (TYPE(y)) {
+      case T_STRING:
+	rb_raise(rb_eTypeError, &quot;type mismatch: String given&quot;);
+
+      case T_REGEXP:
+	return rb_reg_match(y, x);
+
+      default:
+	return rb_funcall(y, rb_intern(&quot;=~&quot;), 1, x);
+    }
+}
+
+
+static VALUE get_pat _((VALUE, int));
+
+
+/*
+ *  call-seq:
+ *     str.match(pattern)   =&gt; matchdata or nil
+ *  
+ *  Converts &lt;i&gt;pattern&lt;/i&gt; to a &lt;code&gt;Regexp&lt;/code&gt; (if it isn't already one),
+ *  then invokes its &lt;code&gt;match&lt;/code&gt; method on &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     'hello'.match('(.)\1')      #=&gt; #&lt;MatchData:0x401b3d30&gt;
+ *     'hello'.match('(.)\1')[0]   #=&gt; &quot;ll&quot;
+ *     'hello'.match(/(.)\1/)[0]   #=&gt; &quot;ll&quot;
+ *     'hello'.match('xx')         #=&gt; nil
+ */
+
+static VALUE
+rb_str_match_m(str, re)
+    VALUE str, re;
+{
+    return rb_funcall(get_pat(re, 0), rb_intern(&quot;match&quot;), 1, str);
+}
+
+static char
+succ_char(s)
+    char *s;
+{
+    char c = *s;
+
+    /* numerics */
+    if ('0' &lt;= c &amp;&amp; c &lt; '9') (*s)++;
+    else if (c == '9') {
+	*s = '0';
+	return '1';
+    }
+    /* small alphabets */
+    else if ('a' &lt;= c &amp;&amp; c &lt; 'z') (*s)++;
+    else if (c == 'z') {
+	return *s = 'a';
+    }
+    /* capital alphabets */
+    else if ('A' &lt;= c &amp;&amp; c &lt; 'Z') (*s)++;
+    else if (c == 'Z') {
+	return *s = 'A';
+    }
+    return 0;
+}
+
+
+/*
+ *  call-seq:
+ *     str.succ   =&gt; new_str
+ *     str.next   =&gt; new_str
+ *  
+ *  Returns the successor to &lt;i&gt;str&lt;/i&gt;. The successor is calculated by
+ *  incrementing characters starting from the rightmost alphanumeric (or
+ *  the rightmost character if there are no alphanumerics) in the
+ *  string. Incrementing a digit always results in another digit, and
+ *  incrementing a letter results in another letter of the same case.
+ *  Incrementing nonalphanumerics uses the underlying character set's
+ *  collating sequence.
+ *     
+ *  If the increment generates a ``carry,'' the character to the left of
+ *  it is incremented. This process repeats until there is no carry,
+ *  adding an additional character if necessary.
+ *     
+ *     &quot;abcd&quot;.succ        #=&gt; &quot;abce&quot;
+ *     &quot;THX1138&quot;.succ     #=&gt; &quot;THX1139&quot;
+ *     &quot;&lt;&lt;koala&gt;&gt;&quot;.succ   #=&gt; &quot;&lt;&lt;koalb&gt;&gt;&quot;
+ *     &quot;1999zzz&quot;.succ     #=&gt; &quot;2000aaa&quot;
+ *     &quot;ZZZ9999&quot;.succ     #=&gt; &quot;AAAA0000&quot;
+ *     &quot;***&quot;.succ         #=&gt; &quot;**+&quot;
+ */
+
+static VALUE
+rb_str_succ(orig)
+    VALUE orig;
+{
+    VALUE str;
+    char *sbeg, *s;
+    int c = -1;
+    long n = 0;
+
+    str = rb_str_new5(orig, RSTRING(orig)-&gt;ptr, RSTRING(orig)-&gt;len);
+    OBJ_INFECT(str, orig);
+    if (RSTRING(str)-&gt;len == 0) return str;
+
+    sbeg = RSTRING(str)-&gt;ptr; s = sbeg + RSTRING(str)-&gt;len - 1;
+
+    while (sbeg &lt;= s) {
+	if (ISALNUM(*s)) {
+	    if ((c = succ_char(s)) == 0) break;
+	    n = s - sbeg;
+	}
+	s--;
+    }
+    if (c == -1) {		/* str contains no alnum */
+	sbeg = RSTRING(str)-&gt;ptr; s = sbeg + RSTRING(str)-&gt;len - 1;
+	c = '\001';
+	while (sbeg &lt;= s) {
+	    if ((*s += 1) != 0) break;
+	    s--;
+	}
+    }
+    if (s &lt; sbeg) {
+	RESIZE_CAPA(str, RSTRING(str)-&gt;len + 1);
+	s = RSTRING(str)-&gt;ptr + n;
+	memmove(s+1, s, RSTRING(str)-&gt;len - n);
+	*s = c;
+	RSTRING(str)-&gt;len += 1;
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+    }
+
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.succ!   =&gt; str
+ *     str.next!   =&gt; str
+ *  
+ *  Equivalent to &lt;code&gt;String#succ&lt;/code&gt;, but modifies the receiver in
+ *  place.
+ */
+
+static VALUE
+rb_str_succ_bang(str)
+    VALUE str;
+{
+    rb_str_shared_replace(str, rb_str_succ(str));
+
+    return str;
+}
+
+VALUE
+rb_str_upto(beg, end, excl)
+    VALUE beg, end;
+    int excl;
+{
+    VALUE current, after_end;
+    ID succ = rb_intern(&quot;succ&quot;);
+    int n;
+
+    StringValue(end);
+    n = rb_str_cmp(beg, end);
+    if (n &gt; 0 || (excl &amp;&amp; n == 0)) return beg;
+    after_end = rb_funcall(end, succ, 0, 0);
+    current = beg;
+    while (!rb_str_equal(current, after_end)) {
+	rb_yield(current);
+	if (!excl &amp;&amp; rb_str_equal(current, end)) break;
+	current = rb_funcall(current, succ, 0, 0);
+	StringValue(current);
+	if (excl &amp;&amp; rb_str_equal(current, end)) break;
+	StringValue(current);
+	if (RSTRING(current)-&gt;len &gt; RSTRING(end)-&gt;len || RSTRING(current)-&gt;len == 0)
+	    break;
+    }
+
+    return beg;
+}
+
+
+/*
+ *  call-seq:
+ *     str.upto(other_str, exclusive=false) {|s| block }   =&gt; str
+ *  
+ *  Iterates through successive values, starting at &lt;i&gt;str&lt;/i&gt; and
+ *  ending at &lt;i&gt;other_str&lt;/i&gt; inclusive, passing each value in turn to
+ *  the block. The &lt;code&gt;String#succ&lt;/code&gt; method is used to generate
+ *  each value.  If optional second argument exclusive is omitted or is &lt;code&gt;false&lt;/code&gt;,
+ *  the last value will be included; otherwise it will be excluded.
+ *     
+ *     &quot;a8&quot;.upto(&quot;b6&quot;) {|s| print s, ' ' }
+ *     for s in &quot;a8&quot;..&quot;b6&quot;
+ *       print s, ' '
+ *     end
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     a8 a9 b0 b1 b2 b3 b4 b5 b6
+ *     a8 a9 b0 b1 b2 b3 b4 b5 b6
+ */
+
+static VALUE
+rb_str_upto_m(argc, argv, beg)
+    int argc;
+    VALUE *argv;
+    VALUE beg;
+{
+    VALUE end, exclusive;
+
+    rb_scan_args(argc, argv, &quot;11&quot;, &amp;end, &amp;exclusive);
+
+    return rb_str_upto(beg, end, RTEST(exclusive));
+}
+
+static VALUE
+rb_str_subpat(str, re, nth)
+    VALUE str, re;
+    int nth;
+{
+    if (rb_reg_search(re, str, 0, 0) &gt;= 0) {
+	return rb_reg_nth_match(nth, rb_backref_get());
+    }
+    return Qnil;
+}
+
+static VALUE
+rb_str_aref(str, indx)
+    VALUE str;
+    VALUE indx;
+{
+    long idx;
+
+    switch (TYPE(indx)) {
+      case T_FIXNUM:
+	idx = FIX2LONG(indx);
+
+      num_index:
+	if (idx &lt; 0) {
+	    idx = RSTRING(str)-&gt;len + idx;
+	}
+	if (idx &lt; 0 || RSTRING(str)-&gt;len &lt;= idx) {
+	    return Qnil;
+	}
+	return INT2FIX(RSTRING(str)-&gt;ptr[idx] &amp; 0xff);
+
+      case T_REGEXP:
+	return rb_str_subpat(str, indx, 0);
+
+      case T_STRING:
+	if (rb_str_index(str, indx, 0) != -1)
+	    return rb_str_dup(indx);
+	return Qnil;
+
+      default:
+	/* check if indx is Range */
+	{
+	    long beg, len;
+	    VALUE tmp;
+
+	    switch (rb_range_beg_len(indx, &amp;beg, &amp;len, RSTRING(str)-&gt;len, 0)) {
+	      case Qfalse:
+		break;
+	      case Qnil:
+		return Qnil;
+	      default:
+		tmp = rb_str_substr(str, beg, len);
+		OBJ_INFECT(tmp, indx);
+		return tmp;
+	    }
+	}
+	idx = NUM2LONG(indx);
+	goto num_index;
+    }
+    return Qnil;		/* not reached */
+}
+
+
+/*
+ *  call-seq:
+ *     str[fixnum]                 =&gt; fixnum or nil
+ *     str[fixnum, fixnum]         =&gt; new_str or nil
+ *     str[range]                  =&gt; new_str or nil
+ *     str[regexp]                 =&gt; new_str or nil
+ *     str[regexp, fixnum]         =&gt; new_str or nil
+ *     str[other_str]              =&gt; new_str or nil
+ *     str.slice(fixnum)           =&gt; fixnum or nil
+ *     str.slice(fixnum, fixnum)   =&gt; new_str or nil
+ *     str.slice(range)            =&gt; new_str or nil
+ *     str.slice(regexp)           =&gt; new_str or nil
+ *     str.slice(regexp, fixnum)   =&gt; new_str or nil
+ *     str.slice(other_str)        =&gt; new_str or nil
+ *  
+ *  Element Reference---If passed a single &lt;code&gt;Fixnum&lt;/code&gt;, returns the code
+ *  of the character at that position. If passed two &lt;code&gt;Fixnum&lt;/code&gt;
+ *  objects, returns a substring starting at the offset given by the first, and
+ *  a length given by the second. If given a range, a substring containing
+ *  characters at offsets given by the range is returned. In all three cases, if
+ *  an offset is negative, it is counted from the end of &lt;i&gt;str&lt;/i&gt;. Returns
+ *  &lt;code&gt;nil&lt;/code&gt; if the initial offset falls outside the string, the length
+ *  is negative, or the beginning of the range is greater than the end.
+ *     
+ *  If a &lt;code&gt;Regexp&lt;/code&gt; is supplied, the matching portion of &lt;i&gt;str&lt;/i&gt; is
+ *  returned. If a numeric parameter follows the regular expression, that
+ *  component of the &lt;code&gt;MatchData&lt;/code&gt; is returned instead. If a
+ *  &lt;code&gt;String&lt;/code&gt; is given, that string is returned if it occurs in
+ *  &lt;i&gt;str&lt;/i&gt;. In both cases, &lt;code&gt;nil&lt;/code&gt; is returned if there is no
+ *  match.
+ *     
+ *     a = &quot;hello there&quot;
+ *     a[1]                   #=&gt; 101
+ *     a[1,3]                 #=&gt; &quot;ell&quot;
+ *     a[1..3]                #=&gt; &quot;ell&quot;
+ *     a[-3,2]                #=&gt; &quot;er&quot;
+ *     a[-4..-2]              #=&gt; &quot;her&quot;
+ *     a[12..-1]              #=&gt; nil
+ *     a[-2..-4]              #=&gt; &quot;&quot;
+ *     a[/[aeiou](.)\1/]      #=&gt; &quot;ell&quot;
+ *     a[/[aeiou](.)\1/, 0]   #=&gt; &quot;ell&quot;
+ *     a[/[aeiou](.)\1/, 1]   #=&gt; &quot;l&quot;
+ *     a[/[aeiou](.)\1/, 2]   #=&gt; nil
+ *     a[&quot;lo&quot;]                #=&gt; &quot;lo&quot;
+ *     a[&quot;bye&quot;]               #=&gt; nil
+ */
+
+static VALUE
+rb_str_aref_m(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    if (argc == 2) {
+	if (TYPE(argv[0]) == T_REGEXP) {
+	    return rb_str_subpat(str, argv[0], NUM2INT(argv[1]));
+	}
+	return rb_str_substr(str, NUM2LONG(argv[0]), NUM2LONG(argv[1]));
+    }
+    if (argc != 1) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 1)&quot;, argc);
+    }
+    return rb_str_aref(str, argv[0]);
+}
+
+static void
+rb_str_splice(str, beg, len, val)
+    VALUE str;
+    long beg, len;
+    VALUE val;
+{
+    if (len &lt; 0) rb_raise(rb_eIndexError, &quot;negative length %ld&quot;, len);
+
+    StringValue(val);
+    rb_str_modify(str);
+
+    if (RSTRING(str)-&gt;len &lt; beg) {
+      out_of_range:
+	rb_raise(rb_eIndexError, &quot;index %ld out of string&quot;, beg);
+    }
+    if (beg &lt; 0) {
+	if (-beg &gt; RSTRING(str)-&gt;len) {
+	    goto out_of_range;
+	}
+	beg += RSTRING(str)-&gt;len;
+    }
+    if (RSTRING(str)-&gt;len &lt; len || RSTRING(str)-&gt;len &lt; beg + len) {
+	len = RSTRING(str)-&gt;len - beg;
+    }
+
+    if (len &lt; RSTRING(val)-&gt;len) {
+	/* expand string */
+	RESIZE_CAPA(str, RSTRING(str)-&gt;len + RSTRING(val)-&gt;len - len + 1);
+    }
+
+    if (RSTRING(val)-&gt;len != len) {
+	memmove(RSTRING(str)-&gt;ptr + beg + RSTRING(val)-&gt;len,
+		RSTRING(str)-&gt;ptr + beg + len,
+		RSTRING(str)-&gt;len - (beg + len));
+    }
+    if (RSTRING(str)-&gt;len &lt; beg &amp;&amp; len &lt; 0) {
+	MEMZERO(RSTRING(str)-&gt;ptr + RSTRING(str)-&gt;len, char, -len);
+    }
+    if (RSTRING(val)-&gt;len &gt; 0) {
+	memmove(RSTRING(str)-&gt;ptr+beg, RSTRING(val)-&gt;ptr, RSTRING(val)-&gt;len);
+    }
+    RSTRING(str)-&gt;len += RSTRING(val)-&gt;len - len;
+    if (RSTRING(str)-&gt;ptr) {
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+    }
+    OBJ_INFECT(str, val);
+}
+
+void
+rb_str_update(str, beg, len, val)
+    VALUE str;
+    long beg, len;
+    VALUE val;
+{
+    rb_str_splice(str, beg, len, val);
+}
+
+static void
+rb_str_subpat_set(str, re, nth, val)
+    VALUE str, re;
+    int nth;
+    VALUE val;
+{
+    VALUE match;
+    long start, end, len;
+
+    if (rb_reg_search(re, str, 0, 0) &lt; 0) {
+	rb_raise(rb_eIndexError, &quot;regexp not matched&quot;);
+    }
+    match = rb_backref_get();
+    if (nth &gt;= RMATCH(match)-&gt;regs-&gt;num_regs) {
+      out_of_range:
+	rb_raise(rb_eIndexError, &quot;index %d out of regexp&quot;, nth);
+    }
+    if (nth &lt; 0) {
+	if (-nth &gt;= RMATCH(match)-&gt;regs-&gt;num_regs) {
+	    goto out_of_range;
+	}
+	nth += RMATCH(match)-&gt;regs-&gt;num_regs;
+    }
+
+    start = RMATCH(match)-&gt;BEG(nth);
+    if (start == -1) {
+	rb_raise(rb_eIndexError, &quot;regexp group %d not matched&quot;, nth);
+    }
+    end = RMATCH(match)-&gt;END(nth);
+    len = end - start;
+    rb_str_splice(str, start, len, val);
+}
+
+static VALUE
+rb_str_aset(str, indx, val)
+    VALUE str;
+    VALUE indx, val;
+{
+    long idx, beg;
+
+    switch (TYPE(indx)) {
+      case T_FIXNUM:
+	idx = FIX2LONG(indx);
+      num_index:
+	if (RSTRING(str)-&gt;len &lt;= idx) {
+	  out_of_range:
+	    rb_raise(rb_eIndexError, &quot;index %ld out of string&quot;, idx);
+	}
+	if (idx &lt; 0) {
+	    if (-idx &gt; RSTRING(str)-&gt;len)
+		goto out_of_range;
+	    idx += RSTRING(str)-&gt;len;
+	}
+	if (FIXNUM_P(val)) {
+	    rb_str_modify(str);
+	    if (RSTRING(str)-&gt;len == idx) {
+		RSTRING(str)-&gt;len += 1;
+		RESIZE_CAPA(str, RSTRING(str)-&gt;len);
+	    }
+	    RSTRING(str)-&gt;ptr[idx] = FIX2INT(val) &amp; 0xff;
+	}
+	else {
+	    rb_str_splice(str, idx, 1, val);
+	}
+	return val;
+
+      case T_REGEXP:
+	rb_str_subpat_set(str, indx, 0, val);
+	return val;
+
+      case T_STRING:
+	beg = rb_str_index(str, indx, 0);
+	if (beg &lt; 0) {
+	    rb_raise(rb_eIndexError, &quot;string not matched&quot;);
+	}
+	rb_str_splice(str, beg, RSTRING(indx)-&gt;len, val);
+	return val;
+
+      default:
+	/* check if indx is Range */
+	{
+	    long beg, len;
+	    if (rb_range_beg_len(indx, &amp;beg, &amp;len, RSTRING(str)-&gt;len, 2)) {
+		rb_str_splice(str, beg, len, val);
+		return val;
+	    }
+	}
+	idx = NUM2LONG(indx);
+	goto num_index;
+    }
+}
+
+/*
+ *  call-seq:
+ *     str[fixnum] = fixnum
+ *     str[fixnum] = new_str
+ *     str[fixnum, fixnum] = new_str
+ *     str[range] = aString
+ *     str[regexp] = new_str
+ *     str[regexp, fixnum] = new_str
+ *     str[other_str] = new_str
+ *  
+ *  Element Assignment---Replaces some or all of the content of &lt;i&gt;str&lt;/i&gt;. The
+ *  portion of the string affected is determined using the same criteria as
+ *  &lt;code&gt;String#[]&lt;/code&gt;. If the replacement string is not the same length as
+ *  the text it is replacing, the string will be adjusted accordingly. If the
+ *  regular expression or string is used as the index doesn't match a position
+ *  in the string, &lt;code&gt;IndexError&lt;/code&gt; is raised. If the regular expression
+ *  form is used, the optional second &lt;code&gt;Fixnum&lt;/code&gt; allows you to specify
+ *  which portion of the match to replace (effectively using the
+ *  &lt;code&gt;MatchData&lt;/code&gt; indexing rules. The forms that take a
+ *  &lt;code&gt;Fixnum&lt;/code&gt; will raise an &lt;code&gt;IndexError&lt;/code&gt; if the value is
+ *  out of range; the &lt;code&gt;Range&lt;/code&gt; form will raise a
+ *  &lt;code&gt;RangeError&lt;/code&gt;, and the &lt;code&gt;Regexp&lt;/code&gt; and &lt;code&gt;String&lt;/code&gt;
+ *  forms will silently ignore the assignment.
+ */
+
+static VALUE
+rb_str_aset_m(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    if (argc == 3) {
+	if (TYPE(argv[0]) == T_REGEXP) {
+	    rb_str_subpat_set(str, argv[0], NUM2INT(argv[1]), argv[2]);
+	}
+	else {
+	    rb_str_splice(str, NUM2LONG(argv[0]), NUM2LONG(argv[1]), argv[2]);
+	}
+	return argv[2];
+    }
+    if (argc != 2) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 2)&quot;, argc);
+    }
+    return rb_str_aset(str, argv[0], argv[1]);
+}
+
+/*
+ *  call-seq:
+ *     str.insert(index, other_str)   =&gt; str
+ *  
+ *  Inserts &lt;i&gt;other_str&lt;/i&gt; before the character at the given
+ *  &lt;i&gt;index&lt;/i&gt;, modifying &lt;i&gt;str&lt;/i&gt;. Negative indices count from the
+ *  end of the string, and insert &lt;em&gt;after&lt;/em&gt; the given character.
+ *  The intent is insert &lt;i&gt;aString&lt;/i&gt; so that it starts at the given
+ *  &lt;i&gt;index&lt;/i&gt;.
+ *     
+ *     &quot;abcd&quot;.insert(0, 'X')    #=&gt; &quot;Xabcd&quot;
+ *     &quot;abcd&quot;.insert(3, 'X')    #=&gt; &quot;abcXd&quot;
+ *     &quot;abcd&quot;.insert(4, 'X')    #=&gt; &quot;abcdX&quot;
+ *     &quot;abcd&quot;.insert(-3, 'X')   #=&gt; &quot;abXcd&quot;
+ *     &quot;abcd&quot;.insert(-1, 'X')   #=&gt; &quot;abcdX&quot;
+ */
+
+static VALUE
+rb_str_insert(str, idx, str2)
+    VALUE str, idx, str2;
+{
+    long pos = NUM2LONG(idx);
+
+    if (pos == -1) {
+	pos = RSTRING(str)-&gt;len;
+    }
+    else if (pos &lt; 0) {
+	pos++;
+    }
+    rb_str_splice(str, pos, 0, str2);
+    return str;
+}
+
+/*
+ *  call-seq:
+ *     str.slice!(fixnum)           =&gt; fixnum or nil
+ *     str.slice!(fixnum, fixnum)   =&gt; new_str or nil
+ *     str.slice!(range)            =&gt; new_str or nil
+ *     str.slice!(regexp)           =&gt; new_str or nil
+ *     str.slice!(other_str)        =&gt; new_str or nil
+ *  
+ *  Deletes the specified portion from &lt;i&gt;str&lt;/i&gt;, and returns the portion
+ *  deleted. The forms that take a &lt;code&gt;Fixnum&lt;/code&gt; will raise an
+ *  &lt;code&gt;IndexError&lt;/code&gt; if the value is out of range; the &lt;code&gt;Range&lt;/code&gt;
+ *  form will raise a &lt;code&gt;RangeError&lt;/code&gt;, and the &lt;code&gt;Regexp&lt;/code&gt; and
+ *  &lt;code&gt;String&lt;/code&gt; forms will silently ignore the assignment.
+ *     
+ *     string = &quot;this is a string&quot;
+ *     string.slice!(2)        #=&gt; 105
+ *     string.slice!(3..6)     #=&gt; &quot; is &quot;
+ *     string.slice!(/s.*t/)   #=&gt; &quot;sa st&quot;
+ *     string.slice!(&quot;r&quot;)      #=&gt; &quot;r&quot;
+ *     string                  #=&gt; &quot;thing&quot;
+ */
+
+static VALUE
+rb_str_slice_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE result;
+    VALUE buf[3];
+    int i;
+
+    if (argc &lt; 1 || 2 &lt; argc) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 1)&quot;, argc);
+    }
+    for (i=0; i&lt;argc; i++) {
+	buf[i] = argv[i];
+    }
+    buf[i] = rb_str_new(0,0);
+    result = rb_str_aref_m(argc, buf, str);
+    if (!NIL_P(result)) {
+	rb_str_aset_m(argc+1, buf, str);
+    }
+    return result;
+}
+
+static VALUE
+get_pat(pat, quote)
+    VALUE pat;
+    int quote;
+{
+    VALUE val;
+
+    switch (TYPE(pat)) {
+      case T_REGEXP:
+	return pat;
+
+      case T_STRING:
+	break;
+
+      default:
+	val = rb_check_string_type(pat);
+	if (NIL_P(val)) {
+	    Check_Type(pat, T_REGEXP);
+	}
+	pat = val;
+    }
+
+    if (quote) {
+	pat = rb_reg_quote(pat);
+    }
+
+    return rb_reg_regcomp(pat);
+}
+
+static VALUE
+get_pat_quoted(pat)
+     VALUE pat;
+{
+    return get_pat(pat, 1);
+}
+
+static VALUE
+regcomp_failed(str)
+    VALUE str;
+{
+    rb_raise(rb_eArgError, &quot;invalid byte sequence&quot;);
+    /*NOTREACHED*/
+    return Qundef;
+}
+
+static VALUE
+get_arg_pat(pat, quote)
+     VALUE pat;
+{
+    return rb_rescue2(get_pat_quoted, pat,
+                      regcomp_failed, pat,
+                      rb_eRegexpError, (VALUE)0);
+}
+
+/*
+ *  call-seq:
+ *     str.sub!(pattern, replacement)          =&gt; str or nil
+ *     str.sub!(pattern) {|match| block }      =&gt; str or nil
+ *  
+ *  Performs the substitutions of &lt;code&gt;String#sub&lt;/code&gt; in place,
+ *  returning &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no substitutions were
+ *  performed.
+ */
+
+static VALUE
+rb_str_sub_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE pat, repl, match;
+    struct re_registers *regs;
+    int iter = 0;
+    int tainted = 0;
+    long plen;
+
+    if (argc == 1 &amp;&amp; rb_block_given_p()) {
+	iter = 1;
+    }
+    else if (argc == 2) {
+	repl = argv[1];
+	StringValue(repl);
+	if (OBJ_TAINTED(repl)) tainted = 1;
+    }
+    else {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 2)&quot;, argc);
+    }
+
+    pat = get_pat(argv[0], 1);
+    if (rb_reg_search(pat, str, 0, 0) &gt;= 0) {
+	match = rb_backref_get();
+	regs = RMATCH(match)-&gt;regs;
+
+	if (iter) {
+	    char *p = RSTRING(str)-&gt;ptr; long len = RSTRING(str)-&gt;len;
+
+	    rb_match_busy(match);
+	    repl = rb_obj_as_string(rb_yield(rb_reg_nth_match(0, match)));
+	    str_mod_check(str, p, len);
+	    str_frozen_check(str);
+	    rb_backref_set(match);
+	}
+	else {
+	    repl = rb_reg_regsub(repl, str, regs);
+	}
+	rb_str_modify(str);
+	if (OBJ_TAINTED(repl)) tainted = 1;
+	plen = END(0) - BEG(0);
+	if (RSTRING(repl)-&gt;len &gt; plen) {
+	    RESIZE_CAPA(str, RSTRING(str)-&gt;len + RSTRING(repl)-&gt;len - plen);
+	}
+	if (RSTRING(repl)-&gt;len != plen) {
+	    memmove(RSTRING(str)-&gt;ptr + BEG(0) + RSTRING(repl)-&gt;len,
+		    RSTRING(str)-&gt;ptr + BEG(0) + plen,
+		    RSTRING(str)-&gt;len - BEG(0) - plen);
+	}
+	memcpy(RSTRING(str)-&gt;ptr + BEG(0),
+	       RSTRING(repl)-&gt;ptr, RSTRING(repl)-&gt;len);
+	RSTRING(str)-&gt;len += RSTRING(repl)-&gt;len - plen;
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	if (tainted) OBJ_TAINT(str);
+
+	return str;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.sub(pattern, replacement)         =&gt; new_str
+ *     str.sub(pattern) {|match| block }     =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with the &lt;em&gt;first&lt;/em&gt; occurrence of
+ *  &lt;i&gt;pattern&lt;/i&gt; replaced with either &lt;i&gt;replacement&lt;/i&gt; or the value of the
+ *  block. The &lt;i&gt;pattern&lt;/i&gt; will typically be a &lt;code&gt;Regexp&lt;/code&gt;; if it is
+ *  a &lt;code&gt;String&lt;/code&gt; then no regular expression metacharacters will be
+ *  interpreted (that is &lt;code&gt;/\d/&lt;/code&gt; will match a digit, but
+ *  &lt;code&gt;'\d'&lt;/code&gt; will match a backslash followed by a 'd').
+ *     
+ *  If the method call specifies &lt;i&gt;replacement&lt;/i&gt;, special variables such as
+ *  &lt;code&gt;$&amp;&lt;/code&gt; will not be useful, as substitution into the string occurs
+ *  before the pattern match starts. However, the sequences &lt;code&gt;\1&lt;/code&gt;,
+ *  &lt;code&gt;\2&lt;/code&gt;, etc., may be used.
+ *     
+ *  In the block form, the current match string is passed in as a parameter, and
+ *  variables such as &lt;code&gt;$1&lt;/code&gt;, &lt;code&gt;$2&lt;/code&gt;, &lt;code&gt;$`&lt;/code&gt;,
+ *  &lt;code&gt;$&amp;&lt;/code&gt;, and &lt;code&gt;$'&lt;/code&gt; will be set appropriately. The value
+ *  returned by the block will be substituted for the match on each call.
+ *     
+ *  The result inherits any tainting in the original string or any supplied
+ *  replacement string.
+ *     
+ *     &quot;hello&quot;.sub(/[aeiou]/, '*')               #=&gt; &quot;h*llo&quot;
+ *     &quot;hello&quot;.sub(/([aeiou])/, '&lt;\1&gt;')          #=&gt; &quot;h&lt;e&gt;llo&quot;
+ *     &quot;hello&quot;.sub(/./) {|s| s[0].to_s + ' ' }   #=&gt; &quot;104 ello&quot;
+ */
+
+static VALUE
+rb_str_sub(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_sub_bang(argc, argv, str);
+    return str;
+}
+
+static VALUE
+str_gsub(argc, argv, str, bang)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+    int bang;
+{
+    VALUE pat, val, repl, match, dest;
+    struct re_registers *regs;
+    long beg, n;
+    long offset, blen, slen, len;
+    int iter = 0;
+    char *buf, *bp, *sp, *cp;
+    int tainted = 0;
+
+    if (argc == 1) {
+        RETURN_ENUMERATOR(str, argc, argv);
+	iter = 1;
+    }
+    else if (argc == 2) {
+	repl = argv[1];
+	StringValue(repl);
+	if (OBJ_TAINTED(repl)) tainted = 1;
+    }
+    else {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 2)&quot;, argc);
+    }
+
+    pat = get_pat(argv[0], 1);
+    offset=0; n=0;
+    beg = rb_reg_search(pat, str, 0, 0);
+    if (beg &lt; 0) {
+	if (bang) return Qnil;	/* no match, no substitution */
+	return rb_str_dup(str);
+    }
+
+    blen = RSTRING(str)-&gt;len + 30; /* len + margin */
+    dest = str_new(0, 0, blen);
+    buf = RSTRING(dest)-&gt;ptr;
+    bp = buf;
+    sp = cp = RSTRING(str)-&gt;ptr;
+    slen = RSTRING(str)-&gt;len;
+
+    rb_str_locktmp(dest);
+    while (beg &gt;= 0) {
+	n++;
+	match = rb_backref_get();
+	regs = RMATCH(match)-&gt;regs;
+	if (iter) {
+	    rb_match_busy(match);
+	    val = rb_obj_as_string(rb_yield(rb_reg_nth_match(0, match)));
+	    str_mod_check(str, sp, slen);
+	    if (bang) str_frozen_check(str);
+	    if (val == dest) {  /* paranoid chack [ruby-dev:24827] */
+		rb_raise(rb_eRuntimeError, &quot;block should not cheat&quot;);
+	    }
+	    rb_backref_set(match);
+	}
+	else {
+	    val = rb_reg_regsub(repl, str, regs);
+	}
+	if (OBJ_TAINTED(val)) tainted = 1;
+	len = (bp - buf) + (beg - offset) + RSTRING(val)-&gt;len + 3;
+	if (blen &lt; len) {
+	    while (blen &lt; len) blen *= 2;
+	    len = bp - buf;
+	    RESIZE_CAPA(dest, blen);
+	    RSTRING(dest)-&gt;len = blen;
+	    buf = RSTRING(dest)-&gt;ptr;
+	    bp = buf + len;
+	}
+	len = beg - offset;	/* copy pre-match substr */
+	memcpy(bp, cp, len);
+	bp += len;
+	memcpy(bp, RSTRING(val)-&gt;ptr, RSTRING(val)-&gt;len);
+	bp += RSTRING(val)-&gt;len;
+	offset = END(0);
+	if (BEG(0) == END(0)) {
+	    /*
+	     * Always consume at least one character of the input string
+	     * in order to prevent infinite loops.
+	     */
+	    if (RSTRING(str)-&gt;len &lt;= END(0)) break;
+	    len = mbclen2(RSTRING(str)-&gt;ptr[END(0)], pat);
+	    memcpy(bp, RSTRING(str)-&gt;ptr+END(0), len);
+	    bp += len;
+	    offset = END(0) + len;
+	}
+	cp = RSTRING(str)-&gt;ptr + offset;
+	if (offset &gt; RSTRING(str)-&gt;len) break;
+	beg = rb_reg_search(pat, str, offset, 0);
+    }
+    if (RSTRING(str)-&gt;len &gt; offset) {
+	len = bp - buf;
+	if (blen - len &lt; RSTRING(str)-&gt;len - offset) {
+	    blen = len + RSTRING(str)-&gt;len - offset;
+	    RESIZE_CAPA(dest, blen);
+	    buf = RSTRING(dest)-&gt;ptr;
+	    bp = buf + len;
+	}
+	memcpy(bp, cp, RSTRING(str)-&gt;len - offset);
+	bp += RSTRING(str)-&gt;len - offset;
+    }
+    rb_backref_set(match);
+    *bp = '\0';
+    rb_str_unlocktmp(dest);
+    if (bang) {
+	if (str_independent(str)) {
+	    free(RSTRING(str)-&gt;ptr);
+	}
+	FL_UNSET(str, STR_NOCAPA);
+	RSTRING(str)-&gt;ptr = buf;
+	RSTRING(str)-&gt;aux.capa = blen;
+	RSTRING(dest)-&gt;ptr = 0;
+	RSTRING(dest)-&gt;len = 0;
+    }
+    else {
+	RBASIC(dest)-&gt;klass = rb_obj_class(str);
+	OBJ_INFECT(dest, str);
+	str = dest;
+    }
+    RSTRING(str)-&gt;len = bp - buf;
+
+    if (tainted) OBJ_TAINT(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.gsub!(pattern, replacement)        =&gt; str or nil
+ *     str.gsub!(pattern) {|match| block }    =&gt; str or nil
+ *  
+ *  Performs the substitutions of &lt;code&gt;String#gsub&lt;/code&gt; in place, returning
+ *  &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no substitutions were performed.
+ */
+
+static VALUE
+rb_str_gsub_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    return str_gsub(argc, argv, str, 1);
+}
+
+
+/*
+ *  call-seq:
+ *     str.gsub(pattern, replacement)       =&gt; new_str
+ *     str.gsub(pattern) {|match| block }   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with &lt;em&gt;all&lt;/em&gt; occurrences of &lt;i&gt;pattern&lt;/i&gt;
+ *  replaced with either &lt;i&gt;replacement&lt;/i&gt; or the value of the block. The
+ *  &lt;i&gt;pattern&lt;/i&gt; will typically be a &lt;code&gt;Regexp&lt;/code&gt;; if it is a
+ *  &lt;code&gt;String&lt;/code&gt; then no regular expression metacharacters will be
+ *  interpreted (that is &lt;code&gt;/\d/&lt;/code&gt; will match a digit, but
+ *  &lt;code&gt;'\d'&lt;/code&gt; will match a backslash followed by a 'd').
+ *     
+ *  If a string is used as the replacement, special variables from the match
+ *  (such as &lt;code&gt;$&amp;&lt;/code&gt; and &lt;code&gt;$1&lt;/code&gt;) cannot be substituted into it,
+ *  as substitution into the string occurs before the pattern match
+ *  starts. However, the sequences &lt;code&gt;\1&lt;/code&gt;, &lt;code&gt;\2&lt;/code&gt;, and so on
+ *  may be used to interpolate successive groups in the match.
+ *     
+ *  In the block form, the current match string is passed in as a parameter, and
+ *  variables such as &lt;code&gt;$1&lt;/code&gt;, &lt;code&gt;$2&lt;/code&gt;, &lt;code&gt;$`&lt;/code&gt;,
+ *  &lt;code&gt;$&amp;&lt;/code&gt;, and &lt;code&gt;$'&lt;/code&gt; will be set appropriately. The value
+ *  returned by the block will be substituted for the match on each call.
+ *     
+ *  The result inherits any tainting in the original string or any supplied
+ *  replacement string.
+ *     
+ *     &quot;hello&quot;.gsub(/[aeiou]/, '*')              #=&gt; &quot;h*ll*&quot;
+ *     &quot;hello&quot;.gsub(/([aeiou])/, '&lt;\1&gt;')         #=&gt; &quot;h&lt;e&gt;ll&lt;o&gt;&quot;
+ *     &quot;hello&quot;.gsub(/./) {|s| s[0].to_s + ' '}   #=&gt; &quot;104 101 108 108 111 &quot;
+ */
+
+static VALUE
+rb_str_gsub(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    return str_gsub(argc, argv, str, 0);
+}
+
+
+/*
+ *  call-seq:
+ *     str.replace(other_str)   =&gt; str
+ *  
+ *  Replaces the contents and taintedness of &lt;i&gt;str&lt;/i&gt; with the corresponding
+ *  values in &lt;i&gt;other_str&lt;/i&gt;.
+ *     
+ *     s = &quot;hello&quot;         #=&gt; &quot;hello&quot;
+ *     s.replace &quot;world&quot;   #=&gt; &quot;world&quot;
+ */
+
+static VALUE
+rb_str_replace(str, str2)
+    VALUE str, str2;
+{
+    if (str == str2) return str;
+
+    StringValue(str2);
+    if (FL_TEST(str2, ELTS_SHARED)) {
+	if (str_independent(str)) {
+	    free(RSTRING(str)-&gt;ptr);
+	}
+	RSTRING(str)-&gt;len = RSTRING(str2)-&gt;len;
+	RSTRING(str)-&gt;ptr = RSTRING(str2)-&gt;ptr;
+	FL_SET(str, ELTS_SHARED);
+	FL_UNSET(str, STR_ASSOC);
+	RSTRING(str)-&gt;aux.shared = RSTRING(str2)-&gt;aux.shared;
+    }
+    else {
+	rb_str_modify(str);
+	rb_str_resize(str, RSTRING(str2)-&gt;len);
+	memcpy(RSTRING(str)-&gt;ptr, RSTRING(str2)-&gt;ptr, RSTRING(str2)-&gt;len);
+	if (FL_TEST(str2, STR_ASSOC)) {
+	    FL_SET(str, STR_ASSOC);
+	    RSTRING(str)-&gt;aux.shared = RSTRING(str2)-&gt;aux.shared;
+	}
+    }
+
+    OBJ_INFECT(str, str2);
+    return str;
+}
+
+static VALUE
+uscore_get()
+{
+    VALUE line;
+
+    line = rb_lastline_get();
+    if (TYPE(line) != T_STRING) {
+	rb_raise(rb_eTypeError, &quot;$_ value need to be String (%s given)&quot;,
+		 NIL_P(line) ? &quot;nil&quot; : rb_obj_classname(line));
+    }
+    return line;
+}
+
+/*
+ *  call-seq:
+ *     sub!(pattern, replacement)    =&gt; $_ or nil
+ *     sub!(pattern) {|...| block }  =&gt; $_ or nil
+ *  
+ *  Equivalent to &lt;code&gt;$_.sub!(&lt;i&gt;args&lt;/i&gt;)&lt;/code&gt;.
+ */
+
+static VALUE
+rb_f_sub_bang(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    return rb_str_sub_bang(argc, argv, uscore_get());
+}
+
+/*
+ *  call-seq:
+ *     sub(pattern, replacement)   =&gt; $_
+ *     sub(pattern) { block }      =&gt; $_
+ *  
+ *  Equivalent to &lt;code&gt;$_.sub(&lt;i&gt;args&lt;/i&gt;)&lt;/code&gt;, except that
+ *  &lt;code&gt;$_&lt;/code&gt; will be updated if substitution occurs.
+ */
+
+static VALUE
+rb_f_sub(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    VALUE str = rb_str_dup(uscore_get());
+
+    if (NIL_P(rb_str_sub_bang(argc, argv, str)))
+	return str;
+    rb_lastline_set(str);
+    return str;
+}
+
+/*
+ *  call-seq:
+ *     gsub!(pattern, replacement)    =&gt; string or nil
+ *     gsub!(pattern) {|...| block }  =&gt; string or nil
+ *  
+ *  Equivalent to &lt;code&gt;Kernel::gsub&lt;/code&gt;, except &lt;code&gt;nil&lt;/code&gt; is
+ *  returned if &lt;code&gt;$_&lt;/code&gt; is not modified.
+ *     
+ *     $_ = &quot;quick brown fox&quot;
+ *     gsub! /cat/, '*'   #=&gt; nil
+ *     $_                 #=&gt; &quot;quick brown fox&quot;
+ */
+
+static VALUE
+rb_f_gsub_bang(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    return rb_str_gsub_bang(argc, argv, uscore_get());
+}
+
+/*
+ *  call-seq:
+ *     gsub(pattern, replacement)    =&gt; string
+ *     gsub(pattern) {|...| block }  =&gt; string
+ *  
+ *  Equivalent to &lt;code&gt;$_.gsub...&lt;/code&gt;, except that &lt;code&gt;$_&lt;/code&gt;
+ *  receives the modified result.
+ *     
+ *     $_ = &quot;quick brown fox&quot;
+ *     gsub /[aeiou]/, '*'   #=&gt; &quot;q**ck br*wn f*x&quot;
+ *     $_                    #=&gt; &quot;q**ck br*wn f*x&quot;
+ */
+
+static VALUE
+rb_f_gsub(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    VALUE str = rb_str_dup(uscore_get());
+
+    if (NIL_P(rb_str_gsub_bang(argc, argv, str)))
+	return str;
+    rb_lastline_set(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.reverse!   =&gt; str
+ *  
+ *  Reverses &lt;i&gt;str&lt;/i&gt; in place.
+ */
+
+static VALUE
+rb_str_reverse_bang(str)
+    VALUE str;
+{
+    char *s, *e;
+    char c;
+
+    if (RSTRING(str)-&gt;len &gt; 1) {
+	rb_str_modify(str);
+	s = RSTRING(str)-&gt;ptr;
+	e = s + RSTRING(str)-&gt;len - 1;
+	while (s &lt; e) {
+	    c = *s;
+	    *s++ = *e;
+	    *e-- = c;
+	}
+    }
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.reverse   =&gt; new_str
+ *  
+ *  Returns a new string with the characters from &lt;i&gt;str&lt;/i&gt; in reverse order.
+ *     
+ *     &quot;stressed&quot;.reverse   #=&gt; &quot;desserts&quot;
+ */
+
+static VALUE
+rb_str_reverse(str)
+    VALUE str;
+{
+    VALUE obj;
+    char *s, *e, *p;
+
+    if (RSTRING(str)-&gt;len &lt;= 1) return rb_str_dup(str);
+
+    obj = rb_str_new5(str, 0, RSTRING(str)-&gt;len);
+    s = RSTRING(str)-&gt;ptr; e = s + RSTRING(str)-&gt;len - 1;
+    p = RSTRING(obj)-&gt;ptr;
+
+    while (e &gt;= s) {
+	*p++ = *e--;
+    }
+    OBJ_INFECT(obj, str);
+
+    return obj;
+}
+
+
+/*
+ *  call-seq:
+ *     str.include? other_str   =&gt; true or false
+ *     str.include? fixnum      =&gt; true or false
+ *  
+ *  Returns &lt;code&gt;true&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt; contains the given string or
+ *  character.
+ *     
+ *     &quot;hello&quot;.include? &quot;lo&quot;   #=&gt; true
+ *     &quot;hello&quot;.include? &quot;ol&quot;   #=&gt; false
+ *     &quot;hello&quot;.include? ?h     #=&gt; true
+ */
+
+static VALUE
+rb_str_include(str, arg)
+    VALUE str, arg;
+{
+    long i;
+
+    if (FIXNUM_P(arg)) {
+	if (memchr(RSTRING(str)-&gt;ptr, FIX2INT(arg), RSTRING(str)-&gt;len))
+	    return Qtrue;
+	return Qfalse;
+    }
+
+    StringValue(arg);
+    i = rb_str_index(str, arg, 0);
+
+    if (i == -1) return Qfalse;
+    return Qtrue;
+}
+
+
+/*
+ *  call-seq:
+ *     str.to_i(base=10)   =&gt; integer
+ *  
+ *  Returns the result of interpreting leading characters in &lt;i&gt;str&lt;/i&gt; as an
+ *  integer base &lt;i&gt;base&lt;/i&gt; (between 2 and 36). Extraneous characters past the
+ *  end of a valid number are ignored. If there is not a valid number at the
+ *  start of &lt;i&gt;str&lt;/i&gt;, &lt;code&gt;0&lt;/code&gt; is returned. This method never raises an
+ *  exception.
+ *     
+ *     &quot;12345&quot;.to_i             #=&gt; 12345
+ *     &quot;99 red balloons&quot;.to_i   #=&gt; 99
+ *     &quot;0a&quot;.to_i                #=&gt; 0
+ *     &quot;0a&quot;.to_i(16)            #=&gt; 10
+ *     &quot;hello&quot;.to_i             #=&gt; 0
+ *     &quot;1100101&quot;.to_i(2)        #=&gt; 101
+ *     &quot;1100101&quot;.to_i(8)        #=&gt; 294977
+ *     &quot;1100101&quot;.to_i(10)       #=&gt; 1100101
+ *     &quot;1100101&quot;.to_i(16)       #=&gt; 17826049
+ */
+
+static VALUE
+rb_str_to_i(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE b;
+    int base;
+
+    rb_scan_args(argc, argv, &quot;01&quot;, &amp;b);
+    if (argc == 0) base = 10;
+    else base = NUM2INT(b);
+
+    if (base &lt; 0) {
+	rb_raise(rb_eArgError, &quot;illegal radix %d&quot;, base);
+    }
+    return rb_str_to_inum(str, base, Qfalse);
+}
+
+
+/*
+ *  call-seq:
+ *     str.to_f   =&gt; float
+ *  
+ *  Returns the result of interpreting leading characters in &lt;i&gt;str&lt;/i&gt; as a
+ *  floating point number. Extraneous characters past the end of a valid number
+ *  are ignored. If there is not a valid number at the start of &lt;i&gt;str&lt;/i&gt;,
+ *  &lt;code&gt;0.0&lt;/code&gt; is returned. This method never raises an exception.
+ *     
+ *     &quot;123.45e1&quot;.to_f        #=&gt; 1234.5
+ *     &quot;45.67 degrees&quot;.to_f   #=&gt; 45.67
+ *     &quot;thx1138&quot;.to_f         #=&gt; 0.0
+ */
+
+static VALUE
+rb_str_to_f(str)
+    VALUE str;
+{
+    return rb_float_new(rb_str_to_dbl(str, Qfalse));
+}
+
+
+/*
+ *  call-seq:
+ *     str.to_s     =&gt; str
+ *     str.to_str   =&gt; str
+ *  
+ *  Returns the receiver.
+ */
+
+static VALUE
+rb_str_to_s(str)
+    VALUE str;
+{
+    if (rb_obj_class(str) != rb_cString) {
+	VALUE dup = str_alloc(rb_cString);
+	rb_str_replace(dup, str);
+	return dup;
+    }
+    return str;
+}
+
+/*
+ * call-seq:
+ *   str.inspect   =&gt; string
+ *
+ * Returns a printable version of _str_, with special characters
+ * escaped.
+ *
+ *    str = &quot;hello&quot;
+ *    str[3] = 8
+ *    str.inspect       #=&gt; &quot;hel\010o&quot;
+ */
+
+VALUE
+rb_str_inspect(str)
+    VALUE str;
+{
+    char *p, *pend;
+    VALUE result = rb_str_buf_new2(&quot;\&quot;&quot;);
+    char s[5];
+
+    p = RSTRING(str)-&gt;ptr; pend = p + RSTRING(str)-&gt;len;
+    while (p &lt; pend) {
+	char c = *p++;
+	if (ismbchar(c) &amp;&amp; p &lt; pend) {
+	    int len = mbclen(c);
+	    rb_str_buf_cat(result, p - 1, len);
+	    p += len - 1;
+	}
+	else if (c == '&quot;'|| c == '\\' || (c == '#' &amp;&amp; IS_EVSTR(p, pend))) {
+	    s[0] = '\\'; s[1] = c;
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (ISPRINT(c)) {
+	    s[0] = c;
+	    rb_str_buf_cat(result, s, 1);
+	}
+	else if (c == '\n') {
+	    s[0] = '\\'; s[1] = 'n';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\r') {
+	    s[0] = '\\'; s[1] = 'r';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\t') {
+	    s[0] = '\\'; s[1] = 't';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\f') {
+	    s[0] = '\\'; s[1] = 'f';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\013') {
+	    s[0] = '\\'; s[1] = 'v';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\010') {
+	    s[0] = '\\'; s[1] = 'b';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == '\007') {
+	    s[0] = '\\'; s[1] = 'a';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else if (c == 033) {
+	    s[0] = '\\'; s[1] = 'e';
+	    rb_str_buf_cat(result, s, 2);
+	}
+	else {
+	    sprintf(s, &quot;\\%03o&quot;, c &amp; 0377);
+	    rb_str_buf_cat2(result, s);
+	}
+    }
+    rb_str_buf_cat2(result, &quot;\&quot;&quot;);
+
+    OBJ_INFECT(result, str);
+    return result;
+}
+
+
+/*
+ *  call-seq:
+ *     str.dump   =&gt; new_str
+ *  
+ *  Produces a version of &lt;i&gt;str&lt;/i&gt; with all nonprinting characters replaced by
+ *  &lt;code&gt;\nnn&lt;/code&gt; notation and all special characters escaped.
+ */
+
+VALUE
+rb_str_dump(str)
+    VALUE str;
+{
+    long len;
+    char *p, *pend;
+    char *q, *qend;
+    VALUE result;
+
+    len = 2;			/* &quot;&quot; */
+    p = RSTRING(str)-&gt;ptr; pend = p + RSTRING(str)-&gt;len;
+    while (p &lt; pend) {
+	char c = *p++;
+	switch (c) {
+	  case '&quot;':  case '\\':
+	  case '\n': case '\r':
+	  case '\t': case '\f':
+	  case '\013': case '\010': case '\007': case '\033':
+	    len += 2;
+	    break;
+
+	  case '#':
+	    len += IS_EVSTR(p, pend) ? 2 : 1;
+	    break;
+
+	  default:
+	    if (ISPRINT(c)) {
+		len++;
+	    }
+	    else {
+		len += 4;		/* \nnn */
+	    }
+	    break;
+	}
+    }
+
+    result = rb_str_new5(str, 0, len);
+    p = RSTRING(str)-&gt;ptr; pend = p + RSTRING(str)-&gt;len;
+    q = RSTRING(result)-&gt;ptr; qend = q + len;
+
+    *q++ = '&quot;';
+    while (p &lt; pend) {
+	char c = *p++;
+
+	if (c == '&quot;' || c == '\\') {
+	    *q++ = '\\';
+	    *q++ = c;
+	}
+	else if (c == '#') {
+	    if (IS_EVSTR(p, pend)) *q++ = '\\';
+	    *q++ = '#';
+	}
+	else if (ISPRINT(c)) {
+	    *q++ = c;
+	}
+	else if (c == '\n') {
+	    *q++ = '\\';
+	    *q++ = 'n';
+	}
+	else if (c == '\r') {
+	    *q++ = '\\';
+	    *q++ = 'r';
+	}
+	else if (c == '\t') {
+	    *q++ = '\\';
+	    *q++ = 't';
+	}
+	else if (c == '\f') {
+	    *q++ = '\\';
+	    *q++ = 'f';
+	}
+	else if (c == '\013') {
+	    *q++ = '\\';
+	    *q++ = 'v';
+	}
+	else if (c == '\010') {
+	    *q++ = '\\';
+	    *q++ = 'b';
+	}
+	else if (c == '\007') {
+	    *q++ = '\\';
+	    *q++ = 'a';
+	}
+	else if (c == '\033') {
+	    *q++ = '\\';
+	    *q++ = 'e';
+	}
+	else {
+	    *q++ = '\\';
+	    sprintf(q, &quot;%03o&quot;, c&amp;0xff);
+	    q += 3;
+	}
+    }
+    *q++ = '&quot;';
+
+    OBJ_INFECT(result, str);
+    return result;
+}
+
+
+/*
+ *  call-seq:
+ *     str.upcase!   =&gt; str or nil
+ *  
+ *  Upcases the contents of &lt;i&gt;str&lt;/i&gt;, returning &lt;code&gt;nil&lt;/code&gt; if no changes
+ *  were made.
+ */
+
+static VALUE
+rb_str_upcase_bang(str)
+    VALUE str;
+{
+    char *s, *send;
+    int modify = 0;
+
+    rb_str_modify(str);
+    s = RSTRING(str)-&gt;ptr; send = s + RSTRING(str)-&gt;len;
+    while (s &lt; send) {
+	if (ismbchar(*s)) {
+	    s+=mbclen(*s) - 1;
+	}
+	else if (ISLOWER(*s)) {
+	    *s = toupper(*s);
+	    modify = 1;
+	}
+	s++;
+    }
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.upcase   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with all lowercase letters replaced with their
+ *  uppercase counterparts. The operation is locale insensitive---only
+ *  characters ``a'' to ``z'' are affected.
+ *     
+ *     &quot;hEllO&quot;.upcase   #=&gt; &quot;HELLO&quot;
+ */
+
+static VALUE
+rb_str_upcase(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_upcase_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.downcase!   =&gt; str or nil
+ *  
+ *  Downcases the contents of &lt;i&gt;str&lt;/i&gt;, returning &lt;code&gt;nil&lt;/code&gt; if no
+ *  changes were made.
+ */
+
+static VALUE
+rb_str_downcase_bang(str)
+    VALUE str;
+{
+    char *s, *send;
+    int modify = 0;
+
+    rb_str_modify(str);
+    s = RSTRING(str)-&gt;ptr; send = s + RSTRING(str)-&gt;len;
+    while (s &lt; send) {
+	if (ismbchar(*s)) {
+	    s+=mbclen(*s) - 1;
+	}
+	else if (ISUPPER(*s)) {
+	    *s = tolower(*s);
+	    modify = 1;
+	}
+	s++;
+    }
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.downcase   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with all uppercase letters replaced with their
+ *  lowercase counterparts. The operation is locale insensitive---only
+ *  characters ``A'' to ``Z'' are affected.
+ *     
+ *     &quot;hEllO&quot;.downcase   #=&gt; &quot;hello&quot;
+ */
+
+static VALUE
+rb_str_downcase(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_downcase_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.capitalize!   =&gt; str or nil
+ *  
+ *  Modifies &lt;i&gt;str&lt;/i&gt; by converting the first character to uppercase and the
+ *  remainder to lowercase. Returns &lt;code&gt;nil&lt;/code&gt; if no changes are made.
+ *     
+ *     a = &quot;hello&quot;
+ *     a.capitalize!   #=&gt; &quot;Hello&quot;
+ *     a               #=&gt; &quot;Hello&quot;
+ *     a.capitalize!   #=&gt; nil
+ */
+
+static VALUE
+rb_str_capitalize_bang(str)
+    VALUE str;
+{
+    char *s, *send;
+    int modify = 0;
+
+    rb_str_modify(str);
+    if (RSTRING(str)-&gt;len == 0 || !RSTRING(str)-&gt;ptr) return Qnil;
+    s = RSTRING(str)-&gt;ptr; send = s + RSTRING(str)-&gt;len;
+    if (ISLOWER(*s)) {
+	*s = toupper(*s);
+	modify = 1;
+    }
+    while (++s &lt; send) {
+	if (ismbchar(*s)) {
+	    s+=mbclen(*s) - 1;
+	}
+	else if (ISUPPER(*s)) {
+	    *s = tolower(*s);
+	    modify = 1;
+	}
+    }
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.capitalize   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with the first character converted to uppercase
+ *  and the remainder to lowercase.
+ *     
+ *     &quot;hello&quot;.capitalize    #=&gt; &quot;Hello&quot;
+ *     &quot;HELLO&quot;.capitalize    #=&gt; &quot;Hello&quot;
+ *     &quot;123ABC&quot;.capitalize   #=&gt; &quot;123abc&quot;
+ */
+
+static VALUE
+rb_str_capitalize(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_capitalize_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.swapcase!   =&gt; str or nil
+ *  
+ *  Equivalent to &lt;code&gt;String#swapcase&lt;/code&gt;, but modifies the receiver in
+ *  place, returning &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no changes were made.
+ */
+
+static VALUE
+rb_str_swapcase_bang(str)
+    VALUE str;
+{
+    char *s, *send;
+    int modify = 0;
+
+    rb_str_modify(str);
+    s = RSTRING(str)-&gt;ptr; send = s + RSTRING(str)-&gt;len;
+    while (s &lt; send) {
+	if (ismbchar(*s)) {
+	    s+=mbclen(*s) - 1;
+	}
+	else if (ISUPPER(*s)) {
+	    *s = tolower(*s);
+	    modify = 1;
+	}
+	else if (ISLOWER(*s)) {
+	    *s = toupper(*s);
+	    modify = 1;
+	}
+	s++;
+    }
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.swapcase   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with uppercase alphabetic characters converted
+ *  to lowercase and lowercase characters converted to uppercase.
+ *     
+ *     &quot;Hello&quot;.swapcase          #=&gt; &quot;hELLO&quot;
+ *     &quot;cYbEr_PuNk11&quot;.swapcase   #=&gt; &quot;CyBeR_pUnK11&quot;
+ */
+
+static VALUE
+rb_str_swapcase(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_swapcase_bang(str);
+    return str;
+}
+
+typedef unsigned char *USTR;
+
+struct tr {
+    int gen, now, max;
+    char *p, *pend;
+};
+
+static int
+trnext(t)
+    struct tr *t;
+{
+    for (;;) {
+	if (!t-&gt;gen) {
+	    if (t-&gt;p == t-&gt;pend) return -1;
+	    if (t-&gt;p &lt; t-&gt;pend - 1 &amp;&amp; *t-&gt;p == '\\') {
+		t-&gt;p++;
+	    }
+	    t-&gt;now = *(USTR)t-&gt;p++;
+	    if (t-&gt;p &lt; t-&gt;pend - 1 &amp;&amp; *t-&gt;p == '-') {
+		t-&gt;p++;
+		if (t-&gt;p &lt; t-&gt;pend) {
+		    if (t-&gt;now &gt; *(USTR)t-&gt;p) {
+			t-&gt;p++;
+			continue;
+		    }
+		    t-&gt;gen = 1;
+		    t-&gt;max = *(USTR)t-&gt;p++;
+		}
+	    }
+	    return t-&gt;now;
+	}
+	else if (++t-&gt;now &lt; t-&gt;max) {
+	    return t-&gt;now;
+	}
+	else {
+	    t-&gt;gen = 0;
+	    return t-&gt;max;
+	}
+    }
+}
+
+static VALUE rb_str_delete_bang _((int,VALUE*,VALUE));
+
+static VALUE
+tr_trans(str, src, repl, sflag)
+    VALUE str, src, repl;
+    int sflag;
+{
+    struct tr trsrc, trrepl;
+    int cflag = 0;
+    int trans[256];
+    int i, c, modify = 0;
+    char *s, *send;
+
+    StringValue(src);
+    StringValue(repl);
+    if (RSTRING(str)-&gt;len == 0 || !RSTRING(str)-&gt;ptr) return Qnil;
+    trsrc.p = RSTRING(src)-&gt;ptr; trsrc.pend = trsrc.p + RSTRING(src)-&gt;len;
+    if (RSTRING(src)-&gt;len &gt;= 2 &amp;&amp; RSTRING(src)-&gt;ptr[0] == '^') {
+	cflag++;
+	trsrc.p++;
+    }
+    if (RSTRING(repl)-&gt;len == 0) {
+	return rb_str_delete_bang(1, &amp;src, str);
+    }
+    trrepl.p = RSTRING(repl)-&gt;ptr;
+    trrepl.pend = trrepl.p + RSTRING(repl)-&gt;len;
+    trsrc.gen = trrepl.gen = 0;
+    trsrc.now = trrepl.now = 0;
+    trsrc.max = trrepl.max = 0;
+
+    if (cflag) {
+	for (i=0; i&lt;256; i++) {
+	    trans[i] = 1;
+	}
+	while ((c = trnext(&amp;trsrc)) &gt;= 0) {
+	    trans[c &amp; 0xff] = -1;
+	}
+	while ((c = trnext(&amp;trrepl)) &gt;= 0)
+	    /* retrieve last replacer */;
+	for (i=0; i&lt;256; i++) {
+	    if (trans[i] &gt;= 0) {
+		trans[i] = trrepl.now;
+	    }
+	}
+    }
+    else {
+	int r;
+
+	for (i=0; i&lt;256; i++) {
+	    trans[i] = -1;
+	}
+	while ((c = trnext(&amp;trsrc)) &gt;= 0) {
+	    r = trnext(&amp;trrepl);
+	    if (r == -1) r = trrepl.now;
+	    trans[c &amp; 0xff] = r;
+	}
+    }
+
+    rb_str_modify(str);
+    s = RSTRING(str)-&gt;ptr; send = s + RSTRING(str)-&gt;len;
+    if (sflag) {
+	char *t = s;
+	int c0, last = -1;
+
+	while (s &lt; send) {
+	    c0 = *s++;
+	    if ((c = trans[c0 &amp; 0xff]) &gt;= 0) {
+		if (last == c) continue;
+		last = c;
+		*t++ = c &amp; 0xff;
+		modify = 1;
+	    }
+	    else {
+		last = -1;
+		*t++ = c0;
+	    }
+	}
+	if (RSTRING(str)-&gt;len &gt; (t - RSTRING(str)-&gt;ptr)) {
+	    RSTRING(str)-&gt;len = (t - RSTRING(str)-&gt;ptr);
+	    modify = 1;
+	    *t = '\0';
+	}
+    }
+    else {
+	while (s &lt; send) {
+	    if ((c = trans[*s &amp; 0xff]) &gt;= 0) {
+		*s = c &amp; 0xff;
+		modify = 1;
+	    }
+	    s++;
+	}
+    }
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.tr!(from_str, to_str)   =&gt; str or nil
+ *  
+ *  Translates &lt;i&gt;str&lt;/i&gt; in place, using the same rules as
+ *  &lt;code&gt;String#tr&lt;/code&gt;. Returns &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no
+ *  changes were made.
+ */
+
+static VALUE
+rb_str_tr_bang(str, src, repl)
+    VALUE str, src, repl;
+{
+    return tr_trans(str, src, repl, 0);
+}
+
+
+/*
+ *  call-seq:
+ *     str.tr(from_str, to_str)   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with the characters in &lt;i&gt;from_str&lt;/i&gt; replaced
+ *  by the corresponding characters in &lt;i&gt;to_str&lt;/i&gt;. If &lt;i&gt;to_str&lt;/i&gt; is
+ *  shorter than &lt;i&gt;from_str&lt;/i&gt;, it is padded with its last character. Both
+ *  strings may use the c1--c2 notation to denote ranges of characters, and
+ *  &lt;i&gt;from_str&lt;/i&gt; may start with a &lt;code&gt;^&lt;/code&gt;, which denotes all
+ *  characters except those listed.
+ *     
+ *     &quot;hello&quot;.tr('aeiou', '*')    #=&gt; &quot;h*ll*&quot;
+ *     &quot;hello&quot;.tr('^aeiou', '*')   #=&gt; &quot;*e**o&quot;
+ *     &quot;hello&quot;.tr('el', 'ip')      #=&gt; &quot;hippo&quot;
+ *     &quot;hello&quot;.tr('a-y', 'b-z')    #=&gt; &quot;ifmmp&quot;
+ */
+
+static VALUE
+rb_str_tr(str, src, repl)
+    VALUE str, src, repl;
+{
+    str = rb_str_dup(str);
+    tr_trans(str, src, repl, 0);
+    return str;
+}
+
+static void
+tr_setup_table(str, table, init)
+    VALUE str;
+    char table[256];
+    int init;
+{
+    char buf[256];
+    struct tr tr;
+    int i, c;
+    int cflag = 0;
+
+    tr.p = RSTRING(str)-&gt;ptr; tr.pend = tr.p + RSTRING(str)-&gt;len;
+    tr.gen = tr.now = tr.max = 0;
+    if (RSTRING(str)-&gt;len &gt; 1 &amp;&amp; RSTRING(str)-&gt;ptr[0] == '^') {
+	cflag = 1;
+	tr.p++;
+    }
+
+    if (init) {
+	for (i=0; i&lt;256; i++) {
+	    table[i] = 1;
+	}
+    }
+    for (i=0; i&lt;256; i++) {
+	buf[i] = cflag;
+    }
+    while ((c = trnext(&amp;tr)) &gt;= 0) {
+	buf[c &amp; 0xff] = !cflag;
+    }
+    for (i=0; i&lt;256; i++) {
+	table[i] = table[i] &amp;&amp; buf[i];
+    }
+}
+
+
+/*
+ *  call-seq:
+ *     str.delete!([other_str]+&gt;)   =&gt; str or nil
+ *  
+ *  Performs a &lt;code&gt;delete&lt;/code&gt; operation in place, returning &lt;i&gt;str&lt;/i&gt;, or
+ *  &lt;code&gt;nil&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt; was not modified.
+ */
+
+static VALUE
+rb_str_delete_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    char *s, *send, *t;
+    char squeez[256];
+    int modify = 0;
+    int init = 1;
+    int i;
+
+    if (argc &lt; 1) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments&quot;);
+    }
+    for (i=0; i&lt;argc; i++) {
+	VALUE s = argv[i];
+
+	StringValue(s);
+	tr_setup_table(s, squeez, init);
+	init = 0;
+    }
+
+    rb_str_modify(str);
+    s = t = RSTRING(str)-&gt;ptr;
+    if (!s || RSTRING(str)-&gt;len == 0) return Qnil;
+    send = s + RSTRING(str)-&gt;len;
+    while (s &lt; send) {
+	if (squeez[*s &amp; 0xff])
+	    modify = 1;
+	else
+	    *t++ = *s;
+	s++;
+    }
+    *t = '\0';
+    RSTRING(str)-&gt;len = t - RSTRING(str)-&gt;ptr;
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.delete([other_str]+)   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with all characters in the intersection of its
+ *  arguments deleted. Uses the same rules for building the set of characters as
+ *  &lt;code&gt;String#count&lt;/code&gt;.
+ *     
+ *     &quot;hello&quot;.delete &quot;l&quot;,&quot;lo&quot;        #=&gt; &quot;heo&quot;
+ *     &quot;hello&quot;.delete &quot;lo&quot;            #=&gt; &quot;he&quot;
+ *     &quot;hello&quot;.delete &quot;aeiou&quot;, &quot;^e&quot;   #=&gt; &quot;hell&quot;
+ *     &quot;hello&quot;.delete &quot;ej-m&quot;          #=&gt; &quot;ho&quot;
+ */
+
+static VALUE
+rb_str_delete(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_delete_bang(argc, argv, str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.squeeze!([other_str]*)   =&gt; str or nil
+ *  
+ *  Squeezes &lt;i&gt;str&lt;/i&gt; in place, returning either &lt;i&gt;str&lt;/i&gt;, or
+ *  &lt;code&gt;nil&lt;/code&gt; if no changes were made.
+ */
+
+static VALUE
+rb_str_squeeze_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    char squeez[256];
+    char *s, *send, *t;
+    int c, save, modify = 0;
+    int init = 1;
+    int i;
+
+    if (argc == 0) {
+	for (i=0; i&lt;256; i++) {
+	    squeez[i] = 1;
+	}
+    }
+    else {
+	for (i=0; i&lt;argc; i++) {
+	    VALUE s = argv[i];
+
+	    StringValue(s);
+	    tr_setup_table(s, squeez, init);
+	    init = 0;
+	}
+    }
+
+    rb_str_modify(str);
+    s = t = RSTRING(str)-&gt;ptr;
+    if (!s || RSTRING(str)-&gt;len == 0) return Qnil;
+    send = s + RSTRING(str)-&gt;len;
+    save = -1;
+    while (s &lt; send) {
+	c = *s++ &amp; 0xff;
+	if (c != save || !squeez[c]) {
+	    *t++ = save = c;
+	}
+    }
+    *t = '\0';
+    if (t - RSTRING(str)-&gt;ptr != RSTRING(str)-&gt;len) {
+	RSTRING(str)-&gt;len = t - RSTRING(str)-&gt;ptr;
+	modify = 1;
+    }
+
+    if (modify) return str;
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.squeeze([other_str]*)    =&gt; new_str
+ *  
+ *  Builds a set of characters from the &lt;i&gt;other_str&lt;/i&gt; parameter(s) using the
+ *  procedure described for &lt;code&gt;String#count&lt;/code&gt;. Returns a new string
+ *  where runs of the same character that occur in this set are replaced by a
+ *  single character. If no arguments are given, all runs of identical
+ *  characters are replaced by a single character.
+ *     
+ *     &quot;yellow moon&quot;.squeeze                  #=&gt; &quot;yelow mon&quot;
+ *     &quot;  now   is  the&quot;.squeeze(&quot; &quot;)         #=&gt; &quot; now is the&quot;
+ *     &quot;putters shoot balls&quot;.squeeze(&quot;m-z&quot;)   #=&gt; &quot;puters shot balls&quot;
+ */
+
+static VALUE
+rb_str_squeeze(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_squeeze_bang(argc, argv, str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.tr_s!(from_str, to_str)   =&gt; str or nil
+ *  
+ *  Performs &lt;code&gt;String#tr_s&lt;/code&gt; processing on &lt;i&gt;str&lt;/i&gt; in place,
+ *  returning &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no changes were made.
+ */
+
+static VALUE
+rb_str_tr_s_bang(str, src, repl)
+    VALUE str, src, repl;
+{
+    return tr_trans(str, src, repl, 1);
+}
+
+
+/*
+ *  call-seq:
+ *     str.tr_s(from_str, to_str)   =&gt; new_str
+ *  
+ *  Processes a copy of &lt;i&gt;str&lt;/i&gt; as described under &lt;code&gt;String#tr&lt;/code&gt;,
+ *  then removes duplicate characters in regions that were affected by the
+ *  translation.
+ *     
+ *     &quot;hello&quot;.tr_s('l', 'r')     #=&gt; &quot;hero&quot;
+ *     &quot;hello&quot;.tr_s('el', '*')    #=&gt; &quot;h*o&quot;
+ *     &quot;hello&quot;.tr_s('el', 'hx')   #=&gt; &quot;hhxo&quot;
+ */
+
+static VALUE
+rb_str_tr_s(str, src, repl)
+    VALUE str, src, repl;
+{
+    str = rb_str_dup(str);
+    tr_trans(str, src, repl, 1);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.count([other_str]+)   =&gt; fixnum
+ *  
+ *  Each &lt;i&gt;other_str&lt;/i&gt; parameter defines a set of characters to count.  The
+ *  intersection of these sets defines the characters to count in
+ *  &lt;i&gt;str&lt;/i&gt;. Any &lt;i&gt;other_str&lt;/i&gt; that starts with a caret (^) is
+ *  negated. The sequence c1--c2 means all characters between c1 and c2.
+ *     
+ *     a = &quot;hello world&quot;
+ *     a.count &quot;lo&quot;            #=&gt; 5
+ *     a.count &quot;lo&quot;, &quot;o&quot;       #=&gt; 2
+ *     a.count &quot;hello&quot;, &quot;^l&quot;   #=&gt; 4
+ *     a.count &quot;ej-m&quot;          #=&gt; 4
+ */
+
+static VALUE
+rb_str_count(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    char table[256];
+    char *s, *send;
+    int init = 1;
+    int i;
+
+    if (argc &lt; 1) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments&quot;);
+    }
+    for (i=0; i&lt;argc; i++) {
+	VALUE s = argv[i];
+
+	StringValue(s);
+	tr_setup_table(s, table, init);
+	init = 0;
+    }
+
+    s = RSTRING(str)-&gt;ptr;
+    if (!s || RSTRING(str)-&gt;len == 0) return INT2FIX(0);
+    send = s + RSTRING(str)-&gt;len;
+    i = 0;
+    while (s &lt; send) {
+	if (table[*s++ &amp; 0xff]) {
+	    i++;
+	}
+    }
+    return INT2NUM(i);
+}
+
+
+/*
+ *  call-seq:
+ *     str.split(pattern=$;, [limit])   =&gt; anArray
+ *  
+ *  Divides &lt;i&gt;str&lt;/i&gt; into substrings based on a delimiter, returning an array
+ *  of these substrings.
+ *     
+ *  If &lt;i&gt;pattern&lt;/i&gt; is a &lt;code&gt;String&lt;/code&gt;, then its contents are used as
+ *  the delimiter when splitting &lt;i&gt;str&lt;/i&gt;. If &lt;i&gt;pattern&lt;/i&gt; is a single
+ *  space, &lt;i&gt;str&lt;/i&gt; is split on whitespace, with leading whitespace and runs
+ *  of contiguous whitespace characters ignored.
+ *     
+ *  If &lt;i&gt;pattern&lt;/i&gt; is a &lt;code&gt;Regexp&lt;/code&gt;, &lt;i&gt;str&lt;/i&gt; is divided where the
+ *  pattern matches. Whenever the pattern matches a zero-length string,
+ *  &lt;i&gt;str&lt;/i&gt; is split into individual characters.
+ *     
+ *  If &lt;i&gt;pattern&lt;/i&gt; is omitted, the value of &lt;code&gt;$;&lt;/code&gt; is used.  If
+ *  &lt;code&gt;$;&lt;/code&gt; is &lt;code&gt;nil&lt;/code&gt; (which is the default), &lt;i&gt;str&lt;/i&gt; is
+ *  split on whitespace as if ` ' were specified.
+ *     
+ *  If the &lt;i&gt;limit&lt;/i&gt; parameter is omitted, trailing null fields are
+ *  suppressed. If &lt;i&gt;limit&lt;/i&gt; is a positive number, at most that number of
+ *  fields will be returned (if &lt;i&gt;limit&lt;/i&gt; is &lt;code&gt;1&lt;/code&gt;, the entire
+ *  string is returned as the only entry in an array). If negative, there is no
+ *  limit to the number of fields returned, and trailing null fields are not
+ *  suppressed.
+ *     
+ *     &quot; now's  the time&quot;.split        #=&gt; [&quot;now's&quot;, &quot;the&quot;, &quot;time&quot;]
+ *     &quot; now's  the time&quot;.split(' ')   #=&gt; [&quot;now's&quot;, &quot;the&quot;, &quot;time&quot;]
+ *     &quot; now's  the time&quot;.split(/ /)   #=&gt; [&quot;&quot;, &quot;now's&quot;, &quot;&quot;, &quot;the&quot;, &quot;time&quot;]
+ *     &quot;1, 2.34,56, 7&quot;.split(%r{,\s*}) #=&gt; [&quot;1&quot;, &quot;2.34&quot;, &quot;56&quot;, &quot;7&quot;]
+ *     &quot;hello&quot;.split(//)               #=&gt; [&quot;h&quot;, &quot;e&quot;, &quot;l&quot;, &quot;l&quot;, &quot;o&quot;]
+ *     &quot;hello&quot;.split(//, 3)            #=&gt; [&quot;h&quot;, &quot;e&quot;, &quot;llo&quot;]
+ *     &quot;hi mom&quot;.split(%r{\s*})         #=&gt; [&quot;h&quot;, &quot;i&quot;, &quot;m&quot;, &quot;o&quot;, &quot;m&quot;]
+ *     
+ *     &quot;mellow yellow&quot;.split(&quot;ello&quot;)   #=&gt; [&quot;m&quot;, &quot;w y&quot;, &quot;w&quot;]
+ *     &quot;1,2,,3,4,,&quot;.split(',')         #=&gt; [&quot;1&quot;, &quot;2&quot;, &quot;&quot;, &quot;3&quot;, &quot;4&quot;]
+ *     &quot;1,2,,3,4,,&quot;.split(',', 4)      #=&gt; [&quot;1&quot;, &quot;2&quot;, &quot;&quot;, &quot;3,4,,&quot;]
+ *     &quot;1,2,,3,4,,&quot;.split(',', -4)     #=&gt; [&quot;1&quot;, &quot;2&quot;, &quot;&quot;, &quot;3&quot;, &quot;4&quot;, &quot;&quot;, &quot;&quot;]
+ */
+
+static VALUE
+rb_str_split_m(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE spat;
+    VALUE limit;
+    int awk_split = Qfalse;
+    long beg, end, i = 0;
+    int lim = 0;
+    VALUE result, tmp;
+
+    if (rb_scan_args(argc, argv, &quot;02&quot;, &amp;spat, &amp;limit) == 2) {
+	lim = NUM2INT(limit);
+	if (lim &lt;= 0) limit = Qnil;
+	else if (lim == 1) {
+	    if (RSTRING(str)-&gt;len == 0)
+		return rb_ary_new2(0);
+	    return rb_ary_new3(1, str);
+	}
+	i = 1;
+    }
+
+    if (NIL_P(spat)) {
+	if (!NIL_P(rb_fs)) {
+	    spat = rb_fs;
+	    goto fs_set;
+	}
+	awk_split = Qtrue;
+    }
+    else {
+      fs_set:
+	if (TYPE(spat) == T_STRING &amp;&amp; RSTRING(spat)-&gt;len == 1) {
+	    if (RSTRING(spat)-&gt;ptr[0] == ' ') {
+		awk_split = Qtrue;
+	    }
+	    else {
+		spat = rb_reg_regcomp(rb_reg_quote(spat));
+	    }
+	}
+	else {
+	    spat = get_pat(spat, 1);
+	}
+    }
+
+    result = rb_ary_new();
+    beg = 0;
+    if (awk_split) {
+	char *ptr = RSTRING(str)-&gt;ptr;
+	long len = RSTRING(str)-&gt;len;
+	char *eptr = ptr + len;
+	int skip = 1;
+
+	for (end = beg = 0; ptr&lt;eptr; ptr++) {
+	    if (skip) {
+		if (ISSPACE(*ptr)) {
+		    beg++;
+		}
+		else {
+		    end = beg+1;
+		    skip = 0;
+		    if (!NIL_P(limit) &amp;&amp; lim &lt;= i) break;
+		}
+	    }
+	    else {
+		if (ISSPACE(*ptr)) {
+		    rb_ary_push(result, rb_str_substr(str, beg, end-beg));
+		    skip = 1;
+		    beg = end + 1;
+		    if (!NIL_P(limit)) ++i;
+		}
+		else {
+		    end++;
+		}
+	    }
+	}
+    }
+    else {
+	long start = beg;
+	long idx;
+	int last_null = 0;
+	struct re_registers *regs;
+
+	while ((end = rb_reg_search(spat, str, start, 0)) &gt;= 0) {
+	    regs = RMATCH(rb_backref_get())-&gt;regs;
+	    if (start == end &amp;&amp; BEG(0) == END(0)) {
+		if (!RSTRING(str)-&gt;ptr) {
+		    rb_ary_push(result, rb_str_new(&quot;&quot;, 0));
+		    break;
+		}
+		else if (last_null == 1) {
+		    rb_ary_push(result, rb_str_substr(str, beg, mbclen2(RSTRING(str)-&gt;ptr[beg],spat)));
+		    beg = start;
+		}
+		else {
+		    start += mbclen2(RSTRING(str)-&gt;ptr[start],spat);
+		    last_null = 1;
+		    continue;
+		}
+	    }
+	    else {
+		rb_ary_push(result, rb_str_substr(str, beg, end-beg));
+		beg = start = END(0);
+	    }
+	    last_null = 0;
+
+	    for (idx=1; idx &lt; regs-&gt;num_regs; idx++) {
+		if (BEG(idx) == -1) continue;
+		if (BEG(idx) == END(idx))
+		    tmp = rb_str_new5(str, 0, 0);
+		else
+		    tmp = rb_str_substr(str, BEG(idx), END(idx)-BEG(idx));
+		rb_ary_push(result, tmp);
+	    }
+	    if (!NIL_P(limit) &amp;&amp; lim &lt;= ++i) break;
+	}
+    }
+    if (RSTRING(str)-&gt;len &gt; 0 &amp;&amp; (!NIL_P(limit) || RSTRING(str)-&gt;len &gt; beg || lim &lt; 0)) {
+	if (RSTRING(str)-&gt;len == beg)
+	    tmp = rb_str_new5(str, 0, 0);
+	else
+	    tmp = rb_str_substr(str, beg, RSTRING(str)-&gt;len-beg);
+	rb_ary_push(result, tmp);
+    }
+    if (NIL_P(limit) &amp;&amp; lim == 0) {
+	while (RARRAY(result)-&gt;len &gt; 0 &amp;&amp;
+	       RSTRING(RARRAY(result)-&gt;ptr[RARRAY(result)-&gt;len-1])-&gt;len == 0)
+	    rb_ary_pop(result);
+    }
+
+    return result;
+}
+
+VALUE
+rb_str_split(str, sep0)
+    VALUE str;
+    const char *sep0;
+{
+    VALUE sep;
+
+    StringValue(str);
+    sep = rb_str_new2(sep0);
+    return rb_str_split_m(1, &amp;sep, str);
+}
+
+/*
+ *  call-seq:
+ *     split([pattern [, limit]])    =&gt; array
+ *  
+ *  Equivalent to &lt;code&gt;$_.split(&lt;i&gt;pattern&lt;/i&gt;, &lt;i&gt;limit&lt;/i&gt;)&lt;/code&gt;.
+ *  See &lt;code&gt;String#split&lt;/code&gt;.
+ */
+
+static VALUE
+rb_f_split(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    return rb_str_split_m(argc, argv, uscore_get());
+}
+
+/*
+ *  Document-method: lines
+ *  call-seq:
+ *     str.lines(separator=$/)   =&gt; anEnumerator
+ *     str.lines(separator=$/) {|substr| block }        =&gt; str
+ *  
+ *  Returns an enumerator that gives each line in the string.  If a block is
+ *  given, it iterates over each line in the string.
+ *     
+ *     &quot;foo\nbar\n&quot;.lines.to_a   #=&gt; [&quot;foo\n&quot;, &quot;bar\n&quot;]
+ *     &quot;foo\nb ar&quot;.lines.sort    #=&gt; [&quot;b ar&quot;, &quot;foo\n&quot;]
+ */
+
+/*
+ *  call-seq:
+ *     str.each(separator=$/) {|substr| block }        =&gt; str
+ *     str.each_line(separator=$/) {|substr| block }   =&gt; str
+ *  
+ *  Splits &lt;i&gt;str&lt;/i&gt; using the supplied parameter as the record separator
+ *  (&lt;code&gt;$/&lt;/code&gt; by default), passing each substring in turn to the supplied
+ *  block. If a zero-length record separator is supplied, the string is split
+ *  into paragraphs delimited by multiple successive newlines.
+ *     
+ *     print &quot;Example one\n&quot;
+ *     &quot;hello\nworld&quot;.each {|s| p s}
+ *     print &quot;Example two\n&quot;
+ *     &quot;hello\nworld&quot;.each('l') {|s| p s}
+ *     print &quot;Example three\n&quot;
+ *     &quot;hello\n\n\nworld&quot;.each('') {|s| p s}
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     Example one
+ *     &quot;hello\n&quot;
+ *     &quot;world&quot;
+ *     Example two
+ *     &quot;hel&quot;
+ *     &quot;l&quot;
+ *     &quot;o\nworl&quot;
+ *     &quot;d&quot;
+ *     Example three
+ *     &quot;hello\n\n\n&quot;
+ *     &quot;world&quot;
+ */
+
+static VALUE
+rb_str_each_line(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE rs;
+    int newline;
+    char *p = RSTRING(str)-&gt;ptr, *pend = p + RSTRING(str)-&gt;len, *s;
+    char *ptr = p;
+    long len = RSTRING(str)-&gt;len, rslen;
+    VALUE line;
+
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;rs) == 0) {
+	rs = rb_rs;
+    }
+    RETURN_ENUMERATOR(str, argc, argv);
+    if (NIL_P(rs)) {
+	rb_yield(str);
+	return str;
+    }
+    StringValue(rs);
+    rslen = RSTRING(rs)-&gt;len;
+    if (rslen == 0) {
+	newline = '\n';
+    }
+    else {
+	newline = RSTRING(rs)-&gt;ptr[rslen-1];
+    }
+
+    for (s = p, p += rslen; p &lt; pend; p++) {
+	if (rslen == 0 &amp;&amp; *p == '\n') {
+	    if (*++p != '\n') continue;
+	    while (*p == '\n') p++;
+	}
+	if (RSTRING(str)-&gt;ptr &lt; p &amp;&amp; p[-1] == newline &amp;&amp;
+	    (rslen &lt;= 1 ||
+	     rb_memcmp(RSTRING(rs)-&gt;ptr, p-rslen, rslen) == 0)) {
+	    line = rb_str_new5(str, s, p - s);
+	    OBJ_INFECT(line, str);
+	    rb_yield(line);
+	    str_mod_check(str, ptr, len);
+	    s = p;
+	}
+    }
+
+    if (s != pend) {
+	if (p &gt; pend) p = pend;
+	line = rb_str_new5(str, s, p - s);
+	OBJ_INFECT(line, str);
+	rb_yield(line);
+    }
+
+    return str;
+}
+
+
+/*
+ *  Document-method: bytes
+ *  call-seq:
+ *     str.bytes   =&gt; anEnumerator
+ *     str.bytes {|fixnum| block }    =&gt; str
+ *  
+ *  Returns an enumerator that gives each byte in the string.  If a block is
+ *  given, it iterates over each byte in the string.
+ *     
+ *     &quot;hello&quot;.bytes.to_a        #=&gt; [104, 101, 108, 108, 111]
+ */
+
+/*
+ *  call-seq:
+ *     str.each_byte {|fixnum| block }    =&gt; str
+ *  
+ *  Passes each byte in &lt;i&gt;str&lt;/i&gt; to the given block.
+ *     
+ *     &quot;hello&quot;.each_byte {|c| print c, ' ' }
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     104 101 108 108 111
+ */
+
+static VALUE
+rb_str_each_byte(str)
+    VALUE str;
+{
+    long i;
+
+    RETURN_ENUMERATOR(str, 0, 0);
+    for (i=0; i&lt;RSTRING(str)-&gt;len; i++) {
+	rb_yield(INT2FIX(RSTRING(str)-&gt;ptr[i] &amp; 0xff));
+    }
+    return str;
+}
+
+
+/*
+ *  Document-method: chars
+ *  call-seq:
+ *     str.chars                   =&gt; anEnumerator
+ *     str.chars {|substr| block } =&gt; str
+ *  
+ *  Returns an enumerator that gives each character in the string.
+ *  If a block is given, it iterates over each character in the string.
+ *     
+ *     &quot;foo&quot;.chars.to_a   #=&gt; [&quot;f&quot;,&quot;o&quot;,&quot;o&quot;]
+ */
+
+/*
+ *  Document-method: each_char
+ *  call-seq:
+ *     str.each_char {|cstr| block }    =&gt; str
+ *  
+ *  Passes each character in &lt;i&gt;str&lt;/i&gt; to the given block.
+ *     
+ *     &quot;hello&quot;.each_char {|c| print c, ' ' }
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     h e l l o 
+ */
+
+static VALUE
+rb_str_each_char(VALUE str)
+{
+    int i, len, n;
+    const char *ptr;
+
+    RETURN_ENUMERATOR(str, 0, 0);
+    str = rb_str_new4(str);
+    ptr = RSTRING(str)-&gt;ptr;
+    len = RSTRING(str)-&gt;len;
+    for (i = 0; i &lt; len; i += n) {
+        n = mbclen(ptr[i]);
+        rb_yield(rb_str_substr(str, i, n));
+    }
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.chop!   =&gt; str or nil
+ *  
+ *  Processes &lt;i&gt;str&lt;/i&gt; as for &lt;code&gt;String#chop&lt;/code&gt;, returning &lt;i&gt;str&lt;/i&gt;,
+ *  or &lt;code&gt;nil&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt; is the empty string.  See also
+ *  &lt;code&gt;String#chomp!&lt;/code&gt;.
+ */
+
+static VALUE
+rb_str_chop_bang(str)
+    VALUE str;
+{
+    if (RSTRING(str)-&gt;len &gt; 0) {
+	rb_str_modify(str);
+	RSTRING(str)-&gt;len--;
+	if (RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] == '\n') {
+	    if (RSTRING(str)-&gt;len &gt; 0 &amp;&amp;
+		RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len-1] == '\r') {
+		RSTRING(str)-&gt;len--;
+	    }
+	}
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	return str;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.chop   =&gt; new_str
+ *  
+ *  Returns a new &lt;code&gt;String&lt;/code&gt; with the last character removed.  If the
+ *  string ends with &lt;code&gt;\r\n&lt;/code&gt;, both characters are removed. Applying
+ *  &lt;code&gt;chop&lt;/code&gt; to an empty string returns an empty
+ *  string. &lt;code&gt;String#chomp&lt;/code&gt; is often a safer alternative, as it leaves
+ *  the string unchanged if it doesn't end in a record separator.
+ *     
+ *     &quot;string\r\n&quot;.chop   #=&gt; &quot;string&quot;
+ *     &quot;string\n\r&quot;.chop   #=&gt; &quot;string\n&quot;
+ *     &quot;string\n&quot;.chop     #=&gt; &quot;string&quot;
+ *     &quot;string&quot;.chop       #=&gt; &quot;strin&quot;
+ *     &quot;x&quot;.chop.chop       #=&gt; &quot;&quot;
+ */
+
+static VALUE
+rb_str_chop(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_chop_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     chop!    =&gt; $_ or nil
+ *  
+ *  Equivalent to &lt;code&gt;$_.chop!&lt;/code&gt;.
+ *     
+ *     a  = &quot;now\r\n&quot;
+ *     $_ = a
+ *     chop!   #=&gt; &quot;now&quot;
+ *     chop!   #=&gt; &quot;no&quot;
+ *     chop!   #=&gt; &quot;n&quot;
+ *     chop!   #=&gt; &quot;&quot;
+ *     chop!   #=&gt; nil
+ *     $_      #=&gt; &quot;&quot;
+ *     a       #=&gt; &quot;&quot;
+ */
+
+static VALUE
+rb_f_chop_bang(str)
+    VALUE str;
+{
+    return rb_str_chop_bang(uscore_get());
+}
+
+/*
+ *  call-seq:
+ *     chop   =&gt; string
+ *  
+ *  Equivalent to &lt;code&gt;($_.dup).chop!&lt;/code&gt;, except &lt;code&gt;nil&lt;/code&gt;
+ *  is never returned. See &lt;code&gt;String#chop!&lt;/code&gt;.
+ *     
+ *     a  =  &quot;now\r\n&quot;
+ *     $_ = a
+ *     chop   #=&gt; &quot;now&quot;
+ *     $_     #=&gt; &quot;now&quot;
+ *     chop   #=&gt; &quot;no&quot;
+ *     chop   #=&gt; &quot;n&quot;
+ *     chop   #=&gt; &quot;&quot;
+ *     chop   #=&gt; &quot;&quot;
+ *     a      #=&gt; &quot;now\r\n&quot;
+ */
+
+static VALUE
+rb_f_chop()
+{
+    VALUE str = uscore_get();
+
+    if (RSTRING(str)-&gt;len &gt; 0) {
+	str = rb_str_dup(str);
+	rb_str_chop_bang(str);
+	rb_lastline_set(str);
+    }
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.chomp!(separator=$/)   =&gt; str or nil
+ *  
+ *  Modifies &lt;i&gt;str&lt;/i&gt; in place as described for &lt;code&gt;String#chomp&lt;/code&gt;,
+ *  returning &lt;i&gt;str&lt;/i&gt;, or &lt;code&gt;nil&lt;/code&gt; if no modifications were made.
+ */
+
+static VALUE
+rb_str_chomp_bang(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE rs;
+    int newline;
+    char *p;
+    long len, rslen;
+
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;rs) == 0) {
+	len = RSTRING(str)-&gt;len;
+	if (len == 0) return Qnil;
+	p = RSTRING(str)-&gt;ptr;
+	rs = rb_rs;
+	if (rs == rb_default_rs) {
+	  smart_chomp:
+	    rb_str_modify(str);
+	    if (RSTRING(str)-&gt;ptr[len-1] == '\n') {
+		RSTRING(str)-&gt;len--;
+		if (RSTRING(str)-&gt;len &gt; 0 &amp;&amp;
+		    RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len-1] == '\r') {
+		    RSTRING(str)-&gt;len--;
+		}
+	    }
+	    else if (RSTRING(str)-&gt;ptr[len-1] == '\r') {
+		RSTRING(str)-&gt;len--;
+	    }
+	    else {
+		return Qnil;
+	    }
+	    RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	    return str;
+	}
+    }
+    if (NIL_P(rs)) return Qnil;
+    StringValue(rs);
+    len = RSTRING(str)-&gt;len;
+    if (len == 0) return Qnil;
+    p = RSTRING(str)-&gt;ptr;
+    rslen = RSTRING(rs)-&gt;len;
+    if (rslen == 0) {
+	while (len&gt;0 &amp;&amp; p[len-1] == '\n') {
+	    len--;
+	    if (len&gt;0 &amp;&amp; p[len-1] == '\r')
+		len--;
+	}
+	if (len &lt; RSTRING(str)-&gt;len) {
+	    rb_str_modify(str);
+	    RSTRING(str)-&gt;len = len;
+	    RSTRING(str)-&gt;ptr[len] = '\0';
+	    return str;
+	}
+	return Qnil;
+    }
+    if (rslen &gt; len) return Qnil;
+    newline = RSTRING(rs)-&gt;ptr[rslen-1];
+    if (rslen == 1 &amp;&amp; newline == '\n')
+	goto smart_chomp;
+
+    if (p[len-1] == newline &amp;&amp;
+	(rslen &lt;= 1 ||
+	 rb_memcmp(RSTRING(rs)-&gt;ptr, p+len-rslen, rslen) == 0)) {
+	rb_str_modify(str);
+	RSTRING(str)-&gt;len -= rslen;
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	return str;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.chomp(separator=$/)   =&gt; new_str
+ *  
+ *  Returns a new &lt;code&gt;String&lt;/code&gt; with the given record separator removed
+ *  from the end of &lt;i&gt;str&lt;/i&gt; (if present). If &lt;code&gt;$/&lt;/code&gt; has not been
+ *  changed from the default Ruby record separator, then &lt;code&gt;chomp&lt;/code&gt; also
+ *  removes carriage return characters (that is it will remove &lt;code&gt;\n&lt;/code&gt;,
+ *  &lt;code&gt;\r&lt;/code&gt;, and &lt;code&gt;\r\n&lt;/code&gt;).
+ *     
+ *     &quot;hello&quot;.chomp            #=&gt; &quot;hello&quot;
+ *     &quot;hello\n&quot;.chomp          #=&gt; &quot;hello&quot;
+ *     &quot;hello\r\n&quot;.chomp        #=&gt; &quot;hello&quot;
+ *     &quot;hello\n\r&quot;.chomp        #=&gt; &quot;hello\n&quot;
+ *     &quot;hello\r&quot;.chomp          #=&gt; &quot;hello&quot;
+ *     &quot;hello \n there&quot;.chomp   #=&gt; &quot;hello \n there&quot;
+ *     &quot;hello&quot;.chomp(&quot;llo&quot;)     #=&gt; &quot;he&quot;
+ */
+
+static VALUE
+rb_str_chomp(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_chomp_bang(argc, argv, str);
+    return str;
+}
+
+/*
+ *  call-seq:
+ *     chomp!             =&gt; $_ or nil
+ *     chomp!(string)     =&gt; $_ or nil
+ *  
+ *  Equivalent to &lt;code&gt;$_.chomp!(&lt;em&gt;string&lt;/em&gt;)&lt;/code&gt;. See
+ *  &lt;code&gt;String#chomp!&lt;/code&gt;
+ *     
+ *     $_ = &quot;now\n&quot;
+ *     chomp!       #=&gt; &quot;now&quot;
+ *     $_           #=&gt; &quot;now&quot;
+ *     chomp! &quot;x&quot;   #=&gt; nil
+ *     $_           #=&gt; &quot;now&quot;
+ */
+
+static VALUE
+rb_f_chomp_bang(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    return rb_str_chomp_bang(argc, argv, uscore_get());
+}
+
+/*
+ *  call-seq:
+ *     chomp            =&gt; $_
+ *     chomp(string)    =&gt; $_
+ *  
+ *  Equivalent to &lt;code&gt;$_ = $_.chomp(&lt;em&gt;string&lt;/em&gt;)&lt;/code&gt;. See
+ *  &lt;code&gt;String#chomp&lt;/code&gt;.
+ *     
+ *     $_ = &quot;now\n&quot;
+ *     chomp         #=&gt; &quot;now&quot;
+ *     $_            #=&gt; &quot;now&quot;
+ *     chomp &quot;ow&quot;    #=&gt; &quot;n&quot;
+ *     $_            #=&gt; &quot;n&quot;
+ *     chomp &quot;xxx&quot;   #=&gt; &quot;n&quot;
+ *     $_            #=&gt; &quot;n&quot;
+ */
+
+static VALUE
+rb_f_chomp(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    VALUE str = uscore_get();
+    VALUE dup = rb_str_dup(str);
+
+    if (NIL_P(rb_str_chomp_bang(argc, argv, dup)))
+	return str;
+    rb_lastline_set(dup);
+    return dup;
+}
+
+
+/*
+ *  call-seq:
+ *     str.lstrip!   =&gt; self or nil
+ *  
+ *  Removes leading whitespace from &lt;i&gt;str&lt;/i&gt;, returning &lt;code&gt;nil&lt;/code&gt; if no
+ *  change was made. See also &lt;code&gt;String#rstrip!&lt;/code&gt; and
+ *  &lt;code&gt;String#strip!&lt;/code&gt;.
+ *     
+ *     &quot;  hello  &quot;.lstrip   #=&gt; &quot;hello  &quot;
+ *     &quot;hello&quot;.lstrip!      #=&gt; nil
+ */
+
+static VALUE
+rb_str_lstrip_bang(str)
+    VALUE str;
+{
+    char *s, *t, *e;
+
+    s = RSTRING(str)-&gt;ptr;
+    if (!s || RSTRING(str)-&gt;len == 0) return Qnil;
+    e = t = s + RSTRING(str)-&gt;len;
+    /* remove spaces at head */
+    while (s &lt; t &amp;&amp; ISSPACE(*s)) s++;
+
+    if (s &gt; RSTRING(str)-&gt;ptr) {
+	rb_str_modify(str);
+	RSTRING(str)-&gt;len = t-s;
+	memmove(RSTRING(str)-&gt;ptr, s, RSTRING(str)-&gt;len);
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	return str;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.lstrip   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with leading whitespace removed. See also
+ *  &lt;code&gt;String#rstrip&lt;/code&gt; and &lt;code&gt;String#strip&lt;/code&gt;.
+ *     
+ *     &quot;  hello  &quot;.lstrip   #=&gt; &quot;hello  &quot;
+ *     &quot;hello&quot;.lstrip       #=&gt; &quot;hello&quot;
+ */
+
+static VALUE
+rb_str_lstrip(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_lstrip_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.rstrip!   =&gt; self or nil
+ *  
+ *  Removes trailing whitespace from &lt;i&gt;str&lt;/i&gt;, returning &lt;code&gt;nil&lt;/code&gt; if
+ *  no change was made. See also &lt;code&gt;String#lstrip!&lt;/code&gt; and
+ *  &lt;code&gt;String#strip!&lt;/code&gt;.
+ *     
+ *     &quot;  hello  &quot;.rstrip   #=&gt; &quot;  hello&quot;
+ *     &quot;hello&quot;.rstrip!      #=&gt; nil
+ */
+
+static VALUE
+rb_str_rstrip_bang(str)
+    VALUE str;
+{
+    char *s, *t, *e;
+
+    s = RSTRING(str)-&gt;ptr;
+    if (!s || RSTRING(str)-&gt;len == 0) return Qnil;
+    e = t = s + RSTRING(str)-&gt;len;
+
+    /* remove trailing '\0's */
+    while (s &lt; t &amp;&amp; t[-1] == '\0') t--;
+
+    /* remove trailing spaces */
+    while (s &lt; t &amp;&amp; ISSPACE(*(t-1))) t--;
+
+    if (t &lt; e) {
+	rb_str_modify(str);
+	RSTRING(str)-&gt;len = t-s;
+	RSTRING(str)-&gt;ptr[RSTRING(str)-&gt;len] = '\0';
+	return str;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.rstrip   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with trailing whitespace removed. See also
+ *  &lt;code&gt;String#lstrip&lt;/code&gt; and &lt;code&gt;String#strip&lt;/code&gt;.
+ *     
+ *     &quot;  hello  &quot;.rstrip   #=&gt; &quot;  hello&quot;
+ *     &quot;hello&quot;.rstrip       #=&gt; &quot;hello&quot;
+ */
+
+static VALUE
+rb_str_rstrip(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_rstrip_bang(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.strip!   =&gt; str or nil
+ *  
+ *  Removes leading and trailing whitespace from &lt;i&gt;str&lt;/i&gt;. Returns
+ *  &lt;code&gt;nil&lt;/code&gt; if &lt;i&gt;str&lt;/i&gt; was not altered.
+ */
+
+static VALUE
+rb_str_strip_bang(str)
+    VALUE str;
+{
+    VALUE l = rb_str_lstrip_bang(str);
+    VALUE r = rb_str_rstrip_bang(str);
+
+    if (NIL_P(l) &amp;&amp; NIL_P(r)) return Qnil;
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     str.strip   =&gt; new_str
+ *  
+ *  Returns a copy of &lt;i&gt;str&lt;/i&gt; with leading and trailing whitespace removed.
+ *     
+ *     &quot;    hello    &quot;.strip   #=&gt; &quot;hello&quot;
+ *     &quot;\tgoodbye\r\n&quot;.strip   #=&gt; &quot;goodbye&quot;
+ */
+
+static VALUE
+rb_str_strip(str)
+    VALUE str;
+{
+    str = rb_str_dup(str);
+    rb_str_strip_bang(str);
+    return str;
+}
+
+static VALUE
+scan_once(str, pat, start)
+    VALUE str, pat;
+    long *start;
+{
+    VALUE result, match;
+    struct re_registers *regs;
+    long i;
+
+    if (rb_reg_search(pat, str, *start, 0) &gt;= 0) {
+	match = rb_backref_get();
+	regs = RMATCH(match)-&gt;regs;
+	if (BEG(0) == END(0)) {
+	    /*
+	     * Always consume at least one character of the input string
+	     */
+	    if (RSTRING(str)-&gt;len &gt; END(0))
+		*start = END(0)+mbclen2(RSTRING(str)-&gt;ptr[END(0)],pat);
+	    else
+		*start = END(0)+1;
+	}
+	else {
+	    *start = END(0);
+	}
+	if (regs-&gt;num_regs == 1) {
+	    return rb_reg_nth_match(0, match);
+	}
+	result = rb_ary_new2(regs-&gt;num_regs);
+	for (i=1; i &lt; regs-&gt;num_regs; i++) {
+	    rb_ary_push(result, rb_reg_nth_match(i, match));
+	}
+
+	return result;
+    }
+    return Qnil;
+}
+
+
+/*
+ *  call-seq:
+ *     str.scan(pattern)                         =&gt; array
+ *     str.scan(pattern) {|match, ...| block }   =&gt; str
+ *  
+ *  Both forms iterate through &lt;i&gt;str&lt;/i&gt;, matching the pattern (which may be a
+ *  &lt;code&gt;Regexp&lt;/code&gt; or a &lt;code&gt;String&lt;/code&gt;). For each match, a result is
+ *  generated and either added to the result array or passed to the block. If
+ *  the pattern contains no groups, each individual result consists of the
+ *  matched string, &lt;code&gt;$&amp;&lt;/code&gt;.  If the pattern contains groups, each
+ *  individual result is itself an array containing one entry per group.
+ *     
+ *     a = &quot;cruel world&quot;
+ *     a.scan(/\w+/)        #=&gt; [&quot;cruel&quot;, &quot;world&quot;]
+ *     a.scan(/.../)        #=&gt; [&quot;cru&quot;, &quot;el &quot;, &quot;wor&quot;]
+ *     a.scan(/(...)/)      #=&gt; [[&quot;cru&quot;], [&quot;el &quot;], [&quot;wor&quot;]]
+ *     a.scan(/(..)(..)/)   #=&gt; [[&quot;cr&quot;, &quot;ue&quot;], [&quot;l &quot;, &quot;wo&quot;]]
+ *     
+ *  And the block form:
+ *     
+ *     a.scan(/\w+/) {|w| print &quot;&lt;&lt;#{w}&gt;&gt; &quot; }
+ *     print &quot;\n&quot;
+ *     a.scan(/(.)(.)/) {|x,y| print y, x }
+ *     print &quot;\n&quot;
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     &lt;&lt;cruel&gt;&gt; &lt;&lt;world&gt;&gt;
+ *     rceu lowlr
+ */
+
+static VALUE
+rb_str_scan(str, pat)
+    VALUE str, pat;
+{
+    VALUE result;
+    long start = 0;
+    VALUE match = Qnil;
+    char *p = RSTRING(str)-&gt;ptr; long len = RSTRING(str)-&gt;len;
+
+    pat = get_pat(pat, 1);
+    if (!rb_block_given_p()) {
+	VALUE ary = rb_ary_new();
+
+	while (!NIL_P(result = scan_once(str, pat, &amp;start))) {
+	    match = rb_backref_get();
+	    rb_ary_push(ary, result);
+	}
+	rb_backref_set(match);
+	return ary;
+    }
+
+    while (!NIL_P(result = scan_once(str, pat, &amp;start))) {
+	match = rb_backref_get();
+	rb_match_busy(match);
+	rb_yield(result);
+	str_mod_check(str, p, len);
+	rb_backref_set(match);	/* restore $~ value */
+    }
+    rb_backref_set(match);
+    return str;
+}
+
+/*
+ *  call-seq:
+ *     scan(pattern)                   =&gt; array
+ *     scan(pattern) {|///| block }    =&gt; $_
+ *  
+ *  Equivalent to calling &lt;code&gt;$_.scan&lt;/code&gt;. See
+ *  &lt;code&gt;String#scan&lt;/code&gt;.
+ */
+
+static VALUE
+rb_f_scan(self, pat)
+    VALUE self, pat;
+{
+    return rb_str_scan(uscore_get(), pat);
+}
+
+
+/*
+ *  call-seq:
+ *     str.hex   =&gt; integer
+ *  
+ *  Treats leading characters from &lt;i&gt;str&lt;/i&gt; as a string of hexadecimal digits
+ *  (with an optional sign and an optional &lt;code&gt;0x&lt;/code&gt;) and returns the
+ *  corresponding number. Zero is returned on error.
+ *     
+ *     &quot;0x0a&quot;.hex     #=&gt; 10
+ *     &quot;-1234&quot;.hex    #=&gt; -4660
+ *     &quot;0&quot;.hex        #=&gt; 0
+ *     &quot;wombat&quot;.hex   #=&gt; 0
+ */
+
+static VALUE
+rb_str_hex(str)
+    VALUE str;
+{
+    return rb_str_to_inum(str, 16, Qfalse);
+}
+
+
+/*
+ *  call-seq:
+ *     str.oct   =&gt; integer
+ *  
+ *  Treats leading characters of &lt;i&gt;str&lt;/i&gt; as a string of octal digits (with an
+ *  optional sign) and returns the corresponding number.  Returns 0 if the
+ *  conversion fails.
+ *     
+ *     &quot;123&quot;.oct       #=&gt; 83
+ *     &quot;-377&quot;.oct      #=&gt; -255
+ *     &quot;bad&quot;.oct       #=&gt; 0
+ *     &quot;0377bad&quot;.oct   #=&gt; 255
+ */
+
+static VALUE
+rb_str_oct(str)
+    VALUE str;
+{
+    return rb_str_to_inum(str, -8, Qfalse);
+}
+
+
+/*
+ *  call-seq:
+ *     str.crypt(other_str)   =&gt; new_str
+ *  
+ *  Applies a one-way cryptographic hash to &lt;i&gt;str&lt;/i&gt; by invoking the standard
+ *  library function &lt;code&gt;crypt&lt;/code&gt;. The argument is the salt string, which
+ *  should be two characters long, each character drawn from
+ *  &lt;code&gt;[a-zA-Z0-9./]&lt;/code&gt;.
+ */
+
+static VALUE
+rb_str_crypt(str, salt)
+    VALUE str, salt;
+{
+    extern char *crypt _((const char *, const char*));
+    VALUE result;
+    const char *s;
+
+    StringValue(salt);
+    if (RSTRING(salt)-&gt;len &lt; 2)
+	rb_raise(rb_eArgError, &quot;salt too short(need &gt;=2 bytes)&quot;);
+
+    if (RSTRING(str)-&gt;ptr) s = RSTRING(str)-&gt;ptr;
+    else s = &quot;&quot;;
+    result = rb_str_new2(crypt(s, RSTRING(salt)-&gt;ptr));
+    OBJ_INFECT(result, str);
+    OBJ_INFECT(result, salt);
+    return result;
+}
+
+
+/*
+ *  call-seq:
+ *     str.intern   =&gt; symbol
+ *     str.to_sym   =&gt; symbol
+ *  
+ *  Returns the &lt;code&gt;Symbol&lt;/code&gt; corresponding to &lt;i&gt;str&lt;/i&gt;, creating the
+ *  symbol if it did not previously exist. See &lt;code&gt;Symbol#id2name&lt;/code&gt;.
+ *     
+ *     &quot;Koala&quot;.intern         #=&gt; :Koala
+ *     s = 'cat'.to_sym       #=&gt; :cat
+ *     s == :cat              #=&gt; true
+ *     s = '@cat'.to_sym      #=&gt; :@cat
+ *     s == :@cat             #=&gt; true
+ *
+ *  This can also be used to create symbols that cannot be represented using the
+ *  &lt;code&gt;:xxx&lt;/code&gt; notation.
+ *     
+ *     'cat and dog'.to_sym   #=&gt; :&quot;cat and dog&quot;
+ */
+
+VALUE
+rb_str_intern(s)
+    VALUE s;
+{
+    volatile VALUE str = s;
+    ID id;
+
+    if (!RSTRING(str)-&gt;ptr || RSTRING(str)-&gt;len == 0) {
+	rb_raise(rb_eArgError, &quot;interning empty string&quot;);
+    }
+    if (strlen(RSTRING(str)-&gt;ptr) != RSTRING(str)-&gt;len)
+	rb_raise(rb_eArgError, &quot;symbol string may not contain `\\0'&quot;);
+    if (OBJ_TAINTED(str) &amp;&amp; rb_safe_level() &gt;= 1 &amp;&amp; !rb_sym_interned_p(str)) {
+	rb_raise(rb_eSecurityError, &quot;Insecure: can't intern tainted string&quot;);
+    }
+    id = rb_intern(RSTRING(str)-&gt;ptr);
+    return ID2SYM(id);
+}
+
+
+/*
+ *  call-seq:
+ *     str.sum(n=16)   =&gt; integer
+ *  
+ *  Returns a basic &lt;em&gt;n&lt;/em&gt;-bit checksum of the characters in &lt;i&gt;str&lt;/i&gt;,
+ *  where &lt;em&gt;n&lt;/em&gt; is the optional &lt;code&gt;Fixnum&lt;/code&gt; parameter, defaulting
+ *  to 16. The result is simply the sum of the binary value of each character in
+ *  &lt;i&gt;str&lt;/i&gt; modulo &lt;code&gt;2n - 1&lt;/code&gt;. This is not a particularly good
+ *  checksum.
+ */
+
+static VALUE
+rb_str_sum(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE vbits;
+    int bits;
+    char *ptr, *p, *pend;
+    long len;
+
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;vbits) == 0) {
+	bits = 16;
+    }
+    else bits = NUM2INT(vbits);
+
+    ptr = p = RSTRING(str)-&gt;ptr;
+    len = RSTRING(str)-&gt;len;
+    pend = p + len;
+    if (bits &gt;= sizeof(long)*CHAR_BIT) {
+	VALUE sum = INT2FIX(0);
+
+	while (p &lt; pend) {
+	    str_mod_check(str, ptr, len);
+	    sum = rb_funcall(sum, '+', 1, INT2FIX((unsigned char)*p));
+	    p++;
+	}
+	if (bits != 0) {
+	    VALUE mod;
+
+	    mod = rb_funcall(INT2FIX(1), rb_intern(&quot;&lt;&lt;&quot;), 1, INT2FIX(bits));
+	    mod = rb_funcall(mod, '-', 1, INT2FIX(1));
+	    sum = rb_funcall(sum, '&amp;', 1, mod);
+	}
+	return sum;
+    }
+    else {
+       unsigned long sum = 0;
+
+	while (p &lt; pend) {
+	    str_mod_check(str, ptr, len);
+	    sum += (unsigned char)*p;
+	    p++;
+	}
+	if (bits != 0) {
+           sum &amp;= (((unsigned long)1)&lt;&lt;bits)-1;
+	}
+	return rb_int2inum(sum);
+    }
+}
+
+static VALUE
+rb_str_justify(argc, argv, str, jflag)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+    char jflag;
+{
+    VALUE w;
+    long width, flen = 0;
+    VALUE res;
+    char *p, *pend;
+    const char *f = &quot; &quot;;
+    long n;
+    VALUE pad;
+
+    rb_scan_args(argc, argv, &quot;11&quot;, &amp;w, &amp;pad);
+    width = NUM2LONG(w);
+    if (argc == 2) {
+	StringValue(pad);
+	f = RSTRING(pad)-&gt;ptr;
+	flen = RSTRING(pad)-&gt;len;
+	if (flen == 0) {
+	    rb_raise(rb_eArgError, &quot;zero width padding&quot;);
+	}
+    }
+    if (width &lt; 0 || RSTRING(str)-&gt;len &gt;= width) return rb_str_dup(str);
+    res = rb_str_new5(str, 0, width);
+    p = RSTRING(res)-&gt;ptr;
+    if (jflag != 'l') {
+	n = width - RSTRING(str)-&gt;len;
+	pend = p + ((jflag == 'r') ? n : n/2);
+	if (flen &lt;= 1) {
+	    while (p &lt; pend) {
+		*p++ = *f;
+	    }
+	}
+	else {
+	    const char *q = f;
+	    while (p + flen &lt;= pend) {
+		memcpy(p,f,flen);
+		p += flen;
+	    }
+	    while (p &lt; pend) {
+		*p++ = *q++;
+	    }
+	}
+    }
+    memcpy(p, RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len);
+    if (jflag != 'r') {
+	p += RSTRING(str)-&gt;len; pend = RSTRING(res)-&gt;ptr + width;
+	if (flen &lt;= 1) {
+	    while (p &lt; pend) {
+		*p++ = *f;
+	    }
+	}
+	else {
+	    while (p + flen &lt;= pend) {
+		memcpy(p,f,flen);
+		p += flen;
+	    }
+	    while (p &lt; pend) {
+		*p++ = *f++;
+	    }
+	}
+    }
+    OBJ_INFECT(res, str);
+    if (flen &gt; 0) OBJ_INFECT(res, pad);
+    return res;
+}
+
+
+/*
+ *  call-seq:
+ *     str.ljust(integer, padstr=' ')   =&gt; new_str
+ *  
+ *  If &lt;i&gt;integer&lt;/i&gt; is greater than the length of &lt;i&gt;str&lt;/i&gt;, returns a new
+ *  &lt;code&gt;String&lt;/code&gt; of length &lt;i&gt;integer&lt;/i&gt; with &lt;i&gt;str&lt;/i&gt; left justified
+ *  and padded with &lt;i&gt;padstr&lt;/i&gt;; otherwise, returns &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     &quot;hello&quot;.ljust(4)            #=&gt; &quot;hello&quot;
+ *     &quot;hello&quot;.ljust(20)           #=&gt; &quot;hello               &quot;
+ *     &quot;hello&quot;.ljust(20, '1234')   #=&gt; &quot;hello123412341234123&quot;
+ */
+
+static VALUE
+rb_str_ljust(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    return rb_str_justify(argc, argv, str, 'l');
+}
+
+
+/*
+ *  call-seq:
+ *     str.rjust(integer, padstr=' ')   =&gt; new_str
+ *  
+ *  If &lt;i&gt;integer&lt;/i&gt; is greater than the length of &lt;i&gt;str&lt;/i&gt;, returns a new
+ *  &lt;code&gt;String&lt;/code&gt; of length &lt;i&gt;integer&lt;/i&gt; with &lt;i&gt;str&lt;/i&gt; right justified
+ *  and padded with &lt;i&gt;padstr&lt;/i&gt;; otherwise, returns &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     &quot;hello&quot;.rjust(4)            #=&gt; &quot;hello&quot;
+ *     &quot;hello&quot;.rjust(20)           #=&gt; &quot;               hello&quot;
+ *     &quot;hello&quot;.rjust(20, '1234')   #=&gt; &quot;123412341234123hello&quot;
+ */
+
+static VALUE
+rb_str_rjust(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    return rb_str_justify(argc, argv, str, 'r');
+}
+
+
+/*
+ *  call-seq:
+ *     str.center(integer, padstr)   =&gt; new_str
+ *  
+ *  If &lt;i&gt;integer&lt;/i&gt; is greater than the length of &lt;i&gt;str&lt;/i&gt;, returns a new
+ *  &lt;code&gt;String&lt;/code&gt; of length &lt;i&gt;integer&lt;/i&gt; with &lt;i&gt;str&lt;/i&gt; centered and
+ *  padded with &lt;i&gt;padstr&lt;/i&gt;; otherwise, returns &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     &quot;hello&quot;.center(4)         #=&gt; &quot;hello&quot;
+ *     &quot;hello&quot;.center(20)        #=&gt; &quot;       hello        &quot;
+ *     &quot;hello&quot;.center(20, '123') #=&gt; &quot;1231231hello12312312&quot;
+ */
+
+static VALUE
+rb_str_center(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    return rb_str_justify(argc, argv, str, 'c');
+}
+
+/*
+ *  call-seq:
+ *     str.partition(sep)              =&gt; [head, sep, tail]
+ *  
+ *  Searches the string for &lt;i&gt;sep&lt;/i&gt; and returns the part before it,
+ *  the &lt;i&gt;sep&lt;/i&gt;, and the part after it.  If &lt;i&gt;sep&lt;/i&gt; is not
+ *  found, returns &lt;i&gt;str&lt;/i&gt; and two empty strings.  If no argument
+ *  is given, Enumerable#partition is called.
+ *     
+ *     &quot;hello&quot;.partition(&quot;l&quot;)         #=&gt; [&quot;he&quot;, &quot;l&quot;, &quot;lo&quot;]
+ *     &quot;hello&quot;.partition(&quot;x&quot;)         #=&gt; [&quot;hello&quot;, &quot;&quot;, &quot;&quot;]
+ */
+
+static VALUE
+rb_str_partition(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    VALUE sep;
+    long pos;
+
+    if (argc == 0) return rb_call_super(argc, argv);
+    rb_scan_args(argc, argv, &quot;1&quot;, &amp;sep);
+    if (TYPE(sep) != T_REGEXP) {
+	VALUE tmp;
+
+	tmp = rb_check_string_type(sep);
+	if (NIL_P(tmp)) {
+	    rb_raise(rb_eTypeError, &quot;type mismatch: %s given&quot;,
+		     rb_obj_classname(sep));
+	}
+        sep = get_arg_pat(tmp);
+    }
+    pos = rb_reg_search(sep, str, 0, 0);
+    if (pos &lt; 0) {
+      failed:
+	return rb_ary_new3(3, str, rb_str_new(0,0),rb_str_new(0,0));
+    }
+    sep = rb_str_subpat(str, sep, 0);
+    if (pos == 0 &amp;&amp; RSTRING(sep)-&gt;len == 0) goto failed;
+    return rb_ary_new3(3, rb_str_substr(str, 0, pos),
+		          sep,
+		          rb_str_substr(str, pos+RSTRING(sep)-&gt;len,
+					     RSTRING(str)-&gt;len-pos-RSTRING(sep)-&gt;len));
+}
+
+/*
+ *  call-seq:
+ *     str.rpartition(sep)            =&gt; [head, sep, tail]
+ *  
+ *  Searches &lt;i&gt;sep&lt;/i&gt; in the string from the end of the string, and
+ *  returns the part before it, the &lt;i&gt;sep&lt;/i&gt;, and the part after it.
+ *  If &lt;i&gt;sep&lt;/i&gt; is not found, returns two empty strings and
+ *  &lt;i&gt;str&lt;/i&gt;.
+ *     
+ *     &quot;hello&quot;.rpartition(&quot;l&quot;)         #=&gt; [&quot;hel&quot;, &quot;l&quot;, &quot;o&quot;]
+ *     &quot;hello&quot;.rpartition(&quot;x&quot;)         #=&gt; [&quot;&quot;, &quot;&quot;, &quot;hello&quot;]
+ */
+
+static VALUE
+rb_str_rpartition(str, sep)
+    VALUE str;
+    VALUE sep;
+{
+    long pos = RSTRING(str)-&gt;len;
+
+    if (TYPE(sep) != T_REGEXP) {
+	VALUE tmp;
+
+	tmp = rb_check_string_type(sep);
+	if (NIL_P(tmp)) {
+	    rb_raise(rb_eTypeError, &quot;type mismatch: %s given&quot;,
+		     rb_obj_classname(sep));
+	}
+        sep = get_arg_pat(tmp);
+    }
+    pos = rb_reg_search(sep, str, pos, 1);
+    if (pos &lt; 0) {
+	return rb_ary_new3(3, rb_str_new(0,0),rb_str_new(0,0), str);
+    }
+    sep = rb_reg_nth_match(0, rb_backref_get());
+    return rb_ary_new3(3, rb_str_substr(str, 0, pos),
+		          sep,
+		          rb_str_substr(str, pos+RSTRING(sep)-&gt;len,
+					     RSTRING(str)-&gt;len-pos-RSTRING(sep)-&gt;len));
+}
+
+/*
+ *  call-seq:
+ *     str.start_with?([prefix]+)   =&gt; true or false
+ *  
+ *  Returns true if &lt;i&gt;str&lt;/i&gt; starts with the prefix given.
+ */
+
+static VALUE
+rb_str_start_with(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    int i;
+    VALUE pat;
+
+    for (i=0; i&lt;argc; i++) {
+	VALUE prefix = rb_check_string_type(argv[i]);
+	if (NIL_P(prefix)) continue;
+	if (RSTRING(str)-&gt;len &lt; RSTRING(prefix)-&gt;len) continue;
+        pat = get_arg_pat(prefix);
+        if (rb_reg_search(pat, str, 0, 1) &gt;= 0)
+	    return Qtrue;
+    }
+    return Qfalse;
+}
+
+/*
+ *  call-seq:
+ *     str.end_with?([suffix]+)   =&gt; true or false
+ *  
+ *  Returns true if &lt;i&gt;str&lt;/i&gt; ends with the suffix given.
+ */
+
+static VALUE
+rb_str_end_with(argc, argv, str)
+    int argc;
+    VALUE *argv;
+    VALUE str;
+{
+    int i;
+    long pos;
+    VALUE pat;
+
+    for (i=0; i&lt;argc; i++) {
+	VALUE suffix = rb_check_string_type(argv[i]);
+	if (NIL_P(suffix)) continue;
+	if (RSTRING(str)-&gt;len &lt; RSTRING(suffix)-&gt;len) continue;
+        pat = get_arg_pat(suffix);
+        pos = rb_reg_adjust_startpos(pat, str, RSTRING(str)-&gt;len - RSTRING(suffix)-&gt;len, 0);
+        if (rb_reg_search(pat, str, pos, 0) &gt;= 0)
+            return Qtrue;
+    }
+    return Qfalse;
+}
+
+void
+rb_str_setter(val, id, var)
+    VALUE val;
+    ID id;
+    VALUE *var;
+{
+    if (!NIL_P(val) &amp;&amp; TYPE(val) != T_STRING) {
+	rb_raise(rb_eTypeError, &quot;value of %s must be String&quot;, rb_id2name(id));
+    }
+    *var = val;
+}
+
+
+/*
+ *  A &lt;code&gt;String&lt;/code&gt; object holds and manipulates an arbitrary sequence of
+ *  bytes, typically representing characters. String objects may be created
+ *  using &lt;code&gt;String::new&lt;/code&gt; or as literals.
+ *     
+ *  Because of aliasing issues, users of strings should be aware of the methods
+ *  that modify the contents of a &lt;code&gt;String&lt;/code&gt; object.  Typically,
+ *  methods with names ending in ``!'' modify their receiver, while those
+ *  without a ``!'' return a new &lt;code&gt;String&lt;/code&gt;.  However, there are
+ *  exceptions, such as &lt;code&gt;String#[]=&lt;/code&gt;.
+ *     
+ */
+
+void
+Init_String()
+{
+    rb_cString  = rb_define_class(&quot;String&quot;, rb_cObject);
+    rb_include_module(rb_cString, rb_mComparable);
+    rb_include_module(rb_cString, rb_mEnumerable);
+    rb_define_alloc_func(rb_cString, str_alloc);
+    rb_define_method(rb_cString, &quot;initialize&quot;, rb_str_init, -1);
+    rb_define_method(rb_cString, &quot;initialize_copy&quot;, rb_str_replace, 1);
+    rb_define_method(rb_cString, &quot;&lt;=&gt;&quot;, rb_str_cmp_m, 1);
+    rb_define_method(rb_cString, &quot;==&quot;, rb_str_equal, 1);
+    rb_define_method(rb_cString, &quot;eql?&quot;, rb_str_eql, 1);
+    rb_define_method(rb_cString, &quot;hash&quot;, rb_str_hash_m, 0);
+    rb_define_method(rb_cString, &quot;casecmp&quot;, rb_str_casecmp, 1);
+    rb_define_method(rb_cString, &quot;+&quot;, rb_str_plus, 1);
+    rb_define_method(rb_cString, &quot;*&quot;, rb_str_times, 1);
+    rb_define_method(rb_cString, &quot;%&quot;, rb_str_format_m, 1);
+    rb_define_method(rb_cString, &quot;[]&quot;, rb_str_aref_m, -1);
+    rb_define_method(rb_cString, &quot;[]=&quot;, rb_str_aset_m, -1);
+    rb_define_method(rb_cString, &quot;insert&quot;, rb_str_insert, 2);
+    rb_define_method(rb_cString, &quot;length&quot;, rb_str_length, 0);
+    rb_define_method(rb_cString, &quot;size&quot;, rb_str_length, 0);
+    rb_define_method(rb_cString, &quot;bytesize&quot;, rb_str_length, 0);
+    rb_define_method(rb_cString, &quot;empty?&quot;, rb_str_empty, 0);
+    rb_define_method(rb_cString, &quot;=~&quot;, rb_str_match, 1);
+    rb_define_method(rb_cString, &quot;match&quot;, rb_str_match_m, 1);
+    rb_define_method(rb_cString, &quot;succ&quot;, rb_str_succ, 0);
+    rb_define_method(rb_cString, &quot;succ!&quot;, rb_str_succ_bang, 0);
+    rb_define_method(rb_cString, &quot;next&quot;, rb_str_succ, 0);
+    rb_define_method(rb_cString, &quot;next!&quot;, rb_str_succ_bang, 0);
+    rb_define_method(rb_cString, &quot;upto&quot;, rb_str_upto_m, -1);
+    rb_define_method(rb_cString, &quot;index&quot;, rb_str_index_m, -1);
+    rb_define_method(rb_cString, &quot;rindex&quot;, rb_str_rindex_m, -1);
+    rb_define_method(rb_cString, &quot;replace&quot;, rb_str_replace, 1);
+
+    rb_define_method(rb_cString, &quot;to_i&quot;, rb_str_to_i, -1);
+    rb_define_method(rb_cString, &quot;to_f&quot;, rb_str_to_f, 0);
+    rb_define_method(rb_cString, &quot;to_s&quot;, rb_str_to_s, 0);
+    rb_define_method(rb_cString, &quot;to_str&quot;, rb_str_to_s, 0);
+    rb_define_method(rb_cString, &quot;inspect&quot;, rb_str_inspect, 0);
+    rb_define_method(rb_cString, &quot;dump&quot;, rb_str_dump, 0);
+
+    rb_define_method(rb_cString, &quot;upcase&quot;, rb_str_upcase, 0);
+    rb_define_method(rb_cString, &quot;downcase&quot;, rb_str_downcase, 0);
+    rb_define_method(rb_cString, &quot;capitalize&quot;, rb_str_capitalize, 0);
+    rb_define_method(rb_cString, &quot;swapcase&quot;, rb_str_swapcase, 0);
+
+    rb_define_method(rb_cString, &quot;upcase!&quot;, rb_str_upcase_bang, 0);
+    rb_define_method(rb_cString, &quot;downcase!&quot;, rb_str_downcase_bang, 0);
+    rb_define_method(rb_cString, &quot;capitalize!&quot;, rb_str_capitalize_bang, 0);
+    rb_define_method(rb_cString, &quot;swapcase!&quot;, rb_str_swapcase_bang, 0);
+
+    rb_define_method(rb_cString, &quot;hex&quot;, rb_str_hex, 0);
+    rb_define_method(rb_cString, &quot;oct&quot;, rb_str_oct, 0);
+    rb_define_method(rb_cString, &quot;split&quot;, rb_str_split_m, -1);
+    rb_define_method(rb_cString, &quot;reverse&quot;, rb_str_reverse, 0);
+    rb_define_method(rb_cString, &quot;reverse!&quot;, rb_str_reverse_bang, 0);
+    rb_define_method(rb_cString, &quot;concat&quot;, rb_str_concat, 1);
+    rb_define_method(rb_cString, &quot;&lt;&lt;&quot;, rb_str_concat, 1);
+    rb_define_method(rb_cString, &quot;crypt&quot;, rb_str_crypt, 1);
+    rb_define_method(rb_cString, &quot;intern&quot;, rb_str_intern, 0);
+    rb_define_method(rb_cString, &quot;to_sym&quot;, rb_str_intern, 0);
+
+    rb_define_method(rb_cString, &quot;include?&quot;, rb_str_include, 1);
+    rb_define_method(rb_cString, &quot;start_with?&quot;, rb_str_start_with, -1);
+    rb_define_method(rb_cString, &quot;end_with?&quot;, rb_str_end_with, -1);
+
+    rb_define_method(rb_cString, &quot;scan&quot;, rb_str_scan, 1);
+
+    rb_define_method(rb_cString, &quot;ljust&quot;, rb_str_ljust, -1);
+    rb_define_method(rb_cString, &quot;rjust&quot;, rb_str_rjust, -1);
+    rb_define_method(rb_cString, &quot;center&quot;, rb_str_center, -1);
+
+    rb_define_method(rb_cString, &quot;sub&quot;, rb_str_sub, -1);
+    rb_define_method(rb_cString, &quot;gsub&quot;, rb_str_gsub, -1);
+    rb_define_method(rb_cString, &quot;chop&quot;, rb_str_chop, 0);
+    rb_define_method(rb_cString, &quot;chomp&quot;, rb_str_chomp, -1);
+    rb_define_method(rb_cString, &quot;strip&quot;, rb_str_strip, 0);
+    rb_define_method(rb_cString, &quot;lstrip&quot;, rb_str_lstrip, 0);
+    rb_define_method(rb_cString, &quot;rstrip&quot;, rb_str_rstrip, 0);
+
+    rb_define_method(rb_cString, &quot;sub!&quot;, rb_str_sub_bang, -1);
+    rb_define_method(rb_cString, &quot;gsub!&quot;, rb_str_gsub_bang, -1);
+    rb_define_method(rb_cString, &quot;chop!&quot;, rb_str_chop_bang, 0);
+    rb_define_method(rb_cString, &quot;chomp!&quot;, rb_str_chomp_bang, -1);
+    rb_define_method(rb_cString, &quot;strip!&quot;, rb_str_strip_bang, 0);
+    rb_define_method(rb_cString, &quot;lstrip!&quot;, rb_str_lstrip_bang, 0);
+    rb_define_method(rb_cString, &quot;rstrip!&quot;, rb_str_rstrip_bang, 0);
+
+    rb_define_method(rb_cString, &quot;tr&quot;, rb_str_tr, 2);
+    rb_define_method(rb_cString, &quot;tr_s&quot;, rb_str_tr_s, 2);
+    rb_define_method(rb_cString, &quot;delete&quot;, rb_str_delete, -1);
+    rb_define_method(rb_cString, &quot;squeeze&quot;, rb_str_squeeze, -1);
+    rb_define_method(rb_cString, &quot;count&quot;, rb_str_count, -1);
+
+    rb_define_method(rb_cString, &quot;tr!&quot;, rb_str_tr_bang, 2);
+    rb_define_method(rb_cString, &quot;tr_s!&quot;, rb_str_tr_s_bang, 2);
+    rb_define_method(rb_cString, &quot;delete!&quot;, rb_str_delete_bang, -1);
+    rb_define_method(rb_cString, &quot;squeeze!&quot;, rb_str_squeeze_bang, -1);
+
+    rb_define_method(rb_cString, &quot;each_line&quot;, rb_str_each_line, -1);
+    rb_define_method(rb_cString, &quot;each&quot;,      rb_str_each_line, -1);
+    rb_define_method(rb_cString, &quot;each_byte&quot;, rb_str_each_byte, 0);
+    rb_define_method(rb_cString, &quot;each_char&quot;, rb_str_each_char, 0);
+
+    rb_define_method(rb_cString, &quot;lines&quot;, rb_str_each_line, -1);
+    rb_define_method(rb_cString, &quot;bytes&quot;, rb_str_each_byte, 0);
+    rb_define_method(rb_cString, &quot;chars&quot;, rb_str_each_char, 0);
+
+    rb_define_method(rb_cString, &quot;sum&quot;, rb_str_sum, -1);
+
+    rb_define_global_function(&quot;sub&quot;, rb_f_sub, -1);
+    rb_define_global_function(&quot;gsub&quot;, rb_f_gsub, -1);
+
+    rb_define_global_function(&quot;sub!&quot;, rb_f_sub_bang, -1);
+    rb_define_global_function(&quot;gsub!&quot;, rb_f_gsub_bang, -1);
+
+    rb_define_global_function(&quot;chop&quot;, rb_f_chop, 0);
+    rb_define_global_function(&quot;chop!&quot;, rb_f_chop_bang, 0);
+
+    rb_define_global_function(&quot;chomp&quot;, rb_f_chomp, -1);
+    rb_define_global_function(&quot;chomp!&quot;, rb_f_chomp_bang, -1);
+
+    rb_define_global_function(&quot;split&quot;, rb_f_split, -1);
+    rb_define_global_function(&quot;scan&quot;, rb_f_scan, 1);
+
+    rb_define_method(rb_cString, &quot;slice&quot;, rb_str_aref_m, -1);
+    rb_define_method(rb_cString, &quot;slice!&quot;, rb_str_slice_bang, -1);
+
+    rb_define_method(rb_cString, &quot;partition&quot;, rb_str_partition, -1);
+    rb_define_method(rb_cString, &quot;rpartition&quot;, rb_str_rpartition, 1);
+
+    id_to_s = rb_intern(&quot;to_s&quot;);
+
+    rb_fs = Qnil;
+    rb_define_variable(&quot;$;&quot;, &amp;rb_fs);
+    rb_define_variable(&quot;$-F&quot;, &amp;rb_fs);
+}
+</pre>
+    </div>

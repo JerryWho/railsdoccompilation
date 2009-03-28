@@ -1,0 +1,612 @@
+  <div id="fileHeader">
+    <h1>command-processor.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/shell/command-processor.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#   shell/command-controller.rb - 
+#   	$Release Version: 0.6.0 $
+#   	$Revision: 11708 $
+#   	$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#   	by Keiju ISHITSUKA(Nippon Rational Inc.)
+#
+# --
+#
+#   
+#
+
+require &quot;e2mmap&quot;
+require &quot;ftools&quot;
+require &quot;thread&quot;
+
+require &quot;shell/error&quot;
+require &quot;shell/filter&quot;
+require &quot;shell/system-command&quot;
+require &quot;shell/builtin-command&quot;
+
+class Shell
+  class CommandProcessor
+#    include Error
+
+    #
+    # initialize of Shell and related classes.
+    #
+    NoDelegateMethods = [&quot;initialize&quot;, &quot;expand_path&quot;]
+    def self.initialize
+
+      install_builtin_commands
+
+      # define CommandProccessor#methods to Shell#methods and Filter#methods
+      for m in CommandProcessor.instance_methods(false) - NoDelegateMethods
+	add_delegate_command_to_shell(m)
+      end
+      
+      def self.method_added(id)
+	add_delegate_command_to_shell(id)
+      end
+    end
+
+    #
+    # include run file.
+    #
+    def self.run_config
+      begin
+	load File.expand_path(&quot;~/.rb_shell&quot;) if ENV.key?(&quot;HOME&quot;)
+      rescue LoadError, Errno::ENOENT
+      rescue
+	print &quot;load error: #{rc}\n&quot;
+	print $!.class, &quot;: &quot;, $!, &quot;\n&quot;
+	for err in $@[0, $@.size - 2]
+	  print &quot;\t&quot;, err, &quot;\n&quot;
+	end
+      end
+    end
+
+    def initialize(shell)
+      @shell = shell
+      @system_commands = {}
+    end
+
+    #
+    # CommandProcessor#expand_path(path)
+    #	  path:	  String
+    #	  return: String
+    #	returns the absolute path for &lt;path&gt;
+    #
+    def expand_path(path)
+      @shell.expand_path(path)
+    end
+
+    #
+    # File related commands
+    # Shell#foreach
+    # Shell#open
+    # Shell#unlink
+    # Shell#test
+    #
+    # -
+    #	
+    # CommandProcessor#foreach(path, rs)
+    #	  path: String
+    #	  rs:	String - record separator
+    #	  iterator
+    #	Same as:
+    #	  File#foreach (when path is file)
+    #	  Dir#foreach (when path is directory)
+    #	path is relative to pwd
+    #
+    def foreach(path = nil, *rs)
+      path = &quot;.&quot; unless path
+      path = expand_path(path)
+
+      if File.directory?(path)
+	Dir.foreach(path){|fn| yield fn}
+      else
+	IO.foreach(path, *rs){|l| yield l}
+      end
+    end
+
+    #
+    # CommandProcessor#open(path, mode)
+    #	  path:	  String
+    #	  mode:	  String
+    #	  return: File or Dir
+    #	Same as:
+    #	  File#open (when path is file)
+    #	  Dir#open  (when path is directory)
+    #	mode has an effect only when path is a file
+    #
+    def open(path, mode)
+      path = expand_path(path)
+      if File.directory?(path)
+	Dir.open(path)
+      else
+	effect_umask do
+	  File.open(path, mode)
+	end
+      end
+    end
+    #  public :open
+
+    #
+    # CommandProcessor#unlink(path)
+    #	same as:
+    #	  Dir#unlink  (when path is directory)
+    #	  File#unlink (when path is file)
+    #
+    def unlink(path)
+      path = expand_path(path)
+      if File.directory?(path)
+	Dir.unlink(path)
+      else
+	IO.unlink(path)
+      end
+    end
+
+    #
+    # CommandProcessor#test(command, file1, file2)
+    # CommandProcessor#[command, file1, file2]
+    #	  command: char or String or Symbol
+    #	  file1:   String
+    #	  file2:   String(optional)
+    #	  return: Boolean
+    #	same as:
+    #	  test()	   (when command is char or length 1 string or symbol)
+    #	  FileTest.command (others)
+    #	example:
+    #	  sh[?e, &quot;foo&quot;]
+    #	  sh[:e, &quot;foo&quot;]
+    #	  sh[&quot;e&quot;, &quot;foo&quot;]
+    #	  sh[:exists?, &quot;foo&quot;]
+    #	  sh[&quot;exists?&quot;, &quot;foo&quot;]
+    #	  
+    def test(command, file1, file2=nil)
+      file1 = expand_path(file1)
+      file2 = expand_path(file2) if file2
+      command = command.id2name if command.kind_of?(Symbol)
+
+      case command
+      when Integer
+	top_level_test(command, file1, file2)
+      when String
+	if command.size == 1
+	  if file2
+	    top_level_test(command, file1, file2)
+	  else
+	    top_level_test(command, file1)
+	  end
+	else
+	  if file2
+	    FileTest.send(command, file1, file2)
+	  else
+	    FileTest.send(command, file1)
+	  end
+	end
+      end
+    end
+    alias [] test
+
+    #
+    # Dir related methods
+    #
+    # Shell#mkdir
+    # Shell#rmdir
+    #
+    #--
+    #
+    # CommandProcessor#mkdir(*path)
+    #	  path: String
+    #	same as Dir.mkdir()
+    #	  
+    def mkdir(*path)
+      for dir in path
+	Dir.mkdir(expand_path(dir))
+      end
+    end
+
+    #
+    # CommandProcessor#rmdir(*path)
+    #	  path: String
+    #	same as Dir.rmdir()
+    #	  
+    def rmdir(*path)
+      for dir in path
+	Dir.rmdir(expand_path(dir))
+      end
+    end
+
+    #
+    # CommandProcessor#system(command, *opts)
+    #	  command: String
+    #	  opts:	   String
+    #	  return:  SystemCommand
+    #	Same as system() function
+    #	example:
+    #	  print sh.system(&quot;ls&quot;, &quot;-l&quot;)
+    #	  sh.system(&quot;ls&quot;, &quot;-l&quot;) | sh.head &gt; STDOUT
+    # 
+    def system(command, *opts)
+      if opts.empty?
+	if command =~ /\*|\?|\{|\}|\[|\]|&lt;|&gt;|\(|\)|~|&amp;|\||\\|\$|;|'|`|&quot;|\n/
+	  return SystemCommand.new(@shell, find_system_command(&quot;sh&quot;), &quot;-c&quot;, command)
+	else
+	  command, *opts = command.split(/\s+/)
+	end
+      end
+      SystemCommand.new(@shell, find_system_command(command), *opts)
+    end
+
+    #
+    # ProcessCommand#rehash
+    #	clear command hash table.
+    #
+    def rehash
+      @system_commands = {}
+    end
+
+    #
+    # ProcessCommand#transact
+    #
+    def check_point
+      @shell.process_controller.wait_all_jobs_execution
+    end
+    alias finish_all_jobs check_point
+
+    def transact(&amp;block)
+      begin
+	@shell.instance_eval(&amp;block)
+      ensure
+	check_point
+      end
+    end
+
+    #
+    # internal commands
+    #
+    def out(dev = STDOUT, &amp;block)
+      dev.print transact(&amp;block)
+    end
+
+    def echo(*strings)
+      Echo.new(@shell, *strings)
+    end
+
+    def cat(*filenames)
+      Cat.new(@shell, *filenames)
+    end
+
+    #   def sort(*filenames)
+    #     Sort.new(self, *filenames)
+    #   end
+
+    def glob(pattern)
+      Glob.new(@shell, pattern)
+    end
+
+    def append(to, filter)
+      case to
+      when String
+	AppendFile.new(@shell, to, filter)
+      when IO
+	AppendIO.new(@shell, to, filter)
+      else
+	Shell.Fail Error::CantApplyMethod, &quot;append&quot;, to.class
+      end
+    end
+
+    def tee(file)
+      Tee.new(@shell, file)
+    end
+
+    def concat(*jobs)
+      Concat.new(@shell, *jobs)
+    end
+
+    # %pwd, %cwd -&gt; @pwd
+    def notify(*opts, &amp;block)
+      Thread.exclusive do
+	Shell.notify(*opts) {|mes|
+	  yield mes if iterator?
+	
+	  mes.gsub!(&quot;%pwd&quot;, &quot;#{@cwd}&quot;)
+	  mes.gsub!(&quot;%cwd&quot;, &quot;#{@cwd}&quot;)
+	}
+      end
+    end
+
+    #
+    # private functions
+    #
+    def effect_umask
+      if @shell.umask
+	Thread.critical = true
+	save = File.umask
+	begin
+	  yield
+	ensure
+	  File.umask save
+	  Thread.critical = false
+	end
+      else
+	yield
+      end
+    end
+    private :effect_umask
+
+    def find_system_command(command)
+      return command if /^\// =~ command
+      case path = @system_commands[command]
+      when String
+	if exists?(path)
+	  return path
+	else
+	  Shell.Fail Error::CommandNotFound, command
+	end
+      when false
+	Shell.Fail Error::CommandNotFound, command
+      end
+
+      for p in @shell.system_path
+	path = join(p, command)
+	if FileTest.exists?(path)
+	  @system_commands[command] = path
+	  return path
+	end
+      end
+      @system_commands[command] = false
+      Shell.Fail Error::CommandNotFound, command
+    end
+
+    #
+    # CommandProcessor.def_system_command(command, path)
+    #	  command:  String
+    #	  path:	    String
+    #	define 'command()' method as method.
+    #
+    def self.def_system_command(command, path = command)
+      begin
+	eval((d = %Q[def #{command}(*opts)
+     	          SystemCommand.new(@shell, '#{path}', *opts)
+               end]), nil, __FILE__, __LINE__ - 1)
+      rescue SyntaxError
+	Shell.notify &quot;warn: Can't define #{command} path: #{path}.&quot; 
+      end
+      Shell.notify &quot;Define #{command} path: #{path}.&quot;, Shell.debug?
+      Shell.notify(&quot;Definition of #{command}: &quot;, d, 
+	     Shell.debug.kind_of?(Integer) &amp;&amp; Shell.debug &gt; 1)
+    end
+
+    def self.undef_system_command(command)
+      command = command.id2name if command.kind_of?(Symbol)
+      remove_method(command)
+      Shell.module_eval{remove_method(command)}
+      Filter.module_eval{remove_method(command)}
+      self
+    end
+
+    # define command alias
+    # ex)
+    # def_alias_command(&quot;ls_c&quot;, &quot;ls&quot;, &quot;-C&quot;, &quot;-F&quot;)
+    # def_alias_command(&quot;ls_c&quot;, &quot;ls&quot;){|*opts| [&quot;-C&quot;, &quot;-F&quot;, *opts]}
+    #
+    @alias_map = {}
+    def self.alias_map
+      @alias_map
+    end
+    def self.alias_command(ali, command, *opts, &amp;block)
+      ali = ali.id2name if ali.kind_of?(Symbol)
+      command = command.id2name if command.kind_of?(Symbol)
+      begin
+	if iterator?
+	  @alias_map[ali.intern] = proc
+
+	  eval((d = %Q[def #{ali}(*opts)
+                          @shell.__send__(:#{command},
+                                          *(CommandProcessor.alias_map[:#{ali}].call *opts))
+	                end]), nil, __FILE__, __LINE__ - 1)
+    
+	else
+           args = opts.collect{|opt| '&quot;' + opt + '&quot;'}.join(&quot;,&quot;)
+           eval((d = %Q[def #{ali}(*opts)
+                          @shell.__send__(:#{command}, #{args}, *opts)
+                        end]), nil, __FILE__, __LINE__ - 1)
+	end
+      rescue SyntaxError
+	Shell.notify &quot;warn: Can't alias #{ali} command: #{command}.&quot; 
+	Shell.notify(&quot;Definition of #{ali}: &quot;, d)
+	raise
+      end
+      Shell.notify &quot;Define #{ali} command: #{command}.&quot;, Shell.debug?
+      Shell.notify(&quot;Definition of #{ali}: &quot;, d, 
+	     Shell.debug.kind_of?(Integer) &amp;&amp; Shell.debug &gt; 1)
+      self
+    end
+   
+    def self.unalias_command(ali)
+      ali = ali.id2name if ali.kind_of?(Symbol)
+      @alias_map.delete ali.intern
+      undef_system_command(ali)
+    end
+   
+    #
+    # CommandProcessor.def_builtin_commands(delegation_class, command_specs)
+    #	  delegation_class: Class or Module
+    #	  command_specs: [[command_name, [argument,...]],...]
+    #	     command_name: String
+    #	     arguments:	   String
+    #		FILENAME?? -&gt; expand_path(filename??)
+    #		*FILENAME?? -&gt; filename??.collect{|f|expand_path(f)}.join(&quot;, &quot;)
+    #	define command_name(argument,...) as
+    #	    delegation_class.command_name(argument,...)
+    #
+    def self.def_builtin_commands(delegation_class, command_specs)
+      for meth, args in command_specs
+	arg_str = args.collect{|arg| arg.downcase}.join(&quot;, &quot;)
+	call_arg_str = args.collect{
+	  |arg|
+	  case arg
+	  when /^(FILENAME.*)$/
+	    format(&quot;expand_path(%s)&quot;, $1.downcase)
+	  when /^(\*FILENAME.*)$/
+	    # \*FILENAME* -&gt; filenames.collect{|fn| expand_path(fn)}.join(&quot;, &quot;)
+	    $1.downcase + '.collect{|fn| expand_path(fn)}'
+	  else
+	    arg
+	  end
+	}.join(&quot;, &quot;)
+	d = %Q[def #{meth}(#{arg_str})
+		    #{delegation_class}.#{meth}(#{call_arg_str})
+		 end]
+	Shell.notify &quot;Define #{meth}(#{arg_str})&quot;, Shell.debug?
+	Shell.notify(&quot;Definition of #{meth}: &quot;, d, 
+	     Shell.debug.kind_of?(Integer) &amp;&amp; Shell.debug &gt; 1)
+	eval d
+      end
+    end
+
+    #
+    # CommandProcessor.install_system_commands(pre)
+    #	    pre: String - command name prefix
+    # defines every command which belongs in default_system_path via
+    # CommandProcessor.command().  It doesn't define already defined
+    # methods twice.  By default, &quot;pre_&quot; is prefixes to each method
+    # name.  Characters that may not be used in a method name are
+    # all converted to '_'.  Definition errors are just ignored.
+    #
+    def self.install_system_commands(pre = &quot;sys_&quot;)
+      defined_meth = {}
+      for m in Shell.methods
+	defined_meth[m] = true
+      end
+      sh = Shell.new
+      for path in Shell.default_system_path
+	next unless sh.directory? path
+	sh.cd path
+	sh.foreach do
+	  |cn|
+	  if !defined_meth[pre + cn] &amp;&amp; sh.file?(cn) &amp;&amp; sh.executable?(cn)
+	    command = (pre + cn).gsub(/\W/, &quot;_&quot;).sub(/^([0-9])/, '_\1')
+	    begin
+	      def_system_command(command, sh.expand_path(cn))
+	    rescue
+	      Shell.notify &quot;warn: Can't define #{command} path: #{cn}&quot;
+	    end
+	    defined_meth[command] = command
+	  end
+	end
+      end
+    end
+
+    #----------------------------------------------------------------------
+    #
+    #  class initializing methods  - 
+    #
+    #----------------------------------------------------------------------
+    def self.add_delegate_command_to_shell(id)
+      id = id.intern if id.kind_of?(String)
+      name = id.id2name
+      if Shell.method_defined?(id)
+	Shell.notify &quot;warn: override definnition of Shell##{name}.&quot;
+	Shell.notify &quot;warn: alias Shell##{name} to Shell##{name}_org.\n&quot;
+	Shell.module_eval &quot;alias #{name}_org #{name}&quot;
+      end
+      Shell.notify &quot;method added: Shell##{name}.&quot;, Shell.debug?
+      Shell.module_eval(%Q[def #{name}(*args, &amp;block)
+			    begin
+			      @command_processor.__send__(:#{name}, *args, &amp;block)
+			    rescue Exception
+			      $@.delete_if{|s| /:in `__getobj__'$/ =~ s} #`
+	                      $@.delete_if{|s| /^\\(eval\\):/ =~ s}
+			    raise
+			    end
+                          end], __FILE__, __LINE__)
+
+      if Shell::Filter.method_defined?(id)
+	Shell.notify &quot;warn: override definnition of Shell::Filter##{name}.&quot;
+	Shell.notify &quot;warn: alias Shell##{name} to Shell::Filter##{name}_org.&quot;
+	Filter.module_eval &quot;alias #{name}_org #{name}&quot;
+      end
+      Shell.notify &quot;method added: Shell::Filter##{name}.&quot;, Shell.debug?
+      Filter.module_eval(%Q[def #{name}(*args, &amp;block)
+			    begin
+			      self | @shell.__send__(:#{name}, *args, &amp;block)
+			    rescue Exception
+			      $@.delete_if{|s| /:in `__getobj__'$/ =~ s} #`
+	                      $@.delete_if{|s| /^\\(eval\\):/ =~ s}
+			    raise
+			    end
+                          end], __FILE__, __LINE__)
+    end
+
+    #
+    # define default builtin commands
+    #
+    def self.install_builtin_commands
+      # method related File.
+      #	(exclude open/foreach/unlink)
+      normal_delegation_file_methods = [
+	[&quot;atime&quot;, [&quot;FILENAME&quot;]],
+	[&quot;basename&quot;, [&quot;fn&quot;, &quot;*opts&quot;]],
+	[&quot;chmod&quot;, [&quot;mode&quot;, &quot;*FILENAMES&quot;]], 
+	[&quot;chown&quot;, [&quot;owner&quot;, &quot;group&quot;, &quot;*FILENAME&quot;]],
+	[&quot;ctime&quot;, [&quot;FILENAMES&quot;]],
+	[&quot;delete&quot;, [&quot;*FILENAMES&quot;]],
+	[&quot;dirname&quot;, [&quot;FILENAME&quot;]],
+	[&quot;ftype&quot;, [&quot;FILENAME&quot;]],
+	[&quot;join&quot;, [&quot;*items&quot;]],
+	[&quot;link&quot;, [&quot;FILENAME_O&quot;, &quot;FILENAME_N&quot;]],
+	[&quot;lstat&quot;, [&quot;FILENAME&quot;]],
+	[&quot;mtime&quot;, [&quot;FILENAME&quot;]],
+	[&quot;readlink&quot;, [&quot;FILENAME&quot;]],
+	[&quot;rename&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;]],
+	#      [&quot;size&quot;, [&quot;FILENAME&quot;]],
+	[&quot;split&quot;, [&quot;pathname&quot;]],
+	[&quot;stat&quot;, [&quot;FILENAME&quot;]],
+	[&quot;symlink&quot;, [&quot;FILENAME_O&quot;, &quot;FILENAME_N&quot;]],
+	[&quot;truncate&quot;, [&quot;FILENAME&quot;, &quot;length&quot;]],
+	[&quot;utime&quot;, [&quot;atime&quot;, &quot;mtime&quot;, &quot;*FILENAMES&quot;]]]
+
+      def_builtin_commands(File, normal_delegation_file_methods)
+      alias_method :rm, :delete
+
+      # method related FileTest
+      def_builtin_commands(FileTest, 
+		   FileTest.singleton_methods(false).collect{|m| [m, [&quot;FILENAME&quot;]]})
+
+      # method related ftools
+      normal_delegation_ftools_methods = [
+	[&quot;syscopy&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;]],
+	[&quot;copy&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;]],
+	[&quot;move&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;]],
+	[&quot;compare&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;]],
+	[&quot;safe_unlink&quot;, [&quot;*FILENAMES&quot;]],
+	[&quot;makedirs&quot;, [&quot;*FILENAMES&quot;]],
+	#    [&quot;chmod&quot;, [&quot;mode&quot;, &quot;*FILENAMES&quot;]],
+	[&quot;install&quot;, [&quot;FILENAME_FROM&quot;, &quot;FILENAME_TO&quot;, &quot;mode&quot;]],
+      ]
+      def_builtin_commands(File,
+		   normal_delegation_ftools_methods)
+      alias_method :cmp, :compare
+      alias_method :mv, :move
+      alias_method :cp, :copy
+      alias_method :rm_f, :safe_unlink
+      alias_method :mkpath, :makedirs
+    end
+
+  end
+end
+</pre>
+    </div>

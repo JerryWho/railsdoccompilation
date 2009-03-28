@@ -1,0 +1,63 @@
+  <div id="fileHeader">
+    <h1>base.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/rails/extensions/active_record/base.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:09:13 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>if defined?(ActiveRecord::Base)
+  module Spec
+    module Rails
+      module Extensions
+        module ActiveRecord
+          module ClassMethods
+            # :call-seq:
+            #   ModelClass.should have(:no).records
+            #   ModelClass.should have(1).record
+            #   ModelClass.should have(n).records
+            #
+            # Extension to enhance &lt;tt&gt;should have&lt;/tt&gt; on AR Model classes
+            def records
+              find(:all)
+            end
+            alias :record :records
+          end
+
+          module InstanceMethods
+            # :call-seq:
+            #   model.should have(:no).errors_on(:attribute)
+            #   model.should have(1).error_on(:attribute)
+            #   model.should have(n).errors_on(:attribute)
+            #
+            # Extension to enhance &lt;tt&gt;should have&lt;/tt&gt; on AR Model instances.
+            # Calls model.valid? in order to prepare the object's errors
+            # object.
+            def errors_on(attribute)
+              self.valid?
+              [self.errors.on(attribute)].flatten.compact
+            end
+            alias :error_on :errors_on
+          end
+        end
+      end
+    end
+  end
+  
+  module ActiveRecord #:nodoc:
+    class Base
+      extend  Spec::Rails::Extensions::ActiveRecord::ClassMethods
+      include Spec::Rails::Extensions::ActiveRecord::InstanceMethods
+    end
+  end
+end</pre>
+    </div>

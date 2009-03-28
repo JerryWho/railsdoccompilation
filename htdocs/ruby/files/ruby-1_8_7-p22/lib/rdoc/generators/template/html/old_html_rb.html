@@ -1,0 +1,748 @@
+  <div id="fileHeader">
+    <h1>old_html.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/generators/template/html/old_html.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module RDoc
+
+# This is how you define the HTML that RDoc generates. Simply create
+# a file in rdoc/generators/html_templates that creates the
+# module RDoc::Page and populate it as described below. Then invoke
+# rdoc using the --template &lt;name of your file&gt; option, and
+# your template will be used.
+#
+# The constants defining pages use a simple templating system:
+#
+# * The templating system is passed a hash. Keys in the hash correspond
+#   to tags on this page. The tag %abc% is looked up in the hash,
+#   and is replaced by the corresponding hash value.
+#
+# * Some tags are optional. You can detect this using IF/ENDIF
+#
+#      IF: title
+#      The value of title is %title%
+#      ENDIF: title
+#
+# * Some entries in the hash have values that are arrays, where each
+#   entry in the array is itself a hash. These are used to generate
+#   lists using the START: construct. For example, given a hash
+#   containing
+# 
+#      { 'people' =&gt; [ { 'name' =&gt; 'Fred', 'age' =&gt; '12' },
+#                      { 'name' =&gt; 'Mary', 'age' =&gt; '21' } ]
+#
+#   You could generate a simple table using
+#
+#      &lt;table&gt;
+#      START:people
+#        &lt;tr&gt;&lt;td&gt;%name%&lt;td&gt;%age%&lt;/tr&gt;
+#      END:people
+#      &lt;/table&gt;
+#
+#   These lists can be nested to an arbitrary depth
+#
+# * the construct HREF:url:name: generates &lt;a href=&quot;%url%&quot;&gt;%name%&lt;/a&gt;
+#   if +url+ is defined in the hash, or %name% otherwise.
+#
+#
+# Your file must contain the following constants
+#
+# [*FONTS*]  a list of fonts to be used
+# [*STYLE*]  a CSS section (without the &lt;style&gt; or comments). This is
+#            used to generate a style.css file
+#
+# [*BODY*] 
+#   The main body of all non-index RDoc pages. BODY will contain
+#   two !INCLUDE!s. The first is used to include a document-type
+#   specific header (FILE_PAGE or CLASS_PAGE). The second include
+#   is for the method list (METHOD_LIST). THe body is passed:
+#
+#   %title%::
+#       the page's title
+#
+#   %style_url%::
+#       the url of a style sheet for this page
+#
+#   %diagram%::
+#       the optional URL of a diagram for this page
+#
+#   %description%::
+#       a (potentially multi-paragraph) string containing the
+#       description for th file/class/module.
+#
+#   %requires%::
+#       an optional list of %aref%/%name% pairs, one for each module
+#       required by this file.
+#
+#   %methods%::
+#       an optional list of %aref%/%name%, one for each method
+#       documented on this page. This is intended to be an index.
+#
+#   %attributes%::  
+#       An optional list. For each attribute it contains:
+#       %name%::   the attribute name
+#       %rw%::     r/o, w/o, or r/w
+#       %a_desc%:: description of the attribute
+#
+#   %classlist%:: 
+#       An optional string containing an already-formatted list of
+#       classes and modules documented in this file
+#
+#   For FILE_PAGE entries, the body will be passed
+#
+#   %short_name%::  
+#       The name of the file
+#
+#   %full_path%::
+#       The full path to the file
+#
+#   %dtm_modified%::
+#       The date/time the file was last changed
+#
+#   For class and module pages, the body will be passed
+#
+#   %classmod%::
+#       The name of the class or module
+#
+#   %files%::
+#       A list. For each file this class is defined in, it contains:
+#       %full_path_url%:: an (optional) URL of the RDoc page
+#                         for this file
+#       %full_path%::     the name of the file
+#
+#   %par_url%::
+#       The (optional) URL of the RDoc page documenting this class's
+#       parent class
+#
+#   %parent%::
+#       The name of this class's parent.
+#
+#   For both files and classes, the body is passed the following information
+#   on includes and methods:
+#
+#   %includes%::    
+#       Optional list of included modules. For each, it receives
+#       %aref%:: optional URL to RDoc page for the module
+#       %name%:: the name of the module
+#
+#   %method_list%::
+#       Optional list of methods of a particular class and category.
+#
+#   Each method list entry contains:
+#
+#   %type%::        public/private/protected
+#   %category%::    instance/class
+#   %methods%::     a list of method descriptions
+#
+#   Each method description contains:
+#
+#   %aref%::        a target aref, used when referencing this method
+#                   description. You should code this as &lt;a name=&quot;%aref%&quot;&gt;
+#   %codeurl%::     the optional URL to the page containing this method's
+#                   source code.
+#   %name%::        the method's name
+#   %params%::      the method's parameters
+#   %callseq%::     a full calling sequence
+#   %m_desc%::      the (potentially multi-paragraph) description of
+#                   this method.
+#
+# [*CLASS_PAGE*]
+#         Header for pages documenting classes and modules. See
+#         BODY above for the available parameters.
+#
+# [*FILE_PAGE*]
+#         Header for pages documenting files. See
+#         BODY above for the available parameters.
+#
+# [*METHOD_LIST*]
+#         Controls the display of the listing of methods. See BODY for
+#         parameters.
+#
+# [*INDEX*]
+#         The top-level index page. For a browser-like environment
+#         define a frame set that includes the file, class, and 
+#         method indices. Passed
+#         %title%:: title of page
+#         %initial_page% :: url of initial page to display
+#
+# [*CLASS_INDEX*]
+#         Individual files for the three indexes. Passed:
+#         %index_url%:: URL of main index page
+#         %entries%::   List of
+#                       %name%:: name of an index entry
+#                       %href%:: url of corresponding page
+# [*METHOD_INDEX*]
+#         Same as CLASS_INDEX for methods
+#
+# [*FILE_INDEX*]
+#         Same as CLASS_INDEX for methods
+#
+# [*FR_INDEX_BODY*]
+#         A wrapper around CLASS_INDEX, METHOD_INDEX, and FILE_INDEX.
+#         If those index strings contain the complete HTML for the
+#         output, then FR_INDEX_BODY can simply be !INCLUDE!
+#
+# [*SRC_PAGE*]
+#         Page used to display source code. Passed %title% and %code%,
+#         the latter being a multi-line string of code.
+
+module Page
+
+FONTS = &quot;Verdana, Arial, Helvetica, sans-serif&quot;
+
+STYLE = %{
+body,td,p { font-family: %fonts%; 
+       color: #000040;
+}
+
+.attr-rw { font-size: x-small; color: #444488 }
+
+.title-row { background: #0000aa;
+             color:      #eeeeff;
+}
+
+.big-title-font { color: white;
+                  font-family: %fonts%;
+                  font-size: large; 
+                  height: 50px}
+
+.small-title-font { color: aqua;
+                    font-family: %fonts%;
+                    font-size: xx-small; }
+
+.aqua { color: aqua }
+
+.method-name, attr-name {
+      font-family: monospace; font-weight: bold;
+}
+
+.tablesubtitle, .tablesubsubtitle {
+   width: 100%;
+   margin-top: 1ex;
+   margin-bottom: .5ex;
+   padding: 5px 0px 5px 20px;
+   font-size: large;
+   color: aqua;
+   background: #3333cc;
+}
+
+.name-list {
+  font-family: monospace;
+  margin-left: 40px;
+  margin-bottom: 2ex;
+  line-height: 140%;
+}
+
+.description {
+  margin-left: 40px;
+  margin-top: -2ex;
+  margin-bottom: 2ex;
+}
+
+.description p {
+  line-height: 140%;
+}
+
+.aka {
+  margin-left: 40px;
+  margin-bottom: 2ex;
+  line-height: 100%;
+  font-size:   small;
+  color:       #808080;
+}
+
+.methodtitle {
+  font-size: medium;
+  text-decoration: none;
+  color: #0000AA;
+  background: white; 
+}
+
+.paramsig {
+   font-size: small;
+}
+
+.srcbut { float: right }
+
+pre { font-size: 1.2em; }
+tt  { font-size: 1.2em; }
+
+pre.source {
+  border-style: groove;
+  background-color: #ddddff;
+  margin-left:  40px;
+  padding: 1em 0em 1em 2em;
+}
+
+.classlist {
+  margin-left: 40px;
+  margin-bottom: 2ex;
+  line-height: 140%;
+}
+
+li {
+  display:    list-item;
+  margin-top: .6em;
+}
+
+.ruby-comment    { color: green; font-style: italic }
+.ruby-constant   { color: #4433aa; font-weight: bold; }
+.ruby-identifier { color: #222222;  }
+.ruby-ivar       { color: #2233dd; }
+.ruby-keyword    { color: #3333FF; font-weight: bold }
+.ruby-node       { color: #777777; }
+.ruby-operator   { color: #111111;  }
+.ruby-regexp     { color: #662222; }
+.ruby-value      { color: #662222; font-style: italic }
+
+}
+
+
+############################################################################
+
+
+HEADER = %{
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot;
+&quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot; xml:lang=&quot;en&quot; lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;title&gt;%title%&lt;/title&gt;
+  &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=%charset%&quot; /&gt;
+  &lt;link rel=StyleSheet href=&quot;%style_url%&quot; type=&quot;text/css&quot; media=&quot;screen&quot; /&gt;
+  &lt;script type=&quot;text/javascript&quot; language=&quot;JavaScript&quot;&gt;
+  &lt;!--
+  function popCode(url) {
+    window.open(url, &quot;Code&quot;, 
+          &quot;resizable=yes,scrollbars=yes,toolbar=no,status=no,height=150,width=400&quot;)
+  }
+  //--&gt;
+  &lt;/script&gt;
+&lt;/head&gt;
+}
+
+
+###################################################################
+
+METHOD_LIST = %{
+IF:includes
+&lt;table summary=&quot;Included modules&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Included modules&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div class=&quot;name-list&quot;&gt;
+START:includes
+    &lt;span class=&quot;method-name&quot;&gt;HREF:aref:name:&lt;/span&gt;
+END:includes
+&lt;/div&gt;
+ENDIF:includes
+
+IF:method_list
+START:method_list
+IF:methods
+&lt;table summary=&quot;Method list&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;%type% %category% methods&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+START:methods
+&lt;table summary=&quot;method&quot;  width=&quot;100%&quot; cellspacing=&quot;0&quot; cellpadding=&quot;5&quot; border=&quot;0&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;methodtitle&quot;&gt;
+&lt;a name=&quot;%aref%&quot;&gt;&lt;/a&gt;
+IF:codeurl
+&lt;a href=&quot;%codeurl%&quot; target=&quot;Code&quot; class=&quot;methodtitle&quot;
+ onClick=&quot;popCode('%codeurl%');return false;&quot;&gt;
+ENDIF:codeurl
+IF:callseq
+&lt;b&gt;%callseq%&lt;/b&gt;
+ENDIF:callseq
+IFNOT:callseq
+&lt;b&gt;%name%&lt;/b&gt;%params%
+ENDIF:callseq
+IF:codeurl
+&lt;/a&gt;
+ENDIF:codeurl
+&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+IF:m_desc
+&lt;div class=&quot;description&quot;&gt;
+%m_desc%
+&lt;/div&gt;
+ENDIF:m_desc
+IF:aka
+&lt;div class=&quot;aka&quot;&gt;
+This method is also aliased as
+START:aka
+&lt;a href=&quot;%aref%&quot;&gt;%name%&lt;/a&gt;
+END:aka
+&lt;/div&gt;
+ENDIF:aka
+IF:sourcecode
+&lt;pre class=&quot;source&quot;&gt;
+%sourcecode%
+&lt;/pre&gt;
+ENDIF:sourcecode
+END:methods
+ENDIF:methods
+END:method_list
+ENDIF:method_list
+}
+
+###################################################################
+
+CONTEXT_CONTENT = %{
+IF:diagram
+&lt;table summary=&quot;Diagram of classes and modules&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td align=&quot;center&quot;&gt;
+%diagram%
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+ENDIF:diagram
+
+
+IF:description
+&lt;div class=&quot;description&quot;&gt;%description%&lt;/div&gt;
+ENDIF:description
+
+IF:requires
+&lt;table summary=&quot;Requires&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Required files&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div class=&quot;name-list&quot;&gt;
+START:requires
+HREF:aref:name:&amp;nbsp; &amp;nbsp;
+END:requires
+&lt;/div&gt;
+ENDIF:requires
+
+IF:methods
+&lt;table summary=&quot;Methods&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Methods&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div class=&quot;name-list&quot;&gt;
+START:methods
+HREF:aref:name:&amp;nbsp; &amp;nbsp;
+END:methods
+&lt;/div&gt;
+ENDIF:methods
+
+IF:constants
+&lt;table summary=&quot;Constants&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Constants&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;table cellpadding=&quot;5&quot;&gt;
+START:constants
+&lt;tr valign=&quot;top&quot;&gt;&lt;td&gt;%name%&lt;/td&gt;&lt;td&gt;=&lt;/td&gt;&lt;td&gt;%value%&lt;/td&gt;&lt;/tr&gt;
+IF:desc
+&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;%desc%&lt;/td&gt;&lt;/tr&gt;
+ENDIF:desc
+END:constants
+&lt;/table&gt;
+ENDIF:constants
+
+IF:aliases
+&lt;table summary=&quot;Aliases&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;External Aliases&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div class=&quot;name-list&quot;&gt;
+START:aliases
+%old_name% -&gt; %new_name%&lt;br /&gt;
+END:aliases
+&lt;/div&gt;
+ENDIF:aliases
+
+IF:attributes
+&lt;table summary=&quot;Attributes&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Attributes&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;table summary=&quot;Attribute details&quot; cellspacing=&quot;5&quot;&gt;
+START:attributes
+     &lt;tr valign=&quot;top&quot;&gt;
+       &lt;td class=&quot;attr-name&quot;&gt;%name%&lt;/td&gt;
+IF:rw
+       &lt;td align=&quot;center&quot; class=&quot;attr-rw&quot;&gt;&amp;nbsp;[%rw%]&amp;nbsp;&lt;/td&gt;
+ENDIF:rw
+IFNOT:rw
+       &lt;td&gt;&lt;/td&gt;
+ENDIF:rw
+       &lt;td&gt;%a_desc%&lt;/td&gt;
+     &lt;/tr&gt;
+END:attributes
+&lt;/table&gt;
+ENDIF:attributes
+
+IF:classlist
+&lt;table summary=&quot;List of classes&quot; cellpadding=&quot;5&quot; width=&quot;100%&quot;&gt;
+&lt;tr&gt;&lt;td class=&quot;tablesubtitle&quot;&gt;Classes and Modules&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div class=&quot;classlist&quot;&gt;
+%classlist%
+&lt;/div&gt;
+ENDIF:classlist
+}
+
+###############################################################################
+
+BODY = HEADER + %{
+&lt;body bgcolor=&quot;white&quot;&gt;
+!INCLUDE!  &lt;!-- banner header --&gt;
+} +
+CONTEXT_CONTENT + METHOD_LIST +
+%{
+&lt;/body&gt;
+&lt;/html&gt;
+}
+
+
+###############################################################################
+
+FILE_PAGE = &lt;&lt;_FILE_PAGE_
+&lt;table summary=&quot;Information on file&quot; width=&quot;100%&quot;&gt;
+ &lt;tr class=&quot;title-row&quot;&gt;
+ &lt;td&gt;&lt;table summary=&quot;layout&quot; width=&quot;100%&quot;&gt;&lt;tr&gt;
+   &lt;td class=&quot;big-title-font&quot; colspan=&quot;2&quot;&gt;%short_name%&lt;/td&gt;
+   &lt;td align=&quot;right&quot;&gt;&lt;table summary=&quot;layout&quot; cellspacing=&quot;0&quot; cellpadding=&quot;2&quot;&gt;
+         &lt;tr&gt;
+           &lt;td  class=&quot;small-title-font&quot;&gt;Path:&lt;/td&gt;
+           &lt;td class=&quot;small-title-font&quot;&gt;%full_path%
+IF:cvsurl
+				&amp;nbsp;(&lt;a href=&quot;%cvsurl%&quot;&gt;&lt;acronym title=&quot;Concurrent Versioning System&quot;&gt;CVS&lt;/acronym&gt;&lt;/a&gt;)
+ENDIF:cvsurl
+           &lt;/td&gt;
+         &lt;/tr&gt;
+         &lt;tr&gt;
+           &lt;td class=&quot;small-title-font&quot;&gt;Modified:&lt;/td&gt;
+           &lt;td class=&quot;small-title-font&quot;&gt;%dtm_modified%&lt;/td&gt;
+         &lt;/tr&gt;
+        &lt;/table&gt;
+    &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/table&gt;
+_FILE_PAGE_
+
+###################################################################
+
+CLASS_PAGE = %{
+&lt;table summary=&quot;Information on class&quot; width=&quot;100%&quot; border=&quot;0&quot; cellspacing=&quot;0&quot;&gt;
+ &lt;tr class=&quot;title-row&quot;&gt;
+ &lt;td class=&quot;big-title-font&quot;&gt;
+   &lt;sup&gt;&lt;font color=&quot;aqua&quot;&gt;%classmod%&lt;/font&gt;&lt;/sup&gt; %full_name%
+ &lt;/td&gt;
+ &lt;td align=&quot;right&quot;&gt;
+   &lt;table summary=&quot;layout&quot; cellspacing=&quot;0&quot; cellpadding=&quot;2&quot;&gt;
+     &lt;tr valign=&quot;top&quot;&gt;
+      &lt;td class=&quot;small-title-font&quot;&gt;In:&lt;/td&gt;
+      &lt;td class=&quot;small-title-font&quot;&gt;
+START:infiles
+IF:full_path_url
+        &lt;a href=&quot;%full_path_url%&quot; class=&quot;aqua&quot;&gt;
+ENDIF:full_path_url
+%full_path%
+IF:full_path_url
+         &lt;/a&gt;
+ENDIF:full_path_url
+IF:cvsurl
+         &amp;nbsp;(&lt;a href=&quot;%cvsurl%&quot;&gt;&lt;acronym title=&quot;Concurrent Versioning System&quot;&gt;CVS&lt;/acronym&gt;&lt;/a&gt;)
+ENDIF:cvsurl
+&lt;br /&gt;
+END:infiles
+      &lt;/td&gt;
+     &lt;/tr&gt;
+IF:parent
+     &lt;tr&gt;
+      &lt;td class=&quot;small-title-font&quot;&gt;Parent:&lt;/td&gt;
+      &lt;td class=&quot;small-title-font&quot;&gt;
+IF:par_url
+        &lt;a href=&quot;%par_url%&quot; class=&quot;aqua&quot;&gt;
+ENDIF:par_url
+%parent%
+IF:par_url
+         &lt;/a&gt;
+ENDIF:par_url
+      &lt;/td&gt;
+     &lt;/tr&gt;
+ENDIF:parent
+   &lt;/table&gt;
+  &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/table&gt;
+}
+
+=begin
+=end
+
+########################## Source code ##########################
+
+SRC_PAGE = %{
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=%charset%&quot;&gt;
+&lt;title&gt;%title%&lt;/title&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;%style_url%&quot; type=&quot;text/css&quot; media=&quot;screen&quot; /&gt;
+&lt;/head&gt;
+&lt;body bgcolor=&quot;white&quot;&gt;
+&lt;pre&gt;%code%&lt;/pre&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+}
+
+########################## Index ################################
+
+FR_INDEX_BODY = %{
+!INCLUDE!
+}
+
+FILE_INDEX = %{
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=%charset%&quot;&gt;
+&lt;title&gt;%list_title%&lt;/title&gt;
+&lt;style type=&quot;text/css&quot;&gt;
+&lt;!--
+  body {
+background-color: #ddddff;
+     font-family: #{FONTS}; 
+       font-size: 11px; 
+      font-style: normal;
+     line-height: 14px; 
+           color: #000040;
+  }
+div.banner {
+  background: #0000aa;
+  color:      white;
+  padding: 1;
+  margin: 0;
+  font-size: 90%;
+  font-weight: bold;
+  line-height: 1.1;
+  text-align: center;
+  width: 100%;
+}
+
+A.xx { color: white; font-weight: bold; }
+--&gt;
+&lt;/style&gt;
+&lt;base target=&quot;docwin&quot;&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;banner&quot;&gt;&lt;a href=&quot;%index_url%&quot; class=&quot;xx&quot;&gt;%list_title%&lt;/a&gt;&lt;/div&gt;
+START:entries
+&lt;a href=&quot;%href%&quot;&gt;%name%&lt;/a&gt;&lt;br /&gt;
+END:entries
+&lt;/body&gt;&lt;/html&gt;
+}
+
+CLASS_INDEX = FILE_INDEX
+METHOD_INDEX = FILE_INDEX
+
+INDEX = %{
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.01 Frameset//EN&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=%charset%&quot;&gt;
+&lt;title&gt;%title%&lt;/title&gt;&lt;/head&gt;
+
+&lt;frameset rows=&quot;20%, 80%&quot;&gt;
+    &lt;frameset cols=&quot;25%,35%,45%&quot;&gt;
+        &lt;frame src=&quot;fr_file_index.html&quot;   title=&quot;Files&quot; name=&quot;Files&quot;&gt;
+        &lt;frame src=&quot;fr_class_index.html&quot;  name=&quot;Classes&quot;&gt;
+        &lt;frame src=&quot;fr_method_index.html&quot; name=&quot;Methods&quot;&gt;
+    &lt;/frameset&gt;
+    &lt;frame  src=&quot;%initial_page%&quot; name=&quot;docwin&quot;&gt;
+    &lt;noframes&gt;
+          &lt;body bgcolor=&quot;white&quot;&gt;
+            Sorry, RDoc currently only generates HTML using frames.
+          &lt;/body&gt;
+    &lt;/noframes&gt;
+&lt;/frameset&gt;
+
+&lt;/html&gt;
+}
+
+######################################################################
+#
+# The following is used for the -1 option
+#
+
+CONTENTS_XML = %{
+IF:description
+%description%
+ENDIF:description
+
+IF:requires
+&lt;h4&gt;Requires:&lt;/h4&gt;
+&lt;ul&gt;
+START:requires
+IF:aref
+&lt;li&gt;&lt;a href=&quot;%aref%&quot;&gt;%name%&lt;/a&gt;&lt;/li&gt;
+ENDIF:aref
+IFNOT:aref
+&lt;li&gt;%name%&lt;/li&gt;
+ENDIF:aref 
+END:requires
+&lt;/ul&gt;
+ENDIF:requires
+
+IF:attributes
+&lt;h4&gt;Attributes&lt;/h4&gt;
+&lt;table&gt;
+START:attributes
+&lt;tr&gt;&lt;td&gt;%name%&lt;/td&gt;&lt;td&gt;%rw%&lt;/td&gt;&lt;td&gt;%a_desc%&lt;/td&gt;&lt;/tr&gt;
+END:attributes
+&lt;/table&gt;
+ENDIF:attributes
+
+IF:includes
+&lt;h4&gt;Includes&lt;/h4&gt;
+&lt;ul&gt;
+START:includes
+IF:aref
+&lt;li&gt;&lt;a href=&quot;%aref%&quot;&gt;%name%&lt;/a&gt;&lt;/li&gt;
+ENDIF:aref
+IFNOT:aref
+&lt;li&gt;%name%&lt;/li&gt;
+ENDIF:aref 
+END:includes
+&lt;/ul&gt;
+ENDIF:includes
+
+IF:method_list
+&lt;h3&gt;Methods&lt;/h3&gt;
+START:method_list
+IF:methods
+START:methods
+&lt;h4&gt;%type% %category% method: &lt;a name=&quot;%aref%&quot;&gt;%name%%params%&lt;/a&gt;&lt;/h4&gt;
+
+IF:m_desc
+%m_desc%
+ENDIF:m_desc
+
+IF:sourcecode
+&lt;blockquote&gt;&lt;pre&gt;
+%sourcecode%
+&lt;/pre&gt;&lt;/blockquote&gt;
+ENDIF:sourcecode
+END:methods
+ENDIF:methods
+END:method_list
+ENDIF:method_list
+}
+
+
+end
+end
+
+require 'rdoc/generators/template/html/one_page_html'
+</pre>
+    </div>

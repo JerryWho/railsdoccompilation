@@ -1,0 +1,151 @@
+  <div id="fileHeader">
+    <h1>simple_matcher.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/matchers/simple_matcher.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Matchers
+    class SimpleMatcher
+      attr_writer :failure_message, :negative_failure_message, :description
+      
+      def initialize(description, &amp;match_block)
+        @description = description
+        @match_block = match_block
+        @failure_message = @negative_failure_message = nil
+      end
+
+      def matches?(given)
+        @given = given
+        case @match_block.arity
+        when 2
+          @match_block.call(@given, self)
+        else
+          @match_block.call(@given)
+        end
+      end
+      
+      def description
+        @description || explanation
+      end
+
+      def failure_message
+        @failure_message || (@description.nil? ? explanation : %[expected #{@description.inspect} but got #{@given.inspect}])
+      end
+
+      def negative_failure_message
+        @negative_failure_message || (@description.nil? ? explanation : %[expected not to get #{@description.inspect}, but got #{@given.inspect}])
+      end
+
+      def explanation
+        &quot;No description provided. See RDoc for simple_matcher()&quot;
+      end
+    end
+  
+    # simple_matcher makes it easy for you to create your own custom matchers
+    # in just a few lines of code when you don't need all the power of a
+    # completely custom matcher object.
+    #
+    # The &lt;tt&gt;description&lt;/tt&gt; argument will appear as part of any failure
+    # message, and is also the source for auto-generated descriptions.
+    #
+    # The &lt;tt&gt;match_block&lt;/tt&gt; can have an arity of 1 or 2. The first block
+    # argument will be the given value. The second, if the block accepts it
+    # will be the matcher itself, giving you access to set custom failure
+    # messages in favor of the defaults.
+    #
+    # The &lt;tt&gt;match_block&lt;/tt&gt; should return a boolean: &lt;tt&gt;true&lt;/tt&gt;
+    # indicates a match, which will pass if you use &lt;tt&gt;should&lt;/tt&gt; and fail
+    # if you use &lt;tt&gt;should_not&lt;/tt&gt;. false (or nil) indicates no match,
+    # which will do the reverse: fail if you use &lt;tt&gt;should&lt;/tt&gt; and pass if
+    # you use &lt;tt&gt;should_not&lt;/tt&gt;.
+    #
+    # An error in the &lt;tt&gt;match_block&lt;/tt&gt; will bubble up, resulting in a
+    # failure.
+    #
+    # == Example with default messages
+    #
+    #   def be_even
+    #     simple_matcher(&quot;an even number&quot;) { |given| given % 2 == 0 }
+    #   end
+    #                    
+    #   describe 2 do
+    #     it &quot;should be even&quot; do
+    #       2.should be_even
+    #     end
+    #   end
+    #
+    # Given an odd number, this example would produce an error message stating:
+    # expected &quot;an even number&quot;, got 3.
+    #
+    # Unfortunately, if you're a fan of auto-generated descriptions, this will
+    # produce &quot;should an even number.&quot; Not the most desirable result. You can
+    # control that using custom messages:
+    #
+    # == Example with custom messages
+    #
+    #   def rhyme_with(expected)
+    #     simple_matcher(&quot;rhyme with #{expected.inspect}&quot;) do |given, matcher|
+    #       matcher.failure_message = &quot;expected #{given.inspect} to rhyme with #{expected.inspect}&quot;
+    #       matcher.negative_failure_message = &quot;expected #{given.inspect} not to rhyme with #{expected.inspect}&quot;
+    #       given.rhymes_with? expected
+    #     end
+    #   end
+    #
+    #   # OR
+    #
+    #   def rhyme_with(expected)
+    #     simple_matcher do |given, matcher|
+    #       matcher.description = &quot;rhyme with #{expected.inspect}&quot;
+    #       matcher.failure_message = &quot;expected #{given.inspect} to rhyme with #{expected.inspect}&quot;
+    #       matcher.negative_failure_message = &quot;expected #{given.inspect} not to rhyme with #{expected.inspect}&quot;
+    #       given.rhymes_with? expected
+    #     end
+    #   end
+    #
+    #   describe &quot;pecan&quot; do
+    #     it &quot;should rhyme with 'be gone'&quot; do
+    #       nut = &quot;pecan&quot;
+    #       nut.extend Rhymer
+    #       nut.should rhyme_with(&quot;be gone&quot;)
+    #     end
+    #   end
+    #
+    # The resulting messages would be:
+    #   description:              rhyme with &quot;be gone&quot;
+    #   failure_message:          expected &quot;pecan&quot; to rhyme with &quot;be gone&quot;
+    #   negative failure_message: expected &quot;pecan&quot; not to rhyme with &quot;be gone&quot;
+    #
+    # == Wrapped Expectations
+    #
+    # Because errors will bubble up, it is possible to wrap other expectations
+    # in a SimpleMatcher.
+    #
+    #   def be_even
+    #     simple_matcher(&quot;an even number&quot;) { |given| (given % 2).should == 0 }
+    #   end
+    #
+    # BE VERY CAREFUL when you do this. Only use wrapped expectations for
+    # matchers that will always be used in only the positive
+    # (&lt;tt&gt;should&lt;/tt&gt;) or negative (&lt;tt&gt;should_not&lt;/tt&gt;), but not both.
+    # The reason is that is you wrap a &lt;tt&gt;should&lt;/tt&gt; and call the wrapper
+    # with &lt;tt&gt;should_not&lt;/tt&gt;, the correct result (the &lt;tt&gt;should&lt;/tt&gt;
+    # failing), will fail when you want it to pass.
+    #
+    def simple_matcher(description=nil, &amp;match_block)
+      SimpleMatcher.new(description, &amp;match_block)
+    end
+  end
+end</pre>
+    </div>

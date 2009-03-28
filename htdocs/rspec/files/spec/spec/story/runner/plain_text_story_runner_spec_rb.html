@@ -1,0 +1,108 @@
+  <div id="fileHeader">
+    <h1>plain_text_story_runner_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/story/runner/plain_text_story_runner_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../story_helper'
+
+module Spec
+  module Story
+    module Runner
+      describe PlainTextStoryRunner do
+        before(:each) do
+          StoryParser.stub!(:new).and_return(@parser = mock(&quot;parser&quot;))
+          @parser.stub!(:parse).and_return([])
+          File.stub!(:read).with(&quot;path&quot;).and_return(&quot;this\nand that&quot;)
+        end
+
+        it &quot;should provide access to steps&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          
+          runner.steps do |add|
+            add.given(&quot;baz&quot;) {}
+          end
+          
+          runner.steps.find(:given, &quot;baz&quot;).should_not be_nil
+        end
+        
+        it &quot;should parse a story file&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          @parser.should_receive(:parse).with([&quot;this&quot;, &quot;and that&quot;])
+          runner.run(mock('runner'))
+        end
+        
+        it &quot;should build up a mediator with its own steps and the singleton story_runner&quot; do
+          @story_runner = mock('story runner', :null_object =&gt; true)
+
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          
+          Spec::Story::Runner::StoryMediator.should_receive(:new).with(
+            runner.steps, @story_runner, {}
+          ).and_return(mediator = stub(&quot;mediator&quot;, :run_stories =&gt; nil))
+          runner.run(@story_runner)
+        end
+        
+        it &quot;should build up a parser with the mediator&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          Spec::Story::Runner::StoryMediator.should_receive(:new).and_return(mediator = stub(&quot;mediator&quot;, :run_stories =&gt; nil))
+          Spec::Story::Runner::StoryParser.should_receive(:new).with(mediator).and_return(@parser)
+          runner.run(stub(&quot;story_runner&quot;))
+        end
+        
+        it &quot;should tell the mediator to run the stories&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          mediator = mock(&quot;mediator&quot;)
+          Spec::Story::Runner::StoryMediator.should_receive(:new).and_return(mediator)
+          mediator.should_receive(:run_stories)
+          runner.run(mock('runner'))
+        end
+        
+        it &quot;should accept a block instead of a path&quot; do
+          runner = PlainTextStoryRunner.new do |runner|
+            runner.load(&quot;path/to/story&quot;)
+          end
+          File.should_receive(:read).with(&quot;path/to/story&quot;).and_return(&quot;this\nand that&quot;)
+          runner.run(mock('runner'))
+        end
+        
+        it &quot;should tell you if you try to run with no path set&quot; do
+          runner = PlainTextStoryRunner.new
+          lambda {
+            runner.run(mock('runner'))
+          }.should raise_error(RuntimeError, &quot;You must set a path to the file with the story. See the RDoc.&quot;)
+        end
+        
+        it &quot;should pass options to the mediator&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;, :foo =&gt; :bar)
+          Spec::Story::Runner::StoryMediator.should_receive(:new).
+            with(anything, anything, :foo =&gt; :bar).
+            and_return(mediator = stub(&quot;mediator&quot;, :run_stories =&gt; nil))
+          runner.run(mock('runner'))
+        end
+        
+        it &quot;should provide access to its options&quot; do
+          runner = PlainTextStoryRunner.new(&quot;path&quot;)
+          runner[:foo] = :bar
+          Spec::Story::Runner::StoryMediator.should_receive(:new).
+            with(anything, anything, :foo =&gt; :bar).
+            and_return(mediator = stub(&quot;mediator&quot;, :run_stories =&gt; nil))
+          runner.run mock('runner')
+        end
+        
+      end
+    end
+  end
+end</pre>
+    </div>

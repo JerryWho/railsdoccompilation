@@ -1,0 +1,188 @@
+  <div id="fileHeader">
+    <h1>system-command.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/shell/system-command.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#   shell/system-command.rb - 
+#   	$Release Version: 0.6.0 $
+#   	$Revision: 11708 $
+#   	$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#   	by Keiju ISHITSUKA(Nihon Rational Software Co.,Ltd)
+#
+# --
+#
+#   
+#
+
+require &quot;shell/filter&quot;
+
+class Shell
+  class SystemCommand &lt; Filter
+    def initialize(sh, command, *opts)
+      if t = opts.find{|opt| !opt.kind_of?(String) &amp;&amp; opt.class}
+	Shell.Fail Error::TypeError, t.class, &quot;String&quot;
+      end
+      super(sh)
+      @command = command
+      @opts = opts
+      
+      @input_queue = Queue.new
+      @pid = nil
+
+      sh.process_controller.add_schedule(self)
+    end
+
+    attr_reader :command
+    alias name command
+
+    def wait?
+      @shell.process_controller.waiting_job?(self)
+    end
+
+    def active?
+      @shell.process_controller.active_job?(self)
+    end
+
+    def input=(inp)
+      super
+      if active?
+	start_export
+      end
+    end
+
+    def start
+      @pid, @pipe_in, @pipe_out = @shell.process_controller.sfork(self) {
+	Dir.chdir @shell.pwd
+	exec(@command, *@opts)
+      }
+      if @input
+	start_export
+      end
+      start_import
+    end
+
+    def flush
+      @pipe_out.flush if @pipe_out and !@pipe_out.closed?
+    end
+
+    def terminate
+      begin
+	@pipe_in.close
+      rescue IOError
+      end
+      begin
+	@pipe_out.close
+      rescue IOError
+      end
+    end
+
+    def kill(sig)
+      if @pid
+	Process.kill(sig, @pid)
+      end
+    end
+
+
+    def start_import
+#      Thread.critical = true
+      notify &quot;Job(%id) start imp-pipe.&quot;, @shell.debug?
+      rs = @shell.record_separator unless rs
+      _eop = true
+#      Thread.critical = false
+      th = Thread.start {
+	Thread.critical = true
+	begin
+	  Thread.critical = false
+	  while l = @pipe_in.gets
+	    @input_queue.push l
+	  end
+	  _eop = false
+	rescue Errno::EPIPE
+	  _eop = false
+	ensure
+	  if _eop
+	    notify(&quot;warn: Process finishing...&quot;,
+		   &quot;wait for Job[%id] to finish pipe importing.&quot;,
+		   &quot;You can use Shell#transact or Shell#check_point for more safe execution.&quot;)
+#	    Tracer.on
+	    Thread.current.run
+	    redo
+	  end
+	  Thread.exclusive do
+	    notify &quot;job(%id}) close imp-pipe.&quot;, @shell.debug?
+	    @input_queue.push :EOF
+	    @pipe_in.close
+	  end
+	end
+      }
+    end
+
+    def start_export
+      notify &quot;job(%id) start exp-pipe.&quot;, @shell.debug?
+      _eop = true
+      th = Thread.start{
+	Thread.critical = true
+	begin
+	  Thread.critical = false
+	  @input.each{|l| @pipe_out.print l}
+	  _eop = false
+	rescue Errno::EPIPE
+	  _eop = false
+	ensure
+	  if _eop
+	    notify(&quot;shell: warn: Process finishing...&quot;,
+		   &quot;wait for Job(%id) to finish pipe exporting.&quot;,
+		   &quot;You can use Shell#transact or Shell#check_point for more safe execution.&quot;)
+#	    Tracer.on
+	    redo
+	  end
+	  Thread.exclusive do
+	    notify &quot;job(%id) close exp-pipe.&quot;, @shell.debug?
+	    @pipe_out.close
+	  end
+	end
+      }
+    end
+
+    alias super_each each
+    def each(rs = nil)
+      while (l = @input_queue.pop) != :EOF
+	yield l
+      end
+    end
+
+    # ex)
+    #    if you wish to output: 
+    #	    &quot;shell: job(#{@command}:#{@pid}) close pipe-out.&quot;
+    #	 then 
+    #	    mes: &quot;job(%id) close pipe-out.&quot;
+    #    yorn: Boolean(@shell.debug? or @shell.verbose?)
+    def notify(*opts, &amp;block)
+      Thread.exclusive do
+	@shell.notify(*opts) {|mes|
+	  yield mes if iterator?
+
+	  mes.gsub!(&quot;%id&quot;, &quot;#{@command}:##{@pid}&quot;)
+	  mes.gsub!(&quot;%name&quot;, &quot;#{@command}&quot;)
+	  mes.gsub!(&quot;%pid&quot;, &quot;#{@pid}&quot;)
+	}
+      end
+    end
+  end
+end
+</pre>
+    </div>

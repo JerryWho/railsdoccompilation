@@ -1,0 +1,99 @@
+  <div id="C00000085">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />TreetopExt<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/cucumber/parser/treetop_ext_rb.html');">lib/cucumber/parser/treetop_ext.rb</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000213&name=parse_file" >parse_file</a></li>
+  <li><a href="index.html?a=M000214&name=parse_or_fail" >parse_or_fail</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">FILE_COLON_LINE_PATTERN</td>
+    <td>=</td>
+    <td class="attr-value">/^([\w\W]*?):([\d:]+)$/</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000213" class="method">
+  <div id="M000213_title" class="title">
+    <b>parse_file</b>(file)
+  </div>
+  <div class="description">
+  <p>
+Parses a file and returns a <a
+href="index.html?a=C00000100&name=Cucumber::Ast">Cucumber::Ast</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000213_source')" id="l_M000213_source">show source</a> ]</p>
+  <div id="M000213_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/parser/treetop_ext.rb, line 19</span>
+19:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parse_file</span>(<span class="ruby-identifier">file</span>)
+20:         <span class="ruby-identifier">_</span>, <span class="ruby-identifier">path</span>, <span class="ruby-identifier">lines</span> = <span class="ruby-operator">*</span><span class="ruby-constant">FILE_COLON_LINE_PATTERN</span>.<span class="ruby-identifier">match</span>(<span class="ruby-identifier">file</span>)
+21:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">path</span>
+22:           <span class="ruby-identifier">lines</span> = <span class="ruby-identifier">lines</span>.<span class="ruby-identifier">split</span>(<span class="ruby-value str">':'</span>).<span class="ruby-identifier">map</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">line</span><span class="ruby-operator">|</span> <span class="ruby-identifier">line</span>.<span class="ruby-identifier">to_i</span> }
+23:         <span class="ruby-keyword kw">else</span>
+24:           <span class="ruby-identifier">path</span> = <span class="ruby-identifier">file</span>
+25:           <span class="ruby-identifier">lines</span> = []
+26:         <span class="ruby-keyword kw">end</span>
+27: 
+28:         <span class="ruby-identifier">loader</span> = <span class="ruby-identifier">lambda</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">io</span><span class="ruby-operator">|</span> <span class="ruby-identifier">parse_or_fail</span>(<span class="ruby-identifier">io</span>.<span class="ruby-identifier">read</span>, <span class="ruby-identifier">path</span>) }
+29:         <span class="ruby-identifier">feature</span> = <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">path</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^http/</span>
+30:           <span class="ruby-identifier">require</span> <span class="ruby-value str">'open-uri'</span>
+31:           <span class="ruby-identifier">open</span>(<span class="ruby-identifier">path</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">loader</span>)
+32:         <span class="ruby-keyword kw">else</span>
+33:           <span class="ruby-constant">File</span>.<span class="ruby-identifier">open</span>(<span class="ruby-identifier">path</span>, <span class="ruby-constant">Cucumber</span>.<span class="ruby-identifier">file_mode</span>(<span class="ruby-value str">'r'</span>), <span class="ruby-operator">&amp;</span><span class="ruby-identifier">loader</span>) 
+34:         <span class="ruby-keyword kw">end</span>
+35:         <span class="ruby-identifier">feature</span>.<span class="ruby-identifier">lines</span> = <span class="ruby-identifier">lines</span>
+36:         <span class="ruby-identifier">feature</span>
+37:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000214" class="method">
+  <div id="M000214_title" class="title">
+    <b>parse_or_fail</b>(s, file=nil, line_offset=0)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000214_source')" id="l_M000214_source">show source</a> ]</p>
+  <div id="M000214_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/parser/treetop_ext.rb, line 39</span>
+39:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parse_or_fail</span>(<span class="ruby-identifier">s</span>, <span class="ruby-identifier">file</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">line_offset</span>=<span class="ruby-value">0</span>)
+40:         <span class="ruby-identifier">parse_tree</span> = <span class="ruby-identifier">parse</span>(<span class="ruby-identifier">s</span>)
+41:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">parse_tree</span>.<span class="ruby-identifier">nil?</span>
+42:           <span class="ruby-identifier">raise</span> <span class="ruby-constant">Cucumber</span><span class="ruby-operator">::</span><span class="ruby-constant">Parser</span><span class="ruby-operator">::</span><span class="ruby-constant">SyntaxError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword kw">self</span>, <span class="ruby-identifier">file</span>, <span class="ruby-identifier">line_offset</span>)
+43:         <span class="ruby-keyword kw">else</span>
+44:           <span class="ruby-identifier">ast</span> = <span class="ruby-identifier">parse_tree</span>.<span class="ruby-identifier">build</span>
+45:           <span class="ruby-identifier">ast</span>.<span class="ruby-identifier">file</span> = <span class="ruby-identifier">file</span>
+46:           <span class="ruby-identifier">ast</span>
+47:         <span class="ruby-keyword kw">end</span>
+48:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

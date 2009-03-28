@@ -1,0 +1,342 @@
+  <div id="fileHeader">
+    <h1>example_methods_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/example/example_methods_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+module Spec
+  module Example
+    module ModuleThatIsReopened
+    end
+
+    module ExampleMethods
+      include ModuleThatIsReopened
+    end
+
+    module ModuleThatIsReopened
+      def module_that_is_reopened_method
+      end
+    end
+
+    describe ExampleMethods do
+      describe &quot;with an included module that is reopened&quot; do
+        it &quot;should have repoened methods&quot; do
+          method(:module_that_is_reopened_method).should_not be_nil
+        end
+      end
+
+      describe &quot;lifecycle&quot; do
+        with_sandboxed_options do
+          with_sandboxed_config do
+            before do
+              @options.formatters &lt;&lt; mock(&quot;formatter&quot;, :null_object =&gt; true)
+              @options.backtrace_tweaker = mock(&quot;backtrace_tweaker&quot;, :null_object =&gt; true)
+              @reporter = FakeReporter.new(@options)
+              @options.reporter = @reporter
+            
+              ExampleGroup.before_all_parts.should == []
+              ExampleGroup.before_each_parts.should == []
+              ExampleGroup.after_each_parts.should == []
+              ExampleGroup.after_all_parts.should == []
+              def ExampleGroup.count
+                @count ||= 0
+                @count = @count + 1
+                @count
+              end
+            end
+          end
+
+          after do
+            ExampleGroup.instance_variable_set(&quot;@before_all_parts&quot;, [])
+            ExampleGroup.instance_variable_set(&quot;@before_each_parts&quot;, [])
+            ExampleGroup.instance_variable_set(&quot;@after_each_parts&quot;, [])
+            ExampleGroup.instance_variable_set(&quot;@after_all_parts&quot;, [])
+          end
+
+          it &quot;should pass before and after callbacks to all ExampleGroup subclasses&quot; do
+            ExampleGroup.before(:suite) do
+              ExampleGroup.count.should == 1
+            end
+
+            ExampleGroup.before(:all) do
+              ExampleGroup.count.should == 2
+            end
+
+            ExampleGroup.before(:each) do
+              ExampleGroup.count.should == 3
+            end
+
+            ExampleGroup.after(:each) do
+              ExampleGroup.count.should == 4
+            end
+
+            ExampleGroup.after(:all) do
+              ExampleGroup.count.should == 5
+            end
+
+            ExampleGroup.after(:suite) do
+              ExampleGroup.count.should == 6
+            end
+
+            Class.new(ExampleGroup) do
+              it &quot;should use ExampleMethods callbacks&quot; do end
+            end
+            @options.run_examples
+            ExampleGroup.count.should == 7
+          end
+
+          describe &quot;eval_block&quot; do
+            before(:each) do
+              @example_group = Class.new(ExampleGroup)
+            end
+          
+            describe &quot;with a given description&quot; do
+              it &quot;should provide the given description&quot; do
+                @example = @example_group.it(&quot;given description&quot;) { 2.should == 2 }
+                @example.eval_block
+                @example.description.should == &quot;given description&quot;
+              end
+            end
+
+            describe &quot;with no given description&quot; do
+              it &quot;should provide the generated description&quot; do
+                @example = @example_group.it { 2.should == 2 }
+                @example.eval_block
+                @example.description.should == &quot;should == 2&quot;
+              end
+            end
+          
+            describe &quot;with no implementation&quot; do
+              it &quot;should raise an NotYetImplementedError&quot; do
+                lambda {
+                  @example = @example_group.it
+                  @example.eval_block
+                }.should raise_error(Spec::Example::NotYetImplementedError, &quot;Not Yet Implemented&quot;)
+              end
+            
+              def extract_error(&amp;blk)
+                begin
+                  blk.call
+                rescue Exception =&gt; e
+                  return e
+                end
+              
+                nil
+              end
+            
+              it &quot;should use the proper file and line number for the NotYetImplementedError&quot; do
+                file = __FILE__
+                line_number = __LINE__ + 3
+              
+                error = extract_error do
+                  @example = @example_group.it
+                  @example.eval_block
+                end
+              
+                error.pending_caller.should == &quot;#{file}:#{line_number}&quot;
+              end
+            end
+          end
+        end
+      end
+
+      describe &quot;#backtrace&quot; do        
+        with_sandboxed_options do
+          it &quot;returns the backtrace from where the example was defined&quot; do
+            example_group = Class.new(ExampleGroup) do
+              example &quot;of something&quot; do; end
+            end
+            
+            example = example_group.examples.first
+            example.backtrace.join(&quot;\n&quot;).should include(&quot;#{__FILE__}:#{__LINE__-4}&quot;)
+          end
+        end
+      end
+      
+      describe &quot;#implementation_backtrace (deprecated)&quot; do
+        with_sandboxed_options do
+          before(:each) do
+            Kernel.stub!(:warn)
+          end
+
+          it &quot;sends a deprecation warning&quot; do
+            example_group = Class.new(ExampleGroup) {}
+            example = example_group.example(&quot;&quot;) {}
+            Kernel.should_receive(:warn).with(/#implementation_backtrace.*deprecated.*#backtrace instead/m)
+            example.implementation_backtrace
+          end
+          
+          it &quot;returns the backtrace from where the example was defined&quot; do
+            example_group = Class.new(ExampleGroup) do
+              example &quot;of something&quot; do; end
+            end
+            
+            example = example_group.examples.first
+            example.backtrace.join(&quot;\n&quot;).should include(&quot;#{__FILE__}:#{__LINE__-4}&quot;)
+          end
+        end
+      end
+
+      describe &quot;#full_description&quot; do
+        it &quot;should return the full description of the ExampleGroup and Example&quot; do
+          example_group = Class.new(ExampleGroup).describe(&quot;An ExampleGroup&quot;) do
+            it &quot;should do something&quot; do
+            end
+          end
+          example = example_group.examples.first
+          example.full_description.should == &quot;An ExampleGroup should do something&quot;
+        end
+      end
+      
+      describe &quot;#subject&quot; do
+        with_sandboxed_options do
+          it &quot;should return an instance variable named after the described type&quot; do
+            example_group = Class.new(ExampleGroup).describe(Array) do
+              example {}
+            end
+            example = example_group.examples.first
+            example.subject.should == []
+          end
+      
+          it &quot;should not barf on a module (as opposed to a class)&quot; do
+            example_group = Class.new(ExampleGroup).describe(ObjectSpace) do
+              example {}
+            end
+            example_group.examples.first.subject.should be_nil
+          end
+      
+          it &quot;should not barf on a string&quot; do
+            example_group = Class.new(ExampleGroup).describe('foo') do
+              example {}
+            end
+            example_group.examples.first.subject.should be_nil
+          end
+      
+          it &quot;should interact with the same scope as the before block&quot; do
+            example_group = Class.new(ExampleGroup) do
+              subject { @foo = 'foo'}
+              example { should == @foo}
+              it { should == 'foo'}
+            end
+            example_group.run(options).should be_true
+          end
+        end
+      end
+
+      describe &quot;#should&quot; do
+        with_sandboxed_options do
+          class Thing
+            def ==(other)
+              true
+            end
+          end
+          
+          describe &quot;in an ExampleGroup with the ivar defined in before&quot; do
+            attr_reader :example, :success
+
+            before(:each) do
+              example_group = describe(Thing, &quot;1&quot;) do
+                before(:each) { @spec_example_thing = 'expected' }
+                it { should eql('expected') }
+              end
+              @example = example_group.examples.first
+              @success = example_group.run(options)
+            end
+
+            it &quot;should create an example using the description from the matcher&quot; do
+              example.description.should == 'should eql &quot;expected&quot;'
+            end
+
+            it &quot;should test the matcher returned from the block&quot; do
+              success.should be_true
+            end
+          end
+
+          describe &quot;in an ExampleGroup with the subject defined using #subject&quot; do
+            it &quot;should create an example using the description from the matcher&quot; do
+              example_group = describe(Thing, &quot;2&quot;) do
+                subject {'this is the subject'}
+                it { should eql('this is the subject') }
+              end
+              example = example_group.examples.first
+              example_group.run(options)
+              example.description.should =~ /should eql &quot;this is the subject&quot;/
+            end
+          end
+          
+          describe &quot;in an ExampleGroup using an implicit ivar&quot; do
+            it &quot;should create an example using the description from the matcher&quot; do
+              example_group = describe(Thing, &quot;3&quot;) do
+                it { should == Thing.new }
+              end
+              example = example_group.examples.first
+              success = example_group.run(options)
+              example.description.should =~ /should == #&lt;Spec::Example::Thing/
+              success.should be_true
+            end
+          end
+          
+          after(:each) do
+            ExampleGroup.reset
+          end
+          
+        end
+      end
+
+      describe &quot;#should_not&quot; do
+        with_sandboxed_options do
+
+          attr_reader :example_group, :example, :success
+
+          before do
+            @example_group = Class.new(ExampleGroup) do
+              def subject; @actual; end
+              before(:each) { @actual = 'expected' }
+              it { should_not eql('unexpected') }
+            end
+            @example = @example_group.examples.first
+
+            @success = example_group.run(options)
+          end
+
+          it &quot;should create an example using the description from the matcher&quot; do
+            example.description.should == 'should not eql &quot;unexpected&quot;'
+          end
+
+          it &quot;should test the matcher returned from the block&quot; do
+            success.should be_true
+          end
+
+          after do
+            ExampleGroup.reset
+          end
+
+        end
+      end
+    end
+
+    describe &quot;#options&quot; do
+      it &quot;should expose the options hash&quot; do
+        example_group = Class.new(ExampleGroup)
+        example = example_group.example &quot;name&quot;, :this =&gt; 'that' do; end
+        example.options[:this].should == 'that'
+      end
+    end
+
+  end
+end
+</pre>
+    </div>

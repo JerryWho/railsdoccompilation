@@ -1,0 +1,90 @@
+  <div id="fileHeader">
+    <h1>heckle_runner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/runner/heckle_runner.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>if Spec::Ruby.version.to_f &lt; 1.9
+  begin
+    require 'rubygems' unless ENV['NO_RUBYGEMS']
+    require 'heckle'
+  rescue LoadError ; raise &quot;You must gem install heckle to use --heckle&quot; ; end
+
+  module Spec
+    module Runner
+      # Creates a new Heckler configured to heckle all methods in the classes
+      # whose name matches +filter+
+      class HeckleRunner
+        def initialize(filter, heckle_class=Heckler)
+          @filter = filter
+          @heckle_class = heckle_class
+        end
+      
+        # Runs all the example groups held by +rspec_options+ once for each of the
+        # methods in the matched classes.
+        def heckle_with
+          if @filter =~ /(.*)[#\.](.*)/
+            heckle_method($1, $2)
+          else
+            heckle_class_or_module(@filter)
+          end
+        end
+      
+        def heckle_method(class_name, method_name)
+          verify_constant(class_name)
+          heckle = @heckle_class.new(class_name, method_name, Spec::Runner.options)
+          heckle.validate
+        end
+      
+        def heckle_class_or_module(class_or_module_name)
+          verify_constant(class_or_module_name)
+          pattern = /^#{class_or_module_name}/
+          classes = []
+          ObjectSpace.each_object(Class) do |klass|
+            classes &lt;&lt; klass if klass.name =~ pattern
+          end
+        
+          classes.each do |klass|
+            klass.instance_methods(false).each do |method_name|
+              heckle = @heckle_class.new(klass.name, method_name, Spec::Runner.options)
+              heckle.validate
+            end
+          end
+        end
+      
+        def verify_constant(name)
+          begin
+            # This is defined in Heckle
+            name.to_class
+          rescue
+            raise &quot;Heckling failed - \&quot;#{name}\&quot; is not a known class or module&quot;
+          end
+        end
+      end
+    
+      class Heckler &lt; Heckle
+        def initialize(klass_name, method_name, rspec_options)
+          super(klass_name, method_name)
+          @rspec_options = rspec_options
+        end
+
+        def tests_pass?
+          @rspec_options.run_examples
+        end
+
+      end
+    end
+  end
+end</pre>
+    </div>

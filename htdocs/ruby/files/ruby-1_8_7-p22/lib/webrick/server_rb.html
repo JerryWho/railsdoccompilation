@@ -1,0 +1,220 @@
+  <div id="fileHeader">
+    <h1>server.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/server.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# server.rb -- GenericServer Class
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2000, 2001 TAKAHASHI Masayoshi, GOTOU Yuuzou
+# Copyright (c) 2002 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: server.rb,v 1.62 2003/07/22 19:20:43 gotoyuzo Exp $
+
+require 'thread'
+require 'socket'
+require 'timeout'
+require 'webrick/config'
+require 'webrick/log'
+
+module WEBrick
+
+  class ServerError &lt; StandardError; end
+
+  class SimpleServer
+    def SimpleServer.start
+      yield
+    end
+  end
+
+  class Daemon
+    def Daemon.start
+      exit!(0) if fork
+      Process::setsid
+      exit!(0) if fork
+      Dir::chdir(&quot;/&quot;)
+      File::umask(0)
+      STDIN.reopen(&quot;/dev/null&quot;)
+      STDOUT.reopen(&quot;/dev/null&quot;, &quot;w&quot;)
+      STDERR.reopen(&quot;/dev/null&quot;, &quot;w&quot;)
+      yield if block_given?
+    end
+  end
+
+  class GenericServer
+    attr_reader :status, :config, :logger, :tokens, :listeners
+
+    def initialize(config={}, default=Config::General)
+      @config = default.dup.update(config)
+      @status = :Stop
+      @config[:Logger] ||= Log::new
+      @logger = @config[:Logger]
+
+      @tokens = SizedQueue.new(@config[:MaxClients])
+      @config[:MaxClients].times{ @tokens.push(nil) }
+
+      webrickv = WEBrick::VERSION
+      rubyv = &quot;#{RUBY_VERSION} (#{RUBY_RELEASE_DATE}) [#{RUBY_PLATFORM}]&quot;
+      @logger.info(&quot;WEBrick #{webrickv}&quot;)
+      @logger.info(&quot;ruby #{rubyv}&quot;)
+
+      @listeners = []
+      unless @config[:DoNotListen]
+        if @config[:Listen]
+          warn(&quot;:Listen option is deprecated; use GenericServer#listen&quot;)
+        end
+        listen(@config[:BindAddress], @config[:Port])
+        if @config[:Port] == 0
+          @config[:Port] = @listeners[0].addr[1]
+        end
+      end
+    end
+
+    def [](key)
+      @config[key]
+    end
+
+    def listen(address, port)
+      @listeners += Utils::create_listeners(address, port, @logger)
+    end
+
+    def start(&amp;block)
+      raise ServerError, &quot;already started.&quot; if @status != :Stop
+      server_type = @config[:ServerType] || SimpleServer
+
+      server_type.start{
+        @logger.info \
+          &quot;#{self.class}#start: pid=#{$$} port=#{@config[:Port]}&quot;
+        call_callback(:StartCallback)
+
+        thgroup = ThreadGroup.new
+        @status = :Running
+        while @status == :Running
+          begin
+            if svrs = IO.select(@listeners, nil, nil, 2.0)
+              svrs[0].each{|svr|
+                @tokens.pop          # blocks while no token is there.
+                if sock = accept_client(svr)
+                  th = start_thread(sock, &amp;block)
+                  th[:WEBrickThread] = true
+                  thgroup.add(th)
+                else
+                  @tokens.push(nil)
+                end
+              }
+            end
+          rescue Errno::EBADF, IOError =&gt; ex
+            # if the listening socket was closed in GenericServer#shutdown,
+            # IO::select raise it.
+          rescue Exception =&gt; ex
+            msg = &quot;#{ex.class}: #{ex.message}\n\t#{ex.backtrace[0]}&quot;
+            @logger.error msg
+          end
+        end
+
+        @logger.info &quot;going to shutdown ...&quot;
+        thgroup.list.each{|th| th.join if th[:WEBrickThread] }
+        call_callback(:StopCallback)
+        @logger.info &quot;#{self.class}#start done.&quot;
+        @status = :Stop
+      }
+    end
+
+    def stop
+      if @status == :Running
+        @status = :Shutdown
+      end
+    end
+
+    def shutdown
+      stop
+      @listeners.each{|s|
+        if @logger.debug?
+          addr = s.addr
+          @logger.debug(&quot;close TCPSocket(#{addr[2]}, #{addr[1]})&quot;)
+        end
+        s.close
+      }
+      @listeners.clear
+    end
+
+    def run(sock)
+      @logger.fatal &quot;run() must be provided by user.&quot;
+    end
+
+    private
+
+    def accept_client(svr)
+      sock = nil
+      begin
+        sock = svr.accept
+        sock.sync = true
+        Utils::set_non_blocking(sock)
+        Utils::set_close_on_exec(sock)
+      rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::EPROTO =&gt; ex
+        # TCP connection was established but RST segment was sent
+        # from peer before calling TCPServer#accept.
+      rescue Exception =&gt; ex
+        msg = &quot;#{ex.class}: #{ex.message}\n\t#{ex.backtrace[0]}&quot;
+        @logger.error msg
+      end
+      return sock
+    end
+
+    def start_thread(sock, &amp;block)
+      Thread.start{
+        begin
+          Thread.current[:WEBrickSocket] = sock
+          begin
+            addr = sock.peeraddr
+            @logger.debug &quot;accept: #{addr[3]}:#{addr[1]}&quot;
+          rescue SocketError
+            @logger.debug &quot;accept: &lt;address unknown&gt;&quot;
+            raise
+          end
+          call_callback(:AcceptCallback, sock)
+          block ? block.call(sock) : run(sock)
+        rescue Errno::ENOTCONN
+          @logger.debug &quot;Errno::ENOTCONN raised&quot;
+        rescue ServerError =&gt; ex
+          msg = &quot;#{ex.class}: #{ex.message}\n\t#{ex.backtrace[0]}&quot;
+          @logger.error msg
+        rescue Exception =&gt; ex
+          @logger.error ex
+        ensure
+          @tokens.push(nil)
+          Thread.current[:WEBrickSocket] = nil
+          if addr
+            @logger.debug &quot;close: #{addr[3]}:#{addr[1]}&quot;
+          else
+            @logger.debug &quot;close: &lt;address unknown&gt;&quot;
+          end
+          sock.close
+        end
+      }
+    end
+
+    def call_callback(callback_name, *args)
+      if cb = @config[callback_name]
+        cb.call(*args)
+      end
+    end
+  end    # end of GenericServer
+end
+</pre>
+    </div>

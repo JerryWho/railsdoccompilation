@@ -1,0 +1,882 @@
+  <div id="C00000220">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />WIN32OLE_TYPE<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/ext/win32ole/win32ole_c.html');">ruby-1.8.7-p22/ext/win32ole/win32ole.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<tt><a
+href="index.html?a=C00000220&name=WIN32OLE_TYPE">WIN32OLE_TYPE</a></tt>
+objects represent OLE type libarary information.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001816&name=guid" >guid</a></li>
+  <li><a href="index.html?a=M001825&name=helpcontext" >helpcontext</a></li>
+  <li><a href="index.html?a=M001824&name=helpfile" >helpfile</a></li>
+  <li><a href="index.html?a=M001822&name=helpstring" >helpstring</a></li>
+  <li><a href="index.html?a=M001819&name=major_version" >major_version</a></li>
+  <li><a href="index.html?a=M001820&name=minor_version" >minor_version</a></li>
+  <li><a href="index.html?a=M001814&name=name" >name</a></li>
+  <li><a href="index.html?a=M001813&name=new" >new</a></li>
+  <li><a href="index.html?a=M001810&name=ole_classes" >ole_classes</a></li>
+  <li><a href="index.html?a=M001827&name=ole_methods" >ole_methods</a></li>
+  <li><a href="index.html?a=M001815&name=ole_type" >ole_type</a></li>
+  <li><a href="index.html?a=M001817&name=progid" >progid</a></li>
+  <li><a href="index.html?a=M001812&name=progids" >progids</a></li>
+  <li><a href="index.html?a=M001823&name=src_type" >src_type</a></li>
+  <li><a href="index.html?a=M001828&name=to_s" >to_s</a></li>
+  <li><a href="index.html?a=M001821&name=typekind" >typekind</a></li>
+  <li><a href="index.html?a=M001811&name=typelibs" >typelibs</a></li>
+  <li><a href="index.html?a=M001826&name=variables" >variables</a></li>
+  <li><a href="index.html?a=M001818&name=visible?" >visible?</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001813" class="method">
+  <div id="M001813_title" class="title">
+    <b>WIN32OLE_TYPE.new(typelib, ole_class) &rarr; WIN32OLE_TYPE object<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns a new <a
+href="index.html?a=C00000220&name=WIN32OLE_TYPE">WIN32OLE_TYPE</a> object.
+The first argument <em>typelib</em> specifies OLE type library name. The
+second argument specifies OLE class name.
+</p>
+<pre>
+    WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+        # =&gt; WIN32OLE_TYPE object of Application class of Excel.
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001813_source')" id="l_M001813_source">show source</a> ]</p>
+  <div id="M001813_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE.new(typelib, ole_class) -&gt; WIN32OLE_TYPE object
+ *
+ *  Returns a new WIN32OLE_TYPE object.
+ *  The first argument &lt;i&gt;typelib&lt;/i&gt; specifies OLE type library name.
+ *  The second argument specifies OLE class name.
+ *
+ *      WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application') 
+ *          # =&gt; WIN32OLE_TYPE object of Application class of Excel. 
+ */
+static VALUE
+foletype_initialize(self, typelib, oleclass)
+    VALUE self;
+    VALUE typelib;
+    VALUE oleclass;
+{
+    VALUE file;
+    OLECHAR * pbuf;
+    ITypeLib *pTypeLib;
+    HRESULT hr;
+
+    Check_SafeStr(oleclass);
+    Check_SafeStr(typelib);
+    file = typelib_file(typelib);
+    if (file == Qnil) {
+        file = typelib;
+    }
+    pbuf = ole_mb2wc(StringValuePtr(file), -1);
+    hr = LoadTypeLibEx(pbuf, REGKIND_NONE, &amp;pTypeLib);
+    if (FAILED(hr))
+        ole_raise(hr, eWIN32OLE_RUNTIME_ERROR, &quot;failed to LoadTypeLibEx&quot;);
+    SysFreeString(pbuf);
+    if (oleclass_from_typelib(self, pTypeLib, oleclass) == Qfalse) {
+        OLE_RELEASE(pTypeLib);
+        rb_raise(eWIN32OLE_RUNTIME_ERROR, &quot;not found `%s` in `%s`&quot;,
+                 StringValuePtr(oleclass), StringValuePtr(typelib));
+    }
+    OLE_RELEASE(pTypeLib);
+    return self;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001810" class="method">
+  <div id="M001810_title" class="title">
+    <b>WIN32OLE_TYPE.ole_classes(typelib)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns array of <a
+href="index.html?a=C00000220&name=WIN32OLE_TYPE">WIN32OLE_TYPE</a> objects
+defined by the <em>typelib</em> type library.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001810_source')" id="l_M001810_source">show source</a> ]</p>
+  <div id="M001810_source" class="dyn-source">
+<pre>
+/*
+ *   call-seq:
+ *      WIN32OLE_TYPE.ole_classes(typelib)
+ * 
+ *   Returns array of WIN32OLE_TYPE objects defined by the &lt;i&gt;typelib&lt;/i&gt; type library.
+ */
+static VALUE
+foletype_s_ole_classes(self, typelib)
+    VALUE self;
+    VALUE typelib;
+{
+    VALUE file, classes;
+    OLECHAR * pbuf;
+    ITypeLib *pTypeLib;
+    HRESULT hr;
+
+    rb_secure(4);
+    classes = rb_ary_new();
+    if(TYPE(typelib) == T_STRING) {
+        file = typelib_file(typelib);
+        if (file == Qnil) {
+            file = typelib;
+        }
+        pbuf = ole_mb2wc(StringValuePtr(file), -1);
+        hr = LoadTypeLibEx(pbuf, REGKIND_NONE, &amp;pTypeLib);
+        if (FAILED(hr))
+          ole_raise(hr, eWIN32OLE_RUNTIME_ERROR, &quot;failed to LoadTypeLibEx&quot;);
+        SysFreeString(pbuf);
+        ole_classes_from_typelib(pTypeLib, classes);
+        OLE_RELEASE(pTypeLib);
+    } else {
+        rb_raise(rb_eTypeError, &quot;1st argument should be TypeLib string&quot;);
+    }
+    return classes;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001812" class="method">
+  <div id="M001812_title" class="title">
+    <b>WIN32OLE_TYPE.progids<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns array of ProgID.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001812_source')" id="l_M001812_source">show source</a> ]</p>
+  <div id="M001812_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE.progids
+ * 
+ *  Returns array of ProgID.
+ */
+static VALUE
+foletype_s_progids(self)
+    VALUE self;
+{
+    HKEY hclsids, hclsid;
+    DWORD i;
+    LONG err;
+    VALUE clsid;
+    VALUE v = rb_str_new2(&quot;&quot;);
+    VALUE progids = rb_ary_new();
+
+    err = reg_open_key(HKEY_CLASSES_ROOT, &quot;CLSID&quot;, &amp;hclsids);
+    if(err != ERROR_SUCCESS) {
+        return progids;
+    }
+    for(i = 0; ; i++) {
+        clsid = reg_enum_key(hclsids, i);
+        if (clsid == Qnil)
+            break;
+        err = reg_open_vkey(hclsids, clsid, &amp;hclsid);
+        if (err != ERROR_SUCCESS)
+            continue;
+        if ((v = reg_get_val(hclsid, &quot;ProgID&quot;)) != Qnil) 
+            rb_ary_push(progids, v);
+        if ((v = reg_get_val(hclsid, &quot;VersionIndependentProgID&quot;)) != Qnil)
+            rb_ary_push(progids, v);
+        RegCloseKey(hclsid);
+    }
+    RegCloseKey(hclsids);
+    return progids;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001811" class="method">
+  <div id="M001811_title" class="title">
+    <b>WIN32OLE_TYPE.typelibs<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns array of type libraries.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001811_source')" id="l_M001811_source">show source</a> ]</p>
+  <div id="M001811_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE.typelibs
+ * 
+ *  Returns array of type libraries.
+ *
+ */
+static VALUE
+foletype_s_typelibs(self)
+    VALUE self;
+{
+    HKEY htypelib, hclsid;
+    double fversion;
+    DWORD i, j;
+    LONG err;
+    VALUE clsid;
+    VALUE ver;
+    VALUE v = Qnil;
+    VALUE typelibs = rb_ary_new();
+
+    err = reg_open_key(HKEY_CLASSES_ROOT, &quot;TypeLib&quot;, &amp;htypelib);
+    if(err != ERROR_SUCCESS) {
+        return typelibs;
+    }
+    for(i = 0; ; i++) {
+        clsid = reg_enum_key(htypelib, i);
+        if (clsid == Qnil)
+            break;
+        err = reg_open_vkey(htypelib, clsid, &amp;hclsid);
+        if (err != ERROR_SUCCESS)
+            continue;
+        fversion = 0;
+        for(j = 0; ; j++) {
+            ver = reg_enum_key(hclsid, j);
+            if (ver == Qnil)
+                break;
+            if (fversion &gt; atof(StringValuePtr(ver)))
+                continue;
+            fversion = atof(StringValuePtr(ver));
+            if ( (v = reg_get_val(hclsid, StringValuePtr(ver))) != Qnil ) {
+                rb_ary_push(typelibs, v);
+            }
+        }
+        RegCloseKey(hclsid);
+    }
+    RegCloseKey(htypelib);
+    return typelibs;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001816" class="method">
+  <div id="M001816_title" class="title">
+    <b>WIN32OLE_TYPE#guid  #=> GUID<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns GUID.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+  puts tobj.guid  # =&gt; {00024500-0000-0000-C000-000000000046}
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001816_source')" id="l_M001816_source">show source</a> ]</p>
+  <div id="M001816_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#guid  #=&gt; GUID
+ * 
+ *  Returns GUID.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application') 
+ *    puts tobj.guid  # =&gt; {00024500-0000-0000-C000-000000000046}
+ */
+static VALUE
+foletype_guid(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_guid(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001825" class="method">
+  <div id="M001825_title" class="title">
+    <b>WIN32OLE_TYPE#helpcontext<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns helpcontext. If helpcontext is not found, then returns nil.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+   puts tobj.helpfile # =&gt; 131185
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001825_source')" id="l_M001825_source">show source</a> ]</p>
+  <div id="M001825_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#helpcontext
+ * 
+ *  Returns helpcontext. If helpcontext is not found, then returns nil.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+ *     puts tobj.helpfile # =&gt; 131185
+ */
+static VALUE
+foletype_helpcontext(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_helpcontext(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001824" class="method">
+  <div id="M001824_title" class="title">
+    <b>WIN32OLE_TYPE#helpfile<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns helpfile path. If helpfile is not found, then returns nil.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+   puts tobj.helpfile # =&gt; C:\...\VBAXL9.CHM
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001824_source')" id="l_M001824_source">show source</a> ]</p>
+  <div id="M001824_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#helpfile
+ * 
+ *  Returns helpfile path. If helpfile is not found, then returns nil.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+ *     puts tobj.helpfile # =&gt; C:\...\VBAXL9.CHM
+ *
+ */
+static VALUE
+foletype_helpfile(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_helpfile(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001822" class="method">
+  <div id="M001822_title" class="title">
+    <b>WIN32OLE_TYPE#helpstring #=> help string.<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns help string.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Internet Controls', 'IWebBrowser')
+  puts tobj.helpstring # =&gt; Web Browser interface
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001822_source')" id="l_M001822_source">show source</a> ]</p>
+  <div id="M001822_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    WIN32OLE_TYPE#helpstring #=&gt; help string.
+ * 
+ *  Returns help string.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Internet Controls', 'IWebBrowser')
+ *    puts tobj.helpstring # =&gt; Web Browser interface
+ */
+static VALUE 
+foletype_helpstring(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_helpstring(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001819" class="method">
+  <div id="M001819_title" class="title">
+    <b>WIN32OLE_TYPE#major_version<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns major version.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+   puts tobj.major_version # =&gt; 8
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001819_source')" id="l_M001819_source">show source</a> ]</p>
+  <div id="M001819_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#major_version
+ * 
+ *  Returns major version.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+ *     puts tobj.major_version # =&gt; 8
+ */
+static VALUE
+foletype_major_version(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_major_version(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001820" class="method">
+  <div id="M001820_title" class="title">
+    <b>WIN32OLE_TYPE#minor_version #=> OLE minor version<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns minor version.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+   puts tobj.minor_version # =&gt; 2
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001820_source')" id="l_M001820_source">show source</a> ]</p>
+  <div id="M001820_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    WIN32OLE_TYPE#minor_version #=&gt; OLE minor version
+ * 
+ *  Returns minor version.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+ *     puts tobj.minor_version # =&gt; 2
+ */
+static VALUE
+foletype_minor_version(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_minor_version(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001814" class="method">
+  <div id="M001814_title" class="title">
+    <b>WIN32OLE_TYPE#name #=> OLE type name<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns OLE type name.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+   puts tobj.name  # =&gt; Application
+</pre>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001828&name=to_s">to_s</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001814_source')" id="l_M001814_source">show source</a> ]</p>
+  <div id="M001814_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    WIN32OLE_TYPE#name #=&gt; OLE type name
+ *
+ * Returns OLE type name.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application') 
+ *    puts tobj.name  # =&gt; Application
+ */
+static VALUE
+foletype_name(self)
+    VALUE self;
+{
+    return rb_ivar_get(self, rb_intern(&quot;name&quot;));
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001827" class="method">
+  <div id="M001827_title" class="title">
+    <b>WIN32OLE_TYPE#ole_methods # the array of WIN32OLE_METHOD objects.<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns array of <a
+href="index.html?a=C00000112&name=WIN32OLE_METHOD">WIN32OLE_METHOD</a>
+objects which represent OLE method defined in OLE type library.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+  methods = tobj.ole_methods.collect{|m|
+    m.name
+  }
+  # =&gt; ['Activate', 'Copy', 'Delete',....]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001827_source')" id="l_M001827_source">show source</a> ]</p>
+  <div id="M001827_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#ole_methods # the array of WIN32OLE_METHOD objects.
+ * 
+ *  Returns array of WIN32OLE_METHOD objects which represent OLE method defined in 
+ *  OLE type library.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Worksheet')
+ *    methods = tobj.ole_methods.collect{|m|
+ *      m.name
+ *    }                                       
+ *    # =&gt; ['Activate', 'Copy', 'Delete',....]
+ */
+static VALUE
+foletype_methods(argc, argv, self)
+    int argc;
+    VALUE *argv;
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_methods_from_typeinfo(ptype-&gt;pTypeInfo, INVOKE_FUNC | INVOKE_PROPERTYGET | INVOKE_PROPERTYPUT | INVOKE_PROPERTYPUTREF);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001815" class="method">
+  <div id="M001815_title" class="title">
+    <b>WIN32OLE_TYPE#ole_type #=> OLE type string.<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+returns type of OLE class.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+  puts tobj.ole_type  # =&gt; Class
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001815_source')" id="l_M001815_source">show source</a> ]</p>
+  <div id="M001815_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#ole_type #=&gt; OLE type string.
+ * 
+ *  returns type of OLE class.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application') 
+ *    puts tobj.ole_type  # =&gt; Class
+ */
+static VALUE
+foletype_ole_type(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_ole_type(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001817" class="method">
+  <div id="M001817_title" class="title">
+    <b>WIN32OLE_TYPE#progid  #=> ProgID<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns ProgID if it exists. If not found, then returns nil.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+   puts tobj.progid  # =&gt;   Excel.Application.9
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001817_source')" id="l_M001817_source">show source</a> ]</p>
+  <div id="M001817_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *    WIN32OLE_TYPE#progid  #=&gt; ProgID
+ * 
+ * Returns ProgID if it exists. If not found, then returns nil.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+ *    puts tobj.progid  # =&gt;   Excel.Application.9
+ */
+static VALUE
+foletype_progid(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_progid(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001823" class="method">
+  <div id="M001823_title" class="title">
+    <b>WIN32OLE_TYPE#src_type #=> OLE source class<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns source class when the OLE class is &#8216;Alias&#8217;.
+</p>
+<pre>
+   tobj =  WIN32OLE_TYPE.new('Microsoft Office 9.0 Object Library', 'MsoRGBType')
+   puts tobj.src_type # =&gt; I4
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001823_source')" id="l_M001823_source">show source</a> ]</p>
+  <div id="M001823_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#src_type #=&gt; OLE source class
+ * 
+ *  Returns source class when the OLE class is 'Alias'.
+ *     tobj =  WIN32OLE_TYPE.new('Microsoft Office 9.0 Object Library', 'MsoRGBType')
+ *     puts tobj.src_type # =&gt; I4
+ *
+ */
+static VALUE
+foletype_src_type(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_src_type(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001828" class="method">
+  <div id="M001828_title" class="title">
+    <b>to_s</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M001814&name=name">name</a>
+</p>
+  </div>
+</div>
+<div id="M001821" class="method">
+  <div id="M001821_title" class="title">
+    <b>WIN32OLE_TYPE#typekind #=> number of type.<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns number which represents type.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+  puts tobj.typekind # =&gt; 4
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001821_source')" id="l_M001821_source">show source</a> ]</p>
+  <div id="M001821_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    WIN32OLE_TYPE#typekind #=&gt; number of type.
+ * 
+ *  Returns number which represents type.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Word 10.0 Object Library', 'Documents')
+ *    puts tobj.typekind # =&gt; 4
+ *
+ */
+static VALUE 
+foletype_typekind(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_typekind(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001826" class="method">
+  <div id="M001826_title" class="title">
+    <b>WIN32OLE_TYPE#variables<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns array of <a
+href="index.html?a=C00000286&name=WIN32OLE_VARIABLE">WIN32OLE_VARIABLE</a>
+objects which represent variables defined in OLE class.
+</p>
+<pre>
+   tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'XlSheetType')
+   vars = tobj.variables
+   vars.each do |v|
+     puts &quot;#{v.name} = #{v.value}&quot;
+   end
+
+   The result of above sample script is follows:
+     xlChart = -4109
+     xlDialogSheet = -4116
+     xlExcel4IntlMacroSheet = 4
+     xlExcel4MacroSheet = 3
+     xlWorksheet = -4167
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001826_source')" id="l_M001826_source">show source</a> ]</p>
+  <div id="M001826_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     WIN32OLE_TYPE#variables
+ * 
+ *  Returns array of WIN32OLE_VARIABLE objects which represent variables 
+ *  defined in OLE class.
+ *     tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'XlSheetType')
+ *     vars = tobj.variables
+ *     vars.each do |v|
+ *       puts &quot;#{v.name} = #{v.value}&quot;
+ *     end
+ *     
+ *     The result of above sample script is follows:
+ *       xlChart = -4109
+ *       xlDialogSheet = -4116
+ *       xlExcel4IntlMacroSheet = 4
+ *       xlExcel4MacroSheet = 3
+ *       xlWorksheet = -4167
+ *
+ */
+static VALUE
+foletype_variables(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_variables(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001818" class="method">
+  <div id="M001818_title" class="title">
+    <b>WIN32OLE_TYPE#visible  #=> true or false<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns true if the OLE class is public.
+</p>
+<pre>
+  tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+  puts tobj.visible  # =&gt; true
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001818_source')" id="l_M001818_source">show source</a> ]</p>
+  <div id="M001818_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    WIN32OLE_TYPE#visible  #=&gt; true or false
+ * 
+ *  Returns true if the OLE class is public.
+ *    tobj = WIN32OLE_TYPE.new('Microsoft Excel 9.0 Object Library', 'Application')
+ *    puts tobj.visible  # =&gt; true
+ */
+static VALUE
+foletype_visible(self)
+    VALUE self;
+{
+    struct oletypedata *ptype;
+    Data_Get_Struct(self, struct oletypedata, ptype);
+    return ole_type_visible(ptype-&gt;pTypeInfo);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

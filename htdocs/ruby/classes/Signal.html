@@ -1,0 +1,238 @@
+  <div id="C00001616">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Signal<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/signal_c.html');">ruby-1.8.7-p22/signal.c</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Many operating systems allow signals to be sent to running processes. Some
+signals have a defined effect on the process, while others may be trapped
+at the code level and acted upon. For example, your process may trap the
+USR1 signal and use it to toggle debugging, and may use TERM to initiate a
+controlled shutdown.
+</p>
+<pre>
+    pid = fork do
+      Signal.trap(&quot;USR1&quot;) do
+        $debug = !$debug
+        puts &quot;Debug now: #$debug&quot;
+      end
+      Signal.trap(&quot;TERM&quot;) do
+        puts &quot;Terminating...&quot;
+        shutdown()
+      end
+      # . . . do some work . . .
+    end
+
+    Process.detach(pid)
+
+    # Controlling program:
+    Process.kill(&quot;USR1&quot;, pid)
+    # ...
+    Process.kill(&quot;USR1&quot;, pid)
+    # ...
+    Process.kill(&quot;TERM&quot;, pid)
+</pre>
+<p>
+produces:
+</p>
+<pre>
+    Debug now: true
+    Debug now: false
+   Terminating...
+</pre>
+<p>
+The list of available signal names and their interpretation is system
+dependent. <a href="index.html?a=C00001616&name=Signal">Signal</a> delivery
+semantics may also vary between systems; in particular signal delivery may
+not always be reliable.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M007943&name=list" >list</a></li>
+  <li><a href="index.html?a=M007942&name=trap" >trap</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M007943" class="method">
+  <div id="M007943_title" class="title">
+    <b>Signal.list => a_hash<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Returns a list of signal names mapped to the corresponding underlying
+signal numbers.
+</p>
+<p>
+<a href="index.html?a=M007943&name=Signal.list">Signal.list</a> #=&gt;
+{&quot;ABRT&quot;=&gt;6, &quot;ALRM&quot;=&gt;14, &quot;BUS&quot;=&gt;7,
+&quot;CHLD&quot;=&gt;17, &quot;CLD&quot;=&gt;17, &quot;CONT&quot;=&gt;18,
+&quot;FPE&quot;=&gt;8, &quot;HUP&quot;=&gt;1, &quot;ILL&quot;=&gt;4,
+&quot;INT&quot;=&gt;2, &quot;<a
+href="index.html?a=C00000245&name=IO">IO</a>&quot;=&gt;29,
+&quot;IOT&quot;=&gt;6, &quot;KILL&quot;=&gt;9, &quot;PIPE&quot;=&gt;13,
+&quot;POLL&quot;=&gt;29, &quot;PROF&quot;=&gt;27, &quot;PWR&quot;=&gt;30,
+&quot;QUIT&quot;=&gt;3, &quot;SEGV&quot;=&gt;11, &quot;STOP&quot;=&gt;19,
+&quot;SYS&quot;=&gt;31, &quot;TERM&quot;=&gt;15, &quot;TRAP&quot;=&gt;5,
+&quot;TSTP&quot;=&gt;20, &quot;TTIN&quot;=&gt;21, &quot;TTOU&quot;=&gt;22,
+&quot;URG&quot;=&gt;23, &quot;USR1&quot;=&gt;10, &quot;USR2&quot;=&gt;12,
+&quot;VTALRM&quot;=&gt;26, &quot;WINCH&quot;=&gt;28,
+&quot;XCPU&quot;=&gt;24, &quot;XFSZ&quot;=&gt;25}
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007943_source')" id="l_M007943_source">show source</a> ]</p>
+  <div id="M007943_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   Signal.list =&gt; a_hash
+ *
+ * Returns a list of signal names mapped to the corresponding
+ * underlying signal numbers.
+ *
+ * Signal.list   #=&gt; {&quot;ABRT&quot;=&gt;6, &quot;ALRM&quot;=&gt;14, &quot;BUS&quot;=&gt;7, &quot;CHLD&quot;=&gt;17, &quot;CLD&quot;=&gt;17, &quot;CONT&quot;=&gt;18, &quot;FPE&quot;=&gt;8, &quot;HUP&quot;=&gt;1, &quot;ILL&quot;=&gt;4, &quot;INT&quot;=&gt;2, &quot;IO&quot;=&gt;29, &quot;IOT&quot;=&gt;6, &quot;KILL&quot;=&gt;9, &quot;PIPE&quot;=&gt;13, &quot;POLL&quot;=&gt;29, &quot;PROF&quot;=&gt;27, &quot;PWR&quot;=&gt;30, &quot;QUIT&quot;=&gt;3, &quot;SEGV&quot;=&gt;11, &quot;STOP&quot;=&gt;19, &quot;SYS&quot;=&gt;31, &quot;TERM&quot;=&gt;15, &quot;TRAP&quot;=&gt;5, &quot;TSTP&quot;=&gt;20, &quot;TTIN&quot;=&gt;21, &quot;TTOU&quot;=&gt;22, &quot;URG&quot;=&gt;23, &quot;USR1&quot;=&gt;10, &quot;USR2&quot;=&gt;12, &quot;VTALRM&quot;=&gt;26, &quot;WINCH&quot;=&gt;28, &quot;XCPU&quot;=&gt;24, &quot;XFSZ&quot;=&gt;25}
+ */
+static VALUE
+sig_list()
+{
+    VALUE h = rb_hash_new();
+    struct signals *sigs;
+
+    for (sigs = siglist; sigs-&gt;signm; sigs++) {
+        rb_hash_aset(h, rb_str_new2(sigs-&gt;signm), INT2FIX(sigs-&gt;signo));
+    }
+    return h;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007942" class="method">
+  <div id="M007942_title" class="title">
+    <b>Signal.trap( signal, proc ) => obj<br />
+Signal.trap( signal ) {| | block } => obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Specifies the handling of signals. The first parameter is a signal name (a
+string such as ``SIGALRM&#8217;&#8217;, ``SIGUSR1&#8217;&#8217;, and so on)
+or a signal number. The characters ``SIG&#8217;&#8217; may be omitted from
+the signal name. The command or block specifies code to be run when the
+signal is raised. If the command is the string ``IGNORE&#8217;&#8217; or
+``SIG_IGN&#8217;&#8217;, the signal will be ignored. If the command is
+``DEFAULT&#8217;&#8217; or ``SIG_DFL&#8217;&#8217;, the operating
+system&#8217;s default handler will be invoked. If the command is
+``EXIT&#8217;&#8217;, the script will be terminated by the signal.
+Otherwise, the given command or block will be run. The special signal name
+``EXIT&#8217;&#8217; or signal number zero will be invoked just prior to
+program termination. trap returns the previous handler for the given
+signal.
+</p>
+<pre>
+    Signal.trap(0, proc { puts &quot;Terminating: #{$$}&quot; })
+    Signal.trap(&quot;CLD&quot;)  { puts &quot;Child died&quot; }
+    fork &amp;&amp; Process.wait
+</pre>
+<p>
+produces:
+</p>
+<pre>
+    Terminating: 27461
+    Child died
+    Terminating: 27460
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007942_source')" id="l_M007942_source">show source</a> ]</p>
+  <div id="M007942_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *   Signal.trap( signal, proc ) =&gt; obj
+ *   Signal.trap( signal ) {| | block } =&gt; obj
+ *
+ * Specifies the handling of signals. The first parameter is a signal
+ * name (a string such as ``SIGALRM'', ``SIGUSR1'', and so on) or a
+ * signal number. The characters ``SIG'' may be omitted from the
+ * signal name. The command or block specifies code to be run when the
+ * signal is raised. If the command is the string ``IGNORE'' or
+ * ``SIG_IGN'', the signal will be ignored. If the command is
+ * ``DEFAULT'' or ``SIG_DFL'', the operating system's default handler
+ * will be invoked. If the command is ``EXIT'', the script will be
+ * terminated by the signal. Otherwise, the given command or block
+ * will be run.
+ * The special signal name ``EXIT'' or signal number zero will be
+ * invoked just prior to program termination.
+ * trap returns the previous handler for the given signal.
+ *
+ *     Signal.trap(0, proc { puts &quot;Terminating: #{$$}&quot; })
+ *     Signal.trap(&quot;CLD&quot;)  { puts &quot;Child died&quot; }
+ *     fork &amp;&amp; Process.wait
+ *
+ * produces:
+ *     Terminating: 27461
+ *     Child died
+ *     Terminating: 27460
+ */
+static VALUE
+sig_trap(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    struct trap_arg arg;
+
+    rb_secure(2);
+    if (argc == 0 || argc &gt; 2) {
+        rb_raise(rb_eArgError, &quot;wrong number of arguments -- trap(sig, cmd)/trap(sig){...}&quot;);
+    }
+
+    arg.sig = argv[0];
+    if (argc == 1) {
+        arg.cmd = rb_block_proc();
+    }
+    else if (argc == 2) {
+        arg.cmd = argv[1];
+    }
+
+    if (OBJ_TAINTED(arg.cmd)) {
+        rb_raise(rb_eSecurityError, &quot;Insecure: tainted signal trap&quot;);
+    }
+#if USE_TRAP_MASK
+    /* disable interrupt */
+# ifdef HAVE_SIGPROCMASK
+    sigfillset(&amp;arg.mask);
+    sigprocmask(SIG_BLOCK, &amp;arg.mask, &amp;arg.mask);
+# else
+    arg.mask = sigblock(~0);
+# endif
+
+    return rb_ensure(trap, (VALUE)&amp;arg, trap_ensure, (VALUE)&amp;arg);
+#else
+    return trap(&amp;arg);
+#endif
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

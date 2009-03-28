@@ -1,0 +1,112 @@
+  <div id="fileHeader">
+    <h1>mappingRegistryCreator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/wsdl/soap/mappingRegistryCreator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># WSDL4R - Creating MappingRegistry code from WSDL.
+# Copyright (C) 2002, 2003, 2005  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'wsdl/info'
+require 'wsdl/soap/classDefCreatorSupport'
+
+
+module WSDL
+module SOAP
+
+
+class MappingRegistryCreator
+  include ClassDefCreatorSupport
+
+  attr_reader :definitions
+
+  def initialize(definitions)
+    @definitions = definitions
+    @complextypes = @definitions.collect_complextypes
+    @types = nil
+  end
+
+  def dump(types)
+    @types = types
+    map_cache = []
+    map = &quot;&quot;
+    @types.each do |type|
+      if map_cache.index(type).nil?
+	map_cache &lt;&lt; type
+	if type.namespace != XSD::Namespace
+	  if typemap = dump_typemap(type)
+            map &lt;&lt; typemap
+          end
+	end
+      end
+   end
+    return map
+  end
+
+private
+
+  def dump_typemap(type)
+    if definedtype = @complextypes[type]
+      case definedtype.compoundtype
+      when :TYPE_STRUCT
+        dump_struct_typemap(definedtype)
+      when :TYPE_ARRAY
+        dump_array_typemap(definedtype)
+      when :TYPE_MAP, :TYPE_EMPTY
+        nil
+      else
+        raise NotImplementedError.new(&quot;must not reach here&quot;)
+      end
+    end
+  end
+
+  def dump_struct_typemap(definedtype)
+    ele = definedtype.name
+    return &lt;&lt;__EOD__
+MappingRegistry.set(
+  #{create_class_name(ele)},
+  ::SOAP::SOAPStruct,
+  ::SOAP::Mapping::Registry::TypedStructFactory,
+  { :type =&gt; #{dqname(ele)} }
+)
+__EOD__
+  end
+
+  def dump_array_typemap(definedtype)
+    ele = definedtype.name
+    arytype = definedtype.find_arytype || XSD::AnyTypeName
+    type = XSD::QName.new(arytype.namespace, arytype.name.sub(/\[(?:,)*\]$/, ''))
+    @types &lt;&lt; type
+    return &lt;&lt;__EOD__
+MappingRegistry.set(
+  #{create_class_name(ele)},
+  ::SOAP::SOAPArray,
+  ::SOAP::Mapping::Registry::TypedArrayFactory,
+  { :type =&gt; #{dqname(type)} }
+)
+__EOD__
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

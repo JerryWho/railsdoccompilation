@@ -1,0 +1,298 @@
+  <div id="fileHeader">
+    <h1>controller_spec_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/rails/example/controller_spec_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:13:00 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+require 'controller_spec_controller'
+
+['integration', 'isolation'].each do |mode|
+  describe &quot;A controller example running in #{mode} mode&quot;, :type =&gt; :controller do
+    controller_name :controller_spec
+    integrate_views if mode == 'integration'
+    
+    specify &quot;this example should be pending, not an error&quot;
+    
+    it &quot;should provide controller.session as session&quot; do
+      get 'action_with_template'
+      session.should equal(controller.session)
+    end
+  
+    it &quot;should provide the same session object before and after the action&quot; do
+      session_before = session
+      get 'action_with_template'
+      session.should equal(session_before)
+    end
+  
+    it &quot;should keep the same data in the session before and after the action&quot; do
+      session[:foo] = :bar
+      get 'action_with_template'
+      session[:foo].should == :bar
+    end
+  
+    it &quot;should ensure controller.session is NOT nil before the action&quot; do
+      controller.session.should_not be_nil
+      get 'action_with_template'
+    end
+    
+    it &quot;should ensure controller.session is NOT nil after the action&quot; do
+      get 'action_with_template'
+      controller.session.should_not be_nil
+    end
+    
+    it &quot;should allow specifying a partial with partial name only&quot; do
+      get 'action_with_partial'
+      response.should render_template(&quot;_partial&quot;)
+    end
+    
+    it &quot;should allow specifying a partial with should_receive(:render)&quot; do
+      controller.should_receive(:render).with(:partial =&gt; &quot;controller_spec/partial&quot;)
+      get 'action_with_partial'
+    end
+    
+    it &quot;should allow specifying a partial with should_receive(:render) with object&quot; do
+      controller.should_receive(:render).with(:partial =&gt; &quot;controller_spec/partial&quot;, :object =&gt; &quot;something&quot;)
+      get 'action_with_partial_with_object', :thing =&gt; &quot;something&quot;
+    end
+    
+    it &quot;should allow specifying a partial with should_receive(:render) with locals&quot; do
+      controller.should_receive(:render).with(:partial =&gt; &quot;controller_spec/partial&quot;, :locals =&gt; {:thing =&gt; &quot;something&quot;})
+      get 'action_with_partial_with_locals', :thing =&gt; &quot;something&quot;
+    end
+    
+    it &quot;should yield to render :update&quot; do
+      template = stub(&quot;template&quot;)
+      controller.should_receive(:render).with(:update).and_yield(template)
+      template.should_receive(:replace).with(:bottom, &quot;replace_me&quot;, :partial =&gt; &quot;non_existent_partial&quot;)
+      get 'action_with_render_update'
+    end
+    
+    it &quot;should allow a path relative to RAILS_ROOT/app/views/ when specifying a partial&quot; do
+      get 'action_with_partial'
+      response.should render_template(&quot;controller_spec/_partial&quot;)
+    end
+    
+    it &quot;should provide access to flash&quot; do
+      get 'action_which_sets_flash'
+      flash[:flash_key].should == &quot;flash value&quot;
+    end
+    
+    it &quot;should provide access to flash values set after a session reset&quot; do
+      get 'action_setting_flash_after_session_reset'
+      flash[:after_reset].should == &quot;available&quot;
+    end
+    
+    it &quot;should not provide access to flash values set before a session reset&quot; do
+      get 'action_setting_flash_before_session_reset'
+      flash[:before_reset].should_not == &quot;available&quot;
+    end
+
+    it &quot;should provide access to session&quot; do
+      session[:session_key] = &quot;session value&quot;
+      lambda do
+        get 'action_which_gets_session', :expected =&gt; &quot;session value&quot;
+      end.should_not raise_error
+    end
+
+    describe &quot;handling should_receive(:render)&quot; do
+      it &quot;should warn&quot; do
+        controller.should_receive(:render).with(:template =&gt; &quot;controller_spec/action_with_template&quot;)
+        get :action_with_template
+      end
+    end
+    
+    describe &quot;handling should_not_receive(:render)&quot; do
+      it &quot;should warn&quot; do
+        controller.should_not_receive(:render).with(:template =&gt; &quot;the/wrong/template&quot;)
+        get :action_with_template
+      end
+    end
+    
+    describe &quot;handling deprecated expect_render&quot; do
+      it &quot;should warn&quot; do
+        Kernel.should_receive(:warn).with(/expect_render is deprecated/)
+        controller.expect_render(:template =&gt; &quot;controller_spec/action_with_template&quot;)
+        get :action_with_template
+      end
+    end
+    
+    describe &quot;handling deprecated stub_render&quot; do
+      it &quot;should warn&quot; do
+        Kernel.should_receive(:warn).with(/stub_render is deprecated/)
+        controller.stub_render(:template =&gt; &quot;controller_spec/action_with_template&quot;)
+        get :action_with_template
+      end
+    end
+    
+    describe &quot;setting cookies in the request&quot; do
+    
+      it &quot;should support a String key&quot; do
+        cookies['cookie_key'] = 'cookie value'
+        get 'action_which_gets_cookie', :expected =&gt; &quot;cookie value&quot;
+      end
+
+      it &quot;should support a Symbol key&quot; do
+        cookies[:cookie_key] = 'cookie value'
+        get 'action_which_gets_cookie', :expected =&gt; &quot;cookie value&quot;
+      end
+      
+      if Rails::VERSION::STRING &gt;= &quot;2.0.0&quot;
+        it &quot;should support a Hash value&quot; do
+          cookies[:cookie_key] = {'value' =&gt; 'cookie value', 'path' =&gt; '/not/default'}
+          get 'action_which_gets_cookie', :expected =&gt; {'value' =&gt; 'cookie value', 'path' =&gt; '/not/default'}
+        end
+      end
+      
+    end
+  
+    describe &quot;reading cookies from the response&quot; do
+  
+      it &quot;should support a Symbol key&quot; do
+        get 'action_which_sets_cookie', :value =&gt; &quot;cookie value&quot;
+        cookies[:cookie_key].value.should == [&quot;cookie value&quot;]
+      end
+
+      it &quot;should support a String key&quot; do
+        get 'action_which_sets_cookie', :value =&gt; &quot;cookie value&quot;
+        cookies['cookie_key'].value.should == [&quot;cookie value&quot;]
+      end
+    
+    end
+
+    it &quot;should support custom routes&quot; do
+      route_for(:controller =&gt; &quot;custom_route_spec&quot;, :action =&gt; &quot;custom_route&quot;).should == &quot;/custom_route&quot;
+    end
+
+    it &quot;should support existing routes&quot; do
+      route_for(:controller =&gt; &quot;controller_spec&quot;, :action =&gt; &quot;some_action&quot;).should == &quot;/controller_spec/some_action&quot;
+    end
+
+    it &quot;should generate params for custom routes&quot; do
+      params_from(:get, '/custom_route').should == {:controller =&gt; &quot;custom_route_spec&quot;, :action =&gt; &quot;custom_route&quot;}
+    end
+    
+    it &quot;should generate params for existing routes&quot; do
+      params_from(:get, '/controller_spec/some_action').should == {:controller =&gt; &quot;controller_spec&quot;, :action =&gt; &quot;some_action&quot;}
+    end
+    
+    it &quot;should expose instance vars through the assigns hash&quot; do
+      get 'action_setting_the_assigns_hash'
+      assigns[:indirect_assigns_key].should == :indirect_assigns_key_value
+    end
+    
+    it &quot;should expose instance vars through the assigns hash that are set to false&quot; do
+      get 'action_that_assigns_false_to_a_variable'
+      assigns[:a_variable].should be_false
+    end
+    
+    it &quot;should NOT complain when calling should_receive with arguments other than :render&quot; do
+      controller.should_receive(:anything_besides_render)
+      lambda {
+        controller.rspec_verify
+      }.should raise_error(Exception, /expected :anything_besides_render/)
+    end
+    
+    it &quot;should not run a skipped before_filter&quot; do
+      lambda {
+        get 'action_with_skipped_before_filter'
+      }.should_not raise_error
+    end
+  end
+
+  describe &quot;Given a controller spec for RedirectSpecController running in #{mode} mode&quot;, :type =&gt; :controller do
+    controller_name :redirect_spec
+    integrate_views if mode == 'integration'
+
+    it &quot;a redirect should ignore the absence of a template&quot; do
+      get 'action_with_redirect_to_somewhere'
+      response.should be_redirect
+      response.redirect_url.should == &quot;http://test.host/redirect_spec/somewhere&quot;
+      response.should redirect_to(&quot;http://test.host/redirect_spec/somewhere&quot;)
+    end
+    
+    it &quot;a call to response.should redirect_to should fail if no redirect&quot; do
+      get 'action_with_no_redirect'
+      lambda {
+        response.redirect?.should be_true
+      }.should fail
+      lambda {
+        response.should redirect_to(&quot;http://test.host/redirect_spec/somewhere&quot;)
+      }.should fail_with(&quot;expected redirect to \&quot;http://test.host/redirect_spec/somewhere\&quot;, got no redirect&quot;)
+    end
+  end
+  
+  describe &quot;Given a controller spec running in #{mode} mode&quot; do
+    example_group = describe &quot;A controller spec&quot;
+    # , :type =&gt; :controller do
+    # integrate_views if mode == 'integration'
+    it &quot;a spec in a context without controller_name set should fail with a useful warning&quot; do
+      pending(&quot;need a new way to deal with examples that should_raise&quot;)
+    # ,
+    #   :should_raise =&gt; [
+    #     Spec::Expectations::ExpectationNotMetError,
+    #     /You have to declare the controller name in controller specs/
+    #   ] do
+    end
+  end
+  
+end
+
+['integration', 'isolation'].each do |mode|
+  describe &quot;A controller example running in #{mode} mode&quot;, :type =&gt; :controller do
+    controller_name :controller_inheriting_from_application_controller
+    integrate_views if mode == 'integration'
+    
+    it &quot;should only have a before filter inherited from ApplicationController run once...&quot; do
+      controller.should_receive(:i_should_only_be_run_once).once
+      get :action_with_inherited_before_filter
+    end
+  end
+end
+
+
+describe ControllerSpecController, :type =&gt; :controller do
+  it &quot;should not require naming the controller if describe is passed a type&quot; do
+  end  
+end
+
+describe &quot;A controller spec with controller_name set&quot;, :type =&gt; :controller do
+  controller_name :controller_spec
+  
+  describe &quot;nested&quot; do
+    it &quot;should inherit the controller name&quot; do
+      get 'action_with_template'
+      response.should be_success
+    end
+  end
+end
+
+module Spec
+  module Rails
+    module Example
+      describe ControllerExampleGroup do
+        it &quot;should clear its name from the description&quot; do
+          group = describe(&quot;foo&quot;, :type =&gt; :controller) do
+            $nested_group = describe(&quot;bar&quot;) do
+            end
+          end
+          group.description.to_s.should == &quot;foo&quot;
+          $nested_group.description.to_s.should == &quot;foo bar&quot;
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

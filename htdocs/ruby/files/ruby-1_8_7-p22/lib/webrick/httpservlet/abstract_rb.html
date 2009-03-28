@@ -1,0 +1,91 @@
+  <div id="fileHeader">
+    <h1>abstract.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/httpservlet/abstract.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun May 18 10:02:36 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# httpservlet.rb -- HTTPServlet Module
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2000 TAKAHASHI Masayoshi, GOTOU Yuuzou
+# Copyright (c) 2002 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: abstract.rb,v 1.24 2003/07/11 11:16:46 gotoyuzo Exp $
+
+require 'thread'
+
+require 'webrick/htmlutils'
+require 'webrick/httputils'
+require 'webrick/httpstatus'
+
+module WEBrick
+  module HTTPServlet
+    class HTTPServletError &lt; StandardError; end
+
+    class AbstractServlet
+      def self.get_instance(config, *options)
+        self.new(config, *options)
+      end
+
+      def initialize(server, *options)
+        @server = @config = server
+        @logger = @server[:Logger]
+        @options = options
+      end
+
+      def service(req, res)
+        method_name = &quot;do_&quot; + req.request_method.gsub(/-/, &quot;_&quot;)
+        if respond_to?(method_name)
+          __send__(method_name, req, res)
+        else
+          raise HTTPStatus::MethodNotAllowed,
+                &quot;unsupported method `#{req.request_method}'.&quot;
+        end
+      end
+
+      def do_GET(req, res)
+        raise HTTPStatus::NotFound, &quot;not found.&quot;
+      end
+
+      def do_HEAD(req, res)
+        do_GET(req, res)
+      end
+
+      def do_OPTIONS(req, res)
+        m = self.methods.grep(/^do_[A-Z]+$/)
+        m.collect!{|i| i.sub(/do_/, &quot;&quot;) }
+        m.sort!
+        res[&quot;allow&quot;] = m.join(&quot;,&quot;)
+      end
+
+      private
+
+      def redirect_to_directory_uri(req, res)
+        if req.path[-1] != ?/
+          location = WEBrick::HTTPUtils.escape_path(req.path + &quot;/&quot;)
+          if req.query_string &amp;&amp; req.query_string.size &gt; 0
+            location &lt;&lt; &quot;?&quot; &lt;&lt; req.query_string
+          end
+          res.set_redirect(HTTPStatus::MovedPermanently, location)
+        end
+      end
+    end
+
+  end
+end
+</pre>
+    </div>

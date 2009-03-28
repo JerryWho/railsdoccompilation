@@ -1,0 +1,2396 @@
+  <div id="fileHeader">
+    <h1>re.c</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/re.c
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Jun 06 05:39:57 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>/**********************************************************************
+
+  re.c -
+
+  $Author: knu $
+  created at: Mon Aug  9 18:24:49 JST 1993
+
+  Copyright (C) 1993-2003 Yukihiro Matsumoto
+
+**********************************************************************/
+
+#include &quot;ruby.h&quot;
+#include &quot;re.h&quot;
+#include &lt;ctype.h&gt;
+
+VALUE rb_eRegexpError;
+
+#define BEG(no) regs-&gt;beg[no]
+#define END(no) regs-&gt;end[no]
+
+#if 'a' == 97   /* it's ascii */
+static const char casetable[] = {
+        '\000', '\001', '\002', '\003', '\004', '\005', '\006', '\007',
+        '\010', '\011', '\012', '\013', '\014', '\015', '\016', '\017',
+        '\020', '\021', '\022', '\023', '\024', '\025', '\026', '\027',
+        '\030', '\031', '\032', '\033', '\034', '\035', '\036', '\037',
+        /* ' '     '!'     '&quot;'     '#'     '$'     '%'     '&amp;'     ''' */
+        '\040', '\041', '\042', '\043', '\044', '\045', '\046', '\047',
+        /* '('     ')'     '*'     '+'     ','     '-'     '.'     '/' */
+        '\050', '\051', '\052', '\053', '\054', '\055', '\056', '\057',
+        /* '0'     '1'     '2'     '3'     '4'     '5'     '6'     '7' */
+        '\060', '\061', '\062', '\063', '\064', '\065', '\066', '\067',
+        /* '8'     '9'     ':'     ';'     '&lt;'     '='     '&gt;'     '?' */
+        '\070', '\071', '\072', '\073', '\074', '\075', '\076', '\077',
+        /* '@'     'A'     'B'     'C'     'D'     'E'     'F'     'G' */
+        '\100', '\141', '\142', '\143', '\144', '\145', '\146', '\147',
+        /* 'H'     'I'     'J'     'K'     'L'     'M'     'N'     'O' */
+        '\150', '\151', '\152', '\153', '\154', '\155', '\156', '\157',
+        /* 'P'     'Q'     'R'     'S'     'T'     'U'     'V'     'W' */
+        '\160', '\161', '\162', '\163', '\164', '\165', '\166', '\167',
+        /* 'X'     'Y'     'Z'     '['     '\'     ']'     '^'     '_' */
+        '\170', '\171', '\172', '\133', '\134', '\135', '\136', '\137',
+        /* '`'     'a'     'b'     'c'     'd'     'e'     'f'     'g' */
+        '\140', '\141', '\142', '\143', '\144', '\145', '\146', '\147',
+        /* 'h'     'i'     'j'     'k'     'l'     'm'     'n'     'o' */
+        '\150', '\151', '\152', '\153', '\154', '\155', '\156', '\157',
+        /* 'p'     'q'     'r'     's'     't'     'u'     'v'     'w' */
+        '\160', '\161', '\162', '\163', '\164', '\165', '\166', '\167',
+        /* 'x'     'y'     'z'     '{'     '|'     '}'     '~' */
+        '\170', '\171', '\172', '\173', '\174', '\175', '\176', '\177',
+        '\200', '\201', '\202', '\203', '\204', '\205', '\206', '\207',
+        '\210', '\211', '\212', '\213', '\214', '\215', '\216', '\217',
+        '\220', '\221', '\222', '\223', '\224', '\225', '\226', '\227',
+        '\230', '\231', '\232', '\233', '\234', '\235', '\236', '\237',
+        '\240', '\241', '\242', '\243', '\244', '\245', '\246', '\247',
+        '\250', '\251', '\252', '\253', '\254', '\255', '\256', '\257',
+        '\260', '\261', '\262', '\263', '\264', '\265', '\266', '\267',
+        '\270', '\271', '\272', '\273', '\274', '\275', '\276', '\277',
+        '\300', '\301', '\302', '\303', '\304', '\305', '\306', '\307',
+        '\310', '\311', '\312', '\313', '\314', '\315', '\316', '\317',
+        '\320', '\321', '\322', '\323', '\324', '\325', '\326', '\327',
+        '\330', '\331', '\332', '\333', '\334', '\335', '\336', '\337',
+        '\340', '\341', '\342', '\343', '\344', '\345', '\346', '\347',
+        '\350', '\351', '\352', '\353', '\354', '\355', '\356', '\357',
+        '\360', '\361', '\362', '\363', '\364', '\365', '\366', '\367',
+        '\370', '\371', '\372', '\373', '\374', '\375', '\376', '\377',
+};
+#else
+# error &gt;&gt;&gt; &quot;You lose. You will need a translation table for your character set.&quot; &lt;&lt;&lt;
+#endif
+
+int
+rb_memcicmp(x, y, len)
+    const void *x, *y;
+    long len;
+{
+    const unsigned char *p1 = x, *p2 = y;
+    int tmp;
+
+    while (len--) {
+	if ((tmp = casetable[(unsigned)*p1++] - casetable[(unsigned)*p2++]) != 0)
+	    return tmp;
+    }
+    return 0;
+}
+
+int
+rb_memcmp(p1, p2, len)
+    const void *p1, *p2;
+    long len;
+{
+    if (!ruby_ignorecase) {
+	return memcmp(p1, p2, len);
+    }
+    return rb_memcicmp(p1, p2, len);
+}
+
+long
+rb_memsearch(x0, m, y0, n)
+    const void *x0, *y0;
+    long m, n;
+{
+    const unsigned char *x = (unsigned char *)x0, *y = (unsigned char *)y0;
+    const unsigned char *s, *e;
+    long i;
+    int d;
+    unsigned long hx, hy;
+
+#define KR_REHASH(a, b, h) (((h) &lt;&lt; 1) - (((unsigned long)(a))&lt;&lt;d) + (b))
+
+    if (m &gt; n) return -1;
+    s = y; e = s + n - m;
+
+    /* Preprocessing */
+    /* computes d = 2^(m-1) with
+       the left-shift operator */
+    d = sizeof(hx) * CHAR_BIT - 1;
+    if (d &gt; m) d = m;
+
+    if (ruby_ignorecase) {
+	if (n == m) {
+	    return rb_memcicmp(x, s, m) == 0 ? 0 : -1;
+	}
+	/* Prepare hash value */
+	for (hy = hx = i = 0; i &lt; d; ++i) {
+	    hx = KR_REHASH(0, casetable[x[i]], hx);
+	    hy = KR_REHASH(0, casetable[s[i]], hy);
+	}
+	/* Searching */
+	while (hx != hy || rb_memcicmp(x, s, m)) {
+	    if (s &gt;= e) return -1;
+	    hy = KR_REHASH(casetable[*s], casetable[*(s+d)], hy);
+	    s++;
+	}
+    }
+    else {
+	if (n == m) {
+	    return memcmp(x, s, m) == 0 ? 0 : -1;
+	}
+	/* Prepare hash value */
+	for (hy = hx = i = 0; i &lt; d; ++i) {
+	    hx = KR_REHASH(0, x[i], hx);
+	    hy = KR_REHASH(0, s[i], hy);
+	}
+	/* Searching */
+	while (hx != hy || memcmp(x, s, m)) {
+	    if (s &gt;= e) return -1;
+	    hy = KR_REHASH(*s, *(s+d), hy);
+	    s++;
+	}
+    }
+    return s-y;
+}
+
+#define REG_LITERAL FL_USER5
+#define REG_CASESTATE  FL_USER0
+#define KCODE_NONE  0
+#define KCODE_EUC   FL_USER1
+#define KCODE_SJIS  FL_USER2
+#define KCODE_UTF8  FL_USER3
+#define KCODE_FIXED FL_USER4
+#define KCODE_MASK (KCODE_EUC|KCODE_SJIS|KCODE_UTF8)
+
+static int reg_kcode = DEFAULT_KCODE;
+
+static void
+kcode_euc(re)
+    struct RRegexp *re;
+{
+    FL_UNSET(re, KCODE_MASK);
+    FL_SET(re, KCODE_EUC);
+    FL_SET(re, KCODE_FIXED);
+}
+
+static void
+kcode_sjis(re)
+    struct RRegexp *re;
+{
+    FL_UNSET(re, KCODE_MASK);
+    FL_SET(re, KCODE_SJIS);
+    FL_SET(re, KCODE_FIXED);
+}
+
+static void
+kcode_utf8(re)
+    struct RRegexp *re;
+{
+    FL_UNSET(re, KCODE_MASK);
+    FL_SET(re, KCODE_UTF8);
+    FL_SET(re, KCODE_FIXED);
+}
+
+static void
+kcode_none(re)
+    struct RRegexp *re;
+{
+    FL_UNSET(re, KCODE_MASK);
+    FL_SET(re, KCODE_FIXED);
+}
+
+static int curr_kcode;
+
+void
+rb_kcode_set_option(re)
+    VALUE re;
+{
+    if (!FL_TEST(re, KCODE_FIXED)) return;
+
+    curr_kcode = RBASIC(re)-&gt;flags &amp; KCODE_MASK;
+    if (reg_kcode == curr_kcode) return;
+    switch (curr_kcode) {
+      case KCODE_NONE:
+	re_mbcinit(MBCTYPE_ASCII);
+	break;
+      case KCODE_EUC:
+	re_mbcinit(MBCTYPE_EUC);
+	break;
+      case KCODE_SJIS:
+	re_mbcinit(MBCTYPE_SJIS);
+	break;
+      case KCODE_UTF8:
+	re_mbcinit(MBCTYPE_UTF8);
+	break;
+    }
+}	  
+
+void
+rb_kcode_reset_option()
+{
+    if (reg_kcode == curr_kcode) return;
+    switch (reg_kcode) {
+      case KCODE_NONE:
+	re_mbcinit(MBCTYPE_ASCII);
+	break;
+      case KCODE_EUC:
+	re_mbcinit(MBCTYPE_EUC);
+	break;
+      case KCODE_SJIS:
+	re_mbcinit(MBCTYPE_SJIS);
+	break;
+      case KCODE_UTF8:
+	re_mbcinit(MBCTYPE_UTF8);
+	break;
+    }
+}
+
+int
+rb_reg_mbclen2(c, re)
+    unsigned int c;
+    VALUE re;
+{
+    int len;
+
+    if (!FL_TEST(re, KCODE_FIXED))
+	return mbclen(c);
+    rb_kcode_set_option(re);
+    len = mbclen(c);
+    rb_kcode_reset_option();
+    return len;
+}
+
+static void
+rb_reg_check(re)
+    VALUE re;
+{
+    if (!RREGEXP(re)-&gt;ptr || !RREGEXP(re)-&gt;str) {
+	rb_raise(rb_eTypeError, &quot;uninitialized Regexp&quot;);
+    }
+}
+
+extern int ruby_in_compile;
+
+static void
+rb_reg_expr_str(str, s, len)
+    VALUE str;
+    const char *s;
+    long len;
+{
+    const char *p, *pend;
+    int need_escape = 0;
+
+    p = s; pend = p + len;
+    while (p&lt;pend) {
+	if (*p == '/' || (!ISPRINT(*p) &amp;&amp; !ismbchar(*p))) {
+	    need_escape = 1;
+	    break;
+	}
+	p += mbclen(*p);
+    }
+    if (!need_escape) {
+	rb_str_buf_cat(str, s, len);
+    }
+    else {
+	p = s; 
+	while (p&lt;pend) {
+	    if (*p == '\\') {
+		int n = mbclen(p[1]) + 1;
+		rb_str_buf_cat(str, p, n);
+		p += n;
+		continue;
+	    }
+	    else if (*p == '/') {
+		char c = '\\';
+		rb_str_buf_cat(str, &amp;c, 1);
+		rb_str_buf_cat(str, p, 1);
+	    }
+	    else if (ismbchar(*p)) {
+	    	rb_str_buf_cat(str, p, mbclen(*p));
+		p += mbclen(*p);
+		continue;
+	    }
+	    else if (ISPRINT(*p)) {
+		rb_str_buf_cat(str, p, 1);
+	    }
+	    else if (!ISSPACE(*p)) {
+		char b[8];
+
+		sprintf(b, &quot;\\%03o&quot;, *p &amp; 0377);
+		rb_str_buf_cat(str, b, 4);
+	    }
+	    else {
+		rb_str_buf_cat(str, p, 1);
+	    }
+	    p++;
+	}
+    }
+}
+
+static VALUE
+rb_reg_desc(s, len, re)
+    const char *s;
+    long len;
+    VALUE re;
+{
+    VALUE str = rb_str_buf_new2(&quot;/&quot;);
+
+    rb_reg_expr_str(str, s, len);
+    rb_str_buf_cat2(str, &quot;/&quot;);
+    if (re) {
+	rb_reg_check(re);
+	if (RREGEXP(re)-&gt;ptr-&gt;options &amp; RE_OPTION_MULTILINE)
+	    rb_str_buf_cat2(str, &quot;m&quot;);
+	if (RREGEXP(re)-&gt;ptr-&gt;options &amp; RE_OPTION_IGNORECASE)
+	    rb_str_buf_cat2(str, &quot;i&quot;);
+	if (RREGEXP(re)-&gt;ptr-&gt;options &amp; RE_OPTION_EXTENDED)
+	    rb_str_buf_cat2(str, &quot;x&quot;);
+	
+	if (FL_TEST(re, KCODE_FIXED)) {
+	    switch ((RBASIC(re)-&gt;flags &amp; KCODE_MASK)) {
+	      case KCODE_NONE:
+		rb_str_buf_cat2(str, &quot;n&quot;);
+		break;
+	      case KCODE_EUC:
+		rb_str_buf_cat2(str, &quot;e&quot;);
+		break;
+	      case KCODE_SJIS:
+		rb_str_buf_cat2(str, &quot;s&quot;);
+		break;
+	      case KCODE_UTF8:
+		rb_str_buf_cat2(str, &quot;u&quot;);
+		break;
+	    }
+	}
+    }
+    OBJ_INFECT(str, re);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.source   =&gt; str
+ *  
+ *  Returns the original string of the pattern.
+ *     
+ *     /ab+c/ix.source   #=&gt; &quot;ab+c&quot;
+ */
+
+static VALUE
+rb_reg_source(re)
+    VALUE re;
+{
+    VALUE str;
+
+    rb_reg_check(re);
+    str = rb_str_new(RREGEXP(re)-&gt;str,RREGEXP(re)-&gt;len);
+    if (OBJ_TAINTED(re)) OBJ_TAINT(str);
+    return str;
+}
+
+/*
+ * call-seq:
+ *    rxp.inspect   =&gt; string
+ *
+ * Produce a nicely formatted string-version of _rxp_. Perhaps surprisingly,
+ * &lt;code&gt;#inspect&lt;/code&gt; actually produces the more natural version of
+ * the string than &lt;code&gt;#to_s&lt;/code&gt;.
+ *
+ *     /ab+c/ix.to_s         #=&gt; /ab+c/ix
+*/
+
+static VALUE
+rb_reg_inspect(re)
+    VALUE re;
+{
+    rb_reg_check(re);
+    return rb_reg_desc(RREGEXP(re)-&gt;str, RREGEXP(re)-&gt;len, re);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.to_s   =&gt; str
+ *  
+ *  Returns a string containing the regular expression and its options (using the
+ *  &lt;code&gt;(?xxx:yyy)&lt;/code&gt; notation. This string can be fed back in to
+ *  &lt;code&gt;Regexp::new&lt;/code&gt; to a regular expression with the same semantics as
+ *  the original. (However, &lt;code&gt;Regexp#==&lt;/code&gt; may not return true when
+ *  comparing the two, as the source of the regular expression itself may
+ *  differ, as the example shows).  &lt;code&gt;Regexp#inspect&lt;/code&gt; produces a
+ *  generally more readable version of &lt;i&gt;rxp&lt;/i&gt;.
+ *     
+ *     r1 = /ab+c/ix         #=&gt; /ab+c/ix
+ *     s1 = r1.to_s          #=&gt; &quot;(?ix-m:ab+c)&quot;
+ *     r2 = Regexp.new(s1)   #=&gt; /(?ix-m:ab+c)/
+ *     r1 == r2              #=&gt; false
+ *     r1.source             #=&gt; &quot;ab+c&quot;
+ *     r2.source             #=&gt; &quot;(?ix-m:ab+c)&quot;
+ */
+
+static VALUE
+rb_reg_to_s(re)
+    VALUE re;
+{
+    int options;
+    const int embeddable = RE_OPTION_MULTILINE|RE_OPTION_IGNORECASE|RE_OPTION_EXTENDED;
+    long len;
+    const char* ptr;
+    VALUE str = rb_str_buf_new2(&quot;(?&quot;);
+
+    rb_reg_check(re);
+
+    options = RREGEXP(re)-&gt;ptr-&gt;options;
+    ptr = RREGEXP(re)-&gt;str;
+    len = RREGEXP(re)-&gt;len;
+  again:
+    if (len &gt;= 4 &amp;&amp; ptr[0] == '(' &amp;&amp; ptr[1] == '?') {
+	int err = 1;
+	ptr += 2;
+	if ((len -= 2) &gt; 0) {
+	    do {
+		if (*ptr == 'm') {
+		    options |= RE_OPTION_MULTILINE;
+		}
+		else if (*ptr == 'i') {
+		    options |= RE_OPTION_IGNORECASE;
+		}
+		else if (*ptr == 'x') {
+		    options |= RE_OPTION_EXTENDED;
+		}
+		else break;
+		++ptr;
+	    } while (--len &gt; 0);
+	}
+	if (len &gt; 1 &amp;&amp; *ptr == '-') {
+	    ++ptr;
+	    --len;
+	    do {
+		if (*ptr == 'm') {
+		    options &amp;= ~RE_OPTION_MULTILINE;
+		}
+		else if (*ptr == 'i') {
+		    options &amp;= ~RE_OPTION_IGNORECASE;
+		}
+		else if (*ptr == 'x') {
+		    options &amp;= ~RE_OPTION_EXTENDED;
+		}
+		else break;
+		++ptr;
+	    } while (--len &gt; 0);
+	}
+	if (*ptr == ')') {
+	    --len;
+	    ++ptr;
+	    goto again;
+	}
+	if (*ptr == ':' &amp;&amp; ptr[len-1] == ')') {
+	    Regexp *rp;
+	    rb_kcode_set_option(re);
+	    rp = ALLOC(Regexp);
+	    MEMZERO((char *)rp, Regexp, 1);
+	    err = re_compile_pattern(++ptr, len -= 2, rp) != 0;
+	    rb_kcode_reset_option();
+	    re_free_pattern(rp);
+	}
+	if (err) {
+	    options = RREGEXP(re)-&gt;ptr-&gt;options;
+	    ptr = RREGEXP(re)-&gt;str;
+	    len = RREGEXP(re)-&gt;len;
+	}
+    }
+
+    if (options &amp; RE_OPTION_MULTILINE) rb_str_buf_cat2(str, &quot;m&quot;);
+    if (options &amp; RE_OPTION_IGNORECASE) rb_str_buf_cat2(str, &quot;i&quot;);
+    if (options &amp; RE_OPTION_EXTENDED) rb_str_buf_cat2(str, &quot;x&quot;);
+
+    if ((options &amp; embeddable) != embeddable) {
+	rb_str_buf_cat2(str, &quot;-&quot;);
+	if (!(options &amp; RE_OPTION_MULTILINE)) rb_str_buf_cat2(str, &quot;m&quot;);
+	if (!(options &amp; RE_OPTION_IGNORECASE)) rb_str_buf_cat2(str, &quot;i&quot;);
+	if (!(options &amp; RE_OPTION_EXTENDED)) rb_str_buf_cat2(str, &quot;x&quot;);
+    }
+
+    rb_str_buf_cat2(str, &quot;:&quot;);
+    rb_reg_expr_str(str, ptr, len);
+    rb_str_buf_cat2(str, &quot;)&quot;);
+
+    OBJ_INFECT(str, re);
+    return str;
+}
+
+static void
+rb_reg_raise(s, len, err, re)
+    const char *s;
+    long len;
+    const char *err;
+    VALUE re;
+{
+    VALUE desc = rb_reg_desc(s, len, re);
+
+    if (ruby_in_compile)
+	rb_compile_error(&quot;%s: %s&quot;, err, RSTRING(desc)-&gt;ptr);
+    else
+	rb_raise(rb_eRegexpError, &quot;%s: %s&quot;, err, RSTRING(desc)-&gt;ptr);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.casefold?   =&gt; true or false
+ *  
+ *  Returns the value of the case-insensitive flag.
+ */
+
+static VALUE
+rb_reg_casefold_p(re)
+    VALUE re;
+{
+    rb_reg_check(re);
+    if (RREGEXP(re)-&gt;ptr-&gt;options &amp; RE_OPTION_IGNORECASE) return Qtrue;
+    return Qfalse;
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.options   =&gt; fixnum
+ *  
+ *  Returns the set of bits corresponding to the options used when creating this
+ *  Regexp (see &lt;code&gt;Regexp::new&lt;/code&gt; for details. Note that additional bits
+ *  may be set in the returned options: these are used internally by the regular
+ *  expression code. These extra bits are ignored if the options are passed to
+ *  &lt;code&gt;Regexp::new&lt;/code&gt;.
+ *     
+ *     Regexp::IGNORECASE                  #=&gt; 1
+ *     Regexp::EXTENDED                    #=&gt; 2
+ *     Regexp::MULTILINE                   #=&gt; 4
+ *     
+ *     /cat/.options                       #=&gt; 128
+ *     /cat/ix.options                     #=&gt; 131
+ *     Regexp.new('cat', true).options     #=&gt; 129
+ *     Regexp.new('cat', 0, 's').options   #=&gt; 384
+ *     
+ *     r = /cat/ix
+ *     Regexp.new(r.source, r.options)     #=&gt; /cat/ix
+ */
+
+static VALUE
+rb_reg_options_m(re)
+    VALUE re;
+{
+    int options = rb_reg_options(re);
+    return INT2NUM(options);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.kcode   =&gt; str
+ *  
+ *  Returns the character set code for the regexp.
+ */
+
+static VALUE
+rb_reg_kcode_m(re)
+    VALUE re;
+{
+    const char *kcode;
+
+    if (FL_TEST(re, KCODE_FIXED)) {
+	switch (RBASIC(re)-&gt;flags &amp; KCODE_MASK) {
+	  case KCODE_NONE:
+	    kcode = &quot;none&quot;; break;
+	  case KCODE_EUC:
+	    kcode = &quot;euc&quot;; break;
+	  case KCODE_SJIS:
+	    kcode = &quot;sjis&quot;; break;
+	  case KCODE_UTF8:
+	    kcode = &quot;utf8&quot;; break;
+	  default:
+	    rb_bug(&quot;unknown kcode - should not happen&quot;);
+	    break;
+	}
+	return rb_str_new2(kcode);
+    }
+    return Qnil;
+}
+
+static Regexp*
+make_regexp(s, len, flags)
+    const char *s;
+    long len;
+    int flags;
+{
+    Regexp *rp;
+    const char *err;
+
+    /* Handle escaped characters first. */
+
+    /* Build a copy of the string (in dest) with the
+       escaped characters translated,  and generate the regex
+       from that.
+    */
+
+    rp = ALLOC(Regexp);
+    MEMZERO((char *)rp, Regexp, 1);
+    rp-&gt;buffer = ALLOC_N(char, 16);
+    rp-&gt;allocated = 16;
+    rp-&gt;fastmap = ALLOC_N(char, 256);
+    if (flags) {
+	rp-&gt;options = flags;
+    }
+    err = re_compile_pattern(s, len, rp);
+
+    if (err != NULL) {
+	re_free_pattern(rp);
+	rb_reg_raise(s, len, err, 0);
+	return 0;
+    }
+    return rp;
+}
+
+
+/*
+ *  Document-class: MatchData
+ *
+ *  &lt;code&gt;MatchData&lt;/code&gt; is the type of the special variable &lt;code&gt;$~&lt;/code&gt;,
+ *  and is the type of the object returned by &lt;code&gt;Regexp#match&lt;/code&gt; and
+ *  &lt;code&gt;Regexp#last_match&lt;/code&gt;. It encapsulates all the results of a pattern
+ *  match, results normally accessed through the special variables
+ *  &lt;code&gt;$&amp;&lt;/code&gt;, &lt;code&gt;$'&lt;/code&gt;, &lt;code&gt;$`&lt;/code&gt;, &lt;code&gt;$1&lt;/code&gt;,
+ *  &lt;code&gt;$2&lt;/code&gt;, and so on. &lt;code&gt;Matchdata&lt;/code&gt; is also known as
+ *  &lt;code&gt;MatchingData&lt;/code&gt;.
+ *
+ */
+
+VALUE rb_cMatch;
+
+static VALUE match_alloc _((VALUE));
+static VALUE
+match_alloc(klass)
+    VALUE klass;
+{
+    NEWOBJ(match, struct RMatch);
+    OBJSETUP(match, klass, T_MATCH);
+
+    match-&gt;str = 0;
+    match-&gt;regs = 0;
+    match-&gt;regs = ALLOC(struct re_registers);
+    MEMZERO(match-&gt;regs, struct re_registers, 1);
+
+    return (VALUE)match;
+}
+
+/* :nodoc: */
+static VALUE
+match_init_copy(obj, orig)
+    VALUE obj, orig;
+{
+    if (obj == orig) return obj;
+
+    if (!rb_obj_is_instance_of(orig, rb_obj_class(obj))) {
+	rb_raise(rb_eTypeError, &quot;wrong argument class&quot;);
+    }
+    RMATCH(obj)-&gt;str = RMATCH(orig)-&gt;str;
+    re_free_registers(RMATCH(obj)-&gt;regs);
+    RMATCH(obj)-&gt;regs-&gt;allocated = 0;
+    re_copy_registers(RMATCH(obj)-&gt;regs, RMATCH(orig)-&gt;regs);
+
+    return obj;
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.length   =&gt; integer
+ *     mtch.size     =&gt; integer
+ *  
+ *  Returns the number of elements in the match array.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.length   #=&gt; 5
+ *     m.size     #=&gt; 5
+ */
+
+static VALUE
+match_size(match)
+    VALUE match;
+{
+    return INT2FIX(RMATCH(match)-&gt;regs-&gt;num_regs);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.offset(n)   =&gt; array
+ *  
+ *  Returns a two-element array containing the beginning and ending offsets of
+ *  the &lt;em&gt;n&lt;/em&gt;th match.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.offset(0)   #=&gt; [1, 7]
+ *     m.offset(4)   #=&gt; [6, 7]
+ */
+
+static VALUE
+match_offset(match, n)
+    VALUE match, n;
+{
+    int i = NUM2INT(n);
+
+    if (i &lt; 0 || RMATCH(match)-&gt;regs-&gt;num_regs &lt;= i)
+	rb_raise(rb_eIndexError, &quot;index %d out of matches&quot;, i);
+
+    if (RMATCH(match)-&gt;regs-&gt;beg[i] &lt; 0)
+	return rb_assoc_new(Qnil, Qnil);
+
+    return rb_assoc_new(INT2FIX(RMATCH(match)-&gt;regs-&gt;beg[i]),
+			INT2FIX(RMATCH(match)-&gt;regs-&gt;end[i]));
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.begin(n)   =&gt; integer
+ *  
+ *  Returns the offset of the start of the &lt;em&gt;n&lt;/em&gt;th element of the match
+ *  array in the string.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.begin(0)   #=&gt; 1
+ *     m.begin(2)   #=&gt; 2
+ */
+
+static VALUE
+match_begin(match, n)
+    VALUE match, n;
+{
+    int i = NUM2INT(n);
+
+    if (i &lt; 0 || RMATCH(match)-&gt;regs-&gt;num_regs &lt;= i)
+	rb_raise(rb_eIndexError, &quot;index %d out of matches&quot;, i);
+
+    if (RMATCH(match)-&gt;regs-&gt;beg[i] &lt; 0)
+	return Qnil;
+
+    return INT2FIX(RMATCH(match)-&gt;regs-&gt;beg[i]);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.end(n)   =&gt; integer
+ *  
+ *  Returns the offset of the character immediately following the end of the
+ *  &lt;em&gt;n&lt;/em&gt;th element of the match array in the string.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.end(0)   #=&gt; 7
+ *     m.end(2)   #=&gt; 3
+ */
+
+static VALUE
+match_end(match, n)
+    VALUE match, n;
+{
+    int i = NUM2INT(n);
+
+    if (i &lt; 0 || RMATCH(match)-&gt;regs-&gt;num_regs &lt;= i)
+	rb_raise(rb_eIndexError, &quot;index %d out of matches&quot;, i);
+
+    if (RMATCH(match)-&gt;regs-&gt;beg[i] &lt; 0)
+	return Qnil;
+
+    return INT2FIX(RMATCH(match)-&gt;regs-&gt;end[i]);
+}
+
+#define MATCH_BUSY FL_USER2
+
+void
+rb_match_busy(match)
+    VALUE match;
+{
+    FL_SET(match, MATCH_BUSY);
+}
+
+int ruby_ignorecase;
+static int may_need_recompile;
+
+static void
+rb_reg_prepare_re(re)
+    VALUE re;
+{
+    int need_recompile = 0;
+    int state;
+
+    rb_reg_check(re);
+    state = FL_TEST(re, REG_CASESTATE);
+    /* ignorecase status */
+    if (ruby_ignorecase &amp;&amp; !state) {
+	FL_SET(re, REG_CASESTATE);
+	RREGEXP(re)-&gt;ptr-&gt;options |= RE_OPTION_IGNORECASE;
+	need_recompile = 1;
+    }
+    if (!ruby_ignorecase &amp;&amp; state) {
+	FL_UNSET(re, REG_CASESTATE);
+	RREGEXP(re)-&gt;ptr-&gt;options &amp;= ~RE_OPTION_IGNORECASE;
+	need_recompile = 1;
+    }
+
+    if (!FL_TEST(re, KCODE_FIXED) &amp;&amp;
+	(RBASIC(re)-&gt;flags &amp; KCODE_MASK) != reg_kcode) {
+	need_recompile = 1;
+	RBASIC(re)-&gt;flags &amp;= ~KCODE_MASK;
+	RBASIC(re)-&gt;flags |= reg_kcode;
+    }
+
+    if (need_recompile) {
+	const char *err;
+
+	if (FL_TEST(re, KCODE_FIXED))
+	    rb_kcode_set_option(re);
+	rb_reg_check(re);
+	RREGEXP(re)-&gt;ptr-&gt;fastmap_accurate = 0;
+	err = re_compile_pattern(RREGEXP(re)-&gt;str, RREGEXP(re)-&gt;len, RREGEXP(re)-&gt;ptr);
+	if (err != NULL) {
+	    rb_reg_raise(RREGEXP(re)-&gt;str, RREGEXP(re)-&gt;len, err, re);
+	}
+    }
+}
+
+long
+rb_reg_adjust_startpos(re, str, pos, reverse)
+    VALUE re, str;
+    long pos, reverse;
+{
+    long range;
+
+    rb_reg_check(re);
+    if (may_need_recompile) rb_reg_prepare_re(re);
+
+    if (FL_TEST(re, KCODE_FIXED))
+	rb_kcode_set_option(re);
+    else if (reg_kcode != curr_kcode)
+	rb_kcode_reset_option();
+
+    if (reverse) {
+	range = -pos;
+    }
+    else {
+	range = RSTRING(str)-&gt;len - pos;
+    }
+    return re_adjust_startpos(RREGEXP(re)-&gt;ptr,
+			      RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len,
+			      pos, range);
+}
+
+long
+rb_reg_search(re, str, pos, reverse)
+    VALUE re, str;
+    long pos, reverse;
+{
+    long result;
+    VALUE match;
+    struct re_registers regs;
+    long range;
+
+    if (pos &gt; RSTRING(str)-&gt;len || pos &lt; 0) {
+	rb_backref_set(Qnil);
+	return -1;
+    }
+
+    rb_reg_check(re);
+    if (may_need_recompile) rb_reg_prepare_re(re);
+
+    if (FL_TEST(re, KCODE_FIXED))
+	rb_kcode_set_option(re);
+    else if (reg_kcode != curr_kcode)
+	rb_kcode_reset_option();
+
+    if (reverse) {
+	range = -pos;
+    }
+    else {
+	range = RSTRING(str)-&gt;len - pos;
+    }
+    MEMZERO(&amp;regs, struct re_registers, 1);
+    result = re_search(RREGEXP(re)-&gt;ptr,RSTRING(str)-&gt;ptr,RSTRING(str)-&gt;len,
+		       pos, range, &amp;regs);
+
+    if (FL_TEST(re, KCODE_FIXED))
+	rb_kcode_reset_option();
+
+    if (result == -2) {
+	rb_reg_raise(RREGEXP(re)-&gt;str, RREGEXP(re)-&gt;len,
+		     &quot;Stack overflow in regexp matcher&quot;, re);
+    }
+
+    if (result &lt; 0) {
+	re_free_registers(&amp;regs);
+	rb_backref_set(Qnil);
+	return result;
+    }
+
+    match = rb_backref_get();
+    if (NIL_P(match) || FL_TEST(match, MATCH_BUSY)) {
+	match = match_alloc(rb_cMatch);
+    }
+    else {
+	if (rb_safe_level() &gt;= 3) 
+	    OBJ_TAINT(match);
+	else
+	    FL_UNSET(match, FL_TAINT);
+    }
+
+    re_copy_registers(RMATCH(match)-&gt;regs, &amp;regs);
+    re_free_registers(&amp;regs);
+    RMATCH(match)-&gt;str = rb_str_new4(str);
+    rb_backref_set(match);
+
+    OBJ_INFECT(match, re);
+    OBJ_INFECT(match, str);
+    return result;
+}
+
+VALUE
+rb_reg_nth_defined(nth, match)
+    int nth;
+    VALUE match;
+{
+    if (NIL_P(match)) return Qnil;
+    if (nth &gt;= RMATCH(match)-&gt;regs-&gt;num_regs) {
+	return Qnil;
+    }
+    if (nth &lt; 0) {
+	nth += RMATCH(match)-&gt;regs-&gt;num_regs;
+	if (nth &lt;= 0) return Qnil;
+    }
+    if (RMATCH(match)-&gt;BEG(nth) == -1) return Qfalse;
+    return Qtrue;
+}
+
+VALUE
+rb_reg_nth_match(nth, match)
+    int nth;
+    VALUE match;
+{
+    VALUE str;
+    long start, end, len;
+
+    if (NIL_P(match)) return Qnil;
+    if (nth &gt;= RMATCH(match)-&gt;regs-&gt;num_regs) {
+	return Qnil;
+    }
+    if (nth &lt; 0) {
+	nth += RMATCH(match)-&gt;regs-&gt;num_regs;
+	if (nth &lt;= 0) return Qnil;
+    }
+    start = RMATCH(match)-&gt;BEG(nth);
+    if (start == -1) return Qnil;
+    end = RMATCH(match)-&gt;END(nth);
+    len = end - start;
+    str = rb_str_substr(RMATCH(match)-&gt;str, start, len);
+    OBJ_INFECT(str, match);
+    return str;
+}
+
+VALUE
+rb_reg_last_match(match)
+    VALUE match;
+{
+    return rb_reg_nth_match(0, match);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.pre_match   =&gt; str
+ *  
+ *  Returns the portion of the original string before the current match.
+ *  Equivalent to the special variable &lt;code&gt;$`&lt;/code&gt;.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.pre_match   #=&gt; &quot;T&quot;
+ */
+
+VALUE
+rb_reg_match_pre(match)
+    VALUE match;
+{
+    VALUE str;
+
+    if (NIL_P(match)) return Qnil;
+    if (RMATCH(match)-&gt;BEG(0) == -1) return Qnil;
+    str = rb_str_substr(RMATCH(match)-&gt;str, 0, RMATCH(match)-&gt;BEG(0));
+    if (OBJ_TAINTED(match)) OBJ_TAINT(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.post_match   =&gt; str
+ *  
+ *  Returns the portion of the original string after the current match.
+ *  Equivalent to the special variable &lt;code&gt;$'&lt;/code&gt;.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138: The Movie&quot;)
+ *     m.post_match   #=&gt; &quot;: The Movie&quot;
+ */
+
+VALUE
+rb_reg_match_post(match)
+    VALUE match;
+{
+    VALUE str;
+    long pos;
+
+    if (NIL_P(match)) return Qnil;
+    if (RMATCH(match)-&gt;BEG(0) == -1) return Qnil;
+    str = RMATCH(match)-&gt;str;
+    pos = RMATCH(match)-&gt;END(0);
+    str = rb_str_substr(str, pos, RSTRING(str)-&gt;len - pos);
+    if (OBJ_TAINTED(match)) OBJ_TAINT(str);
+    return str;
+}
+
+VALUE
+rb_reg_match_last(match)
+    VALUE match;
+{
+    int i;
+
+    if (NIL_P(match)) return Qnil;
+    if (RMATCH(match)-&gt;BEG(0) == -1) return Qnil;
+
+    for (i=RMATCH(match)-&gt;regs-&gt;num_regs-1; RMATCH(match)-&gt;BEG(i) == -1 &amp;&amp; i &gt; 0; i--)
+	;
+    if (i == 0) return Qnil;
+    return rb_reg_nth_match(i, match);
+}
+
+static VALUE
+last_match_getter()
+{
+    return rb_reg_last_match(rb_backref_get());
+}
+
+static VALUE
+prematch_getter()
+{
+    return rb_reg_match_pre(rb_backref_get());
+}
+
+static VALUE
+postmatch_getter()
+{
+    return rb_reg_match_post(rb_backref_get());
+}
+
+static VALUE
+last_paren_match_getter()
+{
+    return rb_reg_match_last(rb_backref_get());
+}
+
+static VALUE
+match_array(match, start)
+    VALUE match;
+    int start;
+{
+    struct re_registers *regs = RMATCH(match)-&gt;regs;
+    VALUE ary = rb_ary_new2(regs-&gt;num_regs);
+    VALUE target = RMATCH(match)-&gt;str;
+    int i;
+    int taint = OBJ_TAINTED(match);
+    
+    for (i=start; i&lt;regs-&gt;num_regs; i++) {
+	if (regs-&gt;beg[i] == -1) {
+	    rb_ary_push(ary, Qnil);
+	}
+	else {
+	    VALUE str = rb_str_substr(target, regs-&gt;beg[i], regs-&gt;end[i]-regs-&gt;beg[i]);
+	    if (taint) OBJ_TAINT(str);
+	    rb_ary_push(ary, str);
+	}
+    }
+    return ary;
+}
+
+
+/* [MG]:FIXME: I put parens around the /.../.match() in the first line of the
+   second example to prevent the '*' followed by a '/' from ending the
+   comment. */
+
+/*
+ *  call-seq:
+ *     mtch.to_a   =&gt; anArray
+ *  
+ *  Returns the array of matches.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.to_a   #=&gt; [&quot;HX1138&quot;, &quot;H&quot;, &quot;X&quot;, &quot;113&quot;, &quot;8&quot;]
+ *     
+ *  Because &lt;code&gt;to_a&lt;/code&gt; is called when expanding
+ *  &lt;code&gt;*&lt;/code&gt;&lt;em&gt;variable&lt;/em&gt;, there's a useful assignment
+ *  shortcut for extracting matched fields. This is slightly slower than
+ *  accessing the fields directly (as an intermediate array is
+ *  generated).
+ *     
+ *     all,f1,f2,f3 = *(/(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;))
+ *     all   #=&gt; &quot;HX1138&quot;
+ *     f1    #=&gt; &quot;H&quot;
+ *     f2    #=&gt; &quot;X&quot;
+ *     f3    #=&gt; &quot;113&quot;
+ */
+
+static VALUE
+match_to_a(match)
+    VALUE match;
+{
+    return match_array(match, 0);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.captures   =&gt; array
+ *
+ *  Returns the array of captures; equivalent to &lt;code&gt;mtch.to_a[1..-1]&lt;/code&gt;.
+ *
+ *     f1,f2,f3,f4 = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;).captures
+ *     f1    #=&gt; &quot;H&quot;
+ *     f2    #=&gt; &quot;X&quot;
+ *     f3    #=&gt; &quot;113&quot;
+ *     f4    #=&gt; &quot;8&quot;
+ */
+static VALUE
+match_captures(match)
+    VALUE match;
+{
+    return match_array(match, 1);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch[i]               =&gt; obj
+ *     mtch[start, length]   =&gt; array
+ *     mtch[range]           =&gt; array
+ *  
+ *  Match Reference---&lt;code&gt;MatchData&lt;/code&gt; acts as an array, and may be
+ *  accessed using the normal array indexing techniques.  &lt;i&gt;mtch&lt;/i&gt;[0] is
+ *  equivalent to the special variable &lt;code&gt;$&amp;&lt;/code&gt;, and returns the entire
+ *  matched string.  &lt;i&gt;mtch&lt;/i&gt;[1], &lt;i&gt;mtch&lt;/i&gt;[2], and so on return the values
+ *  of the matched backreferences (portions of the pattern between parentheses).
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m[0]       #=&gt; &quot;HX1138&quot;
+ *     m[1, 2]    #=&gt; [&quot;H&quot;, &quot;X&quot;]
+ *     m[1..3]    #=&gt; [&quot;H&quot;, &quot;X&quot;, &quot;113&quot;]
+ *     m[-3, 2]   #=&gt; [&quot;X&quot;, &quot;113&quot;]
+ */
+
+static VALUE
+match_aref(argc, argv, match)
+    int argc;
+    VALUE *argv;
+    VALUE match;
+{
+    VALUE idx, rest;
+
+    rb_scan_args(argc, argv, &quot;11&quot;, &amp;idx, &amp;rest);
+
+    if (!NIL_P(rest) || !FIXNUM_P(idx) || FIX2INT(idx) &lt; 0) {
+	return rb_ary_aref(argc, argv, match_to_a(match));
+    }
+    return rb_reg_nth_match(FIX2INT(idx), match);
+}
+
+static VALUE match_entry _((VALUE, long));
+static VALUE
+match_entry(match, n)
+    VALUE match;
+    long n;
+{
+    return rb_reg_nth_match(n, match);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.values_at([index]*)   =&gt; array
+ *  
+ *  Uses each &lt;i&gt;index&lt;/i&gt; to access the matching values, returning an array of
+ *  the corresponding matches.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138: The Movie&quot;)
+ *     m.to_a               #=&gt; [&quot;HX1138&quot;, &quot;H&quot;, &quot;X&quot;, &quot;113&quot;, &quot;8&quot;]
+ *     m.values_at(0, 2, -2)   #=&gt; [&quot;HX1138&quot;, &quot;X&quot;, &quot;113&quot;]
+ */
+
+static VALUE
+match_values_at(argc, argv, match)
+    int argc;
+    VALUE *argv;
+    VALUE match;
+{
+    return rb_values_at(match, RMATCH(match)-&gt;regs-&gt;num_regs, argc, argv, match_entry);
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.select{|obj| block}   =&gt; array
+ *  
+ *  Returns an array containing match strings for which &lt;em&gt;block&lt;/em&gt;
+ *  gives &lt;code&gt;true&lt;/code&gt;.  MatchData#select will be removed from Ruby 1.9.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138: The Movie&quot;)
+ *     p m.select{|x| /X/ =~ x}   #=&gt; [&quot;HX1138&quot;, &quot;X&quot;]
+ */
+
+static VALUE
+match_select(argc, argv, match)
+    int argc;
+    VALUE *argv;
+    VALUE match;
+{
+    if (argc &gt; 0) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments (%d for 0)&quot;, argc);
+    }
+    else {
+	struct re_registers *regs = RMATCH(match)-&gt;regs;
+	VALUE target = RMATCH(match)-&gt;str;
+	VALUE result = rb_ary_new();
+	int i;
+	int taint = OBJ_TAINTED(match);
+
+	for (i=0; i&lt;regs-&gt;num_regs; i++) {
+	    VALUE str = rb_str_substr(target, regs-&gt;beg[i], regs-&gt;end[i]-regs-&gt;beg[i]);
+	    if (taint) OBJ_TAINT(str);
+	    if (RTEST(rb_yield(str))) {
+		rb_ary_push(result, str);
+	    }
+	}
+	return result;
+    }
+}
+
+
+
+/*
+ *  call-seq:
+ *     mtch.to_s   =&gt; str
+ *  
+ *  Returns the entire matched string.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.to_s   #=&gt; &quot;HX1138&quot;
+ */
+
+static VALUE
+match_to_s(match)
+    VALUE match;
+{
+    VALUE str = rb_reg_last_match(match);
+
+    if (NIL_P(str)) str = rb_str_new(0,0);
+    if (OBJ_TAINTED(match)) OBJ_TAINT(str);
+    if (OBJ_TAINTED(RMATCH(match)-&gt;str)) OBJ_TAINT(str);
+    return str;
+}
+
+
+/*
+ *  call-seq:
+ *     mtch.string   =&gt; str
+ *  
+ *  Returns a frozen copy of the string passed in to &lt;code&gt;match&lt;/code&gt;.
+ *     
+ *     m = /(.)(.)(\d+)(\d)/.match(&quot;THX1138.&quot;)
+ *     m.string   #=&gt; &quot;THX1138.&quot;
+ */
+
+static VALUE
+match_string(match)
+    VALUE match;
+{
+    return RMATCH(match)-&gt;str;	/* str is frozen */
+}
+
+/*
+ * call-seq:
+ *    mtch.inspect   =&gt; str
+ *
+ * Returns a printable version of &lt;i&gt;mtch&lt;/i&gt;.
+ *
+ *     puts /.$/.match(&quot;foo&quot;).inspect
+ *     #=&gt; #&lt;MatchData &quot;o&quot;&gt;
+ *
+ *     puts /(.)(.)(.)/.match(&quot;foo&quot;).inspect
+ *     #=&gt; #&lt;MatchData &quot;foo&quot; 1:&quot;f&quot; 2:&quot;o&quot; 3:&quot;o&quot;&gt;
+ *
+ *     puts /(.)(.)?(.)/.match(&quot;fo&quot;).inspect
+ *     #=&gt; #&lt;MatchData &quot;fo&quot; 1:&quot;f&quot; 2:nil 3:&quot;o&quot;&gt;
+ *
+ */
+
+static VALUE
+match_inspect(VALUE match)
+{
+    const char *cname = rb_obj_classname(match);
+    VALUE str;
+    int i;
+    struct re_registers *regs = RMATCH(match)-&gt;regs;
+    int num_regs = regs-&gt;num_regs;
+
+    str = rb_str_buf_new2(&quot;#&lt;&quot;);
+    rb_str_buf_cat2(str, cname);
+
+    for (i = 0; i &lt; num_regs; i++) {
+        VALUE v;
+        rb_str_buf_cat2(str, &quot; &quot;);
+        if (0 &lt; i) {
+            char buf[sizeof(i)*3+1];
+            snprintf(buf, sizeof(buf), &quot;%d&quot;, i);
+            rb_str_buf_cat2(str, buf);
+            rb_str_buf_cat2(str, &quot;:&quot;);
+        }
+        v = rb_reg_nth_match(i, match);
+        if (v == Qnil)
+            rb_str_buf_cat2(str, &quot;nil&quot;);
+        else
+            rb_str_buf_append(str, rb_str_inspect(v));
+    }
+    rb_str_buf_cat2(str, &quot;&gt;&quot;);
+
+    return str;
+}
+
+VALUE rb_cRegexp;
+
+static void
+rb_reg_initialize(obj, s, len, options)
+    VALUE obj;
+    const char *s;
+    long len;
+    int options;		/* CASEFOLD  = 1 */
+				/* EXTENDED  = 2 */
+				/* MULTILINE = 4 */
+				/* CODE_NONE = 16 */
+				/* CODE_EUC  = 32 */
+				/* CODE_SJIS = 48 */
+				/* CODE_UTF8 = 64 */
+{
+    struct RRegexp *re = RREGEXP(obj);
+
+    if (!OBJ_TAINTED(obj) &amp;&amp; rb_safe_level() &gt;= 4)
+	rb_raise(rb_eSecurityError, &quot;Insecure: can't modify regexp&quot;);
+    rb_check_frozen(obj);
+    if (FL_TEST(obj, REG_LITERAL))
+	rb_raise(rb_eSecurityError, &quot;can't modify literal regexp&quot;);
+    if (re-&gt;ptr) re_free_pattern(re-&gt;ptr);
+    if (re-&gt;str) free(re-&gt;str);
+    re-&gt;ptr = 0;
+    re-&gt;str = 0;
+
+    switch (options &amp; ~0xf) {
+      case 0:
+      default:
+	FL_SET(re, reg_kcode);
+	break;
+      case 16:
+	kcode_none(re);
+	break;
+      case 32:
+	kcode_euc(re);
+	break;
+      case 48:
+	kcode_sjis(re);
+	break;
+      case 64:
+	kcode_utf8(re);
+	break;
+    }
+
+    if (options &amp; ~0xf) {
+	rb_kcode_set_option((VALUE)re);
+    }
+    if (ruby_ignorecase) {
+	options |= RE_OPTION_IGNORECASE;
+	FL_SET(re, REG_CASESTATE);
+    }
+    re-&gt;ptr = make_regexp(s, len, options &amp; 0xf);
+    re-&gt;str = ALLOC_N(char, len+1);
+    memcpy(re-&gt;str, s, len);
+    re-&gt;str[len] = '\0';
+    re-&gt;len = len;
+    if (options &amp; ~0xf) {
+	rb_kcode_reset_option();
+    }
+    if (ruby_in_compile) FL_SET(obj, REG_LITERAL);
+}
+
+static VALUE rb_reg_s_alloc _((VALUE));
+static VALUE
+rb_reg_s_alloc(klass)
+    VALUE klass;
+{
+    NEWOBJ(re, struct RRegexp);
+    OBJSETUP(re, klass, T_REGEXP);
+
+    re-&gt;ptr = 0;
+    re-&gt;len = 0;
+    re-&gt;str = 0;
+
+    return (VALUE)re;
+}
+
+VALUE
+rb_reg_new(s, len, options)
+    const char *s;
+    long len;
+    int options;
+{
+    VALUE re = rb_reg_s_alloc(rb_cRegexp);
+
+    rb_reg_initialize(re, s, len, options);
+    return (VALUE)re;
+}
+
+static int case_cache;
+static int kcode_cache;
+static VALUE reg_cache;
+
+VALUE
+rb_reg_regcomp(str)
+    VALUE str;
+{
+    volatile VALUE save_str = str;
+    if (reg_cache &amp;&amp; RREGEXP(reg_cache)-&gt;len == RSTRING(str)-&gt;len
+	&amp;&amp; case_cache == ruby_ignorecase
+	&amp;&amp; kcode_cache == reg_kcode
+	&amp;&amp; memcmp(RREGEXP(reg_cache)-&gt;str, RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len) == 0)
+	return reg_cache;
+
+    case_cache = ruby_ignorecase;
+    kcode_cache = reg_kcode;
+    reg_cache = rb_reg_new(RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len, ruby_ignorecase);
+    RB_GC_GUARD(save_str);
+    return reg_cache;
+}
+
+static int
+rb_reg_cur_kcode(re)
+    VALUE re;
+{
+    if (FL_TEST(re, KCODE_FIXED)) {
+	return RBASIC(re)-&gt;flags &amp; KCODE_MASK;
+    }
+    return 0;
+}
+
+/*
+ * call-seq:
+ *   rxp.hash   =&gt; fixnum
+ *
+ * Produce a hash based on the text and options of this regular expression.
+ */
+
+static VALUE
+rb_reg_hash(re)
+    VALUE re;
+{
+    int hashval, len;
+    char *p;
+
+    rb_reg_check(re);
+    hashval = RREGEXP(re)-&gt;ptr-&gt;options;
+    len = RREGEXP(re)-&gt;len;
+    p  = RREGEXP(re)-&gt;str;
+    while (len--) {
+	hashval = hashval * 33 + *p++;
+    }
+    hashval = hashval + (hashval&gt;&gt;5);
+    
+    return INT2FIX(hashval);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp == other_rxp      =&gt; true or false
+ *     rxp.eql?(other_rxp)   =&gt; true or false
+ *  
+ *  Equality---Two regexps are equal if their patterns are identical, they have
+ *  the same character set code, and their &lt;code&gt;casefold?&lt;/code&gt; values are the
+ *  same.
+ *     
+ *     /abc/  == /abc/x   #=&gt; false
+ *     /abc/  == /abc/i   #=&gt; false
+ *     /abc/u == /abc/n   #=&gt; false
+ */
+
+static VALUE
+rb_reg_equal(re1, re2)
+    VALUE re1, re2;
+{
+    if (re1 == re2) return Qtrue;
+    if (TYPE(re2) != T_REGEXP) return Qfalse;
+    rb_reg_check(re1); rb_reg_check(re2);
+    if (RREGEXP(re1)-&gt;len != RREGEXP(re2)-&gt;len) return Qfalse;
+    if (memcmp(RREGEXP(re1)-&gt;str, RREGEXP(re2)-&gt;str, RREGEXP(re1)-&gt;len) == 0 &amp;&amp;
+	rb_reg_cur_kcode(re1) == rb_reg_cur_kcode(re2) &amp;&amp;
+	RREGEXP(re1)-&gt;ptr-&gt;options == RREGEXP(re2)-&gt;ptr-&gt;options) {
+	return Qtrue;
+    }
+    return Qfalse;
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.match(str)   =&gt; matchdata or nil
+ *  
+ *  Returns a &lt;code&gt;MatchData&lt;/code&gt; object describing the match, or
+ *  &lt;code&gt;nil&lt;/code&gt; if there was no match. This is equivalent to retrieving the
+ *  value of the special variable &lt;code&gt;$~&lt;/code&gt; following a normal match.
+ *     
+ *     /(.)(.)(.)/.match(&quot;abc&quot;)[2]   #=&gt; &quot;b&quot;
+ */
+
+VALUE
+rb_reg_match(re, str)
+    VALUE re, str;
+{
+    long start;
+
+    if (NIL_P(str)) {
+	rb_backref_set(Qnil);
+	return Qnil;
+    }
+    StringValue(str);
+    start = rb_reg_search(re, str, 0, 0);
+    if (start &lt; 0) {
+	return Qnil;
+    }
+    return LONG2FIX(start);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp === str   =&gt; true or false
+ *  
+ *  Case Equality---Synonym for &lt;code&gt;Regexp#=~&lt;/code&gt; used in case statements.
+ *     
+ *     a = &quot;HELLO&quot;
+ *     case a
+ *     when /^[a-z]*$/; print &quot;Lower case\n&quot;
+ *     when /^[A-Z]*$/; print &quot;Upper case\n&quot;
+ *     else;            print &quot;Mixed case\n&quot;
+ *     end
+ *     
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *     
+ *     Upper case
+ */
+
+VALUE
+rb_reg_eqq(re, str)
+    VALUE re, str;
+{
+    long start;
+
+    if (TYPE(str) != T_STRING) {
+	str = rb_check_string_type(str);
+	if (NIL_P(str)) {
+	    rb_backref_set(Qnil);
+	    return Qfalse;
+	}
+    }
+    StringValue(str);
+    start = rb_reg_search(re, str, 0, 0);
+    if (start &lt; 0) {
+	return Qfalse;
+    }
+    return Qtrue;
+}
+
+
+/*
+ *  call-seq:
+ *     ~ rxp   =&gt; integer or nil
+ *  
+ *  Match---Matches &lt;i&gt;rxp&lt;/i&gt; against the contents of &lt;code&gt;$_&lt;/code&gt;.
+ *  Equivalent to &lt;code&gt;&lt;i&gt;rxp&lt;/i&gt; =~ $_&lt;/code&gt;.
+ *     
+ *     $_ = &quot;input data&quot;
+ *     ~ /at/   #=&gt; 7
+ */
+
+VALUE
+rb_reg_match2(re)
+    VALUE re;
+{
+    long start;
+    VALUE line = rb_lastline_get();
+
+    if (TYPE(line) != T_STRING) {
+	rb_backref_set(Qnil);
+	return Qnil;
+    }
+
+    start = rb_reg_search(re, line, 0, 0);
+    if (start &lt; 0) {
+	return Qnil;
+    }
+    return LONG2FIX(start);
+}
+
+
+/*
+ *  call-seq:
+ *     rxp.match(str)   =&gt; matchdata or nil
+ *  
+ *  Returns a &lt;code&gt;MatchData&lt;/code&gt; object describing the match, or
+ *  &lt;code&gt;nil&lt;/code&gt; if there was no match. This is equivalent to retrieving the
+ *  value of the special variable &lt;code&gt;$~&lt;/code&gt; following a normal match.
+ *     
+ *     /(.)(.)(.)/.match(&quot;abc&quot;)[2]   #=&gt; &quot;b&quot;
+ */
+
+static VALUE
+rb_reg_match_m(re, str)
+    VALUE re, str;
+{
+    VALUE result = rb_reg_match(re, str);
+
+    if (NIL_P(result)) return Qnil;
+    result = rb_backref_get();
+    rb_match_busy(result);
+    return result;
+}
+
+/*
+ * Document-method: compile
+ *
+ * Synonym for &lt;code&gt;Regexp.new&lt;/code&gt;
+ */
+
+/*
+ *  call-seq:
+ *     Regexp.new(string [, options [, lang]])       =&gt; regexp
+ *     Regexp.new(regexp)                            =&gt; regexp
+ *     Regexp.compile(string [, options [, lang]])   =&gt; regexp
+ *     Regexp.compile(regexp)                        =&gt; regexp
+ *  
+ *  Constructs a new regular expression from &lt;i&gt;pattern&lt;/i&gt;, which can be either
+ *  a &lt;code&gt;String&lt;/code&gt; or a &lt;code&gt;Regexp&lt;/code&gt; (in which case that regexp's
+ *  options are propagated, and new options may not be specified (a change as of
+ *  Ruby 1.8). If &lt;i&gt;options&lt;/i&gt; is a &lt;code&gt;Fixnum&lt;/code&gt;, it should be one or
+ *  more of the constants &lt;code&gt;Regexp::EXTENDED&lt;/code&gt;,
+ *  &lt;code&gt;Regexp::IGNORECASE&lt;/code&gt;, and &lt;code&gt;Regexp::MULTILINE&lt;/code&gt;,
+ *  &lt;em&gt;or&lt;/em&gt;-ed together. Otherwise, if &lt;i&gt;options&lt;/i&gt; is not
+ *  &lt;code&gt;nil&lt;/code&gt;, the regexp will be case insensitive. The &lt;i&gt;lang&lt;/i&gt;
+ *  parameter enables multibyte support for the regexp: `n', `N' = none, `e',
+ *  `E' = EUC, `s', `S' = SJIS, `u', `U' = UTF-8.
+ * 
+ *     r1 = Regexp.new('^a-z+:\\s+\w+')           #=&gt; /^a-z+:\s+\w+/
+ *     r2 = Regexp.new('cat', true)               #=&gt; /cat/i
+ *     r3 = Regexp.new('dog', Regexp::EXTENDED)   #=&gt; /dog/x
+ *     r4 = Regexp.new(r2)                        #=&gt; /cat/i
+ */
+
+static VALUE
+rb_reg_initialize_m(argc, argv, self)
+    int argc;
+    VALUE *argv;
+    VALUE self;
+{
+    const char *s;
+    long len;
+    int flags = 0;
+
+    if (argc == 0 || argc &gt; 3) {
+	rb_raise(rb_eArgError, &quot;wrong number of arguments&quot;);
+    }
+    if (TYPE(argv[0]) == T_REGEXP) {
+	if (argc &gt; 1) {
+	    rb_warn(&quot;flags%s ignored&quot;, (argc == 3) ? &quot; and encoding&quot;: &quot;&quot;);
+	}
+	rb_reg_check(argv[0]);
+	flags = RREGEXP(argv[0])-&gt;ptr-&gt;options &amp; 0xf;
+	if (FL_TEST(argv[0], KCODE_FIXED)) {
+	    switch (RBASIC(argv[0])-&gt;flags &amp; KCODE_MASK) {
+	      case KCODE_NONE:
+		flags |= 16;
+		break;
+	      case KCODE_EUC:
+		flags |= 32;
+		break;
+	      case KCODE_SJIS:
+		flags |= 48;
+		break;
+	      case KCODE_UTF8:
+		flags |= 64;
+		break;
+	      default:
+		break;
+	    }
+	}
+	s = RREGEXP(argv[0])-&gt;str;
+	len = RREGEXP(argv[0])-&gt;len;
+    }
+    else {
+	if (argc &gt;= 2) {
+	    if (FIXNUM_P(argv[1])) flags = FIX2INT(argv[1]);
+	    else if (RTEST(argv[1])) flags = RE_OPTION_IGNORECASE;
+	}
+	if (argc == 3 &amp;&amp; !NIL_P(argv[2])) {
+	    char *kcode = StringValuePtr(argv[2]);
+
+	    flags &amp;= ~0x70;
+	    switch (kcode[0]) {
+	      case 'n': case 'N':
+		flags |= 16;
+		break;
+	      case 'e': case 'E':
+		flags |= 32;
+		break;
+	      case 's': case 'S':
+		flags |= 48;
+		break;
+	      case 'u': case 'U':
+		flags |= 64;
+		break;
+	      default:
+		break;
+	    }
+	}
+	s = StringValuePtr(argv[0]);
+	len = RSTRING(argv[0])-&gt;len;
+    }
+    rb_reg_initialize(self, s, len, flags);
+    return self;
+}
+
+VALUE
+rb_reg_quote(str)
+    VALUE str;
+{
+    char *s, *send, *t;
+    VALUE tmp;
+    int c;
+
+    s = RSTRING(str)-&gt;ptr;
+    send = s + RSTRING(str)-&gt;len;
+    for (; s &lt; send; s++) {
+	c = *s;
+	if (ismbchar(c)) {
+	    int n = mbclen(c);
+
+	    while (n-- &amp;&amp; s &lt; send)
+		s++;
+	    s--;
+	    continue;
+	}
+	switch (c) {
+	  case '[': case ']': case '{': case '}':
+	  case '(': case ')': case '|': case '-':
+	  case '*': case '.': case '\\':
+	  case '?': case '+': case '^': case '$':
+	  case ' ': case '#':
+	  case '\t': case '\f': case '\n': case '\r':
+	    goto meta_found;
+	}
+    }
+    return rb_str_new3(str);
+
+  meta_found:
+    tmp = rb_str_new(0, RSTRING(str)-&gt;len*2);
+    t = RSTRING(tmp)-&gt;ptr;
+    /* copy upto metacharacter */
+    memcpy(t, RSTRING(str)-&gt;ptr, s - RSTRING(str)-&gt;ptr);
+    t += s - RSTRING(str)-&gt;ptr;
+
+    for (; s &lt; send; s++) {
+	c = *s;
+	if (ismbchar(c)) {
+	    int n = mbclen(c);
+
+	    while (n-- &amp;&amp; s &lt; send)
+		*t++ = *s++;
+	    s--;
+	    continue;
+	}
+	switch (c) {
+	  case '[': case ']': case '{': case '}':
+	  case '(': case ')': case '|': case '-':
+	  case '*': case '.': case '\\':
+	  case '?': case '+': case '^': case '$':
+	  case '#':
+	    *t++ = '\\';
+	    break;
+	  case ' ':
+	    *t++ = '\\';
+	    *t++ = ' ';
+	    continue;
+	  case '\t':
+	    *t++ = '\\';
+	    *t++ = 't';
+	    continue;
+	  case '\n':
+	    *t++ = '\\';
+	    *t++ = 'n';
+	    continue;
+	  case '\r':
+	    *t++ = '\\';
+	    *t++ = 'r';
+	    continue;
+	  case '\f':
+	    *t++ = '\\';
+	    *t++ = 'f';
+	    continue;
+	}
+	*t++ = c;
+    }
+    rb_str_resize(tmp, t - RSTRING(tmp)-&gt;ptr);
+    OBJ_INFECT(tmp, str);
+    return tmp;
+}
+
+
+/*
+ *  call-seq:
+ *     Regexp.escape(str)   =&gt; a_str
+ *     Regexp.quote(str)    =&gt; a_str
+ *  
+ *  Escapes any characters that would have special meaning in a regular
+ *  expression. Returns a new escaped string, or self if no characters are
+ *  escaped.  For any string,
+ *  &lt;code&gt;Regexp.escape(&lt;i&gt;str&lt;/i&gt;)=~&lt;i&gt;str&lt;/i&gt;&lt;/code&gt; will be true.
+ *     
+ *     Regexp.escape('\\*?{}.')   #=&gt; \\\\\*\?\{\}\.
+ */
+
+static VALUE
+rb_reg_s_quote(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    VALUE str, kcode;
+    int kcode_saved = reg_kcode;
+
+    rb_scan_args(argc, argv, &quot;11&quot;, &amp;str, &amp;kcode);
+    if (!NIL_P(kcode)) {
+	rb_set_kcode(StringValuePtr(kcode));
+	curr_kcode = reg_kcode;
+	reg_kcode = kcode_saved;
+    }
+    StringValue(str);
+    str = rb_reg_quote(str);
+    rb_kcode_reset_option();
+    return str;
+}
+
+int
+rb_kcode()
+{
+    switch (reg_kcode) {
+      case KCODE_EUC:
+	return MBCTYPE_EUC;
+      case KCODE_SJIS:
+	return MBCTYPE_SJIS;
+      case KCODE_UTF8:
+	return MBCTYPE_UTF8;
+      case KCODE_NONE:
+	return MBCTYPE_ASCII;
+    }
+    rb_bug(&quot;wrong reg_kcode value (0x%x)&quot;, reg_kcode);
+}
+
+static int
+rb_reg_get_kcode(re)
+    VALUE re;
+{
+    switch (RBASIC(re)-&gt;flags &amp; KCODE_MASK) {
+      case KCODE_NONE:
+	return 16;
+      case KCODE_EUC:
+	return 32;
+      case KCODE_SJIS:
+	return 48;
+      case KCODE_UTF8:
+	return 64;
+      default:
+	return 0;
+    }
+}
+
+int
+rb_reg_options(re)
+    VALUE re;
+{
+    int options;
+
+    rb_reg_check(re);
+    options = RREGEXP(re)-&gt;ptr-&gt;options &amp;
+	(RE_OPTION_IGNORECASE|RE_OPTION_MULTILINE|RE_OPTION_EXTENDED);
+    if (FL_TEST(re, KCODE_FIXED)) {
+	options |= rb_reg_get_kcode(re);
+    }
+    return options;
+}
+
+static VALUE
+rb_reg_s_union(self, args0)
+    VALUE self;
+    VALUE args0;
+{
+    long argc = RARRAY_LEN(args0);
+    if (argc == 0) {
+        VALUE args[1];
+        args[0] = rb_str_new2(&quot;(?!)&quot;);
+        return rb_class_new_instance(1, args, rb_cRegexp);
+    }
+    else if (argc == 1) {
+        VALUE v;
+        v = rb_check_convert_type(rb_ary_entry(args0, 0), T_REGEXP, &quot;Regexp&quot;, &quot;to_regexp&quot;);
+        if (!NIL_P(v))
+            return v;
+        else {
+            VALUE args[1];
+            args[0] = rb_reg_s_quote(RARRAY_LEN(args0), RARRAY_PTR(args0));
+            return rb_class_new_instance(1, args, rb_cRegexp);
+        }
+    }
+    else {
+        int i, kcode = -1;
+        VALUE kcode_re = Qnil;
+        VALUE source = rb_str_buf_new(0);
+        VALUE args[3];
+        for (i = 0; i &lt; argc; i++) {
+            volatile VALUE v;
+            if (0 &lt; i)
+                rb_str_buf_cat2(source, &quot;|&quot;);
+            v = rb_check_convert_type(rb_ary_entry(args0, i), T_REGEXP, &quot;Regexp&quot;, &quot;to_regexp&quot;);
+            if (!NIL_P(v)) {
+                if (FL_TEST(v, KCODE_FIXED)) {
+                    if (kcode == -1) {
+                        kcode_re = v;
+                        kcode = RBASIC(v)-&gt;flags &amp; KCODE_MASK;
+                    }
+                    else if ((RBASIC(v)-&gt;flags &amp; KCODE_MASK) != kcode) {
+                        volatile VALUE str1, str2;
+                        str1 = rb_inspect(kcode_re);
+                        str2 = rb_inspect(v);
+                        rb_raise(rb_eArgError, &quot;mixed kcode: %s and %s&quot;,
+                            RSTRING(str1)-&gt;ptr, RSTRING(str2)-&gt;ptr);
+                    }
+                }
+                v = rb_reg_to_s(v);
+            }
+            else {
+                args[0] = rb_ary_entry(args0, i);
+                v = rb_reg_s_quote(1, args);
+            }
+            rb_str_buf_append(source, v);
+        }
+        args[0] = source;
+        args[1] = Qnil;
+        switch (kcode) {
+          case -1:
+            args[2] = Qnil;
+            break;
+          case KCODE_NONE:
+            args[2] = rb_str_new2(&quot;n&quot;);
+            break;
+          case KCODE_EUC:
+            args[2] = rb_str_new2(&quot;e&quot;);
+            break;
+          case KCODE_SJIS:
+            args[2] = rb_str_new2(&quot;s&quot;);
+            break;
+          case KCODE_UTF8:
+            args[2] = rb_str_new2(&quot;u&quot;);
+            break;
+        }
+        return rb_class_new_instance(3, args, rb_cRegexp);
+    }
+}
+
+/*
+ *  call-seq:
+ *     Regexp.union(pat1, pat2, ...)            =&gt; new_regexp
+ *     Regexp.union(pats_ary)                   =&gt; new_regexp
+ *  
+ *  Return a &lt;code&gt;Regexp&lt;/code&gt; object that is the union of the given
+ *  &lt;em&gt;pattern&lt;/em&gt;s, i.e., will match any of its parts. The &lt;em&gt;pattern&lt;/em&gt;s
+ *  can be Regexp objects, in which case their options will be preserved, or
+ *  Strings. If no patterns are given, returns &lt;code&gt;/(?!)/&lt;/code&gt;.
+ *     
+ *     Regexp.union                         #=&gt; /(?!)/
+ *     Regexp.union(&quot;penzance&quot;)             #=&gt; /penzance/
+ *     Regexp.union(&quot;a+b*c&quot;)                #=&gt; /a\+b\*c/
+ *     Regexp.union(&quot;skiing&quot;, &quot;sledding&quot;)   #=&gt; /skiing|sledding/
+ *     Regexp.union([&quot;skiing&quot;, &quot;sledding&quot;]) #=&gt; /skiing|sledding/
+ *     Regexp.union(/dogs/, /cats/i)        #=&gt; /(?-mix:dogs)|(?i-mx:cats)/
+ */
+static VALUE
+rb_reg_s_union_m(VALUE self, VALUE args)
+{
+    VALUE v;
+    if (RARRAY_LEN(args) == 1 &amp;&amp;
+        !NIL_P(v = rb_check_array_type(rb_ary_entry(args, 0)))) {
+        return rb_reg_s_union(self, v);
+    }
+    return rb_reg_s_union(self, args);
+}
+
+/* :nodoc: */
+static VALUE
+rb_reg_init_copy(copy, re)
+    VALUE copy, re;
+{
+    if (copy == re) return copy;
+    rb_check_frozen(copy);
+    /* need better argument type check */
+    if (!rb_obj_is_instance_of(re, rb_obj_class(copy))) {
+	rb_raise(rb_eTypeError, &quot;wrong argument type&quot;);
+    }
+    rb_reg_check(re);
+    rb_reg_initialize(copy, RREGEXP(re)-&gt;str, RREGEXP(re)-&gt;len,
+		      rb_reg_options(re));
+    return copy;
+}
+
+VALUE
+rb_reg_regsub(str, src, regs)
+    VALUE str, src;
+    struct re_registers *regs;
+{
+    VALUE val = 0;
+    char *p, *s, *e, c;
+    int no;
+
+    p = s = RSTRING(str)-&gt;ptr;
+    e = s + RSTRING(str)-&gt;len;
+
+    while (s &lt; e) {
+	char *ss = s;
+
+	c = *s++;
+	if (ismbchar(c)) {
+	    s += mbclen(c) - 1;
+	    continue;
+	}
+	if (c != '\\' || s == e) continue;
+
+	if (!val) {
+	    val = rb_str_buf_new(ss-p);
+	    rb_str_buf_cat(val, p, ss-p);
+	}
+	else {
+	    rb_str_buf_cat(val, p, ss-p);
+	}
+
+	c = *s++;
+	p = s;
+	switch (c) {
+	  case '0': case '1': case '2': case '3': case '4':
+	  case '5': case '6': case '7': case '8': case '9':
+	    no = c - '0';
+	    break;
+	  case '&amp;':
+	    no = 0;
+	    break;
+
+	  case '`':
+	    rb_str_buf_cat(val, RSTRING(src)-&gt;ptr, BEG(0));
+	    continue;
+
+	  case '\'':
+	    rb_str_buf_cat(val, RSTRING(src)-&gt;ptr+END(0), RSTRING(src)-&gt;len-END(0));
+	    continue;
+
+	  case '+':
+	    no = regs-&gt;num_regs-1;
+	    while (BEG(no) == -1 &amp;&amp; no &gt; 0) no--;
+	    if (no == 0) continue;
+	    break;
+
+	  case '\\':
+	    rb_str_buf_cat(val, s-1, 1);
+	    continue;
+
+	  default:
+	    rb_str_buf_cat(val, s-2, 2);
+	    continue;
+	}
+
+	if (no &gt;= 0) {
+	    if (no &gt;= regs-&gt;num_regs) continue;
+	    if (BEG(no) == -1) continue;
+	    rb_str_buf_cat(val, RSTRING(src)-&gt;ptr+BEG(no), END(no)-BEG(no));
+	}
+    }
+
+    if (p &lt; e) {
+	if (!val) {
+	    val = rb_str_buf_new(e-p);
+	    rb_str_buf_cat(val, p, e-p);
+	}
+	else {
+	    rb_str_buf_cat(val, p, e-p);
+	}
+    }
+    if (!val) return str;
+
+    return val;
+}
+
+const char*
+rb_get_kcode()
+{
+    switch (reg_kcode) {
+      case KCODE_SJIS:
+	return &quot;SJIS&quot;;
+      case KCODE_EUC:
+	return &quot;EUC&quot;;
+      case KCODE_UTF8:
+	return &quot;UTF8&quot;;
+      default:
+	return &quot;NONE&quot;;
+    }
+}
+
+static VALUE
+kcode_getter()
+{
+    return rb_str_new2(rb_get_kcode());
+}
+
+void
+rb_set_kcode(code)
+    const char *code;
+{
+    if (code == 0) goto set_no_conversion;
+
+    switch (code[0]) {
+      case 'E':
+      case 'e':
+	reg_kcode = KCODE_EUC;
+	re_mbcinit(MBCTYPE_EUC);
+	break;
+      case 'S':
+      case 's':
+	reg_kcode = KCODE_SJIS;
+	re_mbcinit(MBCTYPE_SJIS);
+	break;
+      case 'U':
+      case 'u':
+	reg_kcode = KCODE_UTF8;
+	re_mbcinit(MBCTYPE_UTF8);
+	break;
+      default:
+      case 'N':
+      case 'n':
+      case 'A':
+      case 'a':
+      set_no_conversion:
+	reg_kcode = KCODE_NONE;
+	re_mbcinit(MBCTYPE_ASCII);
+	break;
+    }
+}
+
+static void
+kcode_setter(val)
+    VALUE val;
+{
+    may_need_recompile = 1;
+    rb_set_kcode(StringValuePtr(val));
+}
+
+static VALUE
+ignorecase_getter()
+{
+    return ruby_ignorecase?Qtrue:Qfalse;
+}
+
+static void
+ignorecase_setter(val, id)
+    VALUE val;
+    ID id;
+{
+    rb_warn(&quot;modifying %s is deprecated&quot;, rb_id2name(id));
+    may_need_recompile = 1;
+    ruby_ignorecase = RTEST(val);
+}
+
+static VALUE
+match_getter()
+{
+    VALUE match = rb_backref_get();
+
+    if (NIL_P(match)) return Qnil;
+    rb_match_busy(match);
+    return match;
+}
+
+static void
+match_setter(val)
+    VALUE val;
+{
+    if (!NIL_P(val)) {
+	Check_Type(val, T_MATCH);
+    }
+    rb_backref_set(val);
+}
+
+/*
+ *  call-seq:
+ *     Regexp.last_match           =&gt; matchdata
+ *     Regexp.last_match(fixnum)   =&gt; str
+ *  
+ *  The first form returns the &lt;code&gt;MatchData&lt;/code&gt; object generated by the
+ *  last successful pattern match. Equivalent to reading the global variable
+ *  &lt;code&gt;$~&lt;/code&gt;. The second form returns the nth field in this
+ *  &lt;code&gt;MatchData&lt;/code&gt; object.
+ *     
+ *     /c(.)t/ =~ 'cat'       #=&gt; 0
+ *     Regexp.last_match      #=&gt; #&lt;MatchData:0x401b3d30&gt;
+ *     Regexp.last_match(0)   #=&gt; &quot;cat&quot;
+ *     Regexp.last_match(1)   #=&gt; &quot;a&quot;
+ *     Regexp.last_match(2)   #=&gt; nil
+ */
+
+static VALUE
+rb_reg_s_last_match(argc, argv)
+    int argc;
+    VALUE *argv;
+{
+    VALUE nth;
+
+    if (rb_scan_args(argc, argv, &quot;01&quot;, &amp;nth) == 1) {
+	return rb_reg_nth_match(NUM2INT(nth), rb_backref_get());
+    }
+    return match_getter();
+}
+
+
+/*
+ *  Document-class: Regexp
+ *
+ *  A &lt;code&gt;Regexp&lt;/code&gt; holds a regular expression, used to match a pattern
+ *  against strings. Regexps are created using the &lt;code&gt;/.../&lt;/code&gt; and
+ *  &lt;code&gt;%r{...}&lt;/code&gt; literals, and by the &lt;code&gt;Regexp::new&lt;/code&gt;
+ *  constructor.
+ *
+ */
+
+void
+Init_Regexp()
+{
+    rb_eRegexpError = rb_define_class(&quot;RegexpError&quot;, rb_eStandardError);
+
+    re_set_casetable(casetable);
+#if DEFAULT_KCODE == KCODE_EUC
+    re_mbcinit(MBCTYPE_EUC);
+#else
+#if DEFAULT_KCODE == KCODE_SJIS
+    re_mbcinit(MBCTYPE_SJIS);
+#else
+#if DEFAULT_KCODE == KCODE_UTF8
+    re_mbcinit(MBCTYPE_UTF8);
+#else
+    re_mbcinit(MBCTYPE_ASCII);
+#endif
+#endif
+#endif
+
+    rb_define_virtual_variable(&quot;$~&quot;, match_getter, match_setter);
+    rb_define_virtual_variable(&quot;$&amp;&quot;, last_match_getter, 0);
+    rb_define_virtual_variable(&quot;$`&quot;, prematch_getter, 0);
+    rb_define_virtual_variable(&quot;$'&quot;, postmatch_getter, 0);
+    rb_define_virtual_variable(&quot;$+&quot;, last_paren_match_getter, 0);
+
+    rb_define_virtual_variable(&quot;$=&quot;, ignorecase_getter, ignorecase_setter);
+    rb_define_virtual_variable(&quot;$KCODE&quot;, kcode_getter, kcode_setter);
+    rb_define_virtual_variable(&quot;$-K&quot;, kcode_getter, kcode_setter);
+
+    rb_cRegexp = rb_define_class(&quot;Regexp&quot;, rb_cObject);
+    rb_define_alloc_func(rb_cRegexp, rb_reg_s_alloc);
+    rb_define_singleton_method(rb_cRegexp, &quot;compile&quot;, rb_class_new_instance, -1);
+    rb_define_singleton_method(rb_cRegexp, &quot;quote&quot;, rb_reg_s_quote, -1);
+    rb_define_singleton_method(rb_cRegexp, &quot;escape&quot;, rb_reg_s_quote, -1);
+    rb_define_singleton_method(rb_cRegexp, &quot;union&quot;, rb_reg_s_union_m, -2);
+    rb_define_singleton_method(rb_cRegexp, &quot;last_match&quot;, rb_reg_s_last_match, -1);
+
+    rb_define_method(rb_cRegexp, &quot;initialize&quot;, rb_reg_initialize_m, -1);
+    rb_define_method(rb_cRegexp, &quot;initialize_copy&quot;, rb_reg_init_copy, 1);
+    rb_define_method(rb_cRegexp, &quot;hash&quot;, rb_reg_hash, 0);
+    rb_define_method(rb_cRegexp, &quot;eql?&quot;, rb_reg_equal, 1);
+    rb_define_method(rb_cRegexp, &quot;==&quot;, rb_reg_equal, 1);
+    rb_define_method(rb_cRegexp, &quot;=~&quot;, rb_reg_match, 1);
+    rb_define_method(rb_cRegexp, &quot;===&quot;, rb_reg_eqq, 1);
+    rb_define_method(rb_cRegexp, &quot;~&quot;, rb_reg_match2, 0);
+    rb_define_method(rb_cRegexp, &quot;match&quot;, rb_reg_match_m, 1);
+    rb_define_method(rb_cRegexp, &quot;to_s&quot;, rb_reg_to_s, 0);
+    rb_define_method(rb_cRegexp, &quot;inspect&quot;, rb_reg_inspect, 0);
+    rb_define_method(rb_cRegexp, &quot;source&quot;, rb_reg_source, 0);
+    rb_define_method(rb_cRegexp, &quot;casefold?&quot;, rb_reg_casefold_p, 0);
+    rb_define_method(rb_cRegexp, &quot;options&quot;, rb_reg_options_m, 0);
+    rb_define_method(rb_cRegexp, &quot;kcode&quot;, rb_reg_kcode_m, 0);
+
+    rb_define_const(rb_cRegexp, &quot;IGNORECASE&quot;, INT2FIX(RE_OPTION_IGNORECASE));
+    rb_define_const(rb_cRegexp, &quot;EXTENDED&quot;, INT2FIX(RE_OPTION_EXTENDED));
+    rb_define_const(rb_cRegexp, &quot;MULTILINE&quot;, INT2FIX(RE_OPTION_MULTILINE));
+
+    rb_global_variable(&amp;reg_cache);
+
+    rb_cMatch  = rb_define_class(&quot;MatchData&quot;, rb_cObject);
+    rb_define_global_const(&quot;MatchingData&quot;, rb_cMatch);
+    rb_define_alloc_func(rb_cMatch, match_alloc);
+    rb_undef_method(CLASS_OF(rb_cMatch), &quot;new&quot;);
+
+    rb_define_method(rb_cMatch, &quot;initialize_copy&quot;, match_init_copy, 1);
+    rb_define_method(rb_cMatch, &quot;size&quot;, match_size, 0);
+    rb_define_method(rb_cMatch, &quot;length&quot;, match_size, 0);
+    rb_define_method(rb_cMatch, &quot;offset&quot;, match_offset, 1);
+    rb_define_method(rb_cMatch, &quot;begin&quot;, match_begin, 1);
+    rb_define_method(rb_cMatch, &quot;end&quot;, match_end, 1);
+    rb_define_method(rb_cMatch, &quot;to_a&quot;, match_to_a, 0);
+    rb_define_method(rb_cMatch, &quot;[]&quot;, match_aref, -1);
+    rb_define_method(rb_cMatch, &quot;captures&quot;, match_captures, 0);
+    rb_define_method(rb_cMatch, &quot;values_at&quot;, match_values_at, -1);
+    rb_define_method(rb_cMatch, &quot;select&quot;, match_select, -1);
+    rb_define_method(rb_cMatch, &quot;pre_match&quot;, rb_reg_match_pre, 0);
+    rb_define_method(rb_cMatch, &quot;post_match&quot;, rb_reg_match_post, 0);
+    rb_define_method(rb_cMatch, &quot;to_s&quot;, match_to_s, 0);
+    rb_define_method(rb_cMatch, &quot;inspect&quot;, match_inspect, 0);
+    rb_define_method(rb_cMatch, &quot;string&quot;, match_string, 0);
+}
+</pre>
+    </div>

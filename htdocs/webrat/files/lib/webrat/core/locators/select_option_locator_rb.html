@@ -1,0 +1,77 @@
+  <div id="fileHeader">
+    <h1>select_option_locator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/core/locators/select_option_locator.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:40 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;webrat/core_extensions/detect_mapped&quot;
+require &quot;webrat/core/locators/locator&quot;
+
+module Webrat
+  module Locators
+    
+    class SelectOptionLocator &lt; Locator # :nodoc:
+  
+      def initialize(session, dom, option_text, id_or_name_or_label)
+        @session = session
+        @dom = dom
+        @option_text = option_text
+        @id_or_name_or_label = id_or_name_or_label
+      end
+      
+      def locate
+        if @id_or_name_or_label
+          field = FieldLocator.new(@session, @dom, @id_or_name_or_label, SelectField).locate!
+          
+          field.options.detect do |o|
+            if @option_text.is_a?(Regexp)
+              Webrat::XML.inner_html(o.element) =~ @option_text
+            else
+              Webrat::XML.inner_html(o.element) == @option_text.to_s
+            end
+          end
+        else
+          option_element = option_elements.detect do |o|
+            if @option_text.is_a?(Regexp)
+              Webrat::XML.inner_html(o) =~ @option_text
+            else
+              Webrat::XML.inner_html(o) == @option_text.to_s
+            end
+          end
+          
+          SelectOption.load(@session, option_element)
+        end
+      end
+      
+      def option_elements
+        Webrat::XML.xpath_search(@dom, *SelectOption.xpath_search)
+      end
+      
+      def error_message
+        if @id_or_name_or_label
+          &quot;The '#{@option_text}' option was not found in the #{@id_or_name_or_label.inspect} select box&quot;
+        else
+          &quot;Could not find option #{@option_text.inspect}&quot;
+        end
+      end
+  
+    end
+    
+    def select_option(option_text, id_or_name_or_label = nil) #:nodoc:
+      SelectOptionLocator.new(@session, dom, option_text, id_or_name_or_label).locate!
+    end
+    
+  end
+end</pre>
+    </div>

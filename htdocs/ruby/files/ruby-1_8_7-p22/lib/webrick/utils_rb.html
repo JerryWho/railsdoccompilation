@@ -1,0 +1,120 @@
+  <div id="fileHeader">
+    <h1>utils.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/utils.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# utils.rb -- Miscellaneous utilities
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2001 TAKAHASHI Masayoshi, GOTOU Yuuzou
+# Copyright (c) 2002 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: utils.rb,v 1.10 2003/02/16 22:22:54 gotoyuzo Exp $
+
+require 'socket'
+require 'fcntl'
+begin
+  require 'etc'
+rescue LoadError
+  nil
+end
+
+module WEBrick
+  module Utils
+    def set_non_blocking(io)
+      flag = File::NONBLOCK
+      if defined?(Fcntl::F_GETFL)
+        flag |= io.fcntl(Fcntl::F_GETFL)
+      end
+      io.fcntl(Fcntl::F_SETFL, flag)
+    end
+    module_function :set_non_blocking
+
+    def set_close_on_exec(io)
+      if defined?(Fcntl::FD_CLOEXEC)
+        io.fcntl(Fcntl::FD_CLOEXEC, 1)
+      end
+    end
+    module_function :set_close_on_exec
+
+    def su(user)
+      if defined?(Etc)
+        pw = Etc.getpwnam(user)
+        Process::initgroups(user, pw.gid)
+        Process::Sys::setgid(pw.gid)
+        Process::Sys::setuid(pw.uid)
+      else
+        warn(&quot;WEBrick::Utils::su doesn't work on this platform&quot;)
+      end
+    end
+    module_function :su
+
+    def getservername
+      host = Socket::gethostname
+      begin
+        Socket::gethostbyname(host)[0]
+      rescue
+        host
+      end
+    end
+    module_function :getservername
+
+    def create_listeners(address, port, logger=nil)
+      unless port
+        raise ArgumentError, &quot;must specify port&quot;
+      end
+      res = Socket::getaddrinfo(address, port,
+                                Socket::AF_UNSPEC,   # address family
+                                Socket::SOCK_STREAM, # socket type
+                                0,                   # protocol
+                                Socket::AI_PASSIVE)  # flag
+      last_error = nil
+      sockets = []
+      res.each{|ai|
+        begin
+          logger.debug(&quot;TCPServer.new(#{ai[3]}, #{port})&quot;) if logger
+          sock = TCPServer.new(ai[3], port)
+          port = sock.addr[1] if port == 0
+          Utils::set_close_on_exec(sock)
+          sockets &lt;&lt; sock
+        rescue =&gt; ex
+          logger.warn(&quot;TCPServer Error: #{ex}&quot;) if logger
+          last_error  = ex
+        end
+      }
+      raise last_error if sockets.empty?
+      return sockets
+    end
+    module_function :create_listeners
+
+    RAND_CHARS = &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot; +
+                 &quot;0123456789&quot; +
+                 &quot;abcdefghijklmnopqrstuvwxyz&quot; 
+
+    def random_string(len)
+      rand_max = RAND_CHARS.size
+      ret = &quot;&quot; 
+      len.times{ ret &lt;&lt; RAND_CHARS[rand(rand_max)] }
+      ret 
+    end
+    module_function :random_string
+
+  end
+end
+</pre>
+    </div>

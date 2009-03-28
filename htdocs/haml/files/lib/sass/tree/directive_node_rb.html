@@ -1,0 +1,65 @@
+  <div id="fileHeader">
+    <h1>directive_node.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/tree/directive_node.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'sass/tree/node'
+require 'sass/tree/value_node'
+
+module Sass::Tree
+  class DirectiveNode &lt; ValueNode
+    def to_s(tabs)
+      if children.empty?
+        value + &quot;;&quot;
+      else
+        result = if @style == :compressed
+                   &quot;#{value}{&quot;
+                 else
+                   &quot;#{'  ' * (tabs - 1)}#{value} {&quot; + (@style == :compact ? ' ' : &quot;\n&quot;)
+                 end
+        was_attr = false
+        first = true
+        children.each do |child|
+          if @style == :compact
+            if child.is_a?(AttrNode)
+              result &lt;&lt; &quot;#{child.to_s(first || was_attr ? 1 : tabs + 1)} &quot;
+            else
+              if was_attr
+                result[-1] = &quot;\n&quot;
+              end
+              rendered = child.to_s(tabs + 1)
+              rendered.lstrip! if first
+              result &lt;&lt; rendered
+            end
+            was_attr = child.is_a?(AttrNode)
+            first = false
+          elsif @style == :compressed
+            result &lt;&lt; (was_attr ? &quot;;#{child.to_s(1)}&quot; : child.to_s(1))
+            was_attr = child.is_a?(AttrNode)
+          else
+            result &lt;&lt; child.to_s(tabs + 1) + &quot;\n&quot;
+          end
+        end
+        result.rstrip + if @style == :compressed
+                          &quot;}&quot;
+                        else
+                          (@style == :expanded ? &quot;\n&quot; : &quot; &quot;) + &quot;}\n&quot;
+                        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,183 @@
+  <div id="fileHeader">
+    <h1>entry.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rss/maker/entry.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 11 02:26:47 -0600 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rss/maker/atom&quot;
+require &quot;rss/maker/feed&quot;
+
+module RSS
+  module Maker
+    module Atom
+      class Entry &lt; RSSBase
+        def initialize(feed_version=&quot;1.0&quot;)
+          super
+          @feed_type = &quot;atom&quot;
+          @feed_subtype = &quot;entry&quot;
+        end
+
+        private
+        def make_feed
+          ::RSS::Atom::Entry.new(@version, @encoding, @standalone)
+        end
+
+        def setup_elements(entry)
+          setup_items(entry)
+        end
+
+        class Channel &lt; ChannelBase
+          class SkipDays &lt; SkipDaysBase
+            class Day &lt; DayBase
+            end
+          end
+
+          class SkipHours &lt; SkipHoursBase
+            class Hour &lt; HourBase
+            end
+          end
+
+          class Cloud &lt; CloudBase
+          end
+
+          Categories = Feed::Channel::Categories
+          Links = Feed::Channel::Links
+          Authors = Feed::Channel::Authors
+          Contributors = Feed::Channel::Contributors
+
+          class Generator &lt; GeneratorBase
+            include AtomGenerator
+
+            def self.not_set_name
+              &quot;maker.channel.generator&quot;
+            end
+          end
+
+          Copyright = Feed::Channel::Copyright
+
+          class Description &lt; DescriptionBase
+          end
+
+          Title = Feed::Channel::Title
+        end
+
+        class Image &lt; ImageBase
+        end
+
+        class Items &lt; ItemsBase
+          def to_feed(entry)
+            (normalize.first || Item.new(@maker)).to_feed(entry)
+          end
+
+          class Item &lt; ItemBase
+            def to_feed(entry)
+              set_default_values do
+                setup_values(entry)
+                entry.dc_dates.clear
+                setup_other_elements(entry)
+                unless have_required_values?
+                  raise NotSetError.new(&quot;maker.item&quot;, not_set_required_variables)
+                end
+              end
+            end
+
+            private
+            def required_variable_names
+              %w(id updated)
+            end
+
+            def variables
+              super + [&quot;updated&quot;]
+            end
+
+            def variable_is_set?
+              super or !authors.empty?
+            end
+
+            def not_set_required_variables
+              set_default_values do
+                vars = super
+                if authors.all? {|author| !author.have_required_values?}
+                  vars &lt;&lt; &quot;author&quot;
+                end
+                vars &lt;&lt; &quot;title&quot; unless title {|t| t.have_required_values?}
+                vars
+              end
+            end
+
+            def _set_default_values(&amp;block)
+              keep = {
+                :authors =&gt; authors.to_a.dup,
+                :contributors =&gt; contributors.to_a.dup,
+                :categories =&gt; categories.to_a.dup,
+                :id =&gt; id,
+                :links =&gt; links.to_a.dup,
+                :rights =&gt; @rights,
+                :title =&gt; @title,
+                :updated =&gt; updated,
+              }
+              authors.replace(@maker.channel.authors) if keep[:authors].empty?
+              if keep[:contributors].empty?
+                contributors.replace(@maker.channel.contributors)
+              end
+              if keep[:categories].empty?
+                categories.replace(@maker.channel.categories)
+              end
+              self.id ||= link || @maker.channel.id
+              links.replace(@maker.channel.links) if keep[:links].empty?
+              unless keep[:rights].variable_is_set?
+                @maker.channel.rights {|r| @rights = r}
+              end
+              unless keep[:title].variable_is_set?
+                @maker.channel.title {|t| @title = t}
+              end
+              self.updated ||= @maker.channel.updated
+              super(&amp;block)
+            ensure
+              authors.replace(keep[:authors])
+              contributors.replace(keep[:contributors])
+              categories.replace(keep[:categories])
+              links.replace(keep[:links])
+              self.id = keep[:id]
+              @rights = keep[:rights]
+              @title = keep[:title]
+              self.updated = keep[:prev_updated]
+            end
+
+            Guid = Feed::Items::Item::Guid
+            Enclosure = Feed::Items::Item::Enclosure
+            Source = Feed::Items::Item::Source
+            Categories = Feed::Items::Item::Categories
+            Authors = Feed::Items::Item::Authors
+            Contributors = Feed::Items::Item::Contributors
+            Links = Feed::Items::Item::Links
+            Rights = Feed::Items::Item::Rights
+            Description = Feed::Items::Item::Description
+            Title = Feed::Items::Item::Title
+            Content = Feed::Items::Item::Content
+          end
+        end
+
+        class Textinput &lt; TextinputBase
+        end
+      end
+    end
+
+    add_maker(&quot;atom:entry&quot;, &quot;1.0&quot;, Atom::Entry)
+    add_maker(&quot;atom1.0:entry&quot;, &quot;1.0&quot;, Atom::Entry)
+  end
+end
+</pre>
+    </div>

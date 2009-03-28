@@ -1,0 +1,179 @@
+  <div id="fileHeader">
+    <h1>main_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/story/extensions/main_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+
+module Spec
+  module Story
+    module Extensions
+      describe &quot;the main object extended with Main&quot;, :shared =&gt; true do
+        before(:each) do
+          @main = Class.new do; include Main; end
+          @original_rspec_story_steps, $rspec_story_steps = $rspec_story_steps, nil
+        end
+
+        after(:each) do
+          $rspec_story_steps = @original_rspec_story_steps
+        end
+
+        def have_step(type, name)
+          return simple_matcher(%[step group containing a #{type} named #{name.inspect}]) do |actual|
+            Spec::Story::Step === actual.find(type, name)
+          end
+        end
+      end
+
+      describe Main, &quot;#run_story&quot; do
+        it_should_behave_like &quot;the main object extended with Main&quot;
+
+        it &quot;should create a PlainTextStoryRunner with run_story&quot; do
+          Spec::Story::Runner::PlainTextStoryRunner.should_receive(:new).and_return(mock(&quot;runner&quot;, :null_object =&gt; true))
+          @main.run_story
+        end
+
+        it &quot;should yield the runner if arity == 1&quot; do
+          File.should_receive(:read).with(&quot;some/path&quot;).and_return(&quot;Story: foo&quot;)
+          $main_spec_runner = nil
+          @main.run_story(&quot;some/path&quot;) do |runner|
+            $main_spec_runner = runner
+          end
+          $main_spec_runner.should be_an_instance_of(Spec::Story::Runner::PlainTextStoryRunner)
+        end
+
+        it &quot;should run in the runner if arity == 0&quot; do
+          File.should_receive(:read).with(&quot;some/path&quot;).and_return(&quot;Story: foo&quot;)
+          $main_spec_runner = nil
+          @main.run_story(&quot;some/path&quot;) do
+            $main_spec_runner = self
+          end
+          $main_spec_runner.should be_an_instance_of(Spec::Story::Runner::PlainTextStoryRunner)
+        end
+
+        it &quot;should tell the PlainTextStoryRunner to run with run_story&quot; do
+          runner = mock(&quot;runner&quot;)
+          Spec::Story::Runner::PlainTextStoryRunner.should_receive(:new).and_return(runner)
+          runner.should_receive(:run)
+          @main.run_story
+        end  
+      end
+
+      describe Main, &quot;#steps_for&quot; do
+        it_should_behave_like &quot;the main object extended with Main&quot;
+
+        it &quot;should have no steps for a non existent key&quot; do
+          @main.steps_for(:key).find(:given, &quot;foo&quot;).should be_nil
+        end
+
+        it &quot;should create steps for a key&quot; do
+          $main_spec_invoked = false
+          @main.steps_for(:key) do
+            Given(&quot;foo&quot;) {
+              $main_spec_invoked = true
+            }
+          end
+          @main.steps_for(:key).find(:given, &quot;foo&quot;).perform(Object.new, &quot;foo&quot;)
+          $main_spec_invoked.should be_true
+        end
+
+        it &quot;should append steps to steps_for a given key&quot; do
+          @main.steps_for(:key) do
+            Given(&quot;first&quot;) {}
+          end
+          @main.steps_for(:key) do
+            Given(&quot;second&quot;) {}
+          end
+          @main.steps_for(:key).should have_step(:given, &quot;first&quot;)
+          @main.steps_for(:key).should have_step(:given, &quot;second&quot;)
+        end
+      end
+
+      describe Main, &quot;#with_steps_for adding new steps&quot; do
+        it_should_behave_like &quot;the main object extended with Main&quot;
+
+        it &quot;should result in a group containing pre-existing steps and newly defined steps&quot; do
+          first_group = @main.steps_for(:key) do
+            Given(&quot;first&quot;) {}
+          end
+          second_group = @main.with_steps_for(:key) do
+            Given(&quot;second&quot;) {}
+          end
+
+          second_group.should have_step(:given, &quot;first&quot;)
+          second_group.should have_step(:given, &quot;second&quot;)
+        end
+
+        it &quot;should not add its steps to the existing group&quot; do
+          first_group = @main.steps_for(:key) do
+            Given(&quot;first&quot;) {}
+          end
+          second_group = @main.with_steps_for(:key) do
+            Given(&quot;second&quot;) {}
+          end
+
+          first_group.should have_step(:given, &quot;first&quot;)
+          first_group.should_not have_step(:given, &quot;second&quot;)
+        end
+      end
+
+      describe Main, &quot;#with_steps_for running a story&quot; do
+        it_should_behave_like &quot;the main object extended with Main&quot;
+        
+        before(:each) do
+          @runner = mock(&quot;runner&quot;)
+          @runner_step_group = StepGroup.new
+          @runner.stub!(:steps).and_return(@runner_step_group)
+          @runner.stub!(:run)
+          Spec::Story::Runner::PlainTextStoryRunner.stub!(:new).and_return(@runner)
+        end
+        
+        it &quot;should create a PlainTextStoryRunner with a path&quot; do
+          Spec::Story::Runner::PlainTextStoryRunner.should_receive(:new).with('path/to/file',{}).and_return(@runner)
+          @main.with_steps_for(:foo) do
+            run 'path/to/file'
+          end
+        end
+        
+        it &quot;should create a PlainTextStoryRunner with a path and options&quot; do
+          Spec::Story::Runner::PlainTextStoryRunner.should_receive(:new).with(anything,{:bar =&gt; :baz}).and_return(@runner)
+          @main.with_steps_for(:foo) do
+            run 'path/to/file', :bar =&gt; :baz
+          end
+        end
+        
+        it &quot;should pass the group it creates to the runner's steps&quot; do
+          steps = @main.steps_for(:ice_cream) do
+            Given(&quot;vanilla&quot;) {}
+          end
+          @main.with_steps_for(:ice_cream) do
+            run 'foo'
+          end
+          @runner_step_group.should have_step(:given, &quot;vanilla&quot;)
+        end
+        
+        it &quot;should run a story&quot; do
+          @runner.should_receive(:run)
+          Spec::Story::Runner::PlainTextStoryRunner.should_receive(:new).and_return(@runner)
+          @main.with_steps_for(:foo) do
+            run 'path/to/file'
+          end
+        end
+
+      end
+    end
+  end
+end</pre>
+    </div>

@@ -1,0 +1,111 @@
+  <div id="fileHeader">
+    <h1>html2haml_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/haml/html2haml_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+require File.dirname(__FILE__) + '/../test_helper'
+require 'haml/html'
+
+class Html2HamlTest &lt; Test::Unit::TestCase
+
+  def test_empty_render_should_remain_empty
+    assert_equal '', render('')
+  end
+
+  def test_id_and_class_should_be_removed_from_hash
+    assert_equal '%span#foo.bar', render('&lt;span id=&quot;foo&quot; class=&quot;bar&quot;&gt; &lt;/span&gt;')
+  end
+
+  def test_no_tag_name_for_div_if_class_or_id_is_present
+    assert_equal '#foo', render('&lt;div id=&quot;foo&quot;&gt; &lt;/div&gt;')
+    assert_equal '.foo', render('&lt;div class=&quot;foo&quot;&gt; &lt;/div&gt;')
+  end
+
+  def test_multiple_class_names
+    assert_equal '.foo.bar.baz', render('&lt;div class=&quot; foo  bar  baz &quot;&gt; &lt;/div&gt;')
+  end
+
+  def test_should_have_pretty_attributes
+    assert_equal_attributes('%input{ :type =&gt; &quot;text&quot;, :name =&gt; &quot;login&quot; }',
+      render('&lt;input type=&quot;text&quot; name=&quot;login&quot; /&gt;'))
+    assert_equal_attributes('%meta{ &quot;http-equiv&quot; =&gt; &quot;Content-Type&quot;, :content =&gt; &quot;text/html&quot; }',
+      render('&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html&quot; /&gt;'))
+  end
+
+  def test_sqml_comment
+    assert_equal &quot;/\n  IE sucks&quot;, render('&lt;!-- IE sucks --&gt;')
+  end
+
+  def test_rhtml
+    assert_equal '- foo = bar', render_rhtml('&lt;% foo = bar %&gt;')
+    assert_equal '- foo = bar', render_rhtml('&lt;% foo = bar -%&gt;')
+    assert_equal '= h @item.title', render_rhtml('&lt;%=h @item.title %&gt;')
+    assert_equal '= h @item.title', render_rhtml('&lt;%=h @item.title -%&gt;')
+  end
+  
+  def test_rhtml_with_html_special_chars
+    assert_equal '= 3 &lt; 5 ? &quot;OK&quot; : &quot;Your computer is b0rken&quot;',
+      render_rhtml(%Q{&lt;%= 3 &lt; 5 ? &quot;OK&quot; : &quot;Your computer is b0rken&quot; %&gt;})
+  end
+  
+  def test_rhtml_in_class_attribute
+    assert_equal &quot;%div{ :class =&gt; dyna_class }\n  I have a dynamic attribute&quot;,
+      render_rhtml(%Q{&lt;div class=&quot;&lt;%= dyna_class %&gt;&quot;&gt;I have a dynamic attribute&lt;/div&gt;})
+  end
+  
+  def test_rhtml_in_id_attribute
+    assert_equal &quot;%div{ :id =&gt; dyna_id }\n  I have a dynamic attribute&quot;,
+      render_rhtml(%Q{&lt;div id=&quot;&lt;%= dyna_id %&gt;&quot;&gt;I have a dynamic attribute&lt;/div&gt;})
+  end
+  
+  def test_rhtml_in_attribute_results_in_string_interpolation
+    assert_equal %(%div{ :id =&gt; &quot;item_\#{i}&quot; }\n  Ruby string interpolation FTW),
+      render_rhtml(%Q{&lt;div id=&quot;item_&lt;%= i %&gt;&quot;&gt;Ruby string interpolation FTW&lt;/div&gt;})
+  end
+  
+  def test_rhtml_in_attribute_with_trailing_content
+    assert_equal %(%div{ :class =&gt; &quot;\#{12}!&quot; }\n  Bang!),
+      render_rhtml(%Q{&lt;div class=&quot;&lt;%= 12 %&gt;!&quot;&gt;Bang!&lt;/div&gt;})
+  end
+  
+  def test_rhtml_in_attribute_to_multiple_interpolations
+    assert_equal %(%div{ :class =&gt; &quot;\#{12} + \#{13}&quot; }\n  Math is super),
+      render_rhtml(%Q{&lt;div class=&quot;&lt;%= 12 %&gt; + &lt;%= 13 %&gt;&quot;&gt;Math is super&lt;/div&gt;})
+  end
+  
+  def test_whitespace_eating_erb_tags
+    assert_equal %(- form_for),
+      render_rhtml(%Q{&lt;%- form_for -%&gt;})
+  end
+
+  protected
+
+  def render(text, options = {})
+    Haml::HTML.new(text, options).render.rstrip
+  end
+
+  def render_rhtml(text)
+    render(text, :rhtml =&gt; true)
+  end
+
+  def assert_equal_attributes(expected, result)
+    expected_attr, result_attr = [expected, result].map { |s| s.gsub!(/\{ (.+) \}/, ''); $1.split(', ').sort }
+    assert_equal expected_attr, result_attr
+    assert_equal expected, result
+  end
+end
+</pre>
+    </div>

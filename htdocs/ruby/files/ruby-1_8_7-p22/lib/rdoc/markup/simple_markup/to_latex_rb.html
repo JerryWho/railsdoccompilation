@@ -1,0 +1,353 @@
+  <div id="fileHeader">
+    <h1>to_latex.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/to_latex.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rdoc/markup/simple_markup/fragments'
+require 'rdoc/markup/simple_markup/inline'
+
+require 'cgi'
+
+module SM
+
+  # Convert SimpleMarkup to basic LaTeX report format
+
+  class ToLaTeX
+
+    BS = &quot;\020&quot;   # \
+    OB = &quot;\021&quot;   # {
+    CB = &quot;\022&quot;   # }
+    DL = &quot;\023&quot;   # Dollar
+
+    BACKSLASH   = &quot;#{BS}symbol#{OB}92#{CB}&quot;
+    HAT         = &quot;#{BS}symbol#{OB}94#{CB}&quot;
+    BACKQUOTE   = &quot;#{BS}symbol#{OB}0#{CB}&quot;
+    TILDE       = &quot;#{DL}#{BS}sim#{DL}&quot;
+    LESSTHAN    = &quot;#{DL}&lt;#{DL}&quot;
+    GREATERTHAN = &quot;#{DL}&gt;#{DL}&quot;
+
+    def self.l(str)
+      str.tr('\\', BS).tr('{', OB).tr('}', CB).tr('$', DL)
+    end
+
+    def l(arg)
+      SM::ToLaTeX.l(arg)
+    end
+
+    LIST_TYPE_TO_LATEX = {
+      ListBase::BULLET =&gt;  [ l(&quot;\\begin{itemize}&quot;), l(&quot;\\end{itemize}&quot;) ],
+      ListBase::NUMBER =&gt;  [ l(&quot;\\begin{enumerate}&quot;), l(&quot;\\end{enumerate}&quot;), &quot;\\arabic&quot; ],
+      ListBase::UPPERALPHA =&gt;  [ l(&quot;\\begin{enumerate}&quot;), l(&quot;\\end{enumerate}&quot;), &quot;\\Alph&quot; ],
+      ListBase::LOWERALPHA =&gt;  [ l(&quot;\\begin{enumerate}&quot;), l(&quot;\\end{enumerate}&quot;), &quot;\\alph&quot; ],
+      ListBase::LABELED =&gt; [ l(&quot;\\begin{description}&quot;), l(&quot;\\end{description}&quot;) ],
+      ListBase::NOTE    =&gt; [
+        l(&quot;\\begin{tabularx}{\\linewidth}{@{} l X @{}}&quot;), 
+        l(&quot;\\end{tabularx}&quot;) ],
+    }
+
+    InlineTag = Struct.new(:bit, :on, :off)
+
+    def initialize
+      init_tags
+      @list_depth = 0
+      @prev_list_types = []
+    end
+
+    ##
+    # Set up the standard mapping of attributes to LaTeX
+    #
+    def init_tags
+      @attr_tags = [
+        InlineTag.new(SM::Attribute.bitmap_for(:BOLD), l(&quot;\\textbf{&quot;), l(&quot;}&quot;)),
+        InlineTag.new(SM::Attribute.bitmap_for(:TT),   l(&quot;\\texttt{&quot;), l(&quot;}&quot;)),
+        InlineTag.new(SM::Attribute.bitmap_for(:EM),   l(&quot;\\emph{&quot;), l(&quot;}&quot;)),
+      ]
+    end
+
+    ##
+    # Escape a LaTeX string
+    def escape(str)
+# $stderr.print &quot;FE: &quot;, str
+      s = str.
+#        sub(/\s+$/, '').
+        gsub(/([_\${}&amp;%#])/, &quot;#{BS}\\1&quot;).
+        gsub(/\\/, BACKSLASH).
+        gsub(/\^/, HAT).
+        gsub(/~/,  TILDE).
+        gsub(/&lt;/,  LESSTHAN).
+        gsub(/&gt;/,  GREATERTHAN).
+        gsub(/,,/, &quot;,{},&quot;).
+        gsub(/\`/,  BACKQUOTE)
+# $stderr.print &quot;-&gt; &quot;, s, &quot;\n&quot;
+      s
+    end
+
+    ##
+    # Add a new set of LaTeX tags for an attribute. We allow
+    # separate start and end tags for flexibility
+    #
+    def add_tag(name, start, stop)
+      @attr_tags &lt;&lt; InlineTag.new(SM::Attribute.bitmap_for(name), start, stop)
+    end
+
+
+    ## 
+    # Here's the client side of the visitor pattern
+
+    def start_accepting
+      @res = &quot;&quot;
+      @in_list_entry = []
+    end
+
+    def end_accepting
+      @res.tr(BS, '\\').tr(OB, '{').tr(CB, '}').tr(DL, '$')
+    end
+
+    def accept_paragraph(am, fragment)
+      @res &lt;&lt; wrap(convert_flow(am.flow(fragment.txt)))
+      @res &lt;&lt; &quot;\n&quot;
+    end
+
+    def accept_verbatim(am, fragment)
+      @res &lt;&lt; &quot;\n\\begin{code}\n&quot;
+      @res &lt;&lt; fragment.txt.sub(/[\n\s]+\Z/, '')
+      @res &lt;&lt; &quot;\n\\end{code}\n\n&quot;
+    end
+
+    def accept_rule(am, fragment)
+      size = fragment.param
+      size = 10 if size &gt; 10
+      @res &lt;&lt; &quot;\n\n\\rule{\\linewidth}{#{size}pt}\n\n&quot;
+    end
+
+    def accept_list_start(am, fragment)
+      @res &lt;&lt; list_name(fragment.type, true) &lt;&lt;&quot;\n&quot;
+      @in_list_entry.push false
+    end
+
+    def accept_list_end(am, fragment)
+      if tag = @in_list_entry.pop
+        @res &lt;&lt; tag &lt;&lt; &quot;\n&quot;
+      end
+      @res &lt;&lt; list_name(fragment.type, false) &lt;&lt;&quot;\n&quot;
+    end
+
+    def accept_list_item(am, fragment)
+      if tag = @in_list_entry.last
+        @res &lt;&lt; tag &lt;&lt; &quot;\n&quot;
+      end
+      @res &lt;&lt; list_item_start(am, fragment)
+      @res &lt;&lt; wrap(convert_flow(am.flow(fragment.txt))) &lt;&lt; &quot;\n&quot;
+      @in_list_entry[-1] = list_end_for(fragment.type)
+    end
+
+    def accept_blank_line(am, fragment)
+      # @res &lt;&lt; &quot;\n&quot;
+    end
+
+    def accept_heading(am, fragment)
+      @res &lt;&lt; convert_heading(fragment.head_level, am.flow(fragment.txt))
+    end
+
+    # This is a higher speed (if messier) version of wrap
+
+    def wrap(txt, line_len = 76)
+      res = &quot;&quot;
+      sp = 0
+      ep = txt.length
+      while sp &lt; ep
+        # scan back for a space
+        p = sp + line_len - 1
+        if p &gt;= ep
+          p = ep
+        else
+          while p &gt; sp and txt[p] != ?\s
+            p -= 1
+          end
+          if p &lt;= sp
+            p = sp + line_len
+            while p &lt; ep and txt[p] != ?\s
+              p += 1
+            end
+          end
+        end
+        res &lt;&lt; txt[sp...p] &lt;&lt; &quot;\n&quot;
+        sp = p
+        sp += 1 while sp &lt; ep and txt[sp] == ?\s
+      end
+      res
+    end
+
+    #######################################################################
+
+    private
+
+    #######################################################################
+
+    def on_tags(res, item)
+      attr_mask = item.turn_on
+      return if attr_mask.zero?
+
+      @attr_tags.each do |tag|
+        if attr_mask &amp; tag.bit != 0
+          res &lt;&lt; tag.on
+        end
+      end
+    end
+
+    def off_tags(res, item)
+      attr_mask = item.turn_off
+      return if attr_mask.zero?
+
+      @attr_tags.reverse_each do |tag|
+        if attr_mask &amp; tag.bit != 0
+          res &lt;&lt; tag.off
+        end
+      end
+    end
+
+    def convert_flow(flow)
+      res = &quot;&quot;
+      flow.each do |item|
+        case item
+        when String
+#          $stderr.puts &quot;Converting '#{item}'&quot;
+          res &lt;&lt; convert_string(item)
+        when AttrChanger
+          off_tags(res, item)
+          on_tags(res,  item)
+        when Special
+          res &lt;&lt; convert_special(item)
+        else
+          raise &quot;Unknown flow element: #{item.inspect}&quot;
+        end
+      end
+      res
+    end
+
+    # some of these patterns are taken from SmartyPants...
+
+    def convert_string(item)
+
+      escape(item).
+      
+      
+      # convert ... to elipsis (and make sure .... becomes .&lt;elipsis&gt;)
+        gsub(/\.\.\.\./, '.\ldots{}').gsub(/\.\.\./, '\ldots{}').
+
+      # convert single closing quote
+        gsub(%r{([^ \t\r\n\[\{\(])\'}) { &quot;#$1'&quot; }.
+        gsub(%r{\'(?=\W|s\b)}) { &quot;'&quot; }.
+
+      # convert single opening quote
+        gsub(/'/, '`').
+
+      # convert double closing quote
+        gsub(%r{([^ \t\r\n\[\{\(])\&quot;(?=\W)}) { &quot;#$1''&quot; }.
+
+      # convert double opening quote
+        gsub(/&quot;/, &quot;``&quot;).
+
+      # convert copyright
+        gsub(/\(c\)/, '\copyright{}')
+
+    end
+
+    def convert_special(special)
+      handled = false
+      Attribute.each_name_of(special.type) do |name|
+        method_name = &quot;handle_special_#{name}&quot;
+        if self.respond_to? method_name
+          special.text = send(method_name, special)
+          handled = true
+        end
+      end
+      raise &quot;Unhandled special: #{special}&quot; unless handled
+      special.text
+    end
+
+    def convert_heading(level, flow)
+      res =
+        case level
+        when 1 then &quot;\\chapter{&quot;
+        when 2 then &quot;\\section{&quot;
+        when 3 then &quot;\\subsection{&quot;
+        when 4 then &quot;\\subsubsection{&quot;
+        else  &quot;\\paragraph{&quot;
+        end +
+        convert_flow(flow) + 
+        &quot;}\n&quot;
+    end
+
+    def list_name(list_type, is_open_tag)
+      tags = LIST_TYPE_TO_LATEX[list_type] || raise(&quot;Invalid list type: #{list_type.inspect}&quot;)
+      if tags[2] # enumerate
+        if is_open_tag
+          @list_depth += 1
+          if @prev_list_types[@list_depth] != tags[2]
+            case @list_depth
+            when 1
+              roman = &quot;i&quot;
+            when 2
+              roman = &quot;ii&quot;
+            when 3
+              roman = &quot;iii&quot;
+            when 4
+              roman = &quot;iv&quot;
+            else
+              raise(&quot;Too deep list: level #{@list_depth}&quot;)
+            end
+            @prev_list_types[@list_depth] = tags[2]
+            return l(&quot;\\renewcommand{\\labelenum#{roman}}{#{tags[2]}{enum#{roman}}}&quot;) + &quot;\n&quot; + tags[0]
+          end
+        else
+          @list_depth -= 1
+        end
+      end
+      tags[ is_open_tag ? 0 : 1]
+    end
+
+    def list_item_start(am, fragment)
+      case fragment.type
+      when ListBase::BULLET, ListBase::NUMBER, ListBase::UPPERALPHA, ListBase::LOWERALPHA
+        &quot;\\item &quot;
+
+      when ListBase::LABELED
+        &quot;\\item[&quot; + convert_flow(am.flow(fragment.param)) + &quot;] &quot;
+
+      when ListBase::NOTE
+          convert_flow(am.flow(fragment.param)) + &quot; &amp; &quot;
+      else
+        raise &quot;Invalid list type&quot;
+      end
+    end
+
+    def list_end_for(fragment_type)
+      case fragment_type
+      when ListBase::BULLET, ListBase::NUMBER, ListBase::UPPERALPHA, ListBase::LOWERALPHA, ListBase::LABELED
+        &quot;&quot;
+      when ListBase::NOTE
+        &quot;\\\\\n&quot;
+      else
+        raise &quot;Invalid list type&quot;
+      end
+    end
+
+  end
+
+end
+</pre>
+    </div>

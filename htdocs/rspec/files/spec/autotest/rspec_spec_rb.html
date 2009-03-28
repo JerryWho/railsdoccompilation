@@ -1,0 +1,133 @@
+  <div id="fileHeader">
+    <h1>rspec_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/autotest/rspec_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + &quot;/autotest_helper&quot;
+
+class Autotest
+  
+  describe Rspec do
+    describe &quot;adding spec.opts --options&quot; do 
+      before(:each) do
+        @rspec_autotest = Rspec.new
+      end
+
+      it &quot;should return the command line option to add spec.opts if the options file exists&quot; do
+        File.stub!(:exist?).and_return true
+        @rspec_autotest.add_options_if_present.should == &quot;-O spec/spec.opts &quot;
+      end
+
+      it &quot;should return an empty string if no spec.opts exists&quot; do
+        File.stub!(:exist?).and_return false
+        Rspec.new.add_options_if_present.should == &quot;&quot;
+      end
+    end  
+  
+    describe &quot;commands&quot; do
+      before(:each) do
+        @rspec_autotest = Rspec.new
+        @rspec_autotest.stub!(:ruby).and_return &quot;ruby&quot;
+        @rspec_autotest.stub!(:add_options_if_present).and_return &quot;-O spec/spec.opts&quot;
+      
+        @ruby = @rspec_autotest.ruby
+        @spec_cmd = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'bin', 'spec'))
+        @options = @rspec_autotest.add_options_if_present
+        @files_to_test = {
+          :spec =&gt; [&quot;file_one&quot;, &quot;file_two&quot;]
+        }
+        # this is not the inner representation of Autotest!
+        @rspec_autotest.stub!(:files_to_test).and_return @files_to_test
+        @files_to_test.stub!(:keys).and_return @files_to_test[:spec]
+        @to_test = @files_to_test.keys.flatten.join ' '
+      end
+    
+      it &quot;should make the appropriate test command&quot; do
+        @rspec_autotest.make_test_cmd(@files_to_test).should == &quot;#{@ruby} #{@spec_cmd} #{@to_test} #{@options}&quot;
+      end
+
+      it &quot;should return a blank command for no files&quot; do
+        @rspec_autotest.make_test_cmd({}).should == ''
+      end
+    end
+  
+    describe &quot;mappings&quot; do
+    
+      before(:each) do
+        @lib_file = &quot;lib/something.rb&quot;
+        @spec_file = &quot;spec/something_spec.rb&quot;
+        @rspec_autotest = Rspec.new
+        @rspec_autotest.hook :initialize
+      end
+    
+      it &quot;should find the spec file for a given lib file&quot; do
+        @rspec_autotest.should map_specs([@spec_file]).to(@lib_file)
+      end
+    
+      it &quot;should find the spec file if given a spec file&quot; do
+        @rspec_autotest.should map_specs([@spec_file]).to(@spec_file)
+      end
+    
+      it &quot;should ignore files in spec dir that aren't specs&quot; do
+        @rspec_autotest.should map_specs([]).to(&quot;spec/spec_helper.rb&quot;)
+      end
+    
+      it &quot;should ignore untracked files (in @file)&quot;  do
+        @rspec_autotest.should map_specs([]).to(&quot;lib/untracked_file&quot;)
+      end
+    end
+  
+    describe &quot;consolidating failures&quot; do
+      before(:each) do
+        @rspec_autotest = Rspec.new
+      
+        @spec_file = &quot;spec/autotest/some_spec.rb&quot;
+        @rspec_autotest.instance_variable_set(&quot;@files&quot;, {@spec_file =&gt; Time.now})
+        @rspec_autotest.stub!(:find_files_to_test).and_return true
+      end
+    
+      it &quot;should return no failures if no failures were given in the output&quot; do
+        @rspec_autotest.consolidate_failures([[]]).should == {}
+      end
+    
+      it &quot;should return a hash with the spec filename =&gt; spec name for each failure or error&quot; do
+        @rspec_autotest.stub!(:test_files_for).and_return &quot;spec/autotest/some_spec.rb&quot;
+        failures = [
+          [
+            &quot;false should be false&quot;, 
+            &quot;expected: true,\n     got: false (using ==)\n#{@spec_file}:203:&quot;
+          ]
+        ]
+        @rspec_autotest.consolidate_failures(failures).should == {
+          @spec_file =&gt; [&quot;false should be false&quot;]
+        }
+      end
+    
+      it &quot;should not include the subject file&quot; do
+        subject_file = &quot;lib/autotest/some.rb&quot;
+        @rspec_autotest.stub!(:test_files_for).and_return &quot;spec/autotest/some_spec.rb&quot;
+        failures = [
+          [
+            &quot;false should be false&quot;, 
+            &quot;expected: true,\n     got: false (using ==)\n#{subject_file}:143:\n#{@spec_file}:203:&quot;
+          ]
+        ]
+        @rspec_autotest.consolidate_failures(failures).keys.should_not include(subject_file)
+      end
+    end
+  end
+end
+</pre>
+    </div>

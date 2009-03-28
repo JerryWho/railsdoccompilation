@@ -1,0 +1,88 @@
+  <div id="fileHeader">
+    <h1>testrunnermediator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/test/unit/ui/testrunnermediator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#--
+#
+# Author:: Nathaniel Talbott.
+# Copyright:: Copyright (c) 2000-2002 Nathaniel Talbott. All rights reserved.
+# License:: Ruby license.
+
+require 'test/unit'
+require 'test/unit/util/observable'
+require 'test/unit/testresult'
+
+module Test
+  module Unit
+    module UI
+
+      # Provides an interface to write any given UI against,
+      # hopefully making it easy to write new UIs.
+      class TestRunnerMediator
+        RESET = name + &quot;::RESET&quot;
+        STARTED = name + &quot;::STARTED&quot;
+        FINISHED = name + &quot;::FINISHED&quot;
+        
+        include Util::Observable
+        
+        # Creates a new TestRunnerMediator initialized to run
+        # the passed suite.
+        def initialize(suite)
+          @suite = suite
+        end
+
+        # Runs the suite the TestRunnerMediator was created
+        # with.
+        def run_suite
+          Unit.run = true
+          begin_time = Time.now
+          notify_listeners(RESET, @suite.size)
+          result = create_result
+          notify_listeners(STARTED, result)
+          result_listener = result.add_listener(TestResult::CHANGED) do |updated_result|
+            notify_listeners(TestResult::CHANGED, updated_result)
+          end
+          
+          fault_listener = result.add_listener(TestResult::FAULT) do |fault|
+            notify_listeners(TestResult::FAULT, fault)
+          end
+          
+          @suite.run(result) do |channel, value|
+            notify_listeners(channel, value)
+          end
+          
+          result.remove_listener(TestResult::FAULT, fault_listener)
+          result.remove_listener(TestResult::CHANGED, result_listener)
+          end_time = Time.now
+          elapsed_time = end_time - begin_time
+          notify_listeners(FINISHED, elapsed_time) #&quot;Finished in #{elapsed_time} seconds.&quot;)
+          return result
+        end
+
+        private
+        # A factory method to create the result the mediator
+        # should run with. Can be overridden by subclasses if
+        # one wants to use a different result.
+        def create_result
+          return TestResult.new
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

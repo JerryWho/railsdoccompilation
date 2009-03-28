@@ -1,0 +1,42 @@
+  <div id="fileHeader">
+    <h1>rexml.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/core/xml/rexml.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:40 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Webrat
+  
+  def self.rexml_document(stringlike)
+    stringlike = stringlike.body.to_s if stringlike.respond_to?(:body)
+
+    case stringlike
+    when REXML::Document
+      stringlike.root
+    when REXML::Node, Array
+      stringlike
+    else
+      begin
+        REXML::Document.new(stringlike.to_s).root
+      rescue REXML::ParseException =&gt; e
+        if e.message.include?(&quot;second root element&quot;)
+          REXML::Document.new(&quot;&lt;fake-root-element&gt;#{stringlike}&lt;/fake-root-element&gt;&quot;).root
+        else
+          raise e
+        end
+      end
+    end
+  end
+  
+end</pre>
+    </div>

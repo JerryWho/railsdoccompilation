@@ -1,0 +1,255 @@
+  <div id="fileHeader">
+    <h1>un.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/un.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># 
+# = un.rb
+# 
+# Copyright (c) 2003 WATANABE Hirofumi &lt;eban@ruby-lang.org&gt;
+# 
+# This program is free software.
+# You can distribute/modify this program under the same terms of Ruby.
+# 
+# == Utilities to replace common UNIX commands in Makefiles etc
+#
+# == SYNOPSIS
+#
+#   ruby -run -e cp -- [OPTION] SOURCE DEST
+#   ruby -run -e ln -- [OPTION] TARGET LINK_NAME
+#   ruby -run -e mv -- [OPTION] SOURCE DEST
+#   ruby -run -e rm -- [OPTION] FILE
+#   ruby -run -e mkdir -- [OPTION] DIRS
+#   ruby -run -e rmdir -- [OPTION] DIRS
+#   ruby -run -e install -- [OPTION] SOURCE DEST
+#   ruby -run -e chmod -- [OPTION] OCTAL-MODE FILE
+#   ruby -run -e touch -- [OPTION] FILE
+#   ruby -run -e help [COMMAND]
+
+require &quot;fileutils&quot;
+require &quot;optparse&quot;
+
+module FileUtils
+#  @fileutils_label = &quot;&quot;
+  @fileutils_output = $stdout
+end
+
+def setup(options = &quot;&quot;)
+  ARGV.map! do |x|
+    case x
+    when /^-/
+      x.delete &quot;^-#{options}v&quot;
+    when /[*?\[{]/
+      Dir[x]
+    else
+      x
+    end
+  end
+  ARGV.flatten!
+  ARGV.delete_if{|x| x == &quot;-&quot;}
+  opt_hash = {}
+  OptionParser.new do |o|
+    options.scan(/.:?/) do |s|
+      o.on(&quot;-&quot; + s.tr(&quot;:&quot;, &quot; &quot;)) do |val|
+        opt_hash[s.delete(&quot;:&quot;).intern] = val
+      end
+    end
+    o.on(&quot;-v&quot;) do opt_hash[:verbose] = true end
+    o.parse!
+  end
+  yield ARGV, opt_hash
+end
+
+##
+# Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY
+#
+#   ruby -run -e cp -- [OPTION] SOURCE DEST
+#
+#   -p		preserve file attributes if possible
+#   -r		copy recursively
+#   -v		verbose
+#
+
+def cp
+  setup(&quot;pr&quot;) do |argv, options|
+    cmd = &quot;cp&quot;
+    cmd += &quot;_r&quot; if options.delete :r
+    options[:preserve] = true if options.delete :p
+    dest = argv.pop
+    argv = argv[0] if argv.size == 1
+    FileUtils.send cmd, argv, dest, options
+  end
+end
+
+##
+# Create a link to the specified TARGET with LINK_NAME.
+#
+#   ruby -run -e ln -- [OPTION] TARGET LINK_NAME
+#
+#   -s		make symbolic links instead of hard links
+#   -f		remove existing destination files
+#   -v		verbose
+#
+
+def ln
+  setup(&quot;sf&quot;) do |argv, options|
+    cmd = &quot;ln&quot;
+    cmd += &quot;_s&quot; if options.delete :s
+    options[:force] = true if options.delete :f
+    dest = argv.pop
+    argv = argv[0] if argv.size == 1
+    FileUtils.send cmd, argv, dest, options
+  end
+end
+
+##
+# Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
+#
+#   ruby -run -e mv -- [OPTION] SOURCE DEST
+#
+#   -v		verbose
+#
+
+def mv
+  setup do |argv, options|
+    dest = argv.pop
+    argv = argv[0] if argv.size == 1
+    FileUtils.mv argv, dest, options
+  end
+end
+
+##
+# Remove the FILE
+#
+#   ruby -run -e rm -- [OPTION] FILE
+#
+#   -f		ignore nonexistent files
+#   -r		remove the contents of directories recursively
+#   -v		verbose
+#
+
+def rm
+  setup(&quot;fr&quot;) do |argv, options|
+    cmd = &quot;rm&quot;
+    cmd += &quot;_r&quot; if options.delete :r
+    options[:force] = true if options.delete :f
+    FileUtils.send cmd, argv, options
+  end
+end
+
+##
+# Create the DIR, if they do not already exist.
+#
+#   ruby -run -e mkdir -- [OPTION] DIR
+#
+#   -p		no error if existing, make parent directories as needed
+#   -v		verbose
+#
+
+def mkdir
+  setup(&quot;p&quot;) do |argv, options|
+    cmd = &quot;mkdir&quot;
+    cmd += &quot;_p&quot; if options.delete :p
+    FileUtils.send cmd, argv, options
+  end
+end
+
+##
+# Remove the DIR.
+#
+#   ruby -run -e rmdir -- [OPTION] DIR
+#
+#   -v		verbose
+#
+
+def rmdir
+  setup do |argv, options|
+    FileUtils.rmdir argv, options
+  end
+end
+
+##
+# Copy SOURCE to DEST.
+#
+#   ruby -run -e install -- [OPTION] SOURCE DEST
+#
+#   -p		apply access/modification times of SOURCE files to
+#  		corresponding destination files
+#   -m		set permission mode (as in chmod), instead of 0755
+#   -v		verbose
+#
+
+def install
+  setup(&quot;pm:&quot;) do |argv, options|
+    options[:mode] = (mode = options.delete :m) ? mode.oct : 0755
+    options[:preserve] = true if options.delete :p
+    dest = argv.pop
+    argv = argv[0] if argv.size == 1
+    FileUtils.install argv, dest, options
+  end
+end
+
+##
+# Change the mode of each FILE to OCTAL-MODE.
+#
+#   ruby -run -e chmod -- [OPTION] OCTAL-MODE FILE
+#
+#   -v		verbose
+#
+
+def chmod
+  setup do |argv, options|
+    mode = argv.shift.oct
+    FileUtils.chmod mode, argv, options
+  end
+end
+
+##
+# Update the access and modification times of each FILE to the current time.
+#
+#   ruby -run -e touch -- [OPTION] FILE
+#
+#   -v		verbose
+#
+
+def touch
+  setup do |argv, options|
+    FileUtils.touch argv, options
+  end
+end
+
+##
+# Display help message.
+#
+#   ruby -run -e help [COMMAND]
+#
+
+def help
+  setup do |argv,|
+    all = argv.empty?
+    open(__FILE__) do |me|
+      while me.gets(&quot;##\n&quot;)
+	if help = me.gets(&quot;\n\n&quot;)
+	  if all or argv.delete help[/-e \w+/].sub(/-e /, &quot;&quot;)
+	    print help.gsub(/^# ?/, &quot;&quot;)
+	  end
+	end
+      end
+    end
+  end
+end
+</pre>
+    </div>

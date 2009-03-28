@@ -1,0 +1,70 @@
+  <div id="fileHeader">
+    <h1>methods.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/mocks/methods.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Mocks
+    module Methods
+      def should_receive(sym, opts={}, &amp;block)
+        __mock_proxy.add_message_expectation(opts[:expected_from] || caller(1)[0], sym.to_sym, opts, &amp;block)
+      end
+
+      def should_not_receive(sym, &amp;block)
+        __mock_proxy.add_negative_message_expectation(caller(1)[0], sym.to_sym, &amp;block)
+      end
+      
+      def stub!(sym_or_hash, opts={})
+        if Hash === sym_or_hash
+          sym_or_hash.each {|method, value| stub!(method).and_return value }
+        else
+          __mock_proxy.add_stub(caller(1)[0], sym_or_hash.to_sym, opts)
+        end
+      end
+      
+      def received_message?(sym, *args, &amp;block) #:nodoc:
+        __mock_proxy.received_message?(sym.to_sym, *args, &amp;block)
+      end
+      
+      def rspec_verify #:nodoc:
+        __mock_proxy.verify
+      end
+
+      def rspec_reset #:nodoc:
+        __mock_proxy.reset
+      end
+      
+      def as_null_object
+        __mock_proxy.as_null_object
+      end
+      
+      def null_object?
+        __mock_proxy.null_object?
+      end
+
+    private
+
+      def __mock_proxy
+        if Mock === self
+          @mock_proxy ||= Proxy.new(self, @name, @options)
+        else
+          @mock_proxy ||= Proxy.new(self)
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

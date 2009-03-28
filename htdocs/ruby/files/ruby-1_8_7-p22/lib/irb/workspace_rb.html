@@ -1,0 +1,127 @@
+  <div id="fileHeader">
+    <h1>workspace.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/irb/workspace.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#   irb/workspace-binding.rb - 
+#   	$Release Version: 0.9.5$
+#   	$Revision: 11708 $
+#   	$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#   	by Keiju ISHITSUKA(keiju@ruby-lang.org)
+#
+# --
+#
+#   
+#
+module IRB
+  class WorkSpace
+    # create new workspace. set self to main if specified, otherwise
+    # inherit main from TOPLEVEL_BINDING.
+    def initialize(*main)
+      if main[0].kind_of?(Binding)
+	@binding = main.shift
+      elsif IRB.conf[:SINGLE_IRB]
+	@binding = TOPLEVEL_BINDING
+      else
+	case IRB.conf[:CONTEXT_MODE]
+	when 0	# binding in proc on TOPLEVEL_BINDING
+	  @binding = eval(&quot;proc{binding}.call&quot;,
+		      TOPLEVEL_BINDING, 
+		      __FILE__,
+		      __LINE__)
+	when 1	# binding in loaded file
+	  require &quot;tempfile&quot;
+	  f = Tempfile.open(&quot;irb-binding&quot;)
+	  f.print &lt;&lt;EOF
+	  $binding = binding
+EOF
+	  f.close
+	  load f.path
+	  @binding = $binding
+
+	when 2	# binding in loaded file(thread use)
+	  unless defined? BINDING_QUEUE
+	    require &quot;thread&quot;
+	    
+	    IRB.const_set(&quot;BINDING_QUEUE&quot;, SizedQueue.new(1))
+	    Thread.abort_on_exception = true
+	    Thread.start do
+	      eval &quot;require \&quot;irb/ws-for-case-2\&quot;&quot;, TOPLEVEL_BINDING, __FILE__, __LINE__
+	    end
+	    Thread.pass
+	  end
+	  @binding = BINDING_QUEUE.pop
+
+	when 3	# binging in function on TOPLEVEL_BINDING(default)
+	  @binding = eval(&quot;def irb_binding; binding; end; irb_binding&quot;,
+		      TOPLEVEL_BINDING, 
+		      __FILE__,
+		      __LINE__ - 3)
+	end
+      end
+      if main.empty?
+	@main = eval(&quot;self&quot;, @binding)
+      else
+	@main = main[0]
+	IRB.conf[:__MAIN__] = @main
+	case @main
+	when Module
+	  @binding = eval(&quot;IRB.conf[:__MAIN__].module_eval('binding', __FILE__, __LINE__)&quot;, @binding, __FILE__, __LINE__)
+	else
+	  begin 
+	    @binding = eval(&quot;IRB.conf[:__MAIN__].instance_eval('binding', __FILE__, __LINE__)&quot;, @binding, __FILE__, __LINE__)
+	  rescue TypeError
+	    IRB.fail CantChangeBinding, @main.inspect
+	  end
+	end
+      end
+      eval(&quot;_=nil&quot;, @binding)
+    end
+
+    attr_reader :binding
+    attr_reader :main
+
+    def evaluate(context, statements, file = __FILE__, line = __LINE__)
+      eval(statements, @binding, file, line)
+    end
+  
+    # error message manipulator
+    def filter_backtrace(bt)
+      case IRB.conf[:CONTEXT_MODE]
+      when 0
+	return nil if bt =~ /\(irb_local_binding\)/
+      when 1
+	if(bt =~ %r!/tmp/irb-binding! or
+	   bt =~ %r!irb/.*\.rb! or
+	   bt =~ /irb\.rb/)
+	  return nil
+	end
+      when 2
+	return nil if bt =~ /irb\/.*\.rb/
+      when 3
+	return nil if bt =~ /irb\/.*\.rb/
+	bt.sub!(/:\s*in `irb_binding'/){&quot;&quot;} 
+      end
+      bt
+    end
+
+    def IRB.delete_caller
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,161 @@
+  <div id="fileHeader">
+    <h1>story_mediator_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/story/runner/story_mediator_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../story_helper'
+
+module Spec
+  module Story
+    module Runner
+      
+      describe StoryMediator do
+        before(:each) do
+          $story_mediator_spec_value = nil
+          @step_group = StepGroup.new
+          @step_group.create_matcher(:given, &quot;given&quot;) { $story_mediator_spec_value = &quot;given matched&quot; }
+          @step_group.create_matcher(:when, &quot;when&quot;) { $story_mediator_spec_value = &quot;when matched&quot; }
+          @step_group.create_matcher(:then, &quot;then&quot;) { $story_mediator_spec_value = &quot;then matched&quot; }
+          
+          @scenario_runner = ScenarioRunner.new
+          @runner = StoryRunner.new @scenario_runner
+          @mediator = StoryMediator.new @step_group, @runner
+        end
+        
+        def run_stories
+          @mediator.run_stories
+          @runner.run_stories
+        end
+        
+        it &quot;should have no stories&quot; do
+          @mediator.stories.should be_empty
+        end
+        
+        it &quot;should create two stories&quot; do
+          @mediator.create_story &quot;story title&quot;, &quot;story narrative&quot;
+          @mediator.create_story &quot;story title 2&quot;, &quot;story narrative 2&quot;
+          run_stories
+          
+          @runner.should have(2).stories
+          @runner.stories.first.title.should == &quot;story title&quot;
+          @runner.stories.first.narrative.should == &quot;story narrative&quot;
+          @runner.stories.last.title.should == &quot;story title 2&quot;
+          @runner.stories.last.narrative.should == &quot;story narrative 2&quot;
+        end
+        
+        it &quot;should create a scenario&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario name&quot;
+          run_stories
+          
+          @runner.should have(1).scenarios
+          @runner.scenarios.first.name.should == &quot;scenario name&quot;
+          @runner.scenarios.first.story.should == @runner.stories.first
+        end
+        
+        it &quot;should create a given scenario step if one matches&quot; do
+          pending(&quot;need to untangle the dark mysteries of the story runner - something needs to get stubbed here&quot;) do
+            story = @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+            @mediator.create_scenario &quot;previous scenario&quot;
+            @mediator.create_scenario &quot;current scenario&quot;
+            @mediator.create_given_scenario &quot;previous scenario&quot;
+            run_stories
+          
+            $story_mediator_spec_value.should == &quot;previous scenario matched&quot;
+          end
+        end
+                
+        it &quot;should create a given step if one matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_given &quot;given&quot;
+          run_stories
+          
+          $story_mediator_spec_value.should == &quot;given matched&quot;
+        end
+        
+        it &quot;should create a pending step if no given step matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_given &quot;no match&quot;
+          mock_listener = stub_everything(&quot;listener&quot;)
+          mock_listener.should_receive(:scenario_pending).with(&quot;title&quot;, &quot;scenario&quot;, &quot;Unimplemented step: no match&quot;)
+          @scenario_runner.add_listener mock_listener
+          run_stories
+        end
+        
+        it &quot;should create a when step if one matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_when &quot;when&quot;
+          run_stories
+          
+          $story_mediator_spec_value.should == &quot;when matched&quot;
+        end
+        
+        it &quot;should create a pending step if no when step matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_when &quot;no match&quot;
+          mock_listener = stub_everything(&quot;listener&quot;)
+          mock_listener.should_receive(:scenario_pending).with(&quot;title&quot;, &quot;scenario&quot;, &quot;Unimplemented step: no match&quot;)
+          @scenario_runner.add_listener mock_listener
+          run_stories
+        end
+        
+        it &quot;should create a then step if one matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_then &quot;then&quot;
+          run_stories
+          
+          $story_mediator_spec_value.should == &quot;then matched&quot;
+        end
+        
+        it &quot;should create a pending step if no 'then' step matches&quot; do
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_then &quot;no match&quot;
+          mock_listener = stub_everything(&quot;listener&quot;)
+          mock_listener.should_receive(:scenario_pending).with(&quot;title&quot;, &quot;scenario&quot;, &quot;Unimplemented step: no match&quot;)
+          @scenario_runner.add_listener mock_listener
+          run_stories
+        end
+        
+        it &quot;should pass options to the stories it creates&quot; do
+          @mediator = StoryMediator.new @step_group, @runner, :foo =&gt; :bar
+          @mediator.create_story &quot;story title&quot;, &quot;story narrative&quot;
+        
+          run_stories
+          
+          @runner.stories.first[:foo].should == :bar
+        end
+        
+        it &quot;should description&quot; do
+          @mediator = StoryMediator.new @step_group, @runner, :foo =&gt; :bar
+          @mediator.create_story &quot;title&quot;, &quot;narrative&quot;
+          @mediator.create_scenario &quot;scenario&quot;
+          @mediator.create_given &quot;something&quot;
+          given = @mediator.last_step
+          @mediator.add_to_last &quot; else&quot;
+          given.name.should == &quot;something else&quot;
+        end
+        
+      end
+      
+    end
+  end
+end</pre>
+    </div>

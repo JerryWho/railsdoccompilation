@@ -1,0 +1,832 @@
+  <div id="fileHeader">
+    <h1>assert_select_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/rails/matchers/assert_select_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:13:00 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+
+# assert_select plugins for Rails
+#
+# Copyright (c) 2006 Assaf Arkin, under Creative Commons Attribution and/or MIT License
+# Developed for http://co.mments.com
+# Code and documention: http://labnotes.org
+
+class AssertSelectController &lt; ActionController::Base
+
+  def response=(content)
+    @content = content
+  end
+
+  #NOTE - this is commented because response is implemented in lib/spec/rails/context/controller
+  # def response(&amp;block)
+  #   @update = block
+  # end
+  # 
+  def html()
+    render :text=&gt;@content, :layout=&gt;false, :content_type=&gt;Mime::HTML
+    @content = nil
+  end
+
+  def rjs()
+    update = @update
+    render :update do |page|
+      update.call page
+    end
+    @update = nil
+  end
+
+  def xml()
+    render :text=&gt;@content, :layout=&gt;false, :content_type=&gt;Mime::XML
+    @content = nil
+  end
+
+  def rescue_action(e)
+    raise e
+  end
+
+end
+
+class AssertSelectMailer &lt; ActionMailer::Base
+
+  def test(html)
+    recipients &quot;test &lt;test@test.host&gt;&quot;
+    from &quot;test@test.host&quot;
+    subject &quot;Test e-mail&quot;
+    part :content_type=&gt;&quot;text/html&quot;, :body=&gt;html
+  end
+
+end
+
+module AssertSelectSpecHelpers
+  def render_html(html)
+    @controller.response = html
+    get :html
+  end
+
+  def render_rjs(&amp;block)
+    clear_response
+    @controller.response &amp;block
+    get :rjs
+  end
+
+  def render_xml(xml)
+    @controller.response = xml
+    get :xml
+  end
+  
+  def first_non_rspec_line_in_backtrace_of(error)
+    rspec_path = File.join('rspec', 'lib', 'spec')
+    error.backtrace.reject { |line|
+      line =~ /#{rspec_path}/
+    }.first
+  end
+
+  private
+    # necessary for 1.2.1
+    def clear_response
+      render_html(&quot;&quot;)
+    end
+end
+
+unless defined?(SpecFailed)
+  SpecFailed = Spec::Expectations::ExpectationNotMetError 
+end
+
+describe &quot;should have_tag&quot;, :type =&gt; :controller do
+  include AssertSelectSpecHelpers
+  controller_name :assert_select
+  integrate_views
+
+  it &quot;should find specific numbers of elements&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;&lt;/div&gt;}
+    response.should have_tag( &quot;div&quot; )
+    response.should have_tag(&quot;div&quot;, 2)
+    lambda { response.should_not have_tag(&quot;div&quot;) }.should raise_error(SpecFailed, &quot;should not have tag(\&quot;div\&quot;), but did&quot;)
+
+    lambda { response.should have_tag(&quot;div&quot;, 3) }.should raise_error(SpecFailed)
+    lambda { response.should have_tag(&quot;p&quot;) }.should raise_error(SpecFailed)
+  end
+
+  it &quot;should expect to find elements when using true&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;&lt;/div&gt;}
+    response.should have_tag( &quot;div&quot;, true )
+    lambda { response.should have_tag( &quot;p&quot;, true )}.should raise_error(SpecFailed)
+  end
+
+  it &quot;should expect to not find elements when using false&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;&lt;/div&gt;}
+    response.should have_tag( &quot;p&quot;, false )
+    lambda { response.should have_tag( &quot;div&quot;, false )}.should raise_error(SpecFailed)
+  end
+
+
+  it &quot;should match submitted text using text or regexp&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;foo&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;foo&lt;/div&gt;}
+    response.should have_tag(&quot;div&quot;, &quot;foo&quot;)
+    response.should have_tag(&quot;div&quot;, /(foo|bar)/)
+    response.should have_tag(&quot;div&quot;, :text=&gt;&quot;foo&quot;)
+    response.should have_tag(&quot;div&quot;, :text=&gt;/(foo|bar)/)
+
+    lambda { response.should have_tag(&quot;div&quot;, &quot;bar&quot;) }.should raise_error(SpecFailed)
+    lambda { response.should have_tag(&quot;div&quot;, :text=&gt;&quot;bar&quot;) }.should raise_error(SpecFailed)
+    lambda { response.should have_tag(&quot;p&quot;, :text=&gt;&quot;foo&quot;) }.should raise_error(SpecFailed)
+
+    lambda { response.should have_tag(&quot;div&quot;, /foobar/) }.should raise_error(SpecFailed)
+    lambda { response.should have_tag(&quot;div&quot;, :text=&gt;/foobar/) }.should raise_error(SpecFailed)
+    lambda { response.should have_tag(&quot;p&quot;, :text=&gt;/foo/) }.should raise_error(SpecFailed)
+  end
+  
+  it &quot;should use submitted message&quot; do
+    render_html %Q{nothing here}
+    lambda {
+      response.should have_tag(&quot;div&quot;, {}, &quot;custom message&quot;)
+    }.should raise_error(SpecFailed, /custom message/)
+  end
+
+  it &quot;should match submitted html&quot; do
+    render_html %Q{&lt;p&gt;\n&lt;em&gt;&quot;This is &lt;strong&gt;not&lt;/strong&gt; a big problem,&quot;&lt;/em&gt; he said.\n&lt;/p&gt;}
+    text = &quot;\&quot;This is not a big problem,\&quot; he said.&quot;
+    html = &quot;&lt;em&gt;\&quot;This is &lt;strong&gt;not&lt;/strong&gt; a big problem,\&quot;&lt;/em&gt; he said.&quot;
+    response.should have_tag(&quot;p&quot;, text)
+    lambda { response.should have_tag(&quot;p&quot;, html) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;p&quot;, :html=&gt;html)
+    lambda { response.should have_tag(&quot;p&quot;, :html=&gt;text) }.should raise_error(SpecFailed)
+
+    # # No stripping for pre.
+    render_html %Q{&lt;pre&gt;\n&lt;em&gt;&quot;This is &lt;strong&gt;not&lt;/strong&gt; a big problem,&quot;&lt;/em&gt; he said.\n&lt;/pre&gt;}
+    text = &quot;\n\&quot;This is not a big problem,\&quot; he said.\n&quot;
+    html = &quot;\n&lt;em&gt;\&quot;This is &lt;strong&gt;not&lt;/strong&gt; a big problem,\&quot;&lt;/em&gt; he said.\n&quot;
+    response.should have_tag(&quot;pre&quot;, text)
+    lambda { response.should have_tag(&quot;pre&quot;, html) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;pre&quot;, :html=&gt;html)
+    lambda { response.should have_tag(&quot;pre&quot;, :html=&gt;text) }.should raise_error(SpecFailed)
+  end
+
+  it &quot;should match number of instances&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;foo&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;foo&lt;/div&gt;}
+    response.should have_tag(&quot;div&quot;, 2)
+    lambda { response.should have_tag(&quot;div&quot;, 3) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;div&quot;, 1..2)
+    lambda { response.should have_tag(&quot;div&quot;, 3..4) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;div&quot;, :count=&gt;2)
+    lambda { response.should have_tag(&quot;div&quot;, :count=&gt;3) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;div&quot;, :minimum=&gt;1)
+    response.should have_tag(&quot;div&quot;, :minimum=&gt;2)
+    lambda { response.should have_tag(&quot;div&quot;, :minimum=&gt;3) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;div&quot;, :maximum=&gt;2)
+    response.should have_tag(&quot;div&quot;, :maximum=&gt;3)
+    lambda { response.should have_tag(&quot;div&quot;, :maximum=&gt;1) }.should raise_error(SpecFailed)
+    response.should have_tag(&quot;div&quot;, :minimum=&gt;1, :maximum=&gt;2)
+    lambda { response.should have_tag(&quot;div&quot;, :minimum=&gt;3, :maximum=&gt;4) }.should raise_error(SpecFailed)
+  end
+
+  it &quot;substitution values&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;foo&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;foo&lt;/div&gt;&lt;span id=&quot;3&quot;&gt;&lt;/span&gt;}
+    response.should have_tag(&quot;div#?&quot;, /\d+/) do |elements| #using do/end
+      elements.size.should == 2
+    end
+    response.should have_tag(&quot;div#?&quot;, /\d+/) { |elements| #using {}
+      elements.size.should == 2
+    }
+    lambda {
+      response.should have_tag(&quot;div#?&quot;, /\d+/) do |elements|
+        elements.size.should == 3
+      end
+    }.should raise_error(SpecFailed, &quot;expected: 3,\n     got: 2 (using ==)&quot;)
+    
+    lambda {
+      response.should have_tag(&quot;div#?&quot;, /\d+/) { |elements|
+        elements.size.should == 3
+      }
+    }.should raise_error(SpecFailed, &quot;expected: 3,\n     got: 2 (using ==)&quot;)
+
+    response.should have_tag(&quot;div#?&quot;, /\d+/) do |elements|
+      elements.size.should == 2
+      with_tag(&quot;#1&quot;)
+      with_tag(&quot;#2&quot;)
+      without_tag(&quot;#3&quot;)
+    end 
+  end
+  
+  #added for RSpec
+  it &quot;nested tags in form&quot; do
+    render_html %Q{
+      &lt;form action=&quot;test&quot;&gt;
+        &lt;input type=&quot;text&quot; name=&quot;email&quot;&gt;
+      &lt;/form&gt;
+      &lt;form action=&quot;other&quot;&gt;
+        &lt;input type=&quot;text&quot; name=&quot;other_input&quot;&gt;
+      &lt;/form&gt;
+    }
+    response.should have_tag(&quot;form[action=test]&quot;) { |form|
+      with_tag(&quot;input[type=text][name=email]&quot;)
+    }
+    response.should have_tag(&quot;form[action=test]&quot;) { |form|
+      with_tag(&quot;input[type=text][name=email]&quot;)
+    }
+    
+    lambda {
+      response.should have_tag(&quot;form[action=test]&quot;) { |form|
+        with_tag(&quot;input[type=text][name=other_input]&quot;)
+      }
+    }.should raise_error(SpecFailed)
+    
+    lambda {
+      response.should have_tag(&quot;form[action=test]&quot;) {
+        with_tag(&quot;input[type=text][name=other_input]&quot;)
+      }
+    }.should raise_error(SpecFailed)
+  end
+  
+  it &quot;should report the correct line number for a nested failed expectation&quot; do
+    render_html %Q{
+      &lt;form action=&quot;test&quot;&gt;
+        &lt;input type=&quot;text&quot; name=&quot;email&quot;&gt;
+      &lt;/form&gt;
+    }
+    begin
+      response.should have_tag(&quot;form[action=test]&quot;) {
+        @expected_error_line = __LINE__; should have_tag(&quot;input[type=text][name=other_input]&quot;)
+      }
+    rescue =&gt; e
+      first_non_rspec_line_in_backtrace_of(e).should =~ 
+        /#{File.basename(__FILE__)}:#{@expected_error_line}/
+    else
+      fail
+    end
+  end
+
+  it &quot;should report the correct line number for a nested raised exception&quot; do
+    render_html %Q{
+      &lt;form action=&quot;test&quot;&gt;
+        &lt;input type=&quot;text&quot; name=&quot;email&quot;&gt;
+      &lt;/form&gt;
+    }
+    begin
+      response.should have_tag(&quot;form[action=test]&quot;) {
+        @expected_error_line = __LINE__; raise &quot;Failed!&quot;
+      }
+    rescue =&gt; e
+      first_non_rspec_line_in_backtrace_of(e).should =~ 
+        /#{File.basename(__FILE__)}:#{@expected_error_line}/
+    else
+      fail
+    end
+  end
+
+  it &quot;should report the correct line number for a nested failed test/unit assertion&quot; do
+    pending &quot;Doesn't work at the moment. Do we want to support this?&quot; do
+      render_html %Q{
+        &lt;form action=&quot;test&quot;&gt;
+          &lt;input type=&quot;text&quot; name=&quot;email&quot;&gt;
+        &lt;/form&gt;
+      }
+      begin
+        response.should have_tag(&quot;form[action=test]&quot;) {
+          @expected_error_line = __LINE__; assert false
+        }
+      rescue =&gt; e
+        first_non_rspec_line_in_backtrace_of(e).should =~
+          /#{File.basename(__FILE__)}:#{@expected_error_line}/
+      else
+        fail
+      end
+    end
+  end
+
+  
+  it &quot;beatles&quot; do
+    unless defined?(BEATLES)
+      BEATLES = [
+        [&quot;John&quot;, &quot;Guitar&quot;],
+        [&quot;George&quot;, &quot;Guitar&quot;],
+        [&quot;Paul&quot;, &quot;Bass&quot;],
+        [&quot;Ringo&quot;, &quot;Drums&quot;]
+      ]
+    end
+
+    render_html %Q{
+      &lt;div id=&quot;beatles&quot;&gt;
+        &lt;div class=&quot;beatle&quot;&gt;
+          &lt;h2&gt;John&lt;/h2&gt;&lt;p&gt;Guitar&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;beatle&quot;&gt;
+          &lt;h2&gt;George&lt;/h2&gt;&lt;p&gt;Guitar&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;beatle&quot;&gt;
+          &lt;h2&gt;Paul&lt;/h2&gt;&lt;p&gt;Bass&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;beatle&quot;&gt;
+          &lt;h2&gt;Ringo&lt;/h2&gt;&lt;p&gt;Drums&lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;          
+    }
+    response.should have_tag(&quot;div#beatles&gt;div[class=\&quot;beatle\&quot;]&quot;, 4)
+
+    response.should have_tag(&quot;div#beatles&gt;div.beatle&quot;) {
+      BEATLES.each { |name, instrument|
+        with_tag(&quot;div.beatle&gt;h2&quot;, name)
+        with_tag(&quot;div.beatle&gt;p&quot;, instrument)
+        without_tag(&quot;div.beatle&gt;span&quot;)
+      }
+    }
+  end
+
+  it &quot;assert_select_text_match&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;&lt;span&gt;foo&lt;/span&gt;&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;&lt;span&gt;bar&lt;/span&gt;&lt;/div&gt;}
+    response.should have_tag(&quot;div&quot;) do |divs|
+      with_tag(&quot;div&quot;, &quot;foo&quot;)
+      with_tag(&quot;div&quot;, &quot;bar&quot;)
+      with_tag(&quot;div&quot;, /\w*/)
+      with_tag(&quot;div&quot;, /\w*/, :count=&gt;2)
+      without_tag(&quot;div&quot;, :text=&gt;&quot;foo&quot;, :count=&gt;2)
+      with_tag(&quot;div&quot;, :html=&gt;&quot;&lt;span&gt;bar&lt;/span&gt;&quot;)
+      with_tag(&quot;div&quot;, :html=&gt;&quot;&lt;span&gt;bar&lt;/span&gt;&quot;)
+      with_tag(&quot;div&quot;, :html=&gt;/\w*/)
+      with_tag(&quot;div&quot;, :html=&gt;/\w*/, :count=&gt;2)
+      without_tag(&quot;div&quot;, :html=&gt;&quot;&lt;span&gt;foo&lt;/span&gt;&quot;, :count=&gt;2)
+    end
+  end
+
+
+  it &quot;assert_select_from_rjs with one item&quot; do
+    render_rjs do |page|
+      page.replace_html &quot;test&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;\n&lt;div id=\&quot;2\&quot;&gt;foo&lt;/div&gt;&quot;
+    end
+    response.should have_tag(&quot;div&quot;) { |elements|
+      elements.size.should == 2
+      with_tag(&quot;#1&quot;)
+      with_tag(&quot;#2&quot;)
+    }
+    
+    lambda {
+      response.should have_tag(&quot;div&quot;) { |elements|
+        elements.size.should == 2
+        with_tag(&quot;#1&quot;)
+        with_tag(&quot;#3&quot;)
+      }
+    }.should raise_error(SpecFailed)
+
+    lambda {
+      response.should have_tag(&quot;div&quot;) { |elements|
+        elements.size.should == 2
+        with_tag(&quot;#1&quot;)
+        without_tag(&quot;#2&quot;)
+      }
+    }.should raise_error(SpecFailed, &quot;should not have tag(\&quot;#2\&quot;), but did&quot;)
+
+    lambda {
+      response.should have_tag(&quot;div&quot;) { |elements|
+        elements.size.should == 3
+        with_tag(&quot;#1&quot;)
+        with_tag(&quot;#2&quot;)
+      }
+    }.should raise_error(SpecFailed)
+
+
+    response.should have_tag(&quot;div#?&quot;, /\d+/) { |elements|
+      with_tag(&quot;#1&quot;)
+      with_tag(&quot;#2&quot;)
+    }
+  end
+  
+  it &quot;assert_select_from_rjs with multiple items&quot; do
+    render_rjs do |page|
+      page.replace_html &quot;test&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;&quot;
+      page.replace_html &quot;test2&quot;, &quot;&lt;div id=\&quot;2\&quot;&gt;foo&lt;/div&gt;&quot;
+    end
+    response.should have_tag(&quot;div&quot;)
+    response.should have_tag(&quot;div&quot;) { |elements|
+      elements.size.should == 2
+      with_tag(&quot;#1&quot;)
+      with_tag(&quot;#2&quot;)
+    }
+
+    lambda {
+      response.should have_tag(&quot;div&quot;) { |elements|
+        with_tag(&quot;#3&quot;)
+      }
+    }.should raise_error(SpecFailed)
+  end
+end
+
+describe &quot;css_select&quot;, :type =&gt; :controller do
+  include AssertSelectSpecHelpers
+  controller_name :assert_select
+  integrate_views
+
+  it &quot;can select tags from html&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;&lt;/div&gt;}
+    css_select(&quot;div&quot;).size.should == 2
+    css_select(&quot;p&quot;).size.should == 0
+  end
+
+
+  it &quot;can select nested tags from html&quot; do
+    render_html %Q{&lt;div id=&quot;1&quot;&gt;foo&lt;/div&gt;&lt;div id=&quot;2&quot;&gt;foo&lt;/div&gt;}
+    response.should have_tag(&quot;div#?&quot;, /\d+/) { |elements|
+      css_select(elements[0], &quot;div&quot;).should have(1).element
+      css_select(elements[1], &quot;div&quot;).should have(1).element
+    }
+    response.should have_tag(&quot;div&quot;) {
+      css_select(&quot;div&quot;).should have(2).elements
+      css_select(&quot;div&quot;).each { |element|
+        # Testing as a group is one thing
+        css_select(&quot;#1,#2&quot;).should have(2).elements
+        # Testing individually is another
+        css_select(&quot;#1&quot;).should have(1).element
+        css_select(&quot;#2&quot;).should have(1).element
+      }
+    }
+  end
+
+  it &quot;can select nested tags from rjs (one result)&quot; do
+    render_rjs do |page|
+      page.replace_html &quot;test&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;\n&lt;div id=\&quot;2\&quot;&gt;foo&lt;/div&gt;&quot;
+    end
+    css_select(&quot;div&quot;).should have(2).elements
+    css_select(&quot;#1&quot;).should have(1).element
+    css_select(&quot;#2&quot;).should have(1).element
+  end
+
+  it &quot;can select nested tags from rjs (two results)&quot; do
+    render_rjs do |page|
+      page.replace_html &quot;test&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;&quot;
+      page.replace_html &quot;test2&quot;, &quot;&lt;div id=\&quot;2\&quot;&gt;foo&lt;/div&gt;&quot;
+    end
+    css_select(&quot;div&quot;).should have(2).elements
+    css_select(&quot;#1&quot;).should have(1).element
+    css_select(&quot;#2&quot;).should have(1).element
+  end
+  
+end
+
+describe &quot;have_rjs behaviour_type&quot;, :type =&gt; :controller do
+  include AssertSelectSpecHelpers
+  controller_name :assert_select
+  integrate_views
+
+  before(:each) do
+    render_rjs do |page|
+      page.replace &quot;test1&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;&quot;
+      page.replace_html &quot;test2&quot;, &quot;&lt;div id=\&quot;2\&quot;&gt;bar&lt;/div&gt;&lt;div id=\&quot;3\&quot;&gt;none&lt;/div&gt;&quot;
+      page.insert_html :top, &quot;test3&quot;, &quot;&lt;div id=\&quot;4\&quot;&gt;loopy&lt;/div&gt;&quot;
+      page.hide &quot;test4&quot;
+      page[&quot;test5&quot;].hide
+    end
+  end
+  
+  it &quot;should pass if any rjs exists&quot; do
+    response.should have_rjs
+  end
+  
+  it &quot;should fail if no rjs exists&quot; do
+    render_rjs do |page|
+    end
+    lambda do
+      response.should have_rjs
+    end.should raise_error(SpecFailed)
+  end
+  
+  it &quot;should find all rjs from multiple statements&quot; do
+    response.should have_rjs do
+      with_tag(&quot;#1&quot;)
+      with_tag(&quot;#2&quot;)
+      with_tag(&quot;#3&quot;)
+      # with_tag(&quot;#4&quot;)
+      # with_tag(&quot;#5&quot;)
+    end
+  end
+
+  it &quot;should find by id&quot; do
+    response.should have_rjs(&quot;test1&quot;) { |rjs|
+      rjs.size.should == 1
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;div#1&quot;, &quot;foo&quot;)
+    }
+    
+    lambda do
+      response.should have_rjs(&quot;test1&quot;) { |rjs|
+        rjs.size.should == 1
+        without_tag(&quot;div#1&quot;, &quot;foo&quot;)
+      }
+    end.should raise_error(SpecFailed, &quot;should not have tag(\&quot;div#1\&quot;, \&quot;foo\&quot;), but did&quot;)
+
+    response.should have_rjs(&quot;test2&quot;) { |rjs|
+      rjs.size.should == 2
+      with_tag(&quot;div&quot;, 2)
+      with_tag(&quot;div#2&quot;, &quot;bar&quot;)
+      with_tag(&quot;div#3&quot;, &quot;none&quot;)
+    }
+    # response.should have_rjs(&quot;test4&quot;)
+    # response.should have_rjs(&quot;test5&quot;)
+  end
+  
+  # specify &quot;should find rjs using :hide&quot; do
+  #   response.should have_rjs(:hide)
+  #   response.should have_rjs(:hide, &quot;test4&quot;)
+  #   response.should have_rjs(:hide, &quot;test5&quot;)
+  #   lambda do
+  #     response.should have_rjs(:hide, &quot;test3&quot;)
+  #   end.should raise_error(SpecFailed)
+  # end
+
+  it &quot;should find rjs using :replace&quot; do
+    response.should have_rjs(:replace) { |rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;div#1&quot;, &quot;foo&quot;)
+    }
+    response.should have_rjs(:replace, &quot;test1&quot;) { |rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;div#1&quot;, &quot;foo&quot;)
+    }
+    lambda {
+      response.should have_rjs(:replace, &quot;test2&quot;)
+    }.should raise_error(SpecFailed)
+
+    lambda {
+      response.should have_rjs(:replace, &quot;test3&quot;)
+    }.should raise_error(SpecFailed)
+  end
+
+  it &quot;should find rjs using :replace_html&quot; do
+    response.should have_rjs(:replace_html) { |rjs|
+      with_tag(&quot;div&quot;, 2)
+      with_tag(&quot;div#2&quot;, &quot;bar&quot;)
+      with_tag(&quot;div#3&quot;, &quot;none&quot;)
+    }
+
+    response.should have_rjs(:replace_html, &quot;test2&quot;) { |rjs|
+      with_tag(&quot;div&quot;, 2)
+      with_tag(&quot;div#2&quot;, &quot;bar&quot;)
+      with_tag(&quot;div#3&quot;, &quot;none&quot;)
+    }
+
+    lambda {
+      response.should have_rjs(:replace_html, &quot;test1&quot;)
+    }.should raise_error(SpecFailed)
+
+    lambda {
+      response.should have_rjs(:replace_html, &quot;test3&quot;)
+    }.should raise_error(SpecFailed)
+  end
+    
+  it &quot;should find rjs using :insert_html (non-positioned)&quot; do
+    response.should have_rjs(:insert_html) { |rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;div#4&quot;, &quot;loopy&quot;)
+    }
+
+    response.should have_rjs(:insert_html, &quot;test3&quot;) { |rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;div#4&quot;, &quot;loopy&quot;)
+    }
+
+    lambda {
+      response.should have_rjs(:insert_html, &quot;test1&quot;)
+    }.should raise_error(SpecFailed)
+
+    lambda {
+      response.should have_rjs(:insert_html, &quot;test2&quot;)
+    }.should raise_error(SpecFailed)
+  end
+
+  it &quot;should find rjs using :insert (positioned)&quot; do
+    render_rjs do |page|
+      page.insert_html :top, &quot;test1&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;&quot;
+      page.insert_html :bottom, &quot;test2&quot;, &quot;&lt;div id=\&quot;2\&quot;&gt;bar&lt;/div&gt;&quot;
+      page.insert_html :before, &quot;test3&quot;, &quot;&lt;div id=\&quot;3\&quot;&gt;none&lt;/div&gt;&quot;
+      page.insert_html :after, &quot;test4&quot;, &quot;&lt;div id=\&quot;4\&quot;&gt;loopy&lt;/div&gt;&quot;
+    end
+    response.should have_rjs(:insert, :top) do
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#1&quot;)
+    end
+    response.should have_rjs(:insert, :top, &quot;test1&quot;) do
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#1&quot;)
+    end
+    response.should have_rjs(:insert, :bottom) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#2&quot;)
+    }
+    response.should have_rjs(:insert, :bottom, &quot;test2&quot;) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#2&quot;)
+    }
+    response.should have_rjs(:insert, :before) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#3&quot;)
+    }
+    response.should have_rjs(:insert, :before, &quot;test3&quot;) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#3&quot;)
+    }
+    response.should have_rjs(:insert, :after) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#4&quot;)
+    }
+    response.should have_rjs(:insert, :after, &quot;test4&quot;) {|rjs|
+      with_tag(&quot;div&quot;, 1)
+      with_tag(&quot;#4&quot;)
+    }
+  end
+  
+  it &quot;should find rjs using :insert (positioned)&quot; do
+    pending(&quot;await fix for http://rails.lighthouseapp.com/projects/8994-ruby-on-rails/tickets/982&quot;)
+    render_rjs do |page|
+      page.insert_html :top, &quot;test1&quot;, &quot;&lt;div id=\&quot;1\&quot;&gt;foo&lt;/div&gt;&quot;
+      page.insert_html :bottom, &quot;test2&quot;, &quot;&lt;div id=\&quot;2\&quot;&gt;bar&lt;/div&gt;&quot;
+    end
+    lambda {
+      response.should have_rjs(:insert, :top, &quot;test2&quot;)
+    }.should raise_error(SpecFailed)
+  end
+end
+
+describe &quot;send_email behaviour_type&quot;, :type =&gt; :controller do
+  include AssertSelectSpecHelpers
+  controller_name :assert_select
+  integrate_views
+
+  before(:each) do
+    ActionMailer::Base.delivery_method = :test
+    ActionMailer::Base.perform_deliveries = true
+    ActionMailer::Base.deliveries = []
+  end
+
+  after(:each) do
+    ActionMailer::Base.deliveries.clear
+  end
+
+  it &quot;should fail with nothing sent&quot; do
+    response.should_not send_email
+    lambda {
+      response.should send_email{}
+    }.should raise_error(SpecFailed, /No e-mail in delivery list./)
+  end
+  
+  it &quot;should pass otherwise&quot; do
+    AssertSelectMailer.deliver_test &quot;&lt;div&gt;&lt;p&gt;foo&lt;/p&gt;&lt;p&gt;bar&lt;/p&gt;&lt;/div&gt;&quot;
+    response.should send_email
+    lambda {
+      response.should_not send_email
+    }.should raise_error(SpecFailed)
+    response.should send_email{}
+    response.should send_email {
+      with_tag(&quot;div:root&quot;) {
+        with_tag(&quot;p:first-child&quot;, &quot;foo&quot;)
+        with_tag(&quot;p:last-child&quot;, &quot;bar&quot;)
+      }
+    }
+    
+    lambda {
+      response.should_not send_email
+    }.should raise_error(SpecFailed, &quot;should not send email, but did&quot;)
+  end
+
+end
+
+# describe &quot;An rjs call to :visual_effect, a 'should have_rjs' spec with&quot;,
+#   :type =&gt; :view do
+#     
+#   before do
+#     render 'rjs_spec/visual_effect'
+#   end
+# 
+#   it &quot;should pass with the correct element name&quot; do
+#     response.should have_rjs(:effect, :fade, 'mydiv')
+#   end
+#   
+#   it &quot;should fail the wrong element name&quot; do
+#     lambda {
+#       response.should have_rjs(:effect, :fade, 'wrongname')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+#   it &quot;should fail with the correct element but the wrong command&quot; do
+#     lambda {
+#       response.should have_rjs(:effect, :puff, 'mydiv')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+# end
+#   
+# describe &quot;An rjs call to :visual_effect for a toggle, a 'should have_rjs' spec with&quot;,
+#   :type =&gt; :view do
+#     
+#   before do
+#     render 'rjs_spec/visual_toggle_effect'
+#   end
+#   
+#   it &quot;should pass with the correct element name&quot; do
+#     response.should have_rjs(:effect, :toggle_blind, 'mydiv')
+#   end
+#   
+#   it &quot;should fail with the wrong element name&quot; do
+#     lambda {
+#       response.should have_rjs(:effect, :toggle_blind, 'wrongname')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+#   it &quot;should fail the correct element but the wrong command&quot; do
+#     lambda {
+#       response.should have_rjs(:effect, :puff, 'mydiv')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+# end
+
+describe &quot;string.should have_tag&quot;, :type =&gt; :helper do
+  include AssertSelectSpecHelpers
+
+  it &quot;should find root element&quot; do
+    &quot;&lt;p&gt;a paragraph&lt;/p&gt;&quot;.should have_tag(&quot;p&quot;, &quot;a paragraph&quot;)
+  end
+
+  it &quot;should not find non-existent element&quot; do
+    lambda do
+      &quot;&lt;p&gt;a paragraph&lt;/p&gt;&quot;.should have_tag(&quot;p&quot;, &quot;wrong text&quot;)
+    end.should raise_error(SpecFailed)
+  end
+
+  it &quot;should find child element&quot; do
+    &quot;&lt;div&gt;&lt;p&gt;a paragraph&lt;/p&gt;&lt;/div&gt;&quot;.should have_tag(&quot;p&quot;, &quot;a paragraph&quot;)
+  end
+
+  it &quot;should find nested element&quot; do
+    &quot;&lt;div&gt;&lt;p&gt;a paragraph&lt;/p&gt;&lt;/div&gt;&quot;.should have_tag(&quot;div&quot;) do
+      with_tag(&quot;p&quot;, &quot;a paragraph&quot;)
+    end
+  end
+
+  it &quot;should not find wrong nested element&quot; do
+    lambda do
+      &quot;&lt;div&gt;&lt;p&gt;a paragraph&lt;/p&gt;&lt;/div&gt;&quot;.should have_tag(&quot;div&quot;) do
+        with_tag(&quot;p&quot;, &quot;wrong text&quot;)
+      end
+    end.should raise_error(SpecFailed)
+  end
+end
+
+describe &quot;have_tag&quot;, :type =&gt; :controller do
+  include AssertSelectSpecHelpers
+  controller_name :assert_select
+  integrate_views
+
+  it &quot;should work exactly the same as assert_select&quot; do
+    render_html %Q{
+      &lt;div id=&quot;wrapper&quot;&gt;foo
+        &lt;div class=&quot;piece&quot;&gt;
+          &lt;h3&gt;Text&lt;/h3&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;piece&quot;&gt;
+          &lt;h3&gt;Another&lt;/h3&gt;
+        &lt;/div&gt;      
+      &lt;/div&gt;
+    }
+
+    assert_select &quot;#wrapper .piece h3&quot;, :text =&gt; &quot;Text&quot;
+    assert_select &quot;#wrapper .piece h3&quot;, :text =&gt; &quot;Another&quot;
+
+    response.should have_tag(&quot;#wrapper .piece h3&quot;, :text =&gt; &quot;Text&quot;)
+    response.should have_tag(&quot;#wrapper .piece h3&quot;, :text =&gt; &quot;Another&quot;)
+  end
+end
+
+describe 'selecting in HTML that contains a mock with null_object' do
+  module HTML
+    class Document
+      def initialize_with_strict_error_checking(text, strict=false, xml=false)
+        initialize_without_strict_error_checking(text, true, xml)
+      end
+      alias_method :initialize_without_strict_error_checking, :initialize
+      alias_method :initialize, :initialize_with_strict_error_checking
+    end
+  end
+  
+  describe 'modified HTML::Document' do
+    it 'should raise error on valid HTML even though false is specified' do
+      lambda {HTML::Document.new(&quot;&lt;b&gt;#&lt;Spec::Mocks::Mock:0x267b4f0&gt;&lt;/b&gt;&quot;, false, false)}.should raise_error
+    end
+  end
+    
+  it 'should not print errors from assert_select' do
+    mock = mock(&quot;Dog&quot;, :null_object =&gt; true)
+    html = &quot;&lt;b&gt;#{mock.colour}&lt;/b&gt;&quot;
+    lambda {html.should have_tag('b')}.should_not raise_error
+  end
+end</pre>
+    </div>

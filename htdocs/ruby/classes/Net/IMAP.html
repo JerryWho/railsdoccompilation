@@ -1,0 +1,2474 @@
+  <div id="C00000858">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />IMAP<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/net/imap_rb.html');">ruby-1.8.7-p22/lib/net/imap.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a> implements
+Internet Message Access Protocol (<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a>) client functionality. The
+protocol is described in [<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a>].
+</p>
+<h2><a href="index.html?a=C00000858&name=IMAP">IMAP</a> Overview</h2>
+<p>
+An <a href="index.html?a=C00000858&name=IMAP">IMAP</a> client connects to a
+server, and then authenticates itself using either <a
+href="index.html?a=M004443&name=authenticate">authenticate</a>() or <a
+href="index.html?a=M004444&name=login">login</a>(). Having authenticated
+itself, there is a range of commands available to it. Most work with
+mailboxes, which may be arranged in an hierarchical namespace, and each of
+which contains zero or more messages. How this is implemented on the server
+is implementation-dependent; on a UNIX server, it will frequently be
+implemented as a files in mailbox format within a hierarchy of directories.
+</p>
+<p>
+To work on the messages within a mailbox, the client must first select that
+mailbox, using either <a
+href="index.html?a=M004445&name=select">select</a>() or (for read-only
+access) <a href="index.html?a=M004446&name=examine">examine</a>(). Once the
+client has successfully selected a mailbox, they enter <em>selected</em>
+state, and that mailbox becomes the <em>current</em> mailbox, on which
+mail-item related commands implicitly operate.
+</p>
+<p>
+Messages have two sorts of identifiers: message sequence numbers, and UIDs.
+</p>
+<p>
+Message sequence numbers number messages within a mail box from 1 up to the
+number of items in the mail box. If new message arrives during a session,
+it receives a sequence number equal to the new size of the mail box. If
+messages are expunged from the mailbox, remaining messages have their
+sequence numbers &quot;shuffled down&quot; to fill the gaps.
+</p>
+<p>
+UIDs, on the other hand, are permanently guaranteed not to identify another
+message within the same mailbox, even if the existing message is deleted.
+UIDs are required to be assigned in ascending (but not necessarily
+sequential) order within a mailbox; this means that if a non-<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a> client rearranges the
+order of mailitems within a mailbox, the UIDs have to be reassigned. An <a
+href="index.html?a=C00000858&name=IMAP">IMAP</a> client cannot thus
+rearrange message orders.
+</p>
+<h2>Examples of Usage</h2>
+<h3><a href="index.html?a=C00000132&name=List">List</a> sender and subject of all recent messages in the default mailbox</h3>
+<pre>
+  imap = Net::IMAP.new('mail.example.com')
+  imap.authenticate('LOGIN', 'joe_user', 'joes_password')
+  imap.examine('INBOX')
+  imap.search([&quot;RECENT&quot;]).each do |message_id|
+    envelope = imap.fetch(message_id, &quot;ENVELOPE&quot;)[0].attr[&quot;ENVELOPE&quot;]
+    puts &quot;#{envelope.from[0].name}: \t#{envelope.subject}&quot;
+  end
+</pre>
+<h3>Move all messages from April 2003 from &quot;<a href="index.html?a=C00000139&name=Mail">Mail</a>/sent-mail&quot; to &quot;<a href="index.html?a=C00000139&name=Mail">Mail</a>/sent-apr03&quot;</h3>
+<pre>
+  imap = Net::IMAP.new('mail.example.com')
+  imap.authenticate('LOGIN', 'joe_user', 'joes_password')
+  imap.select('Mail/sent-mail')
+  if not imap.list('Mail/', 'sent-apr03')
+    imap.create('Mail/sent-apr03')
+  end
+  imap.search([&quot;BEFORE&quot;, &quot;30-Apr-2003&quot;, &quot;SINCE&quot;, &quot;1-Apr-2003&quot;]).each do |message_id|
+    imap.copy(message_id, &quot;Mail/sent-apr03&quot;)
+    imap.store(message_id, &quot;+FLAGS&quot;, [:Deleted])
+  end
+  imap.expunge
+</pre>
+<h2><a href="index.html?a=C00000029&name=Thread">Thread</a> Safety</h2>
+<p>
+<a href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a> supports
+concurrent threads. For example,
+</p>
+<pre>
+  imap = Net::IMAP.new(&quot;imap.foo.net&quot;, &quot;imap2&quot;)
+  imap.authenticate(&quot;cram-md5&quot;, &quot;bar&quot;, &quot;password&quot;)
+  imap.select(&quot;inbox&quot;)
+  fetch_thread = Thread.start { imap.fetch(1..-1, &quot;UID&quot;) }
+  search_result = imap.search([&quot;BODY&quot;, &quot;hello&quot;])
+  fetch_result = fetch_thread.value
+  imap.disconnect
+</pre>
+<p>
+This script invokes the FETCH command and the SEARCH command concurrently.
+</p>
+<h2>Errors</h2>
+<p>
+An <a href="index.html?a=C00000858&name=IMAP">IMAP</a> server can send
+three different types of responses to indicate failure:
+</p>
+<table>
+<tr><td valign="top">NO:</td><td>the attempted command could not be successfully completed. For instance,
+the username/password used for logging in are incorrect; the selected
+mailbox does not exists; etc.
+
+</td></tr>
+<tr><td valign="top">BAD:</td><td>the request from the client does not follow the server&#8217;s
+understanding of the <a href="index.html?a=C00000858&name=IMAP">IMAP</a>
+protocol. This includes attempting commands from the wrong client state;
+for instance, attempting to perform a SEARCH command without having
+SELECTed a current mailbox. It can also signal an internal server failure
+(such as a disk crash) has occurred.
+
+</td></tr>
+<tr><td valign="top">BYE:</td><td>the server is saying goodbye. This can be part of a normal logout sequence,
+and can be used as part of a login sequence to indicate that the server is
+(for some reason) unwilling to accept our connection. As a response to any
+other command, it indicates either that the server is shutting down, or
+that the server is timing out the client connection due to inactivity.
+
+</td></tr>
+</table>
+<p>
+These three error response are represented by the errors <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>,
+<a
+href="index.html?a=C00000860&name=Net::IMAP::BadResponseError">Net::IMAP::BadResponseError</a>,
+and <a
+href="index.html?a=C00000862&name=Net::IMAP::ByeResponseError">Net::IMAP::ByeResponseError</a>,
+all of which are subclasses of <a
+href="index.html?a=C00000871&name=Net::IMAP::ResponseError">Net::IMAP::ResponseError</a>.
+Essentially, all methods that involve sending a request to the server can
+generate one of these errors. Only the most pertinent instances have been
+documented below.
+</p>
+<p>
+Because the <a href="index.html?a=C00000858&name=IMAP">IMAP</a> class uses
+Sockets for communication, its methods are also susceptible to the various
+errors that can occur when working with sockets. These are generally
+represented as <a href="index.html?a=C00001017&name=Errno">Errno</a>
+errors. For instance, any method that involves sending a request to the
+server and/or receiving a response from it could raise an Errno::EPIPE
+error if the network connection unexpectedly goes down. See the socket(7),
+ip(7), tcp(7), socket(2), connect(2), and associated man pages.
+</p>
+<p>
+Finally, a <a
+href="index.html?a=C00000872&name=Net::IMAP::DataFormatError">Net::IMAP::DataFormatError</a>
+is thrown if low-level data is found to be in an incorrect format (for
+instance, when converting between UTF-8 and UTF-16), and <a
+href="index.html?a=C00000864&name=Net::IMAP::ResponseParseError">Net::IMAP::ResponseParseError</a>
+is thrown if a server response is non-parseable.
+</p>
+<h2>References</h2>
+<dl>
+<dt>[<a href="index.html?a=C00000858&name=IMAP">IMAP</a>]</dt><dd>M. Crispin, &quot;INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1&quot;,
+RFC 2060, December 1996. (Note: since obsoleted by RFC 3501)
+
+</dd>
+<dt>[LANGUAGE-TAGS]</dt><dd>Alvestrand, H., &quot;Tags for the Identification of Languages&quot;, RFC
+1766, March 1995.
+
+</dd>
+<dt>[MD5]</dt><dd>Myers, J., and M. Rose, &quot;The Content-MD5 Header Field&quot;, RFC 1864,
+October 1995.
+
+</dd>
+<dt>[MIME-IMB]</dt><dd>Freed, N., and N. Borenstein, &quot;MIME (Multipurpose Internet <a
+href="index.html?a=C00000139&name=Mail">Mail</a> Extensions) Part One:
+Format of Internet Message Bodies&quot;, RFC 2045, November 1996.
+
+</dd>
+<dt>[RFC-822]</dt><dd>Crocker, D., &quot;Standard for the Format of ARPA Internet Text
+Messages&quot;, STD 11, RFC 822, University of Delaware, August 1982.
+
+</dd>
+<dt>[RFC-2087]</dt><dd>Myers, J., &quot;IMAP4 QUOTA extension&quot;, RFC 2087, January 1997.
+
+</dd>
+<dt>[RFC-2086]</dt><dd>Myers, J., &quot;IMAP4 <a href="index.html?a=C00000247&name=ACL">ACL</a>
+extension&quot;, RFC 2086, January 1997.
+
+</dd>
+<dt>[RFC-2195]</dt><dd>Klensin, J., Catoe, R., and Krumviede, P., &quot;<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a>/POP AUTHorize Extension
+for Simple Challenge/Response&quot;, RFC 2195, September 1997.
+
+</dd>
+<dt>[SORT-THREAD-EXT]</dt><dd>Crispin, M., &quot;INTERNET MESSAGE ACCESS PROTOCOL - SORT and THREAD
+Extensions&quot;, draft-ietf-imapext-sort, May 2003.
+
+</dd>
+<dt>[OSSL]</dt><dd><a href="http://www.openssl.org" target="_blank">http://www.openssl.org</a>
+
+</dd>
+<dt>[RSSL]</dt><dd><a href="http://savannah.gnu.org/projects/rubypki"
+target="_blank">http://savannah.gnu.org/projects/rubypki</a>
+
+</dd>
+<dt>[UTF7]</dt><dd>Goldsmith, D. and Davis, M., &quot;UTF-7: A <a
+href="index.html?a=C00000139&name=Mail">Mail</a>-Safe Transformation Format
+of Unicode&quot;, RFC 2152, May 1997.
+
+</dd>
+</dl>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M004437&name=add_authenticator" >add_authenticator</a></li>
+  <li><a href="index.html?a=M004474&name=add_response_handler" >add_response_handler</a></li>
+  <li><a href="index.html?a=M004460&name=append" >append</a></li>
+  <li><a href="index.html?a=M004443&name=authenticate" >authenticate</a></li>
+  <li><a href="index.html?a=M004440&name=capability" >capability</a></li>
+  <li><a href="index.html?a=M004461&name=check" >check</a></li>
+  <li><a href="index.html?a=M004462&name=close" >close</a></li>
+  <li><a href="index.html?a=M004470&name=copy" >copy</a></li>
+  <li><a href="index.html?a=M004447&name=create" >create</a></li>
+  <li><a href="index.html?a=M004435&name=debug" >debug</a></li>
+  <li><a href="index.html?a=M004436&name=debug=" >debug=</a></li>
+  <li><a href="index.html?a=M004478&name=decode_utf7" >decode_utf7</a></li>
+  <li><a href="index.html?a=M004448&name=delete" >delete</a></li>
+  <li><a href="index.html?a=M004438&name=disconnect" >disconnect</a></li>
+  <li><a href="index.html?a=M004439&name=disconnected?" >disconnected?</a></li>
+  <li><a href="index.html?a=M004479&name=encode_utf7" >encode_utf7</a></li>
+  <li><a href="index.html?a=M004446&name=examine" >examine</a></li>
+  <li><a href="index.html?a=M004463&name=expunge" >expunge</a></li>
+  <li><a href="index.html?a=M004466&name=fetch" >fetch</a></li>
+  <li><a href="index.html?a=M004457&name=getacl" >getacl</a></li>
+  <li><a href="index.html?a=M004454&name=getquota" >getquota</a></li>
+  <li><a href="index.html?a=M004453&name=getquotaroot" >getquotaroot</a></li>
+  <li><a href="index.html?a=M004452&name=list" >list</a></li>
+  <li><a href="index.html?a=M004444&name=login" >login</a></li>
+  <li><a href="index.html?a=M004442&name=logout" >logout</a></li>
+  <li><a href="index.html?a=M004458&name=lsub" >lsub</a></li>
+  <li><a href="index.html?a=M004480&name=new" >new</a></li>
+  <li><a href="index.html?a=M004441&name=noop" >noop</a></li>
+  <li><a href="index.html?a=M004475&name=remove_response_handler" >remove_response_handler</a></li>
+  <li><a href="index.html?a=M004449&name=rename" >rename</a></li>
+  <li><a href="index.html?a=M004464&name=search" >search</a></li>
+  <li><a href="index.html?a=M004445&name=select" >select</a></li>
+  <li><a href="index.html?a=M004456&name=setacl" >setacl</a></li>
+  <li><a href="index.html?a=M004455&name=setquota" >setquota</a></li>
+  <li><a href="index.html?a=M004472&name=sort" >sort</a></li>
+  <li><a href="index.html?a=M004459&name=status" >status</a></li>
+  <li><a href="index.html?a=M004468&name=store" >store</a></li>
+  <li><a href="index.html?a=M004450&name=subscribe" >subscribe</a></li>
+  <li><a href="index.html?a=M004476&name=thread" >thread</a></li>
+  <li><a href="index.html?a=M004471&name=uid_copy" >uid_copy</a></li>
+  <li><a href="index.html?a=M004467&name=uid_fetch" >uid_fetch</a></li>
+  <li><a href="index.html?a=M004465&name=uid_search" >uid_search</a></li>
+  <li><a href="index.html?a=M004473&name=uid_sort" >uid_sort</a></li>
+  <li><a href="index.html?a=M004469&name=uid_store" >uid_store</a></li>
+  <li><a href="index.html?a=M004477&name=uid_thread" >uid_thread</a></li>
+  <li><a href="index.html?a=M004451&name=unsubscribe" >unsubscribe</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('classes/MonitorMixin.html');">MonitorMixin</a></li>
+  <li><a href="#" onclick="jsHref('');">OpenSSL</a></li>
+  <li><a href="#" onclick="jsHref('');">SSL</a></li>
+</ul>
+
+
+  <div class="sectiontitle">Classes and Modules</div>
+  Class "<a href="#" onclick="jsHref('classes/Net/IMAP/BadResponseError.html');" class="link">Net::IMAP::BadResponseError</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/BodyTypeBasic.html');" class="link">Net::IMAP::BodyTypeBasic</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/BodyTypeMessage.html');" class="link">Net::IMAP::BodyTypeMessage</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/BodyTypeMultipart.html');" class="link">Net::IMAP::BodyTypeMultipart</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/BodyTypeText.html');" class="link">Net::IMAP::BodyTypeText</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/ByeResponseError.html');" class="link">Net::IMAP::ByeResponseError</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/CramMD5Authenticator.html');" class="link">Net::IMAP::CramMD5Authenticator</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/DataFormatError.html');" class="link">Net::IMAP::DataFormatError</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/Error.html');" class="link">Net::IMAP::Error</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/LoginAuthenticator.html');" class="link">Net::IMAP::LoginAuthenticator</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/NoResponseError.html');" class="link">Net::IMAP::NoResponseError</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/ResponseError.html');" class="link">Net::IMAP::ResponseError</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Net/IMAP/ResponseParseError.html');" class="link">Net::IMAP::ResponseParseError</a>"<br />
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">SEEN</td>
+    <td>=</td>
+    <td class="attr-value">:Seen</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating a message has been seen
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ANSWERED</td>
+    <td>=</td>
+    <td class="attr-value">:Answered</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating a message has been answered
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">FLAGGED</td>
+    <td>=</td>
+    <td class="attr-value">:Flagged</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating a message has been flagged for special or urgent attention
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">DELETED</td>
+    <td>=</td>
+    <td class="attr-value">:Deleted</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating a message has been marked for deletion. This will occur
+when the mailbox is closed or expunged.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">DRAFT</td>
+    <td>=</td>
+    <td class="attr-value">:Draft</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating a message is only a draft or work-in-progress version.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">RECENT</td>
+    <td>=</td>
+    <td class="attr-value">:Recent</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating that the message is &quot;recent&quot;, meaning that this
+session is the first session in which the client has been notified of this
+message.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">NOINFERIORS</td>
+    <td>=</td>
+    <td class="attr-value">:Noinferiors</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating that a mailbox context name cannot contain children.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">NOSELECT</td>
+    <td>=</td>
+    <td class="attr-value">:Noselect</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating that a mailbox is not selected.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MARKED</td>
+    <td>=</td>
+    <td class="attr-value">:Marked</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating that a mailbox has been marked &quot;interesting&quot; by
+the server; this commonly indicates that the mailbox contains new messages.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">UNMARKED</td>
+    <td>=</td>
+    <td class="attr-value">:Unmarked</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Flag indicating that the mailbox does not contains new messages.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">DATE_MONTH</td>
+    <td>=</td>
+    <td class="attr-value">%w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ContinuationRequest</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:data, :raw_data)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::ContinuationRequest represents command continuation requests.
+
+<p>
+The command continuation request response is indicated by a &quot;+&quot;
+token instead of a tag. This form of response indicates that the server is
+ready to accept the continuation of a command from the client. The
+remainder of this response is a line of text.
+</p>
+<pre>
+  continue_req    ::= &quot;+&quot; SPACE (resp_text / base64)
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">data:</td><td>Returns the data (Net::IMAP::ResponseText).
+
+</td></tr>
+<tr><td valign="top">raw_data:</td><td>Returns the raw data string.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">UntaggedResponse</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:name, :data, :raw_data)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::UntaggedResponse represents untagged responses.
+
+<p>
+<a href="index.html?a=C00000025&name=Data">Data</a> transmitted by the
+server to the client and status responses that do not indicate command
+completion are prefixed with the token &quot;*&quot;, and are called
+untagged responses.
+</p>
+<pre>
+  response_data   ::= &quot;*&quot; SPACE (resp_cond_state / resp_cond_bye /
+                      mailbox_data / message_data / capability_data)
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">name:</td><td>Returns the name such as &quot;FLAGS&quot;, &quot;LIST&quot;,
+&quot;FETCH&quot;.&#8230;
+
+</td></tr>
+<tr><td valign="top">data:</td><td>Returns the data such as an array of flag symbols,
+
+<pre>
+ a ((&lt;Net::IMAP::MailboxList&gt;)) object....
+</pre>
+</td></tr>
+<tr><td valign="top">raw_data:</td><td>Returns the raw data string.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">TaggedResponse</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:tag, :name, :data, :raw_data)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::TaggedResponse represents tagged responses.
+
+<p>
+The server completion result response indicates the success or failure of
+the operation. It is tagged with the same tag as the client command which
+began the operation.
+</p>
+<pre>
+  response_tagged ::= tag SPACE resp_cond_state CRLF
+
+  tag             ::= 1*&lt;any ATOM_CHAR except &quot;+&quot;&gt;
+
+  resp_cond_state ::= (&quot;OK&quot; / &quot;NO&quot; / &quot;BAD&quot;) SPACE resp_text
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">tag:</td><td>Returns the tag.
+
+</td></tr>
+<tr><td valign="top">name:</td><td>Returns the name. the name is one of &quot;OK&quot;, &quot;NO&quot;,
+&quot;BAD&quot;.
+
+</td></tr>
+<tr><td valign="top">data:</td><td>Returns the data. See ((&lt;Net::IMAP::ResponseText&gt;)).
+
+</td></tr>
+<tr><td valign="top">raw_data:</td><td>Returns the raw data string.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ResponseText</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:code, :text)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::ResponseText represents texts of responses. The text may be
+prefixed by the response code.
+
+<pre>
+  resp_text       ::= [&quot;[&quot; resp_text_code &quot;]&quot; SPACE] (text_mime2 / text)
+                      ;; text SHOULD NOT begin with &quot;[&quot; or &quot;=&quot;
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">code:</td><td>Returns the response code. See ((&lt;Net::IMAP::ResponseCode&gt;)).
+
+</td></tr>
+<tr><td valign="top">text:</td><td>Returns the text.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ResponseCode</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:name, :data)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::ResponseCode represents response codes.
+
+<pre>
+  resp_text_code  ::= &quot;ALERT&quot; / &quot;PARSE&quot; /
+                      &quot;PERMANENTFLAGS&quot; SPACE &quot;(&quot; #(flag / &quot;\*&quot;) &quot;)&quot; /
+                      &quot;READ-ONLY&quot; / &quot;READ-WRITE&quot; / &quot;TRYCREATE&quot; /
+                      &quot;UIDVALIDITY&quot; SPACE nz_number /
+                      &quot;UNSEEN&quot; SPACE nz_number /
+                      atom [SPACE 1*&lt;any TEXT_CHAR except &quot;]&quot;&gt;]
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">name:</td><td>Returns the name such as &quot;ALERT&quot;, &quot;PERMANENTFLAGS&quot;,
+&quot;UIDVALIDITY&quot;.&#8230;
+
+</td></tr>
+<tr><td valign="top">data:</td><td>Returns the data if it exists.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MailboxList</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:attr, :delim, :name)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::MailboxList represents contents of the LIST response.
+
+<pre>
+  mailbox_list    ::= &quot;(&quot; #(&quot;\Marked&quot; / &quot;\Noinferiors&quot; /
+                      &quot;\Noselect&quot; / &quot;\Unmarked&quot; / flag_extension) &quot;)&quot;
+                      SPACE (&lt;&quot;&gt; QUOTED_CHAR &lt;&quot;&gt; / nil) SPACE mailbox
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">attr:</td><td>Returns the name attributes. Each name attribute is a symbol capitalized by
+<a
+href="index.html?a=M000780&name=String#capitalize">String#capitalize</a>,
+such as :Noselect (not :NoSelect).
+
+</td></tr>
+<tr><td valign="top">delim:</td><td>Returns the hierarchy delimiter
+
+</td></tr>
+<tr><td valign="top">name:</td><td>Returns the mailbox name.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MailboxQuota</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:mailbox, :usage, :quota)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::MailboxQuota represents contents of GETQUOTA response. This
+object can also be a response to GETQUOTAROOT. In the syntax specification
+below, the delimiter used with the &quot;#&quot; construct is a single
+space (SPACE).
+
+<pre>
+   quota_list      ::= &quot;(&quot; #quota_resource &quot;)&quot;
+
+   quota_resource  ::= atom SPACE number SPACE number
+
+   quota_response  ::= &quot;QUOTA&quot; SPACE astring SPACE quota_list
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">mailbox:</td><td>The mailbox with the associated quota.
+
+</td></tr>
+<tr><td valign="top">usage:</td><td>Current storage usage of mailbox.
+
+</td></tr>
+<tr><td valign="top">quota:</td><td>Quota limit imposed on mailbox.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MailboxQuotaRoot</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:mailbox, :quotaroots)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::MailboxQuotaRoot represents part of the GETQUOTAROOT response.
+(GETQUOTAROOT can also return Net::IMAP::MailboxQuota.)
+
+<pre>
+   quotaroot_response ::= &quot;QUOTAROOT&quot; SPACE astring *(SPACE astring)
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">mailbox:</td><td>The mailbox with the associated quota.
+
+</td></tr>
+<tr><td valign="top">quotaroots:</td><td>Zero or more quotaroots that effect the quota on the specified mailbox.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MailboxACLItem</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:user, :rights)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::MailboxACLItem represents response from GETACL.
+
+<pre>
+   acl_data        ::= &quot;ACL&quot; SPACE mailbox *(SPACE identifier SPACE rights)
+
+   identifier      ::= astring
+
+   rights          ::= astring
+</pre>
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">user:</td><td>Login name that has certain rights to the mailbox that was specified with
+the getacl command.
+
+</td></tr>
+<tr><td valign="top">rights:</td><td>The access rights the indicated user has to the mailbox.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">StatusData</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:mailbox, :attr)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::StatusData represents contents of the STATUS response.
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">mailbox:</td><td>Returns the mailbox name.
+
+</td></tr>
+<tr><td valign="top">attr:</td><td>Returns a hash. Each key is one of &quot;MESSAGES&quot;,
+&quot;RECENT&quot;, &quot;UIDNEXT&quot;, &quot;UIDVALIDITY&quot;,
+&quot;UNSEEN&quot;. Each value is a number.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">FetchData</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:seqno, :attr)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::FetchData represents contents of the FETCH response.
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">seqno:</td><td>Returns the message sequence number. (Note: not the unique identifier, even
+for the UID command response.)
+
+</td></tr>
+<tr><td valign="top">attr:</td><td>Returns a hash. Each key is a data item name, and each value is its value.
+
+<p>
+The current data items are:
+</p>
+<dl>
+<dt>BODY</dt><dd>A form of BODYSTRUCTURE without extension data.
+
+</dd>
+<dt>BODY[&lt;section&gt;]&lt;&lt;origin_octet&gt;&gt;</dt><dd>A string expressing the body contents of the specified section.
+
+</dd>
+<dt>BODYSTRUCTURE</dt><dd>An object that describes the [MIME-IMB] body structure of a message. See <a
+href="index.html?a=C00000873&name=Net::IMAP::BodyTypeBasic">Net::IMAP::BodyTypeBasic</a>,
+<a
+href="index.html?a=C00000861&name=Net::IMAP::BodyTypeText">Net::IMAP::BodyTypeText</a>,
+<a
+href="index.html?a=C00000865&name=Net::IMAP::BodyTypeMessage">Net::IMAP::BodyTypeMessage</a>,
+<a
+href="index.html?a=C00000867&name=Net::IMAP::BodyTypeMultipart">Net::IMAP::BodyTypeMultipart</a>.
+
+</dd>
+<dt>ENVELOPE</dt><dd>A Net::IMAP::Envelope object that describes the envelope structure of a
+message.
+
+</dd>
+<dt>FLAGS</dt><dd>A array of flag symbols that are set for this message. flag symbols are
+capitalized by <a
+href="index.html?a=M000780&name=String#capitalize">String#capitalize</a>.
+
+</dd>
+<dt>INTERNALDATE</dt><dd>A string representing the internal date of the message.
+
+</dd>
+<dt>RFC822</dt><dd>Equivalent to BODY[].
+
+</dd>
+<dt>RFC822.HEADER</dt><dd>Equivalent to BODY.PEEK[HEADER].
+
+</dd>
+<dt>RFC822.SIZE</dt><dd>A number expressing the [RFC-822] size of the message.
+
+</dd>
+<dt>RFC822.TEXT</dt><dd>Equivalent to BODY[TEXT].
+
+</dd>
+<dt>UID</dt><dd>A number expressing the unique identifier of the message.
+
+</dd>
+</dl>
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">Envelope</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:date, :subject, :from, :sender, :reply_to,                           :to, :cc, :bcc, :in_reply_to, :message_id)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::Envelope represents envelope structures of messages.
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">date:</td><td>Returns a string that represents the date.
+
+</td></tr>
+<tr><td valign="top">subject:</td><td>Returns a string that represents the subject.
+
+</td></tr>
+<tr><td valign="top">from:</td><td>Returns an array of Net::IMAP::Address that represents the from.
+
+</td></tr>
+<tr><td valign="top">sender:</td><td>Returns an array of Net::IMAP::Address that represents the sender.
+
+</td></tr>
+<tr><td valign="top">reply_to:</td><td>Returns an array of Net::IMAP::Address that represents the reply-to.
+
+</td></tr>
+<tr><td valign="top">to:</td><td>Returns an array of Net::IMAP::Address that represents the to.
+
+</td></tr>
+<tr><td valign="top">cc:</td><td>Returns an array of Net::IMAP::Address that represents the cc.
+
+</td></tr>
+<tr><td valign="top">bcc:</td><td>Returns an array of Net::IMAP::Address that represents the bcc.
+
+</td></tr>
+<tr><td valign="top">in_reply_to:</td><td>Returns a string that represents the in-reply-to.
+
+</td></tr>
+<tr><td valign="top">message_id:</td><td>Returns a string that represents the message-id.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">Address</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:name, :route, :mailbox, :host)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::Address represents electronic mail addresses.
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">name:</td><td>Returns the phrase from [RFC-822] mailbox.
+
+</td></tr>
+<tr><td valign="top">route:</td><td>Returns the route from [RFC-822] route-addr.
+
+</td></tr>
+<tr><td valign="top">mailbox:</td><td>nil indicates end of [RFC-822] group. If non-nil and host is nil, returns
+[RFC-822] group name. Otherwise, returns [RFC-822] local-part
+
+</td></tr>
+<tr><td valign="top">host:</td><td>nil indicates [RFC-822] group syntax. Otherwise, returns [RFC-822] domain
+name.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ContentDisposition</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:dsp_type, :param)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::ContentDisposition represents Content-Disposition fields.
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">dsp_type:</td><td>Returns the disposition type.
+
+</td></tr>
+<tr><td valign="top">param:</td><td>Returns a hash that represents parameters of the Content-Disposition field.
+
+</td></tr>
+</table>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">ThreadMember</td>
+    <td>=</td>
+    <td class="attr-value">Struct.new(:seqno, :children)</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+Net::IMAP::ThreadMember represents a thread-node returned by <a
+href="index.html?a=M004476&name=Net::IMAP#thread">Net::IMAP#thread</a>
+
+<h4>Fields:</h4>
+<table>
+<tr><td valign="top">seqno:</td><td>The sequence number of this message.
+
+</td></tr>
+<tr><td valign="top">children:</td><td>an array of Net::IMAP::ThreadMember objects for mail
+
+</td></tr>
+</table>
+<p>
+items that are children of this in the thread.
+</p>
+</td>
+  </tr>
+  </table>
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[RW]
+    </td>
+    <td class='attr-name'>client_thread</td>
+    <td class='attr-desc'>
+The thread to receive exceptions.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>greeting</td>
+    <td class='attr-desc'>
+Returns an initial greeting response from the server.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>response_handlers</td>
+    <td class='attr-desc'>
+Returns all response handlers.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>responses</td>
+    <td class='attr-desc'>
+Returns recorded untagged responses. For example:
+
+<pre>
+  imap.select(&quot;inbox&quot;)
+  p imap.responses[&quot;EXISTS&quot;][-1]
+  #=&gt; 2
+  p imap.responses[&quot;UIDVALIDITY&quot;][-1]
+  #=&gt; 968263756
+</pre>
+</td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M004437" class="method">
+  <div id="M004437_title" class="title">
+    <b>add_authenticator</b>(auth_type, authenticator)
+  </div>
+  <div class="description">
+  <p>
+Adds an authenticator for <a
+href="index.html?a=M004443&name=Net::IMAP#authenticate">Net::IMAP#authenticate</a>.
+<tt>auth_type</tt> is the type of authentication this authenticator
+supports (for instance, &quot;LOGIN&quot;). The <tt>authenticator</tt> is
+an object which defines a process() method to handle authentication with
+the server. See <a
+href="index.html?a=C00000877&name=Net::IMAP::LoginAuthenticator">Net::IMAP::LoginAuthenticator</a>
+and <a
+href="index.html?a=C00000876&name=Net::IMAP::CramMD5Authenticator">Net::IMAP::CramMD5Authenticator</a>
+for examples.
+</p>
+<p>
+If <tt>auth_type</tt> refers to an existing authenticator, it will be
+replaced by the new one.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004437_source')" id="l_M004437_source">show source</a> ]</p>
+  <div id="M004437_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 281</span>
+281:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">add_authenticator</span>(<span class="ruby-identifier">auth_type</span>, <span class="ruby-identifier">authenticator</span>)
+282:       <span class="ruby-ivar">@@authenticators</span>[<span class="ruby-identifier">auth_type</span>] = <span class="ruby-identifier">authenticator</span>
+283:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004435" class="method">
+  <div id="M004435_title" class="title">
+    <b>debug</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns the debug mode.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004435_source')" id="l_M004435_source">show source</a> ]</p>
+  <div id="M004435_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 263</span>
+263:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">debug</span>
+264:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@@debug</span>
+265:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004436" class="method">
+  <div id="M004436_title" class="title">
+    <b>debug=</b>(val)
+  </div>
+  <div class="description">
+  <p>
+Sets the debug mode.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004436_source')" id="l_M004436_source">show source</a> ]</p>
+  <div id="M004436_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 268</span>
+268:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">debug=</span>(<span class="ruby-identifier">val</span>)
+269:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@@debug</span> = <span class="ruby-identifier">val</span>
+270:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004478" class="method">
+  <div id="M004478_title" class="title">
+    <b>decode_utf7</b>(s)
+  </div>
+  <div class="description">
+  <p>
+Decode a string from modified UTF-7 format to UTF-8.
+</p>
+<p>
+UTF-7 is a 7-bit encoding of Unicode [UTF7]. <a
+href="index.html?a=C00000858&name=IMAP">IMAP</a> uses a slightly modified
+version of this to encode mailbox names containing non-ASCII characters;
+see [<a href="index.html?a=C00000858&name=IMAP">IMAP</a>] section 5.1.3.
+</p>
+<p>
+<a href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a> does
+<em>not</em> automatically encode and decode mailbox names to and from
+utf7.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004478_source')" id="l_M004478_source">show source</a> ]</p>
+  <div id="M004478_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 825</span>
+825:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">decode_utf7</span>(<span class="ruby-identifier">s</span>)
+826:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">s</span>.<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp re">/&amp;(.*?)-/n</span>) {
+827:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$1</span>.<span class="ruby-identifier">empty?</span>
+828:           <span class="ruby-value str">&quot;&amp;&quot;</span>
+829:         <span class="ruby-keyword kw">else</span>
+830:           <span class="ruby-identifier">base64</span> = <span class="ruby-identifier">$1</span>.<span class="ruby-identifier">tr</span>(<span class="ruby-value str">&quot;,&quot;</span>, <span class="ruby-value str">&quot;/&quot;</span>)
+831:           <span class="ruby-identifier">x</span> = <span class="ruby-identifier">base64</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">%</span> <span class="ruby-value">4</span>
+832:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">x</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+833:             <span class="ruby-identifier">base64</span>.<span class="ruby-identifier">concat</span>(<span class="ruby-value str">&quot;=&quot;</span> <span class="ruby-operator">*</span> (<span class="ruby-value">4</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">x</span>))
+834:           <span class="ruby-keyword kw">end</span>
+835:           <span class="ruby-identifier">u16tou8</span>(<span class="ruby-identifier">base64</span>.<span class="ruby-identifier">unpack</span>(<span class="ruby-value str">&quot;m&quot;</span>)[<span class="ruby-value">0</span>])
+836:         <span class="ruby-keyword kw">end</span>
+837:       }
+838:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004479" class="method">
+  <div id="M004479_title" class="title">
+    <b>encode_utf7</b>(s)
+  </div>
+  <div class="description">
+  <p>
+Encode a string from UTF-8 format to modified UTF-7.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004479_source')" id="l_M004479_source">show source</a> ]</p>
+  <div id="M004479_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 841</span>
+841:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">encode_utf7</span>(<span class="ruby-identifier">s</span>)
+842:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">s</span>.<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp re">/(&amp;)|([^\x20-\x25\x27-\x7e]+)/n</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">x</span><span class="ruby-operator">|</span>
+843:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$1</span>
+844:           <span class="ruby-value str">&quot;&amp;-&quot;</span>
+845:         <span class="ruby-keyword kw">else</span>
+846:           <span class="ruby-identifier">base64</span> = [<span class="ruby-identifier">u8tou16</span>(<span class="ruby-identifier">x</span>)].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;m&quot;</span>)
+847:           <span class="ruby-value str">&quot;&amp;&quot;</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">base64</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;=\n&quot;</span>).<span class="ruby-identifier">tr</span>(<span class="ruby-value str">&quot;/&quot;</span>, <span class="ruby-value str">&quot;,&quot;</span>) <span class="ruby-operator">+</span> <span class="ruby-value str">&quot;-&quot;</span>
+848:         <span class="ruby-keyword kw">end</span>
+849:       }
+850:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004480" class="method">
+  <div id="M004480_title" class="title">
+    <b>new</b>(host, port = PORT, usessl = false, certs = nil, verify = false)
+  </div>
+  <div class="description">
+  <p>
+Creates a new <a href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a>
+object and connects it to the specified <tt>port</tt> (143 by default) on
+the named <tt>host</tt>. If <tt>usessl</tt> is true, then an attempt will
+be made to use SSL (now TLS) to connect to the server. For this to work
+OpenSSL [OSSL] and the Ruby OpenSSL [RSSL] extensions need to be installed.
+The <tt>certs</tt> parameter indicates the path or file containing the CA
+cert of the server, and the <tt>verify</tt> parameter is for the OpenSSL
+verification callback.
+</p>
+<p>
+The most common errors are:
+</p>
+<table>
+<tr><td valign="top">Errno::ECONNREFUSED:</td><td>connection refused by <tt>host</tt> or an intervening firewall.
+
+</td></tr>
+<tr><td valign="top">Errno::ETIMEDOUT:</td><td>connection timed out (possibly due to packets being dropped by an
+intervening firewall).
+
+</td></tr>
+<tr><td valign="top">Errno::ENETUNREACH:</td><td>there is no route to that network.
+
+</td></tr>
+<tr><td valign="top"><a href="index.html?a=C00000016&name=SocketError">SocketError</a>:</td><td>hostname not known or other socket error.
+
+</td></tr>
+<tr><td valign="top"><a href="index.html?a=C00000862&name=Net::IMAP::ByeResponseError">Net::IMAP::ByeResponseError</a>:</td><td>we connected to the host, but they immediately said goodbye to us.
+
+</td></tr>
+</table>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004480_source')" id="l_M004480_source">show source</a> ]</p>
+  <div id="M004480_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 879</span>
+879:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">host</span>, <span class="ruby-identifier">port</span> = <span class="ruby-constant">PORT</span>, <span class="ruby-identifier">usessl</span> = <span class="ruby-keyword kw">false</span>, <span class="ruby-identifier">certs</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">verify</span> = <span class="ruby-keyword kw">false</span>)
+880:       <span class="ruby-keyword kw">super</span>()
+881:       <span class="ruby-ivar">@host</span> = <span class="ruby-identifier">host</span>
+882:       <span class="ruby-ivar">@port</span> = <span class="ruby-identifier">port</span>
+883:       <span class="ruby-ivar">@tag_prefix</span> = <span class="ruby-value str">&quot;RUBY&quot;</span>
+884:       <span class="ruby-ivar">@tagno</span> = <span class="ruby-value">0</span>
+885:       <span class="ruby-ivar">@parser</span> = <span class="ruby-constant">ResponseParser</span>.<span class="ruby-identifier">new</span>
+886:       <span class="ruby-ivar">@sock</span> = <span class="ruby-constant">TCPSocket</span>.<span class="ruby-identifier">open</span>(<span class="ruby-identifier">host</span>, <span class="ruby-identifier">port</span>)
+887:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">usessl</span>
+888:         <span class="ruby-keyword kw">unless</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">OpenSSL</span>)
+889:           <span class="ruby-identifier">raise</span> <span class="ruby-value str">&quot;SSL extension not installed&quot;</span>
+890:         <span class="ruby-keyword kw">end</span>
+891:         <span class="ruby-ivar">@usessl</span> = <span class="ruby-keyword kw">true</span>
+892: 
+893:         <span class="ruby-comment cmt"># verify the server.</span>
+894:         <span class="ruby-identifier">context</span> = <span class="ruby-constant">SSLContext</span><span class="ruby-operator">::</span><span class="ruby-identifier">new</span>()
+895:         <span class="ruby-identifier">context</span>.<span class="ruby-identifier">ca_file</span> = <span class="ruby-identifier">certs</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">certs</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-constant">FileTest</span><span class="ruby-operator">::</span><span class="ruby-identifier">file?</span>(<span class="ruby-identifier">certs</span>)
+896:         <span class="ruby-identifier">context</span>.<span class="ruby-identifier">ca_path</span> = <span class="ruby-identifier">certs</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">certs</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-constant">FileTest</span><span class="ruby-operator">::</span><span class="ruby-identifier">directory?</span>(<span class="ruby-identifier">certs</span>)
+897:         <span class="ruby-identifier">context</span>.<span class="ruby-identifier">verify_mode</span> = <span class="ruby-constant">VERIFY_PEER</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">verify</span>
+898:         <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">VerifyCallbackProc</span>)
+899:           <span class="ruby-identifier">context</span>.<span class="ruby-identifier">verify_callback</span> = <span class="ruby-constant">VerifyCallbackProc</span> 
+900:         <span class="ruby-keyword kw">end</span>
+901:         <span class="ruby-ivar">@sock</span> = <span class="ruby-constant">SSLSocket</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@sock</span>, <span class="ruby-identifier">context</span>)
+902:         <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">connect</span>   <span class="ruby-comment cmt"># start ssl session.</span>
+903:         <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">post_connection_check</span>(<span class="ruby-ivar">@host</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">verify</span>
+904:       <span class="ruby-keyword kw">else</span>
+905:         <span class="ruby-ivar">@usessl</span> = <span class="ruby-keyword kw">false</span>
+906:       <span class="ruby-keyword kw">end</span>
+907:       <span class="ruby-ivar">@responses</span> = <span class="ruby-constant">Hash</span>.<span class="ruby-identifier">new</span>([].<span class="ruby-identifier">freeze</span>)
+908:       <span class="ruby-ivar">@tagged_responses</span> = {}
+909:       <span class="ruby-ivar">@response_handlers</span> = []
+910:       <span class="ruby-ivar">@response_arrival</span> = <span class="ruby-identifier">new_cond</span>
+911:       <span class="ruby-ivar">@continuation_request</span> = <span class="ruby-keyword kw">nil</span>
+912:       <span class="ruby-ivar">@logout_command_tag</span> = <span class="ruby-keyword kw">nil</span>
+913:       <span class="ruby-ivar">@debug_output_bol</span> = <span class="ruby-keyword kw">true</span>
+914: 
+915:       <span class="ruby-ivar">@greeting</span> = <span class="ruby-identifier">get_response</span>
+916:       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@greeting</span>.<span class="ruby-identifier">name</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;BYE&quot;</span>
+917:         <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">close</span>
+918:         <span class="ruby-identifier">raise</span> <span class="ruby-constant">ByeResponseError</span>, <span class="ruby-ivar">@greeting</span>.<span class="ruby-identifier">raw_data</span>
+919:       <span class="ruby-keyword kw">end</span>
+920: 
+921:       <span class="ruby-ivar">@client_thread</span> = <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">current</span>
+922:       <span class="ruby-ivar">@receiver_thread</span> = <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">start</span> {
+923:         <span class="ruby-identifier">receive_responses</span>
+924:       }
+925:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M004474" class="method">
+  <div id="M004474_title" class="title">
+    <b>add_response_handler</b>(handler = Proc.new)
+  </div>
+  <div class="description">
+  <p>
+Adds a response handler. For example, to detect when the server sends us a
+new EXISTS response (which normally indicates new messages being added to
+the mail box), you could add the following handler after selecting the
+mailbox.
+</p>
+<pre>
+  imap.add_response_handler { |resp|
+    if resp.kind_of?(Net::IMAP::UntaggedResponse) and resp.name == &quot;EXISTS&quot;
+      puts &quot;Mailbox now has #{resp.data} messages&quot;
+    end
+  }
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004474_source')" id="l_M004474_source">show source</a> ]</p>
+  <div id="M004474_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 785</span>
+785:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_response_handler</span>(<span class="ruby-identifier">handler</span> = <span class="ruby-constant">Proc</span>.<span class="ruby-identifier">new</span>)
+786:       <span class="ruby-ivar">@response_handlers</span>.<span class="ruby-identifier">push</span>(<span class="ruby-identifier">handler</span>)
+787:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004460" class="method">
+  <div id="M004460_title" class="title">
+    <b>append</b>(mailbox, message, flags = nil, date_time = nil)
+  </div>
+  <div class="description">
+  <p>
+Sends a APPEND command to append the <tt>message</tt> to the end of the
+<tt>mailbox</tt>. The optional <tt>flags</tt> argument is an array of flags
+to initially passing to the new message. The optional <tt>date_time</tt>
+argument specifies the creation time to assign to the new message; it
+defaults to the current time. For example:
+</p>
+<pre>
+  imap.append(&quot;inbox&quot;, &lt;&lt;EOF.gsub(/\n/, &quot;\r\n&quot;), [:Seen], Time.now)
+  Subject: hello
+  From: shugo@ruby-lang.org
+  To: shugo@ruby-lang.org
+
+  hello world
+  EOF
+</pre>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if the mailbox does not exist (it is not created automatically),
+or if the flags, date_time, or message arguments contain errors.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004460_source')" id="l_M004460_source">show source</a> ]</p>
+  <div id="M004460_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 604</span>
+604:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">append</span>(<span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">message</span>, <span class="ruby-identifier">flags</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">date_time</span> = <span class="ruby-keyword kw">nil</span>)
+605:       <span class="ruby-identifier">args</span> = []
+606:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">flags</span>
+607:         <span class="ruby-identifier">args</span>.<span class="ruby-identifier">push</span>(<span class="ruby-identifier">flags</span>)
+608:       <span class="ruby-keyword kw">end</span>
+609:       <span class="ruby-identifier">args</span>.<span class="ruby-identifier">push</span>(<span class="ruby-identifier">date_time</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">date_time</span>
+610:       <span class="ruby-identifier">args</span>.<span class="ruby-identifier">push</span>(<span class="ruby-constant">Literal</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">message</span>))
+611:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;APPEND&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+612:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004443" class="method">
+  <div id="M004443_title" class="title">
+    <b>authenticate</b>(auth_type, *args)
+  </div>
+  <div class="description">
+  <p>
+Sends an AUTHENTICATE command to authenticate the client. The
+<tt>auth_type</tt> parameter is a string that represents the authentication
+mechanism to be used. Currently <a
+href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a> supports
+authentication mechanisms:
+</p>
+<pre>
+  LOGIN:: login using cleartext user and password.
+  CRAM-MD5:: login with cleartext user and encrypted password
+             (see [RFC-2195] for a full description).  This
+             mechanism requires that the server have the user's
+             password stored in clear-text password.
+</pre>
+<p>
+For both these mechanisms, there should be two <tt>args</tt>: username and
+(cleartext) password. A server may not support one or other of these
+mechanisms; check <a
+href="index.html?a=M004440&name=capability">capability</a>() for a
+capability of the form &quot;AUTH=LOGIN&quot; or &quot;AUTH=CRAM-MD5&quot;.
+</p>
+<p>
+Authentication is done using the appropriate authenticator object: see
+@@authenticators for more information on plugging in your own
+authenticator.
+</p>
+<p>
+For example:
+</p>
+<pre>
+   imap.authenticate('LOGIN', user, password)
+</pre>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if authentication fails.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004443_source')" id="l_M004443_source">show source</a> ]</p>
+  <div id="M004443_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 354</span>
+354:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">authenticate</span>(<span class="ruby-identifier">auth_type</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+355:       <span class="ruby-identifier">auth_type</span> = <span class="ruby-identifier">auth_type</span>.<span class="ruby-identifier">upcase</span>
+356:       <span class="ruby-keyword kw">unless</span> <span class="ruby-ivar">@@authenticators</span>.<span class="ruby-identifier">has_key?</span>(<span class="ruby-identifier">auth_type</span>)
+357:         <span class="ruby-identifier">raise</span> <span class="ruby-constant">ArgumentError</span>,
+358:           <span class="ruby-identifier">format</span>(<span class="ruby-value str">'unknown auth type - &quot;%s&quot;'</span>, <span class="ruby-identifier">auth_type</span>)
+359:       <span class="ruby-keyword kw">end</span>
+360:       <span class="ruby-identifier">authenticator</span> = <span class="ruby-ivar">@@authenticators</span>[<span class="ruby-identifier">auth_type</span>].<span class="ruby-identifier">new</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+361:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;AUTHENTICATE&quot;</span>, <span class="ruby-identifier">auth_type</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">resp</span><span class="ruby-operator">|</span>
+362:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">resp</span>.<span class="ruby-identifier">instance_of?</span>(<span class="ruby-constant">ContinuationRequest</span>)
+363:           <span class="ruby-identifier">data</span> = <span class="ruby-identifier">authenticator</span>.<span class="ruby-identifier">process</span>(<span class="ruby-identifier">resp</span>.<span class="ruby-identifier">data</span>.<span class="ruby-identifier">text</span>.<span class="ruby-identifier">unpack</span>(<span class="ruby-value str">&quot;m&quot;</span>)[<span class="ruby-value">0</span>])
+364:           <span class="ruby-identifier">s</span> = [<span class="ruby-identifier">data</span>].<span class="ruby-identifier">pack</span>(<span class="ruby-value str">&quot;m&quot;</span>).<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp re">/\n/</span>, <span class="ruby-value str">&quot;&quot;</span>)
+365:           <span class="ruby-identifier">send_string_data</span>(<span class="ruby-identifier">s</span>)
+366:           <span class="ruby-identifier">put_string</span>(<span class="ruby-constant">CRLF</span>)
+367:         <span class="ruby-keyword kw">end</span>
+368:       <span class="ruby-keyword kw">end</span>
+369:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004440" class="method">
+  <div id="M004440_title" class="title">
+    <b>capability</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a CAPABILITY command, and returns an array of capabilities that the
+server supports. Each capability is a string. See [<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a>] for a list of possible
+capabilities.
+</p>
+<p>
+Note that the <a href="index.html?a=C00000858&name=Net::IMAP">Net::IMAP</a>
+class does not modify its behaviour according to the capabilities of the
+server; it is up to the user of the class to ensure that a certain
+capability is supported by a server before using it.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004440_source')" id="l_M004440_source">show source</a> ]</p>
+  <div id="M004440_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 311</span>
+311:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">capability</span>
+312:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+313:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;CAPABILITY&quot;</span>)
+314:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;CAPABILITY&quot;</span>)[<span class="ruby-value">-1</span>]
+315:       <span class="ruby-keyword kw">end</span>
+316:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004461" class="method">
+  <div id="M004461_title" class="title">
+    <b>check</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a CHECK command to request a checkpoint of the currently selected
+mailbox. This performs implementation-specific housekeeping, for instance,
+reconciling the mailbox&#8217;s in-memory and on-disk state.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004461_source')" id="l_M004461_source">show source</a> ]</p>
+  <div id="M004461_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 618</span>
+618:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">check</span>
+619:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;CHECK&quot;</span>)
+620:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004462" class="method">
+  <div id="M004462_title" class="title">
+    <b>close</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a CLOSE command to close the currently selected mailbox. The CLOSE
+command permanently removes from the mailbox all messages that have the
+\Deleted flag set.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004462_source')" id="l_M004462_source">show source</a> ]</p>
+  <div id="M004462_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 625</span>
+625:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">close</span>
+626:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;CLOSE&quot;</span>)
+627:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004470" class="method">
+  <div id="M004470_title" class="title">
+    <b>copy</b>(set, mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a COPY command to copy the specified message(s) to the end of the
+specified destination <tt>mailbox</tt>. The <tt>set</tt> parameter is a
+number or an array of numbers or a <a
+href="index.html?a=C00000051&name=Range">Range</a> object. The number is a
+message sequence number.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004470_source')" id="l_M004470_source">show source</a> ]</p>
+  <div id="M004470_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 746</span>
+746:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">copy</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">mailbox</span>)
+747:       <span class="ruby-identifier">copy_internal</span>(<span class="ruby-value str">&quot;COPY&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">mailbox</span>)
+748:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004447" class="method">
+  <div id="M004447_title" class="title">
+    <b>create</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a CREATE command to create a new <tt>mailbox</tt>.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if a mailbox with that name cannot be created.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004447_source')" id="l_M004447_source">show source</a> ]</p>
+  <div id="M004447_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 417</span>
+417:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">create</span>(<span class="ruby-identifier">mailbox</span>)
+418:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;CREATE&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+419:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004448" class="method">
+  <div id="M004448_title" class="title">
+    <b>delete</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a DELETE command to remove the <tt>mailbox</tt>.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if a mailbox with that name cannot be deleted, either because it
+does not exist or because the client does not have permission to delete it.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004448_source')" id="l_M004448_source">show source</a> ]</p>
+  <div id="M004448_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 426</span>
+426:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">delete</span>(<span class="ruby-identifier">mailbox</span>)
+427:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;DELETE&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+428:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004438" class="method">
+  <div id="M004438_title" class="title">
+    <b>disconnect</b>()
+  </div>
+  <div class="description">
+  <p>
+Disconnects from the server.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004438_source')" id="l_M004438_source">show source</a> ]</p>
+  <div id="M004438_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 286</span>
+286:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">disconnect</span>
+287:       <span class="ruby-keyword kw">if</span> <span class="ruby-constant">SSL</span><span class="ruby-operator">::</span><span class="ruby-constant">SSLSocket</span> <span class="ruby-operator">===</span> <span class="ruby-ivar">@sock</span>
+288:         <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">io</span>.<span class="ruby-identifier">shutdown</span>
+289:       <span class="ruby-keyword kw">else</span>
+290:         <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">shutdown</span>
+291:       <span class="ruby-keyword kw">end</span>
+292:       <span class="ruby-ivar">@receiver_thread</span>.<span class="ruby-identifier">join</span>
+293:       <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">close</span>
+294:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004439" class="method">
+  <div id="M004439_title" class="title">
+    <b>disconnected?</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns true if disconnected from the server.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004439_source')" id="l_M004439_source">show source</a> ]</p>
+  <div id="M004439_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 297</span>
+297:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">disconnected?</span>
+298:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@sock</span>.<span class="ruby-identifier">closed?</span>
+299:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004446" class="method">
+  <div id="M004446_title" class="title">
+    <b>examine</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a EXAMINE command to select a <tt>mailbox</tt> so that messages in
+the <tt>mailbox</tt> can be accessed. Behaves the same as <a
+href="index.html?a=M004445&name=select">select</a>(), except that the
+selected <tt>mailbox</tt> is identified as read-only.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if the mailbox does not exist or is for some reason
+non-examinable.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004446_source')" id="l_M004446_source">show source</a> ]</p>
+  <div id="M004446_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 406</span>
+406:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">examine</span>(<span class="ruby-identifier">mailbox</span>)
+407:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+408:         <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">clear</span>
+409:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;EXAMINE&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+410:       <span class="ruby-keyword kw">end</span>
+411:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004463" class="method">
+  <div id="M004463_title" class="title">
+    <b>expunge</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a EXPUNGE command to permanently remove from the currently selected
+mailbox all messages that have the \Deleted flag set.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004463_source')" id="l_M004463_source">show source</a> ]</p>
+  <div id="M004463_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 631</span>
+631:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">expunge</span>
+632:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+633:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;EXPUNGE&quot;</span>)
+634:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;EXPUNGE&quot;</span>)
+635:       <span class="ruby-keyword kw">end</span>
+636:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004466" class="method">
+  <div id="M004466_title" class="title">
+    <b>fetch</b>(set, attr)
+  </div>
+  <div class="description">
+  <p>
+Sends a FETCH command to retrieve data associated with a message in the
+mailbox. The <tt>set</tt> parameter is a number or an array of numbers or a
+<a href="index.html?a=C00000051&name=Range">Range</a> object. The number is
+a message sequence number. <tt>attr</tt> is a list of attributes to fetch;
+see the documentation for Net::IMAP::FetchData for a list of valid
+attributes. The return value is an array of Net::IMAP::FetchData. For
+example:
+</p>
+<pre>
+  p imap.fetch(6..8, &quot;UID&quot;)
+  #=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;UID&quot;=&gt;98}&gt;, \\
+       #&lt;Net::IMAP::FetchData seqno=7, attr={&quot;UID&quot;=&gt;99}&gt;, \\
+       #&lt;Net::IMAP::FetchData seqno=8, attr={&quot;UID&quot;=&gt;100}&gt;]
+  p imap.fetch(6, &quot;BODY[HEADER.FIELDS (SUBJECT)]&quot;)
+  #=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;BODY[HEADER.FIELDS (SUBJECT)]&quot;=&gt;&quot;Subject: test\r\n\r\n&quot;}&gt;]
+  data = imap.uid_fetch(98, [&quot;RFC822.SIZE&quot;, &quot;INTERNALDATE&quot;])[0]
+  p data.seqno
+  #=&gt; 6
+  p data.attr[&quot;RFC822.SIZE&quot;]
+  #=&gt; 611
+  p data.attr[&quot;INTERNALDATE&quot;]
+  #=&gt; &quot;12-Oct-2000 22:40:59 +0900&quot;
+  p data.attr[&quot;UID&quot;]
+  #=&gt; 98
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004466_source')" id="l_M004466_source">show source</a> ]</p>
+  <div id="M004466_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 710</span>
+710:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">fetch</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>)
+711:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">fetch_internal</span>(<span class="ruby-value str">&quot;FETCH&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>)
+712:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004457" class="method">
+  <div id="M004457_title" class="title">
+    <b>getacl</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Send the GETACL command along with specified <tt>mailbox</tt>. If this
+mailbox exists, an array containing objects of Net::IMAP::MailboxACLItem
+will be returned.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004457_source')" id="l_M004457_source">show source</a> ]</p>
+  <div id="M004457_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 544</span>
+544:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">getacl</span>(<span class="ruby-identifier">mailbox</span>)
+545:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+546:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;GETACL&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+547:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;ACL&quot;</span>)[<span class="ruby-value">-1</span>]
+548:       <span class="ruby-keyword kw">end</span>
+549:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004454" class="method">
+  <div id="M004454_title" class="title">
+    <b>getquota</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends the GETQUOTA command along with specified <tt>mailbox</tt>. If this
+mailbox exists, then an array containing a Net::IMAP::MailboxQuota object
+is returned. This command generally is only available to server admin.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004454_source')" id="l_M004454_source">show source</a> ]</p>
+  <div id="M004454_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 508</span>
+508:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">getquota</span>(<span class="ruby-identifier">mailbox</span>)
+509:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+510:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;GETQUOTA&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+511:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;QUOTA&quot;</span>)
+512:       <span class="ruby-keyword kw">end</span>
+513:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004453" class="method">
+  <div id="M004453_title" class="title">
+    <b>getquotaroot</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends the GETQUOTAROOT command along with specified <tt>mailbox</tt>. This
+command is generally available to both admin and user. If mailbox exists,
+returns an array containing objects of Net::IMAP::MailboxQuotaRoot and
+Net::IMAP::MailboxQuota.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004453_source')" id="l_M004453_source">show source</a> ]</p>
+  <div id="M004453_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 494</span>
+494:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">getquotaroot</span>(<span class="ruby-identifier">mailbox</span>)
+495:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+496:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;GETQUOTAROOT&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+497:         <span class="ruby-identifier">result</span> = []
+498:         <span class="ruby-identifier">result</span>.<span class="ruby-identifier">concat</span>(<span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;QUOTAROOT&quot;</span>))
+499:         <span class="ruby-identifier">result</span>.<span class="ruby-identifier">concat</span>(<span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;QUOTA&quot;</span>))
+500:         <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">result</span>
+501:       <span class="ruby-keyword kw">end</span>
+502:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004452" class="method">
+  <div id="M004452_title" class="title">
+    <b>list</b>(refname, mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a LIST command, and returns a subset of names from the complete set
+of all names available to the client. <tt>refname</tt> provides a context
+(for instance, a base directory in a directory-based mailbox hierarchy).
+<tt>mailbox</tt> specifies a mailbox or (via wildcards) mailboxes under
+that context. Two wildcards may be used in <tt>mailbox</tt>:
+&#8217;*&#8217;, which matches all characters <b>including</b> the
+hierarchy delimiter (for instance, &#8217;/&#8217; on a UNIX-hosted
+directory-based mailbox hierarchy); and &#8217;%&#8217;, which matches all
+characters <b>except</b> the hierarchy delimiter.
+</p>
+<p>
+If <tt>refname</tt> is empty, <tt>mailbox</tt> is used directly to
+determine which mailboxes to match. If <tt>mailbox</tt> is empty, the root
+name of <tt>refname</tt> and the hierarchy delimiter are returned.
+</p>
+<p>
+The return value is an array of +Net::IMAP::MailboxList+. For example:
+</p>
+<pre>
+  imap.create(&quot;foo/bar&quot;)
+  imap.create(&quot;foo/baz&quot;)
+  p imap.list(&quot;&quot;, &quot;foo/%&quot;)
+  #=&gt; [#&lt;Net::IMAP::MailboxList attr=[:Noselect], delim=&quot;/&quot;, name=&quot;foo/&quot;&gt;, \\
+       #&lt;Net::IMAP::MailboxList attr=[:Noinferiors, :Marked], delim=&quot;/&quot;, name=&quot;foo/bar&quot;&gt;, \\
+       #&lt;Net::IMAP::MailboxList attr=[:Noinferiors], delim=&quot;/&quot;, name=&quot;foo/baz&quot;&gt;]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004452_source')" id="l_M004452_source">show source</a> ]</p>
+  <div id="M004452_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 483</span>
+483:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">list</span>(<span class="ruby-identifier">refname</span>, <span class="ruby-identifier">mailbox</span>)
+484:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+485:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;LIST&quot;</span>, <span class="ruby-identifier">refname</span>, <span class="ruby-identifier">mailbox</span>)
+486:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;LIST&quot;</span>)
+487:       <span class="ruby-keyword kw">end</span>
+488:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004444" class="method">
+  <div id="M004444_title" class="title">
+    <b>login</b>(user, password)
+  </div>
+  <div class="description">
+  <p>
+Sends a LOGIN command to identify the client and carries the plaintext
+<tt>password</tt> authenticating this <tt>user</tt>. Note that, unlike
+calling <a href="index.html?a=M004443&name=authenticate">authenticate</a>()
+with an <tt>auth_type</tt> of &quot;LOGIN&quot;, <a
+href="index.html?a=M004444&name=login">login</a>() does <b>not</b> use the
+login authenticator.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if authentication fails.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004444_source')" id="l_M004444_source">show source</a> ]</p>
+  <div id="M004444_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 377</span>
+377:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">login</span>(<span class="ruby-identifier">user</span>, <span class="ruby-identifier">password</span>)
+378:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;LOGIN&quot;</span>, <span class="ruby-identifier">user</span>, <span class="ruby-identifier">password</span>)
+379:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004442" class="method">
+  <div id="M004442_title" class="title">
+    <b>logout</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a LOGOUT command to inform the server that the client is done with
+the connection.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004442_source')" id="l_M004442_source">show source</a> ]</p>
+  <div id="M004442_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 325</span>
+325:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">logout</span>
+326:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;LOGOUT&quot;</span>)
+327:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004458" class="method">
+  <div id="M004458_title" class="title">
+    <b>lsub</b>(refname, mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a LSUB command, and returns a subset of names from the set of names
+that the user has declared as being &quot;active&quot; or
+&quot;subscribed&quot;. <tt>refname</tt> and <tt>mailbox</tt> are
+interpreted as for <a href="index.html?a=M004452&name=list">list</a>(). The
+return value is an array of +Net::IMAP::MailboxList+.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004458_source')" id="l_M004458_source">show source</a> ]</p>
+  <div id="M004458_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 556</span>
+556:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">lsub</span>(<span class="ruby-identifier">refname</span>, <span class="ruby-identifier">mailbox</span>)
+557:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+558:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;LSUB&quot;</span>, <span class="ruby-identifier">refname</span>, <span class="ruby-identifier">mailbox</span>)
+559:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;LSUB&quot;</span>)
+560:       <span class="ruby-keyword kw">end</span>
+561:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004441" class="method">
+  <div id="M004441_title" class="title">
+    <b>noop</b>()
+  </div>
+  <div class="description">
+  <p>
+Sends a NOOP command to the server. It does nothing.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004441_source')" id="l_M004441_source">show source</a> ]</p>
+  <div id="M004441_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 319</span>
+319:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">noop</span>
+320:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;NOOP&quot;</span>)
+321:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004475" class="method">
+  <div id="M004475_title" class="title">
+    <b>remove_response_handler</b>(handler)
+  </div>
+  <div class="description">
+  <p>
+Removes the response handler.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004475_source')" id="l_M004475_source">show source</a> ]</p>
+  <div id="M004475_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 790</span>
+790:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">remove_response_handler</span>(<span class="ruby-identifier">handler</span>)
+791:       <span class="ruby-ivar">@response_handlers</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">handler</span>)
+792:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004449" class="method">
+  <div id="M004449_title" class="title">
+    <b>rename</b>(mailbox, newname)
+  </div>
+  <div class="description">
+  <p>
+Sends a RENAME command to change the name of the <tt>mailbox</tt> to
+<tt>newname</tt>.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if a mailbox with the name <tt>mailbox</tt> cannot be renamed to
+<tt>newname</tt> for whatever reason; for instance, because
+<tt>mailbox</tt> does not exist, or because there is already a mailbox with
+the name <tt>newname</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004449_source')" id="l_M004449_source">show source</a> ]</p>
+  <div id="M004449_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 437</span>
+437:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rename</span>(<span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">newname</span>)
+438:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;RENAME&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">newname</span>)
+439:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004464" class="method">
+  <div id="M004464_title" class="title">
+    <b>search</b>(keys, charset = nil)
+  </div>
+  <div class="description">
+  <p>
+Sends a SEARCH command to search the mailbox for messages that match the
+given searching criteria, and returns message sequence numbers.
+<tt>keys</tt> can either be a string holding the entire search string, or a
+single-dimension array of search keywords and arguments. The following are
+some common search criteria; see [<a
+href="index.html?a=C00000858&name=IMAP">IMAP</a>] section 6.4.4 for a full
+list.
+</p>
+<table>
+<tr><td valign="top">&lt;message set&gt;:</td><td>a set of message sequence numbers. &#8217;,&#8217; indicates an interval,
+&#8217;:&#8217; indicates a range. For instance, &#8216;2,10:12,15&#8217;
+means &quot;2,10,11,12,15&quot;.
+
+</td></tr>
+<tr><td valign="top">BEFORE &lt;date&gt;:</td><td>messages with an internal date strictly before &lt;date&gt;. The date
+argument has a format similar to 8-Aug-2002.
+
+</td></tr>
+<tr><td valign="top">BODY &lt;string&gt;:</td><td>messages that contain &lt;string&gt; within their body.
+
+</td></tr>
+<tr><td valign="top">CC &lt;string&gt;:</td><td>messages containing &lt;string&gt; in their CC field.
+
+</td></tr>
+<tr><td valign="top">FROM &lt;string&gt;:</td><td>messages that contain &lt;string&gt; in their FROM field.
+
+</td></tr>
+<tr><td valign="top">NEW:</td><td>messages with the \Recent, but not the \Seen, flag set.
+
+</td></tr>
+<tr><td valign="top">NOT &lt;search-key&gt;:</td><td>negate the following search key.
+
+</td></tr>
+<tr><td valign="top">OR &lt;search-key&gt; &lt;search-key&gt;:</td><td>&quot;or&quot; two search keys together.
+
+</td></tr>
+<tr><td valign="top">ON &lt;date&gt;:</td><td>messages with an internal date exactly equal to &lt;date&gt;, which has a
+format similar to 8-Aug-2002.
+
+</td></tr>
+<tr><td valign="top">SINCE &lt;date&gt;:</td><td>messages with an internal date on or after &lt;date&gt;.
+
+</td></tr>
+<tr><td valign="top">SUBJECT &lt;string&gt;:</td><td>messages with &lt;string&gt; in their subject.
+
+</td></tr>
+<tr><td valign="top">TO &lt;string&gt;:</td><td>messages with &lt;string&gt; in their TO field.
+
+</td></tr>
+</table>
+<p>
+For example:
+</p>
+<pre>
+  p imap.search([&quot;SUBJECT&quot;, &quot;hello&quot;, &quot;NOT&quot;, &quot;NEW&quot;])
+  #=&gt; [1, 6, 7, 8]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004464_source')" id="l_M004464_source">show source</a> ]</p>
+  <div id="M004464_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 678</span>
+678:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">search</span>(<span class="ruby-identifier">keys</span>, <span class="ruby-identifier">charset</span> = <span class="ruby-keyword kw">nil</span>)
+679:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">search_internal</span>(<span class="ruby-value str">&quot;SEARCH&quot;</span>, <span class="ruby-identifier">keys</span>, <span class="ruby-identifier">charset</span>)
+680:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004445" class="method">
+  <div id="M004445_title" class="title">
+    <b>select</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a SELECT command to select a <tt>mailbox</tt> so that messages in the
+<tt>mailbox</tt> can be accessed.
+</p>
+<p>
+After you have selected a mailbox, you may retrieve the number of items in
+that mailbox from @responses[&quot;EXISTS&quot;][-1], and the number of
+recent messages from @responses[&quot;RECENT&quot;][-1]. Note that these
+values can change if new messages arrive during a session; see <a
+href="index.html?a=M004474&name=add_response_handler">add_response_handler</a>()
+for a way of detecting this event.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if the mailbox does not exist or is for some reason
+non-selectable.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004445_source')" id="l_M004445_source">show source</a> ]</p>
+  <div id="M004445_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 393</span>
+393:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">select</span>(<span class="ruby-identifier">mailbox</span>)
+394:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+395:         <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">clear</span>
+396:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;SELECT&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+397:       <span class="ruby-keyword kw">end</span>
+398:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004456" class="method">
+  <div id="M004456_title" class="title">
+    <b>setacl</b>(mailbox, user, rights)
+  </div>
+  <div class="description">
+  <p>
+Sends the SETACL command along with <tt>mailbox</tt>, <tt>user</tt> and the
+<tt>rights</tt> that user is to have on that mailbox. If <tt>rights</tt> is
+nil, then that user will be stripped of any rights to that mailbox. The <a
+href="index.html?a=C00000858&name=IMAP">IMAP</a> <a
+href="index.html?a=C00000247&name=ACL">ACL</a> commands are described in
+[RFC-2086].
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004456_source')" id="l_M004456_source">show source</a> ]</p>
+  <div id="M004456_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 533</span>
+533:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setacl</span>(<span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">user</span>, <span class="ruby-identifier">rights</span>)
+534:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">rights</span>.<span class="ruby-identifier">nil?</span> 
+535:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;SETACL&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">user</span>, <span class="ruby-value str">&quot;&quot;</span>)
+536:       <span class="ruby-keyword kw">else</span>
+537:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;SETACL&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">user</span>, <span class="ruby-identifier">rights</span>)
+538:       <span class="ruby-keyword kw">end</span>
+539:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004455" class="method">
+  <div id="M004455_title" class="title">
+    <b>setquota</b>(mailbox, quota)
+  </div>
+  <div class="description">
+  <p>
+Sends a SETQUOTA command along with the specified <tt>mailbox</tt> and
+<tt>quota</tt>. If <tt>quota</tt> is nil, then quota will be unset for that
+mailbox. Typically one needs to be logged in as server admin for this to
+work. The <a href="index.html?a=C00000858&name=IMAP">IMAP</a> quota
+commands are described in [RFC-2087].
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004455_source')" id="l_M004455_source">show source</a> ]</p>
+  <div id="M004455_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 520</span>
+520:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setquota</span>(<span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">quota</span>)
+521:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">quota</span>.<span class="ruby-identifier">nil?</span>
+522:         <span class="ruby-identifier">data</span> = <span class="ruby-value str">'()'</span>
+523:       <span class="ruby-keyword kw">else</span>
+524:         <span class="ruby-identifier">data</span> = <span class="ruby-value str">'(STORAGE '</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">quota</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-operator">+</span> <span class="ruby-value str">')'</span>
+525:       <span class="ruby-keyword kw">end</span>
+526:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;SETQUOTA&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-constant">RawData</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">data</span>))
+527:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004472" class="method">
+  <div id="M004472_title" class="title">
+    <b>sort</b>(sort_keys, search_keys, charset)
+  </div>
+  <div class="description">
+  <p>
+Sends a SORT command to sort messages in the mailbox. Returns an array of
+message sequence numbers. For example:
+</p>
+<pre>
+  p imap.sort([&quot;FROM&quot;], [&quot;ALL&quot;], &quot;US-ASCII&quot;)
+  #=&gt; [1, 2, 3, 5, 6, 7, 8, 4, 9]
+  p imap.sort([&quot;DATE&quot;], [&quot;SUBJECT&quot;, &quot;hello&quot;], &quot;US-ASCII&quot;)
+  #=&gt; [6, 7, 8, 1]
+</pre>
+<p>
+See [SORT-THREAD-EXT] for more details.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004472_source')" id="l_M004472_source">show source</a> ]</p>
+  <div id="M004472_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 764</span>
+764:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sort</span>(<span class="ruby-identifier">sort_keys</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+765:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">sort_internal</span>(<span class="ruby-value str">&quot;SORT&quot;</span>, <span class="ruby-identifier">sort_keys</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+766:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004459" class="method">
+  <div id="M004459_title" class="title">
+    <b>status</b>(mailbox, attr)
+  </div>
+  <div class="description">
+  <p>
+Sends a STATUS command, and returns the status of the indicated
+<tt>mailbox</tt>. <tt>attr</tt> is a list of one or more attributes that we
+are request the status of. Supported attributes include:
+</p>
+<pre>
+  MESSAGES:: the number of messages in the mailbox.
+  RECENT:: the number of recent messages in the mailbox.
+  UNSEEN:: the number of unseen messages in the mailbox.
+</pre>
+<p>
+The return value is a hash of attributes. For example:
+</p>
+<pre>
+  p imap.status(&quot;inbox&quot;, [&quot;MESSAGES&quot;, &quot;RECENT&quot;])
+  #=&gt; {&quot;RECENT&quot;=&gt;0, &quot;MESSAGES&quot;=&gt;44}
+</pre>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if status values for <tt>mailbox</tt> cannot be returned, for
+instance because it does not exist.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004459_source')" id="l_M004459_source">show source</a> ]</p>
+  <div id="M004459_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 579</span>
+579:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">status</span>(<span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">attr</span>)
+580:       <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span>
+581:         <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;STATUS&quot;</span>, <span class="ruby-identifier">mailbox</span>, <span class="ruby-identifier">attr</span>)
+582:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@responses</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-value str">&quot;STATUS&quot;</span>)[<span class="ruby-value">-1</span>].<span class="ruby-identifier">attr</span>
+583:       <span class="ruby-keyword kw">end</span>
+584:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004468" class="method">
+  <div id="M004468_title" class="title">
+    <b>store</b>(set, attr, flags)
+  </div>
+  <div class="description">
+  <p>
+Sends a STORE command to alter data associated with messages in the
+mailbox, in particular their flags. The <tt>set</tt> parameter is a number
+or an array of numbers or a <a
+href="index.html?a=C00000051&name=Range">Range</a> object. Each number is a
+message sequence number. <tt>attr</tt> is the name of a data item to store:
+&#8216;FLAGS&#8217; means to replace the message&#8217;s flag list with the
+provided one; &#8217;+FLAGS&#8217; means to add the provided flags; and
+&#8217;-FLAGS&#8217; means to remove them. <tt>flags</tt> is a list of
+flags.
+</p>
+<p>
+The return value is an array of Net::IMAP::FetchData. For example:
+</p>
+<pre>
+  p imap.store(6..8, &quot;+FLAGS&quot;, [:Deleted])
+  #=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;, \\
+       #&lt;Net::IMAP::FetchData seqno=7, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;, \\
+       #&lt;Net::IMAP::FetchData seqno=8, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;]
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004468_source')" id="l_M004468_source">show source</a> ]</p>
+  <div id="M004468_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 733</span>
+733:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">store</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>, <span class="ruby-identifier">flags</span>)
+734:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">store_internal</span>(<span class="ruby-value str">&quot;STORE&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>, <span class="ruby-identifier">flags</span>)
+735:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004450" class="method">
+  <div id="M004450_title" class="title">
+    <b>subscribe</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a SUBSCRIBE command to add the specified <tt>mailbox</tt> name to the
+server&#8217;s set of &quot;active&quot; or &quot;subscribed&quot;
+mailboxes as returned by <a
+href="index.html?a=M004458&name=lsub">lsub</a>().
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if <tt>mailbox</tt> cannot be subscribed to, for instance because
+it does not exist.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004450_source')" id="l_M004450_source">show source</a> ]</p>
+  <div id="M004450_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 447</span>
+447:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">subscribe</span>(<span class="ruby-identifier">mailbox</span>)
+448:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;SUBSCRIBE&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+449:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004476" class="method">
+  <div id="M004476_title" class="title">
+    <b>thread</b>(algorithm, search_keys, charset)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004464&name=search">search</a>(), but returns
+message sequence numbers in threaded format, as a Net::IMAP::ThreadMember
+tree. The supported algorithms are:
+</p>
+<table>
+<tr><td valign="top">ORDEREDSUBJECT:</td><td>split into single-level threads according to subject, ordered by date.
+
+</td></tr>
+<tr><td valign="top">REFERENCES:</td><td>split into threads by parent/child relationships determined by which
+message is a reply to which.
+
+</td></tr>
+</table>
+<p>
+Unlike <a href="index.html?a=M004464&name=search">search</a>(),
+<tt>charset</tt> is a required argument. US-ASCII and UTF-8 are sample
+values.
+</p>
+<p>
+See [SORT-THREAD-EXT] for more details.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004476_source')" id="l_M004476_source">show source</a> ]</p>
+  <div id="M004476_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 807</span>
+807:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">thread</span>(<span class="ruby-identifier">algorithm</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+808:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">thread_internal</span>(<span class="ruby-value str">&quot;THREAD&quot;</span>, <span class="ruby-identifier">algorithm</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+809:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004471" class="method">
+  <div id="M004471_title" class="title">
+    <b>uid_copy</b>(set, mailbox)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004470&name=copy">copy</a>(), but
+<tt>set</tt> contains unique identifiers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004471_source')" id="l_M004471_source">show source</a> ]</p>
+  <div id="M004471_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 751</span>
+751:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_copy</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">mailbox</span>)
+752:       <span class="ruby-identifier">copy_internal</span>(<span class="ruby-value str">&quot;UID COPY&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">mailbox</span>)
+753:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004467" class="method">
+  <div id="M004467_title" class="title">
+    <b>uid_fetch</b>(set, attr)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004466&name=fetch">fetch</a>(), but
+<tt>set</tt> contains unique identifiers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004467_source')" id="l_M004467_source">show source</a> ]</p>
+  <div id="M004467_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 715</span>
+715:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_fetch</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>)
+716:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">fetch_internal</span>(<span class="ruby-value str">&quot;UID FETCH&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>)
+717:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004465" class="method">
+  <div id="M004465_title" class="title">
+    <b>uid_search</b>(keys, charset = nil)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004464&name=search">search</a>(), but returns
+unique identifiers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004465_source')" id="l_M004465_source">show source</a> ]</p>
+  <div id="M004465_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 683</span>
+683:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_search</span>(<span class="ruby-identifier">keys</span>, <span class="ruby-identifier">charset</span> = <span class="ruby-keyword kw">nil</span>)
+684:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">search_internal</span>(<span class="ruby-value str">&quot;UID SEARCH&quot;</span>, <span class="ruby-identifier">keys</span>, <span class="ruby-identifier">charset</span>)
+685:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004473" class="method">
+  <div id="M004473_title" class="title">
+    <b>uid_sort</b>(sort_keys, search_keys, charset)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004472&name=sort">sort</a>(), but returns an
+array of unique identifiers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004473_source')" id="l_M004473_source">show source</a> ]</p>
+  <div id="M004473_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 769</span>
+769:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_sort</span>(<span class="ruby-identifier">sort_keys</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+770:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">sort_internal</span>(<span class="ruby-value str">&quot;UID SORT&quot;</span>, <span class="ruby-identifier">sort_keys</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+771:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004469" class="method">
+  <div id="M004469_title" class="title">
+    <b>uid_store</b>(set, attr, flags)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004468&name=store">store</a>(), but
+<tt>set</tt> contains unique identifiers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004469_source')" id="l_M004469_source">show source</a> ]</p>
+  <div id="M004469_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 738</span>
+738:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_store</span>(<span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>, <span class="ruby-identifier">flags</span>)
+739:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">store_internal</span>(<span class="ruby-value str">&quot;UID STORE&quot;</span>, <span class="ruby-identifier">set</span>, <span class="ruby-identifier">attr</span>, <span class="ruby-identifier">flags</span>)
+740:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004477" class="method">
+  <div id="M004477_title" class="title">
+    <b>uid_thread</b>(algorithm, search_keys, charset)
+  </div>
+  <div class="description">
+  <p>
+As for <a href="index.html?a=M004476&name=thread">thread</a>(), but returns
+unique identifiers instead of message sequence numbers.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004477_source')" id="l_M004477_source">show source</a> ]</p>
+  <div id="M004477_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 813</span>
+813:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">uid_thread</span>(<span class="ruby-identifier">algorithm</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+814:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">thread_internal</span>(<span class="ruby-value str">&quot;UID THREAD&quot;</span>, <span class="ruby-identifier">algorithm</span>, <span class="ruby-identifier">search_keys</span>, <span class="ruby-identifier">charset</span>)
+815:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004451" class="method">
+  <div id="M004451_title" class="title">
+    <b>unsubscribe</b>(mailbox)
+  </div>
+  <div class="description">
+  <p>
+Sends a UNSUBSCRIBE command to remove the specified <tt>mailbox</tt> name
+from the server&#8217;s set of &quot;active&quot; or &quot;subscribed&quot;
+mailboxes.
+</p>
+<p>
+A <a
+href="index.html?a=C00000869&name=Net::IMAP::NoResponseError">Net::IMAP::NoResponseError</a>
+is raised if <tt>mailbox</tt> cannot be unsubscribed from, for instance
+because the client is not currently subscribed to it.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004451_source')" id="l_M004451_source">show source</a> ]</p>
+  <div id="M004451_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/net/imap.rb, line 457</span>
+457:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">unsubscribe</span>(<span class="ruby-identifier">mailbox</span>)
+458:       <span class="ruby-identifier">send_command</span>(<span class="ruby-value str">&quot;UNSUBSCRIBE&quot;</span>, <span class="ruby-identifier">mailbox</span>)
+459:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

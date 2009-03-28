@@ -1,0 +1,206 @@
+  <div id="C00000329">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />RingServer<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/rinda/ring_rb.html');">ruby-1.8.7-p22/lib/rinda/ring.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+A <a href="index.html?a=C00000329&name=RingServer">RingServer</a> allows a
+<a
+href="index.html?a=C00000328&name=Rinda::TupleSpace">Rinda::TupleSpace</a>
+to be located via UDP broadcasts. Service location uses the following
+steps:
+</p>
+<ol>
+<li>A <a href="index.html?a=C00000329&name=RingServer">RingServer</a> begins
+listening on the broadcast UDP address.
+
+</li>
+<li>A <a href="index.html?a=C00000338&name=RingFinger">RingFinger</a> sends a
+UDP packet containing the <a href="index.html?a=C00001509&name=DRb">DRb</a>
+<a href="index.html?a=C00000995&name=URI">URI</a> where it will listen for
+a reply.
+
+</li>
+<li>The <a href="index.html?a=C00000329&name=RingServer">RingServer</a>
+receives the UDP packet and connects back to the provided <a
+href="index.html?a=C00001509&name=DRb">DRb</a> <a
+href="index.html?a=C00000995&name=URI">URI</a> with the <a
+href="index.html?a=C00001509&name=DRb">DRb</a> service.
+
+</li>
+</ol>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M002929&name=do_reply" >do_reply</a></li>
+  <li><a href="index.html?a=M002927&name=do_write" >do_write</a></li>
+  <li><a href="index.html?a=M002925&name=new" >new</a></li>
+  <li><a href="index.html?a=M002928&name=reply_service" >reply_service</a></li>
+  <li><a href="index.html?a=M002926&name=write_service" >write_service</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('');">DRbUndumped</a></li>
+</ul>
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M002925" class="method">
+  <div id="M002925_title" class="title">
+    <b>new</b>(ts, port=Ring_PORT)
+  </div>
+  <div class="description">
+  <p>
+Advertises <tt>ts</tt> on the UDP broadcast address at <tt>port</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002925_source')" id="l_M002925_source">show source</a> ]</p>
+  <div id="M002925_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rinda/ring.rb, line 32</span>
+32:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">ts</span>, <span class="ruby-identifier">port</span>=<span class="ruby-constant">Ring_PORT</span>)
+33:       <span class="ruby-ivar">@ts</span> = <span class="ruby-identifier">ts</span>
+34:       <span class="ruby-ivar">@soc</span> = <span class="ruby-constant">UDPSocket</span>.<span class="ruby-identifier">open</span>
+35:       <span class="ruby-ivar">@soc</span>.<span class="ruby-identifier">bind</span>(<span class="ruby-value str">''</span>, <span class="ruby-identifier">port</span>)
+36:       <span class="ruby-ivar">@w_service</span> = <span class="ruby-identifier">write_service</span>
+37:       <span class="ruby-ivar">@r_service</span> = <span class="ruby-identifier">reply_service</span>
+38:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M002929" class="method">
+  <div id="M002929_title" class="title">
+    <b>do_reply</b>()
+  </div>
+  <div class="description">
+  <p>
+Pulls lookup tuples out of the <a
+href="index.html?a=C00000328&name=TupleSpace">TupleSpace</a> and sends
+their <a href="index.html?a=C00001509&name=DRb">DRb</a> object the address
+of the local <a
+href="index.html?a=C00000328&name=TupleSpace">TupleSpace</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002929_source')" id="l_M002929_source">show source</a> ]</p>
+  <div id="M002929_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rinda/ring.rb, line 82</span>
+82:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">do_reply</span>
+83:       <span class="ruby-identifier">tuple</span> = <span class="ruby-ivar">@ts</span>.<span class="ruby-identifier">take</span>([<span class="ruby-identifier">:lookup_ring</span>, <span class="ruby-keyword kw">nil</span>])
+84:       <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">new</span> { <span class="ruby-identifier">tuple</span>[<span class="ruby-value">1</span>].<span class="ruby-identifier">call</span>(<span class="ruby-ivar">@ts</span>) <span class="ruby-keyword kw">rescue</span> <span class="ruby-keyword kw">nil</span>}
+85:     <span class="ruby-keyword kw">rescue</span>
+86:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002927" class="method">
+  <div id="M002927_title" class="title">
+    <b>do_write</b>(msg)
+  </div>
+  <div class="description">
+  <p>
+Extracts the response <a href="index.html?a=C00000995&name=URI">URI</a>
+from <tt>msg</tt> and adds it to <a
+href="index.html?a=C00000328&name=TupleSpace">TupleSpace</a> where it will
+be picked up by <tt><a
+href="index.html?a=M002928&name=reply_service">reply_service</a></tt> for
+notification.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002927_source')" id="l_M002927_source">show source</a> ]</p>
+  <div id="M002927_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rinda/ring.rb, line 57</span>
+57:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">do_write</span>(<span class="ruby-identifier">msg</span>)
+58:       <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span>
+59:         <span class="ruby-keyword kw">begin</span>
+60:           <span class="ruby-identifier">tuple</span>, <span class="ruby-identifier">sec</span> = <span class="ruby-constant">Marshal</span>.<span class="ruby-identifier">load</span>(<span class="ruby-identifier">msg</span>)
+61:           <span class="ruby-ivar">@ts</span>.<span class="ruby-identifier">write</span>(<span class="ruby-identifier">tuple</span>, <span class="ruby-identifier">sec</span>)
+62:         <span class="ruby-keyword kw">rescue</span>
+63:         <span class="ruby-keyword kw">end</span>
+64:       <span class="ruby-keyword kw">end</span>
+65:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002928" class="method">
+  <div id="M002928_title" class="title">
+    <b>reply_service</b>()
+  </div>
+  <div class="description">
+  <p>
+Creates a thread that notifies waiting clients from the <a
+href="index.html?a=C00000328&name=TupleSpace">TupleSpace</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002928_source')" id="l_M002928_source">show source</a> ]</p>
+  <div id="M002928_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rinda/ring.rb, line 70</span>
+70:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reply_service</span>
+71:       <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span>
+72:         <span class="ruby-identifier">loop</span> <span class="ruby-keyword kw">do</span>
+73:           <span class="ruby-identifier">do_reply</span>
+74:         <span class="ruby-keyword kw">end</span>
+75:       <span class="ruby-keyword kw">end</span>
+76:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002926" class="method">
+  <div id="M002926_title" class="title">
+    <b>write_service</b>()
+  </div>
+  <div class="description">
+  <p>
+Creates a thread that picks up UDP packets and passes them to <a
+href="index.html?a=M002927&name=do_write">do_write</a> for decoding.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002926_source')" id="l_M002926_source">show source</a> ]</p>
+  <div id="M002926_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rinda/ring.rb, line 44</span>
+44:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">write_service</span>
+45:       <span class="ruby-constant">Thread</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span>
+46:         <span class="ruby-identifier">loop</span> <span class="ruby-keyword kw">do</span>
+47:           <span class="ruby-identifier">msg</span> = <span class="ruby-ivar">@soc</span>.<span class="ruby-identifier">recv</span>(<span class="ruby-value">1024</span>)
+48:           <span class="ruby-identifier">do_write</span>(<span class="ruby-identifier">msg</span>)
+49:         <span class="ruby-keyword kw">end</span>
+50:       <span class="ruby-keyword kw">end</span>
+51:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

@@ -1,0 +1,293 @@
+  <div id="fileHeader">
+    <h1>ruby-token.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/irb/ruby-token.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#   irb/ruby-token.rb - ruby tokens 
+#   	$Release Version: 0.9.5$
+#   	$Revision: 11708 $
+#   	$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#   	by Keiju ISHITSUKA(keiju@ruby-lang.org)
+#
+# --
+#
+#   
+#
+module RubyToken
+  EXPR_BEG = :EXPR_BEG
+  EXPR_MID = :EXPR_MID
+  EXPR_END = :EXPR_END
+  EXPR_ARG = :EXPR_ARG
+  EXPR_FNAME = :EXPR_FNAME
+  EXPR_DOT = :EXPR_DOT
+  EXPR_CLASS = :EXPR_CLASS
+
+  # for ruby 1.4X
+  if !defined?(Symbol)
+    Symbol = Integer
+  end
+  
+  class Token
+    def initialize(seek, line_no, char_no)
+      @seek = seek
+      @line_no = line_no
+      @char_no = char_no
+    end
+    attr :seek
+    attr :line_no
+    attr :char_no
+  end
+
+  class TkNode &lt; Token
+    def initialize(seek, line_no, char_no)
+      super
+    end
+    attr :node
+  end
+
+  class TkId &lt; Token
+    def initialize(seek, line_no, char_no, name)
+      super(seek, line_no, char_no)
+      @name = name
+    end
+    attr :name
+  end
+
+  class TkVal &lt; Token
+    def initialize(seek, line_no, char_no, value = nil)
+      super(seek, line_no, char_no)
+      @value = value
+    end
+    attr :value
+  end
+
+  class TkOp &lt; Token
+    attr :name, true
+  end
+
+  class TkOPASGN &lt; TkOp
+    def initialize(seek, line_no, char_no, op)
+      super(seek, line_no, char_no)
+      op = TkReading2Token[op][0] unless op.kind_of?(Symbol)
+      @op = op
+    end
+    attr :op
+  end
+
+  class TkUnknownChar &lt; Token
+    def initialize(seek, line_no, char_no, id)
+      super(seek, line_no, char_no)
+      @name = name
+    end
+    attr :name
+  end
+
+  class TkError &lt; Token
+  end
+
+  def Token(token, value = nil)
+    case token
+    when String
+      if (tk = TkReading2Token[token]).nil?
+	IRB.fail TkReading2TokenNoKey, token
+      end
+      tk = Token(tk[0], value) 
+      if tk.kind_of?(TkOp)
+	tk.name = token
+      end
+      return tk
+    when Symbol
+      if (tk = TkSymbol2Token[token]).nil?
+	IRB.fail TkSymbol2TokenNoKey, token
+      end
+      return Token(tk[0], value) 
+    else 
+      if (token.ancestors &amp; [TkId, TkVal, TkOPASGN, TkUnknownChar]).empty?
+	token.new(@prev_seek, @prev_line_no, @prev_char_no)
+      else
+	token.new(@prev_seek, @prev_line_no, @prev_char_no, value)
+      end
+    end
+  end
+
+  TokenDefinitions = [
+    [:TkCLASS,      TkId,  &quot;class&quot;,  EXPR_CLASS],
+    [:TkMODULE,     TkId,  &quot;module&quot;, EXPR_BEG],
+    [:TkDEF,	    TkId,  &quot;def&quot;,    EXPR_FNAME],
+    [:TkUNDEF,      TkId,  &quot;undef&quot;,  EXPR_FNAME],
+    [:TkBEGIN,      TkId,  &quot;begin&quot;,  EXPR_BEG],
+    [:TkRESCUE,     TkId,  &quot;rescue&quot;, EXPR_MID],
+    [:TkENSURE,     TkId,  &quot;ensure&quot;, EXPR_BEG],
+    [:TkEND,	    TkId,  &quot;end&quot;,    EXPR_END],
+    [:TkIF,         TkId,  &quot;if&quot;,     EXPR_BEG, :TkIF_MOD],
+    [:TkUNLESS,     TkId,  &quot;unless&quot;, EXPR_BEG, :TkUNLESS_MOD],
+    [:TkTHEN,	    TkId,  &quot;then&quot;,   EXPR_BEG],
+    [:TkELSIF,      TkId,  &quot;elsif&quot;,  EXPR_BEG],
+    [:TkELSE,	    TkId,  &quot;else&quot;,   EXPR_BEG],
+    [:TkCASE,	    TkId,  &quot;case&quot;,   EXPR_BEG],
+    [:TkWHEN,	    TkId,  &quot;when&quot;,   EXPR_BEG],
+    [:TkWHILE,      TkId,  &quot;while&quot;,  EXPR_BEG, :TkWHILE_MOD],
+    [:TkUNTIL,      TkId,  &quot;until&quot;,  EXPR_BEG, :TkUNTIL_MOD],
+    [:TkFOR,	    TkId,  &quot;for&quot;,    EXPR_BEG],
+    [:TkBREAK,      TkId,  &quot;break&quot;,  EXPR_END],
+    [:TkNEXT,	    TkId,  &quot;next&quot;,   EXPR_END],
+    [:TkREDO,	    TkId,  &quot;redo&quot;,   EXPR_END],
+    [:TkRETRY,      TkId,  &quot;retry&quot;,  EXPR_END],
+    [:TkIN,	    TkId,  &quot;in&quot;,     EXPR_BEG],
+    [:TkDO,	    TkId,  &quot;do&quot;,     EXPR_BEG],
+    [:TkRETURN,     TkId,  &quot;return&quot;, EXPR_MID],
+    [:TkYIELD,      TkId,  &quot;yield&quot;,  EXPR_END],
+    [:TkSUPER,      TkId,  &quot;super&quot;,  EXPR_END],
+    [:TkSELF,	    TkId,  &quot;self&quot;,   EXPR_END],
+    [:TkNIL, 	    TkId,  &quot;nil&quot;,    EXPR_END],
+    [:TkTRUE,	    TkId,  &quot;true&quot;,   EXPR_END],
+    [:TkFALSE,      TkId,  &quot;false&quot;,  EXPR_END],
+    [:TkAND,	    TkId,  &quot;and&quot;,    EXPR_BEG],
+    [:TkOR, 	    TkId,  &quot;or&quot;,     EXPR_BEG],
+    [:TkNOT,	    TkId,  &quot;not&quot;,    EXPR_BEG],
+    [:TkIF_MOD,     TkId],
+    [:TkUNLESS_MOD, TkId],
+    [:TkWHILE_MOD,  TkId],
+    [:TkUNTIL_MOD,  TkId],
+    [:TkALIAS,      TkId,  &quot;alias&quot;,    EXPR_FNAME],
+    [:TkDEFINED,    TkId,  &quot;defined?&quot;, EXPR_END],
+    [:TklBEGIN,     TkId,  &quot;BEGIN&quot;,    EXPR_END],
+    [:TklEND,	    TkId,  &quot;END&quot;,      EXPR_END],
+    [:Tk__LINE__,   TkId,  &quot;__LINE__&quot;, EXPR_END],
+    [:Tk__FILE__,   TkId,  &quot;__FILE__&quot;, EXPR_END],
+
+    [:TkIDENTIFIER, TkId],
+    [:TkFID,	    TkId],
+    [:TkGVAR,	    TkId],
+    [:TkCVAR,	    TkId],
+    [:TkIVAR,	    TkId],
+    [:TkCONSTANT,   TkId],
+
+    [:TkINTEGER,    TkVal],
+    [:TkFLOAT,      TkVal],
+    [:TkSTRING,     TkVal],
+    [:TkXSTRING,    TkVal],
+    [:TkREGEXP,     TkVal],
+    [:TkSYMBOL,     TkVal],
+
+    [:TkDSTRING,    TkNode],
+    [:TkDXSTRING,   TkNode],
+    [:TkDREGEXP,    TkNode],
+    [:TkNTH_REF,    TkNode],
+    [:TkBACK_REF,   TkNode],
+
+    [:TkUPLUS,      TkOp,   &quot;+@&quot;],
+    [:TkUMINUS,     TkOp,   &quot;-@&quot;],
+    [:TkPOW,	    TkOp,   &quot;**&quot;],
+    [:TkCMP,	    TkOp,   &quot;&lt;=&gt;&quot;],
+    [:TkEQ,	    TkOp,   &quot;==&quot;],
+    [:TkEQQ,	    TkOp,   &quot;===&quot;],
+    [:TkNEQ,	    TkOp,   &quot;!=&quot;],
+    [:TkGEQ,	    TkOp,   &quot;&gt;=&quot;],
+    [:TkLEQ,	    TkOp,   &quot;&lt;=&quot;],
+    [:TkANDOP,      TkOp,   &quot;&amp;&amp;&quot;],
+    [:TkOROP,	    TkOp,   &quot;||&quot;],
+    [:TkMATCH,      TkOp,   &quot;=~&quot;],
+    [:TkNMATCH,     TkOp,   &quot;!~&quot;],
+    [:TkDOT2,	    TkOp,   &quot;..&quot;],
+    [:TkDOT3,	    TkOp,   &quot;...&quot;],
+    [:TkAREF,	    TkOp,   &quot;[]&quot;],
+    [:TkASET,	    TkOp,   &quot;[]=&quot;],
+    [:TkLSHFT,      TkOp,   &quot;&lt;&lt;&quot;],
+    [:TkRSHFT,      TkOp,   &quot;&gt;&gt;&quot;],
+    [:TkCOLON2,     TkOp],
+    [:TkCOLON3,     TkOp],
+#   [:OPASGN,	    TkOp],               # +=, -=  etc. #
+    [:TkASSOC,      TkOp,   &quot;=&gt;&quot;],
+    [:TkQUESTION,   TkOp,   &quot;?&quot;],	 #?
+    [:TkCOLON,      TkOp,   &quot;:&quot;],        #:
+    
+    [:TkfLPAREN],         # func( #
+    [:TkfLBRACK],         # func[ #
+    [:TkfLBRACE],         # func{ #
+    [:TkSTAR],            # *arg
+    [:TkAMPER],           # &amp;arg #
+    [:TkSYMBEG],          # :SYMBOL
+
+    [:TkGT,	    TkOp,   &quot;&gt;&quot;],
+    [:TkLT,	    TkOp,   &quot;&lt;&quot;],
+    [:TkPLUS,	    TkOp,   &quot;+&quot;],
+    [:TkMINUS,      TkOp,   &quot;-&quot;],
+    [:TkMULT,	    TkOp,   &quot;*&quot;],
+    [:TkDIV,	    TkOp,   &quot;/&quot;],
+    [:TkMOD,	    TkOp,   &quot;%&quot;],
+    [:TkBITOR,      TkOp,   &quot;|&quot;],
+    [:TkBITXOR,     TkOp,   &quot;^&quot;],
+    [:TkBITAND,     TkOp,   &quot;&amp;&quot;],
+    [:TkBITNOT,     TkOp,   &quot;~&quot;],
+    [:TkNOTOP,      TkOp,   &quot;!&quot;],
+
+    [:TkBACKQUOTE,  TkOp,   &quot;`&quot;],
+
+    [:TkASSIGN,     Token,  &quot;=&quot;],
+    [:TkDOT,	    Token,  &quot;.&quot;],
+    [:TkLPAREN,     Token,  &quot;(&quot;],  #(exp)
+    [:TkLBRACK,     Token,  &quot;[&quot;],  #[arry]
+    [:TkLBRACE,     Token,  &quot;{&quot;],  #{hash}
+    [:TkRPAREN,     Token,  &quot;)&quot;],
+    [:TkRBRACK,     Token,  &quot;]&quot;],
+    [:TkRBRACE,     Token,  &quot;}&quot;],
+    [:TkCOMMA,      Token,  &quot;,&quot;],
+    [:TkSEMICOLON,  Token,  &quot;;&quot;],
+
+    [:TkCOMMENT],
+    [:TkRD_COMMENT],
+    [:TkSPACE],
+    [:TkNL],
+    [:TkEND_OF_SCRIPT],
+
+    [:TkBACKSLASH,  TkUnknownChar,  &quot;\\&quot;],
+    [:TkAT,	    TkUnknownChar,  &quot;@&quot;],
+    [:TkDOLLAR,     TkUnknownChar,  &quot;$&quot;],
+  ]
+
+  # {reading =&gt; token_class}
+  # {reading =&gt; [token_class, *opt]}
+  TkReading2Token = {}
+  TkSymbol2Token = {}
+
+  def RubyToken.def_token(token_n, super_token = Token, reading = nil, *opts)
+    token_n = token_n.id2name if token_n.kind_of?(Symbol)
+    if RubyToken.const_defined?(token_n)
+      IRB.fail AlreadyDefinedToken, token_n
+    end
+    token_c = eval(&quot;class #{token_n} &lt; #{super_token}; end; #{token_n}&quot;)
+    
+    if reading
+      if TkReading2Token[reading]
+	IRB.fail TkReading2TokenDuplicateError, token_n, reading
+      end
+      if opts.empty?
+	TkReading2Token[reading] = [token_c]
+      else
+	TkReading2Token[reading] = [token_c].concat(opts)
+      end
+    end
+    TkSymbol2Token[token_n.intern] = token_c
+  end
+
+  for defs in TokenDefinitions
+    def_token(*defs)
+  end
+end
+</pre>
+    </div>

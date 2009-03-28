@@ -1,0 +1,107 @@
+  <div id="fileHeader">
+    <h1>parsearg.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/parsearg.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#		parsearg.rb - parse arguments
+#			$Release Version: $
+#			$Revision: 11708 $
+#			$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#			by Yasuo OHBA(SHL Japan Inc. Technology Dept.)
+#
+# --
+#
+#	
+#
+
+warn &quot;Warning:#{caller[0].sub(/:in `.*'\z/, '')}: parsearg is deprecated after Ruby 1.8.1; use optparse instead&quot;
+
+$RCS_ID=%q$Header$
+
+require &quot;getopts&quot;
+
+def printUsageAndExit()
+  if $USAGE
+    eval($USAGE)
+  end
+  exit()
+end
+
+def setParenthesis(ex, opt, c)
+  if opt != &quot;&quot;
+    ex = sprintf(&quot;%s$OPT_%s%s&quot;, ex, opt, c)
+  else
+    ex = sprintf(&quot;%s%s&quot;, ex, c)
+  end
+  return ex
+end
+
+def setOrAnd(ex, opt, c)
+  if opt != &quot;&quot;
+    ex = sprintf(&quot;%s$OPT_%s %s%s &quot;, ex, opt, c, c)
+  else
+    ex = sprintf(&quot;%s %s%s &quot;, ex, c, c)
+  end
+  return ex
+end
+
+def setExpression(ex, opt, op)
+  if !op
+    ex = sprintf(&quot;%s$OPT_%s&quot;, ex, opt)
+    return ex
+  end
+  case op.chr
+  when &quot;(&quot;, &quot;)&quot;
+    ex = setParenthesis(ex, opt, op.chr)
+  when &quot;|&quot;, &quot;&amp;&quot;
+    ex = setOrAnd(ex, opt, op.chr)
+  else
+    return nil
+  end
+  return ex
+end
+
+# parseArgs is obsolete.  Use OptionParser instead.
+
+def parseArgs(argc, nopt, single_opts, *opts)
+  if (noOptions = getopts(single_opts, *opts)) == nil
+    printUsageAndExit()
+  end
+  if nopt
+    ex = nil
+    pos = 0
+    for o in nopt.split(/[()|&amp;]/)
+      pos += o.length
+      ex = setExpression(ex, o, nopt[pos])
+      pos += 1
+    end
+    begin
+      if !eval(ex)
+	printUsageAndExit()
+      end
+    rescue
+      print &quot;Format Error!! : \&quot;&quot; + nopt + &quot;\&quot;\t[parseArgs]\n&quot;
+      exit!(-1)
+    end
+  end
+  if ARGV.length &lt; argc
+    printUsageAndExit()
+  end
+  return noOptions
+end
+</pre>
+    </div>

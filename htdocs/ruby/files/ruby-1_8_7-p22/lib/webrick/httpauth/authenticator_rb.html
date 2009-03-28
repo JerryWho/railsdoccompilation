@@ -1,0 +1,99 @@
+  <div id="fileHeader">
+    <h1>authenticator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/httpauth/authenticator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# httpauth/authenticator.rb -- Authenticator mix-in module.
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2003 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: authenticator.rb,v 1.3 2003/02/20 07:15:47 gotoyuzo Exp $
+
+module WEBrick
+  module HTTPAuth
+    module Authenticator
+      RequestField      = &quot;Authorization&quot;
+      ResponseField     = &quot;WWW-Authenticate&quot;
+      ResponseInfoField = &quot;Authentication-Info&quot;
+      AuthException     = HTTPStatus::Unauthorized
+      AuthScheme        = nil # must override by the derived class
+
+      attr_reader :realm, :userdb, :logger
+
+      private
+
+      def check_init(config)
+        [:UserDB, :Realm].each{|sym|
+          unless config[sym]
+            raise ArgumentError, &quot;Argument #{sym.inspect} missing.&quot;
+          end
+        } 
+        @realm     = config[:Realm]
+        @userdb    = config[:UserDB]
+        @logger    = config[:Logger] || Log::new($stderr)
+        @reload_db = config[:AutoReloadUserDB]
+        @request_field   = self::class::RequestField
+        @response_field  = self::class::ResponseField
+        @resp_info_field = self::class::ResponseInfoField
+        @auth_exception  = self::class::AuthException
+        @auth_scheme     = self::class::AuthScheme
+      end
+
+      def check_scheme(req)
+        unless credentials = req[@request_field]
+          error(&quot;no credentials in the request.&quot;)
+          return nil 
+        end  
+        unless match = /^#{@auth_scheme}\s+/.match(credentials)
+          error(&quot;invalid scheme in %s.&quot;, credentials)
+          info(&quot;%s: %s&quot;, @request_field, credentials) if $DEBUG
+          return nil
+        end
+        return match.post_match
+      end
+
+      def log(meth, fmt, *args)
+        msg = format(&quot;%s %s: &quot;, @auth_scheme, @realm)
+        msg &lt;&lt; fmt % args
+        @logger.send(meth, msg)
+      end
+
+      def error(fmt, *args)
+        if @logger.error?
+          log(:error, fmt, *args)
+        end
+      end                             
+
+      def info(fmt, *args)
+        if @logger.info?
+          log(:info, fmt, *args)
+        end
+      end
+    end
+
+    module ProxyAuthenticator
+      RequestField  = &quot;Proxy-Authorization&quot;
+      ResponseField = &quot;Proxy-Authenticate&quot;
+      InfoField     = &quot;Proxy-Authentication-Info&quot;
+      AuthException = HTTPStatus::ProxyAuthenticationRequired
+    end
+  end
+end
+</pre>
+    </div>

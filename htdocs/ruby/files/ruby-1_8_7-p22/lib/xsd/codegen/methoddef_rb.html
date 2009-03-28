@@ -1,0 +1,83 @@
+  <div id="fileHeader">
+    <h1>methoddef.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/codegen/methoddef.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - Generating method definition code
+# Copyright (C) 2004  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'xsd/codegen/gensupport'
+require 'xsd/codegen/commentdef'
+
+
+module XSD
+module CodeGen
+
+
+class MethodDef
+  include GenSupport
+  include CommentDef
+
+  attr_accessor :definition
+
+  def initialize(name, *params)
+    unless safemethodname?(name)
+      raise ArgumentError.new(&quot;name '#{name}' seems to be unsafe&quot;)
+    end
+    @name = name
+    @params = params
+    @comment = nil
+    @definition = yield if block_given?
+  end
+
+  def dump
+    buf = &quot;&quot;
+    buf &lt;&lt; dump_comment if @comment
+    buf &lt;&lt; dump_method_def
+    buf &lt;&lt; dump_definition if @definition and !@definition.empty?
+    buf &lt;&lt; dump_method_def_end
+    buf
+  end
+
+private
+
+  def dump_method_def
+    if @params.empty?
+      format(&quot;def #{@name}&quot;)
+    else
+      format(&quot;def #{@name}(#{@params.join(&quot;, &quot;)})&quot;)
+    end
+  end
+
+  def dump_method_def_end
+    format(&quot;end&quot;)
+  end
+
+  def dump_definition
+    format(@definition, 2)
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

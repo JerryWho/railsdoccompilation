@@ -1,0 +1,88 @@
+  <div id="fileHeader">
+    <h1>stubbing_example.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>examples/passing/stubbing_example.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/spec_helper'
+
+describe &quot;A consumer of a stub&quot; do
+  it &quot;should be able to stub methods on any Object&quot; do
+    obj = Object.new
+    obj.stub!(:foobar).and_return {:return_value}
+    obj.foobar.should equal(:return_value)
+  end
+end
+
+class StubbableClass
+  def self.find id
+    return :original_return
+  end
+end
+
+describe &quot;A stubbed method on a class&quot; do
+  it &quot;should return the stubbed value&quot; do
+    StubbableClass.stub!(:find).and_return(:stub_return)
+    StubbableClass.find(1).should equal(:stub_return)
+  end
+  
+  it &quot;should revert to the original method after each spec&quot; do
+    StubbableClass.find(1).should equal(:original_return)
+  end
+
+  it &quot;can stub! and mock the same message&quot; do
+    StubbableClass.stub!(:msg).and_return(:stub_value)
+    StubbableClass.should_receive(:msg).with(:arg).and_return(:mock_value)
+
+    StubbableClass.msg.should equal(:stub_value)
+    StubbableClass.msg(:other_arg).should equal(:stub_value)
+    StubbableClass.msg(:arg).should equal(:mock_value)
+    StubbableClass.msg(:another_arg).should equal(:stub_value)
+    StubbableClass.msg(:yet_another_arg).should equal(:stub_value)
+    StubbableClass.msg.should equal(:stub_value)
+  end
+end
+
+describe &quot;A mock&quot; do
+  it &quot;can stub!&quot; do
+    mock = mock(&quot;stubbing mock&quot;)
+    mock.stub!(:msg).and_return(:value)
+    (1..10).each {mock.msg.should equal(:value)}
+  end
+  
+  it &quot;can stub! and mock&quot; do
+    mock = mock(&quot;stubbing mock&quot;)
+    mock.stub!(:stub_message).and_return(:stub_value)
+    mock.should_receive(:mock_message).once.and_return(:mock_value)
+    (1..10).each {mock.stub_message.should equal(:stub_value)}
+    mock.mock_message.should equal(:mock_value)
+    (1..10).each {mock.stub_message.should equal(:stub_value)}
+  end
+  
+  it &quot;can stub! and mock the same message&quot; do
+    mock = mock(&quot;stubbing mock&quot;)
+    mock.stub!(:msg).and_return(:stub_value)
+    mock.should_receive(:msg).with(:arg).and_return(:mock_value)
+    mock.msg.should equal(:stub_value)
+    mock.msg(:other_arg).should equal(:stub_value)
+    mock.msg(:arg).should equal(:mock_value)
+    mock.msg(:another_arg).should equal(:stub_value)
+    mock.msg(:yet_another_arg).should equal(:stub_value)
+    mock.msg.should equal(:stub_value)
+  end
+end
+
+    
+</pre>
+    </div>

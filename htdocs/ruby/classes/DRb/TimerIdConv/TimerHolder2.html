@@ -1,0 +1,149 @@
+  <div id="C00001536">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />TimerHolder2<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/drb/timeridconv_rb.html');">ruby-1.8.7-p22/lib/drb/timeridconv.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M007562&name=add" >add</a></li>
+  <li><a href="index.html?a=M007563&name=fetch" >fetch</a></li>
+  <li><a href="index.html?a=M007564&name=include?" >include?</a></li>
+  <li><a href="index.html?a=M007561&name=new" >new</a></li>
+  <li><a href="index.html?a=M007565&name=peek" >peek</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('classes/MonitorMixin.html');">MonitorMixin</a></li>
+</ul>
+
+
+  <div class="sectiontitle">Classes and Modules</div>
+  Class "<a href="#" onclick="jsHref('classes/DRb/TimerIdConv/TimerHolder2/InvalidIndexError.html');" class="link">DRb::TimerIdConv::TimerHolder2::InvalidIndexError</a>"<br />
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M007561" class="method">
+  <div id="M007561_title" class="title">
+    <b>new</b>(timeout=600)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007561_source')" id="l_M007561_source">show source</a> ]</p>
+  <div id="M007561_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/drb/timeridconv.rb, line 11</span>
+11:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">timeout</span>=<span class="ruby-value">600</span>)
+12:         <span class="ruby-keyword kw">super</span>()
+13:         <span class="ruby-ivar">@sentinel</span> = <span class="ruby-constant">Object</span>.<span class="ruby-identifier">new</span>
+14:         <span class="ruby-ivar">@gc</span> = {}
+15:         <span class="ruby-ivar">@curr</span> = {}
+16:         <span class="ruby-ivar">@renew</span> = {}
+17:         <span class="ruby-ivar">@timeout</span> = <span class="ruby-identifier">timeout</span>
+18:         <span class="ruby-ivar">@keeper</span> = <span class="ruby-identifier">keeper</span>
+19:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M007562" class="method">
+  <div id="M007562_title" class="title">
+    <b>add</b>(obj)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007562_source')" id="l_M007562_source">show source</a> ]</p>
+  <div id="M007562_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/drb/timeridconv.rb, line 21</span>
+21:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add</span>(<span class="ruby-identifier">obj</span>)
+22:         <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span> 
+23:           <span class="ruby-identifier">key</span> = <span class="ruby-identifier">obj</span>.<span class="ruby-identifier">__id__</span>
+24:           <span class="ruby-ivar">@curr</span>[<span class="ruby-identifier">key</span>] = <span class="ruby-identifier">obj</span>
+25:           <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">key</span>
+26:         <span class="ruby-keyword kw">end</span>
+27:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007563" class="method">
+  <div id="M007563_title" class="title">
+    <b>fetch</b>(key, dv=@sentinel)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007563_source')" id="l_M007563_source">show source</a> ]</p>
+  <div id="M007563_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/drb/timeridconv.rb, line 29</span>
+29:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">fetch</span>(<span class="ruby-identifier">key</span>, <span class="ruby-identifier">dv</span>=<span class="ruby-ivar">@sentinel</span>)
+30:         <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span> 
+31:           <span class="ruby-identifier">obj</span> = <span class="ruby-identifier">peek</span>(<span class="ruby-identifier">key</span>)
+32:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">obj</span> <span class="ruby-operator">==</span> <span class="ruby-ivar">@sentinel</span>
+33:             <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">dv</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">dv</span> <span class="ruby-operator">==</span> <span class="ruby-ivar">@sentinel</span>
+34:             <span class="ruby-identifier">raise</span> <span class="ruby-constant">InvalidIndexError</span>
+35:           <span class="ruby-keyword kw">end</span>
+36:           <span class="ruby-ivar">@renew</span>[<span class="ruby-identifier">key</span>] = <span class="ruby-identifier">obj</span> <span class="ruby-comment cmt"># KeepIt</span>
+37:           <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">obj</span>
+38:         <span class="ruby-keyword kw">end</span>
+39:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007564" class="method">
+  <div id="M007564_title" class="title">
+    <b>include?</b>(key)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007564_source')" id="l_M007564_source">show source</a> ]</p>
+  <div id="M007564_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/drb/timeridconv.rb, line 41</span>
+41:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">include?</span>(<span class="ruby-identifier">key</span>)
+42:         <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span> 
+43:           <span class="ruby-identifier">obj</span> = <span class="ruby-identifier">peek</span>(<span class="ruby-identifier">key</span>)
+44:           <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">false</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">obj</span> <span class="ruby-operator">==</span> <span class="ruby-ivar">@sentinel</span>
+45:           <span class="ruby-keyword kw">true</span>
+46:         <span class="ruby-keyword kw">end</span>
+47:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007565" class="method">
+  <div id="M007565_title" class="title">
+    <b>peek</b>(key)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007565_source')" id="l_M007565_source">show source</a> ]</p>
+  <div id="M007565_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/drb/timeridconv.rb, line 49</span>
+49:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">peek</span>(<span class="ruby-identifier">key</span>)
+50:         <span class="ruby-identifier">synchronize</span> <span class="ruby-keyword kw">do</span> 
+51:           <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@curr</span>.<span class="ruby-identifier">fetch</span>(<span class="ruby-identifier">key</span>, <span class="ruby-ivar">@renew</span>.<span class="ruby-identifier">fetch</span>(<span class="ruby-identifier">key</span>, <span class="ruby-ivar">@gc</span>.<span class="ruby-identifier">fetch</span>(<span class="ruby-identifier">key</span>, <span class="ruby-ivar">@sentinel</span>)))
+52:         <span class="ruby-keyword kw">end</span>
+53:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

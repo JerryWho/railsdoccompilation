@@ -1,0 +1,66 @@
+  <div id="fileHeader">
+    <h1>rspec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/autotest/rspec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:06:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'autotest'
+
+Autotest.add_hook :initialize do |at|
+  at.clear_mappings
+  # watch out: Ruby bug (1.8.6):
+  # %r(/) != /\//
+  at.add_mapping(%r%^spec/.*_spec.rb$%) { |filename, _| 
+    filename 
+  }
+  at.add_mapping(%r%^lib/(.*)\.rb$%) { |_, m| 
+    [&quot;spec/#{m[1]}_spec.rb&quot;]
+  }
+  at.add_mapping(%r%^spec/(spec_helper|shared/.*)\.rb$%) { 
+    at.files_matching %r%^spec/.*_spec\.rb$%
+  }
+end
+
+class RspecCommandError &lt; StandardError; end
+
+class Autotest::Rspec &lt; Autotest
+
+  def initialize
+    super
+    self.failed_results_re = /^\d+\)\n(?:\e\[\d*m)?(?:.*?in )?'([^\n]*)'(?: FAILED)?(?:\e\[\d*m)?\n(.*?)\n\n/m
+    self.completed_re = /\n(?:\e\[\d*m)?\d* examples?/m
+  end
+  
+  def consolidate_failures(failed)
+    filters = new_hash_of_arrays
+    failed.each do |spec, trace|
+      if trace =~ /\n(\.\/)?(.*spec\.rb):[\d]+:/
+        filters[$2] &lt;&lt; spec
+      end
+    end
+    return filters
+  end
+
+  def make_test_cmd(files_to_test)
+    return '' if files_to_test.empty?
+    spec_program = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'bin', 'spec'))
+    return &quot;#{ruby} #{spec_program} --autospec #{files_to_test.keys.flatten.join(' ')} #{add_options_if_present}&quot;
+  end
+  
+  def add_options_if_present # :nodoc:
+    File.exist?(&quot;spec/spec.opts&quot;) ? &quot;-O spec/spec.opts &quot; : &quot;&quot;
+  end
+end
+</pre>
+    </div>

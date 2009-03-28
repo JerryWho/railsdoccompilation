@@ -1,0 +1,170 @@
+  <div id="C00000209">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />NameDescriptor<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/rdoc/ri/ri_util_rb.html');">ruby-1.8.7-p22/lib/rdoc/ri/ri_util.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Break argument into its constituent class or module names, an optional
+method type, and a method name
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001714&name=full_class_name" >full_class_name</a></li>
+  <li><a href="index.html?a=M001713&name=new" >new</a></li>
+  </ul>
+
+
+
+
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>class_names</td>
+    <td class='attr-desc'></td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>is_class_method</td>
+    <td class='attr-desc'>
+true and false have the obvious meaning. nil means we don&#8217;t care
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[R]
+    </td>
+    <td class='attr-name'>method_name</td>
+    <td class='attr-desc'></td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001713" class="method">
+  <div id="M001713_title" class="title">
+    <b>new</b>(arg)
+  </div>
+  <div class="description">
+  <p>
+arg may be
+</p>
+<ol>
+<li>a class or module name (optionally qualified with other class or module
+names (<a href="index.html?a=C00001179&name=Kernel">Kernel</a>, <a
+href="index.html?a=C00000278&name=File::Stat">File::Stat</a> etc)
+
+</li>
+<li>a method name
+
+</li>
+<li>a method name qualified by a optionally fully qualified class or module
+name
+
+</li>
+</ol>
+<p>
+We&#8216;re fairly casual about delimiters: folks can say Kernel::puts, <a
+href="index.html?a=M006206&name=Kernel.puts">Kernel.puts</a>, or <a
+href="index.html?a=C00001179&name=Kernel">Kernel</a>\puts for example.
+There&#8217;s one exception: if you say IO::read, we look for a class
+method, but if you say <a
+href="index.html?a=M002163&name=IO.read">IO.read</a>, we look for an
+instance method
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001713_source')" id="l_M001713_source">show source</a> ]</p>
+  <div id="M001713_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/ri/ri_util.rb, line 28</span>
+28:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">arg</span>)
+29:     <span class="ruby-ivar">@class_names</span> = []
+30:     <span class="ruby-identifier">separator</span> = <span class="ruby-keyword kw">nil</span>
+31: 
+32:     <span class="ruby-identifier">tokens</span> = <span class="ruby-identifier">arg</span>.<span class="ruby-identifier">split</span>(<span class="ruby-regexp re">/(\.|::|#)/</span>)
+33: 
+34:     <span class="ruby-comment cmt"># Skip leading '::', '#' or '.', but remember it might</span>
+35:     <span class="ruby-comment cmt"># be a method name qualifier</span>
+36:     <span class="ruby-identifier">separator</span> = <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">shift</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">tokens</span>[<span class="ruby-value">0</span>] <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^(\.|::|#)/</span>
+37: 
+38:     <span class="ruby-comment cmt"># Skip leading '::', but remember we potentially have an inst</span>
+39: 
+40:     <span class="ruby-comment cmt"># leading stuff must be class names</span>
+41:     
+42:     <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">tokens</span>[<span class="ruby-value">0</span>] <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^[A-Z]/</span>
+43:       <span class="ruby-ivar">@class_names</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">shift</span>
+44:       <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">empty?</span>
+45:         <span class="ruby-identifier">separator</span> = <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">shift</span>
+46:         <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">separator</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;::&quot;</span>
+47:       <span class="ruby-keyword kw">end</span>
+48:     <span class="ruby-keyword kw">end</span>
+49:     
+50:     <span class="ruby-comment cmt"># Now must have a single token, the method name, or an empty</span>
+51:     <span class="ruby-comment cmt"># array</span>
+52:     <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">empty?</span>
+53:       <span class="ruby-ivar">@method_name</span> = <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">shift</span>
+54:       <span class="ruby-comment cmt"># We may now have a trailing !, ?, or = to roll into</span>
+55:       <span class="ruby-comment cmt"># the method name</span>
+56:       <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">empty?</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">tokens</span>[<span class="ruby-value">0</span>] <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^[!?=]$/</span>
+57:         <span class="ruby-ivar">@method_name</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">shift</span>
+58:       <span class="ruby-keyword kw">end</span>
+59: 
+60:       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@method_name</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/::|\.|#/</span> <span class="ruby-keyword kw">or</span> <span class="ruby-operator">!</span><span class="ruby-identifier">tokens</span>.<span class="ruby-identifier">empty?</span>
+61:         <span class="ruby-identifier">raise</span> <span class="ruby-constant">RiError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;Bad argument: #{arg}&quot;</span>) 
+62:       <span class="ruby-keyword kw">end</span>
+63:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">separator</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">separator</span> <span class="ruby-operator">!=</span> <span class="ruby-value str">'.'</span>
+64:         <span class="ruby-ivar">@is_class_method</span> = <span class="ruby-identifier">separator</span> <span class="ruby-operator">==</span> <span class="ruby-value str">&quot;::&quot;</span>
+65:       <span class="ruby-keyword kw">end</span>
+66:     <span class="ruby-keyword kw">end</span>
+67:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001714" class="method">
+  <div id="M001714_title" class="title">
+    <b>full_class_name</b>()
+  </div>
+  <div class="description">
+  <p>
+Return the full class name (with &#8217;::&#8217; between the components)
+or &quot;&quot; if there&#8217;s no class name
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001714_source')" id="l_M001714_source">show source</a> ]</p>
+  <div id="M001714_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/ri/ri_util.rb, line 72</span>
+72:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">full_class_name</span>
+73:     <span class="ruby-ivar">@class_names</span>.<span class="ruby-identifier">join</span>(<span class="ruby-value str">&quot;::&quot;</span>)
+74:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

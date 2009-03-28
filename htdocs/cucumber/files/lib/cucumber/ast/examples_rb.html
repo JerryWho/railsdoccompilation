@@ -1,0 +1,57 @@
+  <div id="fileHeader">
+    <h1>examples.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/ast/examples.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Cucumber
+  module Ast
+    class Examples
+      def initialize(line, keyword, name, outline_table)
+        @keyword, @name, @outline_table = keyword, name, outline_table
+      end
+
+      def accept(visitor)
+        visitor.visit_examples_name(@keyword, @name)
+        visitor.visit_outline_table(@outline_table)
+      end
+
+      def descend?(visitor)
+        @outline_table.descend?(visitor)
+      end
+
+      def skip_invoke!
+        @outline_table.skip_invoke!
+      end
+
+      def matches_scenario_names?(scenario_names)
+        scenario_names.detect{|name| name == @name}
+      end
+
+      def each_example_row(&amp;proc)
+        @outline_table.cells_rows[1..-1].each(&amp;proc)
+      end
+
+      def matches_lines?(lines)
+        lines.index(@line) || @outline_table.matches_lines?(lines)
+      end
+
+      def to_sexp
+        [:examples, @keyword, @name, @outline_table.to_sexp]
+      end
+    end
+  end
+end
+</pre>
+    </div>

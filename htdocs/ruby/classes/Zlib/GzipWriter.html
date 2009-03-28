@@ -1,0 +1,514 @@
+  <div id="C00001597">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />GzipWriter<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/ext/zlib/zlib_c.html');">ruby-1.8.7-p22/ext/zlib/zlib.c</a>
+
+Parent:&nbsp;
+Zlib::GzipFile
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00001597&name=Zlib::GzipWriter">Zlib::GzipWriter</a>
+is a class for writing gzipped files. <a
+href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a> should be used
+with an instance of <a href="index.html?a=C00000245&name=IO">IO</a>, or <a
+href="index.html?a=C00000245&name=IO">IO</a>-like, object.
+</p>
+<p>
+For example:
+</p>
+<pre>
+  Zlib::GzipWriter.open('hoge.gz') do |gz|
+    gz.write 'jugemu jugemu gokou no surikire...'
+  end
+
+  File.open('hoge.gz', 'w') do |f|
+    gz = Zlib::GzipWriter.new(f)
+    gz.write 'jugemu jugemu gokou no surikire...'
+    gz.close
+  end
+
+  # TODO: test these.  Are they equivalent?  Can GzipWriter.new take a
+  # block?
+</pre>
+<p>
+NOTE: Due to the limitation of Ruby&#8217;s finalizer, you must explicitly
+close <a href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a>
+objects by Zlib::GzipWriter#close etc. Otherwise, <a
+href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a> will be not
+able to write the gzip footer and will generate a broken gzip file.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M007816&name=&lt;&lt;" >&lt;&lt;</a></li>
+  <li><a href="index.html?a=M007808&name=comment=" >comment=</a></li>
+  <li><a href="index.html?a=M007813&name=flush" >flush</a></li>
+  <li><a href="index.html?a=M007806&name=mtime=" >mtime=</a></li>
+  <li><a href="index.html?a=M007812&name=new" >new</a></li>
+  <li><a href="index.html?a=M007811&name=open" >open</a></li>
+  <li><a href="index.html?a=M007807&name=orig_name=" >orig_name=</a></li>
+  <li><a href="index.html?a=M007809&name=pos" >pos</a></li>
+  <li><a href="index.html?a=M007818&name=print" >print</a></li>
+  <li><a href="index.html?a=M007817&name=printf" >printf</a></li>
+  <li><a href="index.html?a=M007815&name=putc" >putc</a></li>
+  <li><a href="index.html?a=M007819&name=puts" >puts</a></li>
+  <li><a href="index.html?a=M007810&name=tell" >tell</a></li>
+  <li><a href="index.html?a=M007814&name=write" >write</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M007812" class="method">
+  <div id="M007812_title" class="title">
+    <b> Zlib::GzipWriter.new(io, level, strategy)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Creates a <a href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a>
+object associated with <tt>io</tt>. <tt>level</tt> and <tt>strategy</tt>
+should be the same as the arguments of <a
+href="index.html?a=M007821&name=Zlib::Deflate.new">Zlib::Deflate.new</a>.
+The <a href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a> object
+writes gzipped data to <tt>io</tt>. At least, <tt>io</tt> must respond to
+the <tt>write</tt> method that behaves same as write method in <a
+href="index.html?a=C00000245&name=IO">IO</a> class.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007812_source')" id="l_M007812_source">show source</a> ]</p>
+  <div id="M007812_source" class="dyn-source">
+<pre>
+/*
+ * call-seq: Zlib::GzipWriter.new(io, level, strategy)
+ *
+ * Creates a GzipWriter object associated with +io+. +level+ and +strategy+
+ * should be the same as the arguments of Zlib::Deflate.new.  The GzipWriter
+ * object writes gzipped data to +io+.  At least, +io+ must respond to the
+ * +write+ method that behaves same as write method in IO class.
+ */
+static VALUE
+rb_gzwriter_initialize(argc, argv, obj)
+    int argc;
+    VALUE *argv;
+    VALUE obj;
+{
+    struct gzfile *gz;
+    VALUE io, level, strategy;
+    int err;
+
+    rb_scan_args(argc, argv, &quot;12&quot;, &amp;io, &amp;level, &amp;strategy);
+    Data_Get_Struct(obj, struct gzfile, gz);
+
+    /* this is undocumented feature of zlib */
+    gz-&gt;level = ARG_LEVEL(level);
+    err = deflateInit2(&amp;gz-&gt;z.stream, gz-&gt;level, Z_DEFLATED,
+                       -MAX_WBITS, DEF_MEM_LEVEL, ARG_STRATEGY(strategy));
+    if (err != Z_OK) {
+        raise_zlib_error(err, gz-&gt;z.stream.msg);
+    }
+    gz-&gt;io = io;
+    ZSTREAM_READY(&amp;gz-&gt;z);
+
+    return obj;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007811" class="method">
+  <div id="M007811_title" class="title">
+    <b> Zlib::GzipWriter.open(filename, level=nil, strategy=nil) { |gz| ... }<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Opens a file specified by <tt>filename</tt> for writing gzip compressed
+data, and returns a <a
+href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a> object
+associated with that file. Further details of this method are found in <a
+href="index.html?a=M007812&name=Zlib::GzipWriter.new">Zlib::GzipWriter.new</a>
+and Zlib::GzipWriter#wrap.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007811_source')" id="l_M007811_source">show source</a> ]</p>
+  <div id="M007811_source" class="dyn-source">
+<pre>
+/*
+ * call-seq: Zlib::GzipWriter.open(filename, level=nil, strategy=nil) { |gz| ... }
+ *
+ * Opens a file specified by +filename+ for writing gzip compressed data, and
+ * returns a GzipWriter object associated with that file.  Further details of
+ * this method are found in Zlib::GzipWriter.new and Zlib::GzipWriter#wrap.
+ */
+static VALUE
+rb_gzwriter_s_open(argc, argv, klass)
+    int argc;
+    VALUE *argv;
+    VALUE klass;
+{
+    return gzfile_s_open(argc, argv, klass, &quot;wb&quot;);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M007816" class="method">
+  <div id="M007816_title" class="title">
+    <b>&lt;&lt;</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+Document-method: &lt;&lt; Same as <a
+href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+<p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+</div>
+<div id="M007808" class="method">
+  <div id="M007808_title" class="title">
+    <b>comment=</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+???
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007808_source')" id="l_M007808_source">show source</a> ]</p>
+  <div id="M007808_source" class="dyn-source">
+<pre>
+/*
+ * ???
+ */
+static VALUE
+rb_gzfile_set_comment(obj, str)
+    VALUE obj, str;
+{
+    struct gzfile *gz = get_gzfile(obj);
+    VALUE s;
+    char *p;
+
+    if (gz-&gt;z.flags &amp; GZFILE_FLAG_HEADER_FINISHED) {
+        rb_raise(cGzError, &quot;header is already written&quot;);
+    }
+    s = rb_str_dup(rb_str_to_str(str));
+    p = memchr(RSTRING(s)-&gt;ptr, '\0', RSTRING(s)-&gt;len);
+    if (p) {
+        rb_str_resize(s, p - RSTRING(s)-&gt;ptr);
+    }
+    gz-&gt;comment = s;
+    return str;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007813" class="method">
+  <div id="M007813_title" class="title">
+    <b> flush(flush=nil)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Flushes all the internal buffers of the <a
+href="index.html?a=C00001597&name=GzipWriter">GzipWriter</a> object. The
+meaning of <tt>flush</tt> is same as in <a
+href="index.html?a=M007820&name=Zlib::Deflate#deflate">Zlib::Deflate#deflate</a>.
+<tt>Zlib::SYNC_FLUSH</tt> is used if <tt>flush</tt> is omitted. It is no
+use giving flush <tt>Zlib::NO_FLUSH</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007813_source')" id="l_M007813_source">show source</a> ]</p>
+  <div id="M007813_source" class="dyn-source">
+<pre>
+/*
+ * call-seq: flush(flush=nil)
+ *
+ * Flushes all the internal buffers of the GzipWriter object.  The meaning of
+ * +flush+ is same as in Zlib::Deflate#deflate.  &lt;tt&gt;Zlib::SYNC_FLUSH&lt;/tt&gt; is used if
+ * +flush+ is omitted.  It is no use giving flush &lt;tt&gt;Zlib::NO_FLUSH&lt;/tt&gt;.
+ */
+static VALUE
+rb_gzwriter_flush(argc, argv, obj)
+    int argc;
+    VALUE *argv;
+    VALUE obj;
+{
+    struct gzfile *gz = get_gzfile(obj);
+    VALUE v_flush;
+    int flush;
+
+    rb_scan_args(argc, argv, &quot;01&quot;, &amp;v_flush);
+
+    flush = FIXNUMARG(v_flush, Z_SYNC_FLUSH);
+    if (flush != Z_NO_FLUSH) {  /* prevent Z_BUF_ERROR */
+        zstream_run(&amp;gz-&gt;z, &quot;&quot;, 0, flush);
+    }
+
+    gzfile_write_raw(gz);
+    if (rb_respond_to(gz-&gt;io, id_flush)) {
+        rb_funcall(gz-&gt;io, id_flush, 0);
+    }
+    return obj;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007806" class="method">
+  <div id="M007806_title" class="title">
+    <b>mtime=</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+???
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007806_source')" id="l_M007806_source">show source</a> ]</p>
+  <div id="M007806_source" class="dyn-source">
+<pre>
+/*
+ * ???
+ */
+static VALUE
+rb_gzfile_set_mtime(obj, mtime)
+    VALUE obj, mtime;
+{
+    struct gzfile *gz = get_gzfile(obj);
+    VALUE val;
+
+    if (gz-&gt;z.flags &amp; GZFILE_FLAG_HEADER_FINISHED) {
+        rb_raise(cGzError, &quot;header is already written&quot;);
+    }
+
+    if (FIXNUM_P(time)) {
+        gz-&gt;mtime = FIX2INT(mtime);
+    }
+    else {
+        val = rb_Integer(mtime);
+        gz-&gt;mtime = FIXNUM_P(val) ? FIX2INT(val) : rb_big2ulong(val);
+    }
+    return mtime;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007807" class="method">
+  <div id="M007807_title" class="title">
+    <b>orig_name=</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+???
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007807_source')" id="l_M007807_source">show source</a> ]</p>
+  <div id="M007807_source" class="dyn-source">
+<pre>
+/*
+ * ???
+ */
+static VALUE
+rb_gzfile_set_orig_name(obj, str)
+    VALUE obj, str;
+{
+    struct gzfile *gz = get_gzfile(obj);
+    VALUE s;
+    char *p;
+
+    if (gz-&gt;z.flags &amp; GZFILE_FLAG_HEADER_FINISHED) {
+        rb_raise(cGzError, &quot;header is already written&quot;);
+    }
+    s = rb_str_dup(rb_str_to_str(str));
+    p = memchr(RSTRING(s)-&gt;ptr, '\0', RSTRING(s)-&gt;len);
+    if (p) {
+        rb_str_resize(s, p - RSTRING(s)-&gt;ptr);
+    }
+    gz-&gt;orig_name = s;
+    return str;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007809" class="method">
+  <div id="M007809_title" class="title">
+    <b>pos</b>()
+  </div>
+  <div class="description">
+  <p>
+???
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007809_source')" id="l_M007809_source">show source</a> ]</p>
+  <div id="M007809_source" class="dyn-source">
+<pre>
+/*
+ * ???
+ */
+static VALUE
+rb_gzfile_total_in(obj)
+    VALUE obj;
+{
+    return rb_uint2inum(get_gzfile(obj)-&gt;z.stream.total_in);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007818" class="method">
+  <div id="M007818_title" class="title">
+    <b>print</b>(...)
+  </div>
+  <div class="description">
+  <p>
+Document-method: print Same as <a
+href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+<p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+</div>
+<div id="M007817" class="method">
+  <div id="M007817_title" class="title">
+    <b>printf</b>(...)
+  </div>
+  <div class="description">
+  <p>
+Document-method: printf Same as <a
+href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+<p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+</div>
+<div id="M007815" class="method">
+  <div id="M007815_title" class="title">
+    <b>putc</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007815_source')" id="l_M007815_source">show source</a> ]</p>
+  <div id="M007815_source" class="dyn-source">
+<pre>
+/*
+ * Same as IO.
+ */
+static VALUE
+rb_gzwriter_putc(obj, ch)
+    VALUE obj, ch;
+{
+    struct gzfile *gz = get_gzfile(obj);
+    char c = NUM2CHR(ch);
+
+    gzfile_write(gz, &amp;c, 1);
+    return ch;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007819" class="method">
+  <div id="M007819_title" class="title">
+    <b>puts</b>(...)
+  </div>
+  <div class="description">
+  <p>
+Document-method: puts Same as <a
+href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+<p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+</div>
+<div id="M007810" class="method">
+  <div id="M007810_title" class="title">
+    <b>tell</b>()
+  </div>
+  <div class="description">
+  <p>
+???
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007810_source')" id="l_M007810_source">show source</a> ]</p>
+  <div id="M007810_source" class="dyn-source">
+<pre>
+/*
+ * ???
+ */
+static VALUE
+rb_gzfile_total_in(obj)
+    VALUE obj;
+{
+    return rb_uint2inum(get_gzfile(obj)-&gt;z.stream.total_in);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M007814" class="method">
+  <div id="M007814_title" class="title">
+    <b>write</b>(p1)
+  </div>
+  <div class="description">
+  <p>
+Same as <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M007814_source')" id="l_M007814_source">show source</a> ]</p>
+  <div id="M007814_source" class="dyn-source">
+<pre>
+/*
+ * Same as IO.
+ */
+static VALUE
+rb_gzwriter_write(obj, str)
+    VALUE obj, str;
+{
+    struct gzfile *gz = get_gzfile(obj);
+
+    if (TYPE(str) != T_STRING) {
+        str = rb_obj_as_string(str);
+    }
+    gzfile_write(gz, RSTRING(str)-&gt;ptr, RSTRING(str)-&gt;len);
+    return INT2FIX(RSTRING(str)-&gt;len);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

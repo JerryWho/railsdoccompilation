@@ -1,0 +1,74 @@
+  <div id="fileHeader">
+    <h1>yamlnode.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/yaml/yamlnode.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# YAML::YamlNode class
+#
+require 'yaml/basenode'
+
+module YAML
+
+    #
+    # YAML Generic Model container
+    #
+    class YamlNode
+        include BaseNode
+        attr_accessor :kind, :type_id, :value, :anchor
+        def initialize( t, v )
+            @type_id = t
+            if Hash === v
+                @kind = 'map'
+                @value = {}
+                v.each { |k,v|
+                    @value[ k.transform ] = [ k, v ]
+                }
+            elsif Array === v
+                @kind = 'seq'
+                @value = v
+            elsif String === v
+                @kind = 'scalar'
+                @value = v
+            end
+        end
+
+        #
+        # Transform this node fully into a native type
+        #
+        def transform
+            t = nil
+            if @value.is_a? Hash
+                t = {}
+                @value.each { |k,v|
+                    t[ k ] = v[1].transform
+                }
+            elsif @value.is_a? Array
+                t = []
+                @value.each { |v|
+                    t.push v.transform
+                }
+            else
+                t = @value
+            end
+            YAML.transfer_method( @type_id, t )
+        end
+
+    end
+
+end
+</pre>
+    </div>

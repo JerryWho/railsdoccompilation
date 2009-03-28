@@ -1,0 +1,73 @@
+  <div id="fileHeader">
+    <h1>action_controller_rescue_action_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/rails/extensions/action_controller_rescue_action_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:13:00 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../../spec_helper'
+
+module ActionController
+  describe &quot;Rescue&quot;, &quot;#rescue_action in default mode&quot; do
+    before(:each) do
+      @fixture = Object.new
+      @fixture.extend ActionController::Rescue
+      class &lt;&lt; @fixture
+        public :rescue_action
+      end
+    end
+
+    it &quot;should raise the passed in exception so examples fail fast&quot; do
+      proc {@fixture.rescue_action(RuntimeError.new(&quot;Foobar&quot;))}.should raise_error(RuntimeError, &quot;Foobar&quot;)
+    end
+  end
+
+  class RescueOverriddenController &lt; ActionController::Base
+    def rescue_action(error)
+      &quot;successfully overridden&quot;
+    end
+  end
+
+  describe &quot;Rescue&quot;, &quot;#rescue_action, when overridden&quot; do
+    before(:each) do
+      @fixture = RescueOverriddenController.new
+    end
+
+    it &quot;should do whatever the overridden method does&quot; do
+      @fixture.rescue_action(RuntimeError.new(&quot;Foobar&quot;)).should == &quot;successfully overridden&quot;
+    end
+  end
+
+  class SearchController &lt; ActionController::Base
+  end
+
+  describe &quot;Rescue&quot;, &quot;#rescue_action when told to use rails error handling&quot; do
+    before(:each) do
+      @controller = SearchController.new
+      @controller.use_rails_error_handling!
+      class &lt;&lt; @controller
+        public :rescue_action
+      end
+    end
+
+    it &quot;should use Rails exception handling&quot; do
+      exception = RuntimeError.new(&quot;The Error&quot;)
+      exception.stub!(:backtrace).and_return(caller)
+      @controller.should_receive(:rescue_action_locally).with(exception)
+
+      @controller.rescue_action(exception)
+    end
+  end
+end
+</pre>
+    </div>

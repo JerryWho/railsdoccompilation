@@ -1,0 +1,207 @@
+  <div id="fileHeader">
+    <h1>charset.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/xsd/charset.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># XSD4R - Charset handling library.
+# Copyright (C) 2001, 2003, 2005  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+module XSD
+
+
+module Charset
+  @internal_encoding = $KCODE
+
+  class XSDError &lt; StandardError; end
+  class CharsetError &lt; XSDError; end
+  class UnknownCharsetError &lt; CharsetError; end
+  class CharsetConversionError &lt; CharsetError; end
+
+public
+
+  ###
+  ## Maps
+  #
+  EncodingConvertMap = {}
+  def Charset.init
+    EncodingConvertMap[['UTF8', 'X_ISO8859_1']] =
+      Proc.new { |str| str.unpack('U*').pack('C*') }
+    EncodingConvertMap[['X_ISO8859_1', 'UTF8']] =
+      Proc.new { |str| str.unpack('C*').pack('U*') }
+    begin
+      require 'xsd/iconvcharset'
+      @internal_encoding = 'UTF8'
+      sjtag = (/(mswin|bccwin|mingw|cygwin|emx)/ =~ RUBY_PLATFORM) ? 'cp932' :
+        'shift_jis'
+      EncodingConvertMap[['UTF8', 'EUC' ]] =
+        Proc.new { |str| IconvCharset.safe_iconv(&quot;euc-jp&quot;, &quot;utf-8&quot;, str) }
+      EncodingConvertMap[['EUC' , 'UTF8']] =
+        Proc.new { |str| IconvCharset.safe_iconv(&quot;utf-8&quot;, &quot;euc-jp&quot;, str) }
+      EncodingConvertMap[['EUC' , 'SJIS']] =
+        Proc.new { |str| IconvCharset.safe_iconv(sjtag, &quot;euc-jp&quot;, str) }
+      EncodingConvertMap[['UTF8', 'SJIS']] =
+        Proc.new { |str| IconvCharset.safe_iconv(sjtag, &quot;utf-8&quot;, str) }
+      EncodingConvertMap[['SJIS', 'UTF8']] =
+        Proc.new { |str| IconvCharset.safe_iconv(&quot;utf-8&quot;, sjtag, str) }
+      EncodingConvertMap[['SJIS', 'EUC' ]] =
+        Proc.new { |str| IconvCharset.safe_iconv(&quot;euc-jp&quot;, sjtag, str) }
+    rescue LoadError
+      begin
+       	require 'nkf'
+	EncodingConvertMap[['EUC' , 'SJIS']] =
+          Proc.new { |str| NKF.nkf('-sXm0', str) }
+	EncodingConvertMap[['SJIS', 'EUC' ]] =
+          Proc.new { |str| NKF.nkf('-eXm0', str) }
+      rescue LoadError
+      end
+  
+      begin
+	require 'uconv'
+	@internal_encoding = 'UTF8'
+	EncodingConvertMap[['UTF8', 'EUC' ]] = Uconv.method(:u8toeuc)
+	EncodingConvertMap[['UTF8', 'SJIS']] = Uconv.method(:u8tosjis)
+	EncodingConvertMap[['EUC' , 'UTF8']] = Uconv.method(:euctou8)
+	EncodingConvertMap[['SJIS', 'UTF8']] = Uconv.method(:sjistou8)
+      rescue LoadError
+      end
+    end
+  end
+  self.init
+
+  CharsetMap = {
+    'NONE' =&gt; 'us-ascii',
+    'EUC' =&gt; 'euc-jp',
+    'SJIS' =&gt; 'shift_jis',
+    'UTF8' =&gt; 'utf-8',
+    'X_ISO_8859_1' =&gt; 'iso-8859-1',
+    'X_UNKNOWN' =&gt; nil,
+  }
+
+
+  ###
+  ## handlers
+  #
+  def Charset.encoding
+    @internal_encoding
+  end
+
+  def Charset.encoding=(encoding)
+    warn(&quot;xsd charset is set to #{encoding}&quot;) if $DEBUG
+    @internal_encoding = encoding
+  end
+
+  def Charset.xml_encoding_label
+    charset_label(@internal_encoding)
+  end
+
+  def Charset.encoding_to_xml(str, charset)
+    encoding_conv(str, @internal_encoding, charset_str(charset))
+  end
+
+  def Charset.encoding_from_xml(str, charset)
+    encoding_conv(str, charset_str(charset), @internal_encoding)
+  end
+
+  def Charset.encoding_conv(str, enc_from, enc_to)
+    if enc_from == enc_to or enc_from == 'NONE' or enc_to == 'NONE'
+      str
+    elsif converter = EncodingConvertMap[[enc_from, enc_to]]
+      converter.call(str)
+    else
+      raise CharsetConversionError.new(
+	&quot;Converter not found: #{enc_from} -&gt; #{enc_to}&quot;)
+    end
+  end
+
+  def Charset.charset_label(encoding)
+    CharsetMap[encoding.upcase]
+  end
+
+  def Charset.charset_str(label)
+    if CharsetMap.respond_to?(:key)
+      CharsetMap.key(label.downcase) || 'X_UNKNOWN'
+    else
+      CharsetMap.index(label.downcase) || 'X_UNKNOWN'
+    end
+  end
+
+  # us_ascii = '[\x00-\x7F]'
+  us_ascii = '[\x9\xa\xd\x20-\x7F]'	# XML 1.0 restricted.
+  USASCIIRegexp = Regexp.new(&quot;\\A#{us_ascii}*\\z&quot;, nil, &quot;NONE&quot;)
+
+  twobytes_euc = '(?:[\x8E\xA1-\xFE][\xA1-\xFE])'
+  threebytes_euc = '(?:\x8F[\xA1-\xFE][\xA1-\xFE])'
+  character_euc = &quot;(?:#{us_ascii}|#{twobytes_euc}|#{threebytes_euc})&quot;
+  EUCRegexp = Regexp.new(&quot;\\A#{character_euc}*\\z&quot;, nil, &quot;NONE&quot;)
+
+  # onebyte_sjis = '[\x00-\x7F\xA1-\xDF]'
+  onebyte_sjis = '[\x9\xa\xd\x20-\x7F\xA1-\xDF]'	# XML 1.0 restricted.
+  twobytes_sjis = '(?:[\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC])'
+  character_sjis = &quot;(?:#{onebyte_sjis}|#{twobytes_sjis})&quot;
+  SJISRegexp = Regexp.new(&quot;\\A#{character_sjis}*\\z&quot;, nil, &quot;NONE&quot;)
+
+  # 0xxxxxxx
+  # 110yyyyy 10xxxxxx
+  twobytes_utf8 = '(?:[\xC0-\xDF][\x80-\xBF])'
+  # 1110zzzz 10yyyyyy 10xxxxxx
+  threebytes_utf8 = '(?:[\xE0-\xEF][\x80-\xBF][\x80-\xBF])'
+  # 11110uuu 10uuuzzz 10yyyyyy 10xxxxxx
+  fourbytes_utf8 = '(?:[\xF0-\xF7][\x80-\xBF][\x80-\xBF][\x80-\xBF])'
+  character_utf8 =
+    &quot;(?:#{us_ascii}|#{twobytes_utf8}|#{threebytes_utf8}|#{fourbytes_utf8})&quot;
+  UTF8Regexp = Regexp.new(&quot;\\A#{character_utf8}*\\z&quot;, nil, &quot;NONE&quot;)
+
+  def Charset.is_us_ascii(str)
+    USASCIIRegexp =~ str
+  end
+
+  def Charset.is_utf8(str)
+    UTF8Regexp =~ str
+  end
+
+  def Charset.is_euc(str)
+    EUCRegexp =~ str
+  end
+
+  def Charset.is_sjis(str)
+    SJISRegexp =~ str
+  end
+
+  def Charset.is_ces(str, code = $KCODE)
+    case code
+    when 'NONE'
+      is_us_ascii(str)
+    when 'UTF8'
+      is_utf8(str)
+    when 'EUC'
+      is_euc(str)
+    when 'SJIS'
+      is_sjis(str)
+    else
+      raise UnknownCharsetError.new(&quot;Unknown charset: #{code}&quot;)
+    end
+  end
+end
+
+
+end
+</pre>
+    </div>

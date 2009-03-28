@@ -1,0 +1,67 @@
+  <div id="fileHeader">
+    <h1>plain_text_story_runner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/story/runner/plain_text_story_runner.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Story
+    module Runner
+      class PlainTextStoryRunner
+        # You can initialize a PlainTextStoryRunner with the path to the
+        # story file or a block, in which you can define the path using load.
+        #
+        # == Examples
+        #   
+        #   PlainTextStoryRunner.new('path/to/file')
+        #
+        #   PlainTextStoryRunner.new do |runner|
+        #     runner.load 'path/to/file'
+        #   end
+        def initialize(*args)
+          @options = Hash === args.last ? args.pop : {}
+          @story_file = args.empty? ? nil : args.shift
+          yield self if block_given?
+        end
+        
+        def []=(key, value)
+          @options[key] = value
+        end
+        
+        def load(path)
+          @story_file = path
+        end
+        
+        def run(story_runner=Spec::Story::Runner.story_runner)
+          raise &quot;You must set a path to the file with the story. See the RDoc.&quot; if @story_file.nil?
+          mediator = Spec::Story::Runner::StoryMediator.new(steps, story_runner, @options)
+          parser = Spec::Story::Runner::StoryParser.new(mediator)
+
+          story_text = File.read(@story_file)          
+          parser.parse(story_text.split(&quot;\n&quot;))
+
+          mediator.run_stories
+        end
+        
+        def steps
+          @step_group ||= Spec::Story::StepGroup.new
+          yield @step_group if block_given?
+          @step_group
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

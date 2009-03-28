@@ -1,0 +1,296 @@
+  <div id="C00001041">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />SimpleMarkup<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/rdoc/markup/simple_markup_rb.html');">ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><h2>Synopsis</h2>
+<p>
+This code converts <tt>input_string</tt>, which is in the format described
+in markup/simple_markup.rb, to HTML. The conversion takes place in the
+<tt>convert</tt> method, so you can use the same <a
+href="index.html?a=C00001041&name=SimpleMarkup">SimpleMarkup</a> object to
+convert multiple input strings.
+</p>
+<pre>
+  require 'rdoc/markup/simple_markup'
+  require 'rdoc/markup/simple_markup/to_html'
+
+  p = SM::SimpleMarkup.new
+  h = SM::ToHtml.new
+
+  puts p.convert(input_string, h)
+</pre>
+<p>
+You can extend the <a
+href="index.html?a=C00001041&name=SimpleMarkup">SimpleMarkup</a> parser to
+recognise new markup sequences, and to add special processing for text that
+matches a regular epxression. Here we make WikiWords significant to the
+parser, and also make the sequences {word} and
+&lt;no&gt;text&#8230;&lt;/no&gt; signify strike-through text. When then
+subclass the HTML output class to deal with these:
+</p>
+<pre>
+  require 'rdoc/markup/simple_markup'
+  require 'rdoc/markup/simple_markup/to_html'
+
+  class WikiHtml &lt; SM::ToHtml
+    def handle_special_WIKIWORD(special)
+      &quot;&lt;font color=red&gt;&quot; + special.text + &quot;&lt;/font&gt;&quot;
+    end
+  end
+
+  p = SM::SimpleMarkup.new
+  p.add_word_pair(&quot;{&quot;, &quot;}&quot;, :STRIKE)
+  p.add_html(&quot;no&quot;, :STRIKE)
+
+  p.add_special(/\b([A-Z][a-z]+[A-Z]\w+)/, :WIKIWORD)
+
+  h = WikiHtml.new
+  h.add_tag(:STRIKE, &quot;&lt;strike&gt;&quot;, &quot;&lt;/strike&gt;&quot;)
+
+  puts &quot;&lt;body&gt;&quot; + p.convert(ARGF.read, h) + &quot;&lt;/body&gt;&quot;
+</pre>
+<h2>Output Formatters</h2>
+<p>
+<em>missing</em>
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M005277&name=add_html" >add_html</a></li>
+  <li><a href="index.html?a=M005278&name=add_special" >add_special</a></li>
+  <li><a href="index.html?a=M005276&name=add_word_pair" >add_word_pair</a></li>
+  <li><a href="index.html?a=M005280&name=content" >content</a></li>
+  <li><a href="index.html?a=M005279&name=convert" >convert</a></li>
+  <li><a href="index.html?a=M005281&name=get_line_types" >get_line_types</a></li>
+  <li><a href="index.html?a=M005275&name=new" >new</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">SPACE</td>
+    <td>=</td>
+    <td class="attr-value">?\s</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">SIMPLE_LIST_RE</td>
+    <td>=</td>
+    <td class="attr-value">/^(                   (  \*          (?# bullet)                     |-           (?# bullet)                     |\d+\.       (?# numbered )                     |[A-Za-z]\.  (?# alphabetically numbered )                   )                   \s+                 )\S/x</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+<a href="index.html?a=C00000132&name=List">List</a> entries look like:
+
+<pre>
+ *       text
+ 1.      text
+ [label] text
+ label:: text
+</pre>
+<p>
+Flag it as a list entry, and work out the indent for subsequent lines
+</p>
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">LABEL_LIST_RE</td>
+    <td>=</td>
+    <td class="attr-value">/^(                         (  \[.*?\]    (?# labeled  )                           |\S.*::     (?# note     )                         )(?:\s+|$)                       )/x</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M005275" class="method">
+  <div id="M005275_title" class="title">
+    <b>new</b>()
+  </div>
+  <div class="description">
+  <p>
+take a block of text and use various heuristics to determine it&#8217;s
+structure (paragraphs, lists, and so on). Invoke an event handler as we
+identify significant chunks.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005275_source')" id="l_M005275_source">show source</a> ]</p>
+  <div id="M005275_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 207</span>
+207:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+208:       <span class="ruby-ivar">@am</span> = <span class="ruby-constant">AttributeManager</span>.<span class="ruby-identifier">new</span>
+209:       <span class="ruby-ivar">@output</span> = <span class="ruby-keyword kw">nil</span>
+210:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M005277" class="method">
+  <div id="M005277_title" class="title">
+    <b>add_html</b>(tag, name)
+  </div>
+  <div class="description">
+  <p>
+Add to the sequences recognized as general markup
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005277_source')" id="l_M005277_source">show source</a> ]</p>
+  <div id="M005277_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 225</span>
+225:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_html</span>(<span class="ruby-identifier">tag</span>, <span class="ruby-identifier">name</span>)
+226:       <span class="ruby-ivar">@am</span>.<span class="ruby-identifier">add_html</span>(<span class="ruby-identifier">tag</span>, <span class="ruby-identifier">name</span>)
+227:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005278" class="method">
+  <div id="M005278_title" class="title">
+    <b>add_special</b>(pattern, name)
+  </div>
+  <div class="description">
+  <p>
+Add to other inline sequences. For example, we could add WikiWords using
+something like:
+</p>
+<pre>
+   parser.add_special(/\b([A-Z][a-z]+[A-Z]\w+)/, :WIKIWORD)
+</pre>
+<p>
+Each wiki word will be presented to the output formatter via the
+accept_special method
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005278_source')" id="l_M005278_source">show source</a> ]</p>
+  <div id="M005278_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 239</span>
+239:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_special</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-identifier">name</span>)
+240:       <span class="ruby-ivar">@am</span>.<span class="ruby-identifier">add_special</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-identifier">name</span>)
+241:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005276" class="method">
+  <div id="M005276_title" class="title">
+    <b>add_word_pair</b>(start, stop, name)
+  </div>
+  <div class="description">
+  <p>
+Add to the sequences used to add formatting to an individual word (such as
+<b>bold</b>). Matching entries will generate attibutes that the output
+formatters can recognize by their <tt>name</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005276_source')" id="l_M005276_source">show source</a> ]</p>
+  <div id="M005276_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 217</span>
+217:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_word_pair</span>(<span class="ruby-identifier">start</span>, <span class="ruby-identifier">stop</span>, <span class="ruby-identifier">name</span>)
+218:       <span class="ruby-ivar">@am</span>.<span class="ruby-identifier">add_word_pair</span>(<span class="ruby-identifier">start</span>, <span class="ruby-identifier">stop</span>, <span class="ruby-identifier">name</span>)
+219:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005280" class="method">
+  <div id="M005280_title" class="title">
+    <b>content</b>()
+  </div>
+  <div class="description">
+  <p>
+for debugging, we allow access to our line contents as text
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005280_source')" id="l_M005280_source">show source</a> ]</p>
+  <div id="M005280_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 464</span>
+464:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">content</span>
+465:       <span class="ruby-ivar">@lines</span>.<span class="ruby-identifier">as_text</span>
+466:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005279" class="method">
+  <div id="M005279_title" class="title">
+    <b>convert</b>(str, op)
+  </div>
+  <div class="description">
+  <p>
+We take a string, split it into lines, work out the type of each line, and
+from there deduce groups of lines (for example all lines in a paragraph).
+We then invoke the output formatter using a Visitor to display the result
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005279_source')" id="l_M005279_source">show source</a> ]</p>
+  <div id="M005279_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 249</span>
+249:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">convert</span>(<span class="ruby-identifier">str</span>, <span class="ruby-identifier">op</span>)
+250:       <span class="ruby-ivar">@lines</span> = <span class="ruby-constant">Lines</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">str</span>.<span class="ruby-identifier">split</span>(<span class="ruby-regexp re">/\r?\n/</span>).<span class="ruby-identifier">collect</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">aLine</span><span class="ruby-operator">|</span> 
+251:                            <span class="ruby-constant">Line</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">aLine</span>) })
+252:       <span class="ruby-keyword kw">return</span> <span class="ruby-value str">&quot;&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@lines</span>.<span class="ruby-identifier">empty?</span>
+253:       <span class="ruby-ivar">@lines</span>.<span class="ruby-identifier">normalize</span>
+254:       <span class="ruby-identifier">assign_types_to_lines</span>
+255:       <span class="ruby-identifier">group</span> = <span class="ruby-identifier">group_lines</span>
+256:       <span class="ruby-comment cmt"># call the output formatter to handle the result</span>
+257:       <span class="ruby-comment cmt">#      group.to_a.each {|i| p i}</span>
+258:       <span class="ruby-identifier">group</span>.<span class="ruby-identifier">accept</span>(<span class="ruby-ivar">@am</span>, <span class="ruby-identifier">op</span>)
+259:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005281" class="method">
+  <div id="M005281_title" class="title">
+    <b>get_line_types</b>()
+  </div>
+  <div class="description">
+  <p>
+for debugging, return the list of line types
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005281_source')" id="l_M005281_source">show source</a> ]</p>
+  <div id="M005281_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup.rb, line 470</span>
+470:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_line_types</span>
+471:       <span class="ruby-ivar">@lines</span>.<span class="ruby-identifier">line_types</span>
+472:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

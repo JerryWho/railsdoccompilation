@@ -1,0 +1,326 @@
+  <div id="C00000238">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />StreamBuf<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/csv_rb.html');">ruby-1.8.7-p22/lib/csv.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Buffered stream.
+</p>
+<p>
+EXAMPLE 1 &#8212; an <a href="index.html?a=C00000245&name=IO">IO</a>.
+</p>
+<pre>
+  class MyBuf &lt; StreamBuf
+    # Do initialize myself before a super class.  Super class might call my
+    # method 'read'. (Could be awful for C++ user. :-)
+    def initialize(s)
+      @s = s
+      super()
+    end
+
+    # define my own 'read' method.
+    # CAUTION: Returning nil means EnfOfStream.
+    def read(size)
+      @s.read(size)
+    end
+
+    # release buffers. in Ruby which has GC, you do not have to call this...
+    def terminate
+      @s = nil
+      super()
+    end
+  end
+
+  buf = MyBuf.new(STDIN)
+  my_str = ''
+  p buf[0, 0]               # =&gt; '' (null string)
+  p buf[0]                  # =&gt; 97 (char code of 'a')
+  p buf[0, 1]               # =&gt; 'a'
+  my_str = buf[0, 5]
+  p my_str                  # =&gt; 'abcde' (5 chars)
+  p buf[0, 6]               # =&gt; &quot;abcde\n&quot; (6 chars)
+  p buf[0, 7]               # =&gt; &quot;abcde\n&quot; (6 chars)
+  p buf.drop(3)             # =&gt; 3 (dropped chars)
+  p buf.get(0, 2)           # =&gt; 'de' (2 chars)
+  p buf.is_eos?             # =&gt; false (is not EOS here)
+  p buf.drop(5)             # =&gt; 3 (dropped chars)
+  p buf.is_eos?             # =&gt; true (is EOS here)
+  p buf[0]                  # =&gt; nil (is EOS here)
+</pre>
+<p>
+EXAMPLE 2 &#8212; <a href="index.html?a=C00000055&name=String">String</a>.
+</p>
+<pre>
+  This is a conceptual example.  No pros with this.
+
+  class StrBuf &lt; StreamBuf
+    def initialize(s)
+      @str = s
+      @idx = 0
+      super()
+    end
+
+    def read(size)
+      str = @str[@idx, size]
+      @idx += str.size
+      str
+    end
+  end
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M002027&name=[]" >[]</a></li>
+  <li><a href="index.html?a=M002029&name=drop" >drop</a></li>
+  <li><a href="index.html?a=M002028&name=get" >get</a></li>
+  <li><a href="index.html?a=M002030&name=is_eos?" >is_eos?</a></li>
+  <li><a href="index.html?a=M002031&name=new" >new</a></li>
+  <li><a href="index.html?a=M002033&name=read" >read</a></li>
+  <li><a href="index.html?a=M002032&name=terminate" >terminate</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">BufSize</td>
+    <td>=</td>
+    <td class="attr-value">1024 * 8</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M002031" class="method">
+  <div id="M002031_title" class="title">
+    <b>new</b>()
+  </div>
+  <div class="description">
+  <p>
+WARN: Do not instantiate this class directly. Define your own class which
+derives this class and define &#8216;read&#8217; instance method.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002031_source')" id="l_M002031_source">show source</a> ]</p>
+  <div id="M002031_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 888</span>
+888:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+889:       <span class="ruby-ivar">@buf_list</span> = []
+890:       <span class="ruby-ivar">@cur_buf</span> = <span class="ruby-ivar">@buf_tail_idx</span> = <span class="ruby-value">-1</span>
+891:       <span class="ruby-ivar">@offset</span> = <span class="ruby-value">0</span>
+892:       <span class="ruby-ivar">@is_eos</span> = <span class="ruby-keyword kw">false</span>
+893:       <span class="ruby-identifier">add_buf</span>
+894:       <span class="ruby-ivar">@cur_buf</span> = <span class="ruby-ivar">@buf_tail_idx</span>
+895:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M002027" class="method">
+  <div id="M002027_title" class="title">
+    <b>[]</b>(idx, n = nil)
+  </div>
+  <div class="description">
+  <p>
+get a char or a partial string from the stream. idx: index of a string to
+specify a start point of a string to get. unlike <a
+href="index.html?a=C00000055&name=String">String</a> instance, idx &lt; 0
+returns nil. n: size of a string to get. returns char at idx if n == nil.
+returns a partial string, from idx to (idx + n) if n != nil. at EOF, the
+string size could not equal to arg n.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M002028&name=get">get</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002027_source')" id="l_M002027_source">show source</a> ]</p>
+  <div id="M002027_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 803</span>
+803:     <span class="ruby-keyword kw">def</span> <span class="ruby-operator">[]</span>(<span class="ruby-identifier">idx</span>, <span class="ruby-identifier">n</span> = <span class="ruby-keyword kw">nil</span>) 
+804:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">idx</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">0</span>
+805:         <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span>
+806:       <span class="ruby-keyword kw">end</span>
+807:       <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">idx_is_eos?</span>(<span class="ruby-identifier">idx</span>))
+808:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">n</span> <span class="ruby-keyword kw">and</span> (<span class="ruby-ivar">@offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">idx</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">buf_size</span>(<span class="ruby-ivar">@cur_buf</span>))
+809:           <span class="ruby-comment cmt"># Like a String, 'abc'[4, 1] returns nil and</span>
+810:           <span class="ruby-comment cmt"># 'abc'[3, 1] returns '' not nil.</span>
+811:           <span class="ruby-keyword kw">return</span> <span class="ruby-value str">''</span>
+812:         <span class="ruby-keyword kw">else</span>
+813:           <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span>
+814:         <span class="ruby-keyword kw">end</span>
+815:       <span class="ruby-keyword kw">end</span>
+816:       <span class="ruby-identifier">my_buf</span> = <span class="ruby-ivar">@cur_buf</span>
+817:       <span class="ruby-identifier">my_offset</span> = <span class="ruby-ivar">@offset</span>
+818:       <span class="ruby-identifier">next_idx</span> = <span class="ruby-identifier">idx</span>
+819:       <span class="ruby-keyword kw">while</span> (<span class="ruby-identifier">my_offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">next_idx</span> <span class="ruby-operator">&gt;=</span> <span class="ruby-identifier">buf_size</span>(<span class="ruby-identifier">my_buf</span>))
+820:         <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">my_buf</span> <span class="ruby-operator">==</span> <span class="ruby-ivar">@buf_tail_idx</span>)
+821:           <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">add_buf</span>
+822:             <span class="ruby-keyword kw">break</span>
+823:           <span class="ruby-keyword kw">end</span>
+824:         <span class="ruby-keyword kw">end</span>
+825:         <span class="ruby-identifier">next_idx</span> = <span class="ruby-identifier">my_offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">next_idx</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">buf_size</span>(<span class="ruby-identifier">my_buf</span>)
+826:         <span class="ruby-identifier">my_buf</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+827:         <span class="ruby-identifier">my_offset</span> = <span class="ruby-value">0</span>
+828:       <span class="ruby-keyword kw">end</span>
+829:       <span class="ruby-identifier">loc</span> = <span class="ruby-identifier">my_offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">next_idx</span>
+830:       <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">n</span>
+831:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@buf_list</span>[<span class="ruby-identifier">my_buf</span>][<span class="ruby-identifier">loc</span>]           <span class="ruby-comment cmt"># Fixnum of char code.</span>
+832:       <span class="ruby-keyword kw">elsif</span> (<span class="ruby-identifier">loc</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">n</span> <span class="ruby-operator">-</span> <span class="ruby-value">1</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">buf_size</span>(<span class="ruby-identifier">my_buf</span>))
+833:         <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@buf_list</span>[<span class="ruby-identifier">my_buf</span>][<span class="ruby-identifier">loc</span>, <span class="ruby-identifier">n</span>]        <span class="ruby-comment cmt"># String.</span>
+834:       <span class="ruby-keyword kw">else</span> <span class="ruby-comment cmt"># should do loop insted of (tail) recursive call...</span>
+835:         <span class="ruby-identifier">res</span> = <span class="ruby-ivar">@buf_list</span>[<span class="ruby-identifier">my_buf</span>][<span class="ruby-identifier">loc</span>, <span class="ruby-constant">BufSize</span>]
+836:         <span class="ruby-identifier">size_added</span> = <span class="ruby-identifier">buf_size</span>(<span class="ruby-identifier">my_buf</span>) <span class="ruby-operator">-</span> <span class="ruby-identifier">loc</span>
+837:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">size_added</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>
+838:           <span class="ruby-identifier">idx</span> <span class="ruby-operator">+=</span> <span class="ruby-identifier">size_added</span>
+839:           <span class="ruby-identifier">n</span> <span class="ruby-operator">-=</span> <span class="ruby-identifier">size_added</span>
+840:           <span class="ruby-identifier">ret</span> = <span class="ruby-keyword kw">self</span>[<span class="ruby-identifier">idx</span>, <span class="ruby-identifier">n</span>]
+841:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">ret</span>
+842:             <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">ret</span>
+843:           <span class="ruby-keyword kw">end</span>
+844:         <span class="ruby-keyword kw">end</span>
+845:         <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">res</span>
+846:       <span class="ruby-keyword kw">end</span>
+847:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002029" class="method">
+  <div id="M002029_title" class="title">
+    <b>drop</b>(n)
+  </div>
+  <div class="description">
+  <p>
+drop a string from the stream. returns dropped size. at EOF, dropped size
+might not equals to arg n. Once you drop the head of the stream, access to
+the dropped part via [] or get returns nil.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002029_source')" id="l_M002029_source">show source</a> ]</p>
+  <div id="M002029_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 854</span>
+854:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">drop</span>(<span class="ruby-identifier">n</span>)
+855:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">is_eos?</span>
+856:         <span class="ruby-keyword kw">return</span> <span class="ruby-value">0</span>
+857:       <span class="ruby-keyword kw">end</span>
+858:       <span class="ruby-identifier">size_dropped</span> = <span class="ruby-value">0</span>
+859:       <span class="ruby-keyword kw">while</span> (<span class="ruby-identifier">n</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>)
+860:         <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@is_eos</span> <span class="ruby-keyword kw">or</span> (<span class="ruby-ivar">@cur_buf</span> <span class="ruby-operator">!=</span> <span class="ruby-ivar">@buf_tail_idx</span>)
+861:           <span class="ruby-keyword kw">if</span> (<span class="ruby-ivar">@offset</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">n</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">buf_size</span>(<span class="ruby-ivar">@cur_buf</span>))
+862:             <span class="ruby-identifier">size_dropped</span> <span class="ruby-operator">+=</span> <span class="ruby-identifier">n</span>
+863:             <span class="ruby-ivar">@offset</span> <span class="ruby-operator">+=</span> <span class="ruby-identifier">n</span>
+864:             <span class="ruby-identifier">n</span> = <span class="ruby-value">0</span>
+865:           <span class="ruby-keyword kw">else</span>
+866:             <span class="ruby-identifier">size</span> = <span class="ruby-identifier">buf_size</span>(<span class="ruby-ivar">@cur_buf</span>) <span class="ruby-operator">-</span> <span class="ruby-ivar">@offset</span>
+867:             <span class="ruby-identifier">size_dropped</span> <span class="ruby-operator">+=</span> <span class="ruby-identifier">size</span>
+868:             <span class="ruby-identifier">n</span> <span class="ruby-operator">-=</span> <span class="ruby-identifier">size</span>
+869:             <span class="ruby-ivar">@offset</span> = <span class="ruby-value">0</span>
+870:             <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">rel_buf</span>
+871:               <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">add_buf</span>
+872:                 <span class="ruby-keyword kw">break</span>
+873:               <span class="ruby-keyword kw">end</span>
+874:               <span class="ruby-ivar">@cur_buf</span> = <span class="ruby-ivar">@buf_tail_idx</span>
+875:             <span class="ruby-keyword kw">end</span>
+876:           <span class="ruby-keyword kw">end</span>
+877:         <span class="ruby-keyword kw">end</span>
+878:       <span class="ruby-keyword kw">end</span>
+879:       <span class="ruby-identifier">size_dropped</span>
+880:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002028" class="method">
+  <div id="M002028_title" class="title">
+    <b>get</b>(idx, n = nil)
+  </div>
+  <div class="description">
+  <p>
+Alias for #[]
+</p>
+  </div>
+</div>
+<div id="M002030" class="method">
+  <div id="M002030_title" class="title">
+    <b>is_eos?</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002030_source')" id="l_M002030_source">show source</a> ]</p>
+  <div id="M002030_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 882</span>
+882:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">is_eos?</span>
+883:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">idx_is_eos?</span>(<span class="ruby-value">0</span>)
+884:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Protected Instance methods</div>
+<div id="M002033" class="method">
+  <div id="M002033_title" class="title">
+    <b>read</b>(size)
+  </div>
+  <div class="description">
+  <p>
+protected method &#8216;read&#8217; must be defined in derived classes.
+CAUTION: Returning a string which size is not equal to &#8216;size&#8217;
+means EnfOfStream. When it is not at EOS, you must block the callee, try to
+read and return the sized string.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002033_source')" id="l_M002033_source">show source</a> ]</p>
+  <div id="M002033_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 907</span>
+907:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">read</span>(<span class="ruby-identifier">size</span>) <span class="ruby-comment cmt"># raise EOFError</span>
+908:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">NotImplementedError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'Method read must be defined in a derived class.'</span>)
+909:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M002032" class="method">
+  <div id="M002032_title" class="title">
+    <b>terminate</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M002032_source')" id="l_M002032_source">show source</a> ]</p>
+  <div id="M002032_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/csv.rb, line 899</span>
+899:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">terminate</span>
+900:       <span class="ruby-keyword kw">while</span> (<span class="ruby-identifier">rel_buf</span>); <span class="ruby-keyword kw">end</span>
+901:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

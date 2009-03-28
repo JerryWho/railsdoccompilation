@@ -1,0 +1,96 @@
+  <div id="fileHeader">
+    <h1>cgiStubCreator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/wsdl/soap/cgiStubCreator.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># WSDL4R - Creating CGI stub code from WSDL.
+# Copyright (C) 2002, 2003, 2005  NAKAMURA, Hiroshi &lt;nahi@ruby-lang.org&gt;.
+
+# This program is copyrighted free software by NAKAMURA, Hiroshi.  You can
+# redistribute it and/or modify it under the same terms of Ruby's license;
+# either the dual license version in 2003, or any later version.
+
+
+require 'wsdl/info'
+require 'wsdl/soap/mappingRegistryCreator'
+require 'wsdl/soap/methodDefCreator'
+require 'wsdl/soap/classDefCreatorSupport'
+
+
+module WSDL
+module SOAP
+
+
+class CGIStubCreator
+  include ClassDefCreatorSupport
+
+  attr_reader :definitions
+
+  def initialize(definitions)
+    @definitions = definitions
+  end
+
+  def dump(service_name)
+    warn(&quot;CGI stub can have only 1 port.  Creating stub for the first port...  Rests are ignored.&quot;)
+    port = @definitions.service(service_name).ports[0]
+    dump_porttype(port.porttype.name)
+  end
+
+private
+
+  def dump_porttype(name)
+    class_name = create_class_name(name)
+    methoddef, types = MethodDefCreator.new(@definitions).dump(name)
+    mr_creator = MappingRegistryCreator.new(@definitions)
+    c1 = XSD::CodeGen::ClassDef.new(class_name)
+    c1.def_require(&quot;soap/rpc/cgistub&quot;)
+    c1.def_require(&quot;soap/mapping/registry&quot;)
+    c1.def_const(&quot;MappingRegistry&quot;, &quot;::SOAP::Mapping::Registry.new&quot;)
+    c1.def_code(mr_creator.dump(types))
+    c1.def_code &lt;&lt;-EOD
+Methods = [
+#{methoddef.gsub(/^/, &quot;  &quot;)}
+]
+    EOD
+    c2 = XSD::CodeGen::ClassDef.new(class_name + &quot;App&quot;,
+      &quot;::SOAP::RPC::CGIStub&quot;)
+    c2.def_method(&quot;initialize&quot;, &quot;*arg&quot;) do
+      &lt;&lt;-EOD
+        super(*arg)
+        servant = #{class_name}.new
+        #{class_name}::Methods.each do |definitions|
+          opt = definitions.last
+          if opt[:request_style] == :document
+            @router.add_document_operation(servant, *definitions)
+          else
+            @router.add_rpc_operation(servant, *definitions)
+          end
+        end
+        self.mapping_registry = #{class_name}::MappingRegistry
+        self.level = Logger::Severity::ERROR
+      EOD
+    end
+    c1.dump + &quot;\n&quot; + c2.dump + format(&lt;&lt;-EOD)
+      #{class_name}App.new('app', nil).start
+    EOD
+  end
+end
+
+
+end
+end
+</pre>
+    </div>

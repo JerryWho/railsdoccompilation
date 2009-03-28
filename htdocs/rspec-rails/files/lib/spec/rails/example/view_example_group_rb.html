@@ -1,0 +1,205 @@
+  <div id="fileHeader">
+    <h1>view_example_group.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/spec/rails/example/view_example_group.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:09:13 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Spec
+  module Rails
+    module Example
+      class ViewExampleGroupController &lt; ApplicationController #:nodoc:
+        include Spec::Rails::Example::RenderObserver
+        attr_reader :template
+
+        def add_helper_for(template_path)
+          add_helper(template_path.split('/')[0])
+        end
+
+        def add_helper(name)
+          begin
+            helper_module = &quot;#{name}_helper&quot;.camelize.constantize
+          rescue
+            return
+          end
+          (class &lt;&lt; template; self; end).class_eval do
+            include helper_module
+          end
+        end
+        
+        def forget_variables_added_to_assigns
+        end
+      end
+
+      # View Examples live in $RAILS_ROOT/spec/views/.
+      #
+      # View Specs use Spec::Rails::Example::ViewExampleGroup,
+      # which provides access to views without invoking any of your controllers.
+      # See Spec::Rails::Expectations::Matchers for information about specific
+      # expectations that you can set on views.
+      #
+      # == Example
+      #
+      #   describe &quot;login/login&quot; do
+      #     before do
+      #       render 'login/login'
+      #     end
+      # 
+      #     it &quot;should display login form&quot; do
+      #       response.should have_tag(&quot;form[action=/login]&quot;) do
+      #         with_tag(&quot;input[type=text][name=email]&quot;)
+      #         with_tag(&quot;input[type=password][name=password]&quot;)
+      #         with_tag(&quot;input[type=submit][value=Login]&quot;)
+      #       end
+      #     end
+      #   end
+      class ViewExampleGroup &lt; FunctionalExampleGroup
+        tests ViewExampleGroupController
+        class &lt;&lt; self
+          def inherited(klass) # :nodoc:
+            klass.subject { template }
+            super
+          end
+        end
+
+        before {ensure_that_flash_and_session_work_properly}
+        after  {ensure_that_base_view_path_is_not_set_across_example_groups}
+
+        def ensure_that_flash_and_session_work_properly #:nodoc:
+          @controller.class.__send__ :public, :flash
+          @controller.__send__ :initialize_template_class, @response
+          @controller.__send__ :assign_shortcuts, @request, @response
+          @controller.__send__ :initialize_current_url
+          @session = @controller.session
+        end
+
+        def ensure_that_base_view_path_is_not_set_across_example_groups #:nodoc:
+          ActionView::Base.base_view_path = nil
+        end
+
+        def set_base_view_path(options) #:nodoc:
+          ActionView::Base.base_view_path = base_view_path(options)
+        end
+
+        def base_view_path(options) #:nodoc:
+          &quot;/#{derived_controller_name(options)}/&quot;
+        end
+
+        def derived_controller_name(options) #:nodoc:
+          parts = subject_of_render(options).split('/').reject { |part| part.empty? }
+          &quot;#{parts[0..-2].join('/')}&quot;
+        end
+
+        def derived_action_name(options) #:nodoc:
+          parts = subject_of_render(options).split('/').reject { |part| part.empty? }
+          &quot;#{parts.last}&quot;.split('.').first
+        end
+
+        def subject_of_render(options) #:nodoc:
+          [:template, :partial, :file].each do |render_type|
+            if options.has_key?(render_type)
+              return options[render_type]
+            end
+          end
+          return &quot;&quot;
+        end
+
+        def add_helpers(options) #:nodoc:
+          @controller.add_helper(&quot;application&quot;)
+          @controller.add_helper(derived_controller_name(options))
+          @controller.add_helper(options[:helper]) if options[:helper]
+          options[:helpers].each { |helper| @controller.add_helper(helper) } if options[:helpers]
+        end
+
+        # Renders a template for a View Spec, which then provides access to the result
+        # through the +response+. Also supports render with :inline, which you can
+        # use to spec custom form builders, helpers, etc, in the context of a view.
+        #
+        # == Examples
+        #
+        #   render('/people/list')
+        #   render('/people/list', :helper =&gt; MyHelper)
+        #   render('/people/list', :helpers =&gt; [MyHelper, MyOtherHelper])
+        #   render(:partial =&gt; '/people/_address')
+        #   render(:inline =&gt; &quot;&lt;% custom_helper 'argument', 'another argument' %&gt;&quot;)
+        #
+        # See Spec::Rails::Example::ViewExampleGroup for more information.
+        def render(*args)
+          options = Hash === args.last ? args.pop : {}
+          
+          if args.empty? 
+            unless [:partial, :inline, :file, :template, :xml, :json, :update].any? {|k| options.has_key? k} 
+              args &lt;&lt; self.class.description_parts.first
+            end
+          end
+          
+          options[:template] = args.first.to_s.sub(/^\//,'') unless args.empty?
+          
+          set_base_view_path(options)
+          add_helpers(options)
+
+          assigns[:action_name] = @action_name
+          
+          @request.path_parameters = @request.path_parameters.merge(
+            :controller =&gt; derived_controller_name(options),
+            :action =&gt; derived_action_name(options)
+          ).merge(options[:path_parameters] || {})
+
+          defaults = { :layout =&gt; false }
+          options = defaults.merge options
+
+          @controller.__send__(:params).reverse_merge! @request.parameters
+
+          @controller.class.instance_eval %{
+            def controller_path
+              &quot;#{derived_controller_name(options)}&quot;
+            end
+
+            def controller_name
+              &quot;#{derived_controller_name(options).split('/').last}&quot;
+            end
+          }
+
+          @controller.__send__ :forget_variables_added_to_assigns
+          @controller.__send__ :render, options
+          @controller.__send__ :process_cleanup
+        end
+
+        # This provides the template. Use this to set mock
+        # expectations for dealing with partials
+        #
+        # == Example
+        #
+        #   describe &quot;/person/new&quot; do
+        #     it &quot;should use the form partial&quot; do
+        #       template.should_receive(:render).with(:partial =&gt; 'form')
+        #       render &quot;/person/new&quot;
+        #     end
+        #   end
+        def template
+          @controller.template
+        end
+
+        Spec::Example::ExampleGroupFactory.register(:view, self)
+
+      protected
+        def _assigns_hash_proxy
+          @_assigns_hash_proxy ||= AssignsHashProxy.new(self) {@response.template}
+        end
+      end
+
+    end
+  end
+end
+</pre>
+    </div>

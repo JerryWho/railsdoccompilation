@@ -1,0 +1,76 @@
+  <div id="fileHeader">
+    <h1>transitive.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rexml/formatters/transitive.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 29 21:26:17 -0500 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rexml/formatters/pretty'
+
+module REXML
+  module Formatters
+    # The Transitive formatter writes an XML document that parses to an
+    # identical document as the source document.  This means that no extra
+    # whitespace nodes are inserted, and whitespace within text nodes is
+    # preserved.  Within these constraints, the document is pretty-printed,
+    # with whitespace inserted into the metadata to introduce formatting.
+    #
+    # Note that this is only useful if the original XML is not already
+    # formatted.  Since this formatter does not alter whitespace nodes, the
+    # results of formatting already formatted XML will be odd.
+    class Transitive &lt; Default
+      def initialize( indentation=2 )
+        @indentation = indentation
+        @level = 0
+      end
+
+      protected
+      def write_element( node, output )
+        output &lt;&lt; &quot;&lt;#{node.expanded_name}&quot;
+
+        node.attributes.each_attribute do |attr|
+          output &lt;&lt; &quot; &quot;
+          attr.write( output )
+        end unless node.attributes.empty?
+
+        output &lt;&lt; &quot;\n&quot;
+        output &lt;&lt; ' '*@level
+        if node.children.empty?
+          output &lt;&lt; &quot;/&quot; 
+        else
+          output &lt;&lt; &quot;&gt;&quot;
+          # If compact and all children are text, and if the formatted output
+          # is less than the specified width, then try to print everything on
+          # one line
+          skip = false
+          @level += @indentation
+          node.children.each { |child|
+            write( child, output )
+          }
+          @level -= @indentation
+          output &lt;&lt; &quot;&lt;/#{node.expanded_name}&quot;
+          output &lt;&lt; &quot;\n&quot;
+          output &lt;&lt; ' '*@level
+        end
+        output &lt;&lt; &quot;&gt;&quot;
+      end
+
+      def write_text( node, output )
+        output &lt;&lt; node.to_s()
+      end
+    end
+  end
+end
+</pre>
+    </div>

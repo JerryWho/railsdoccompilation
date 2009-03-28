@@ -1,0 +1,2710 @@
+  <div id="C00000205">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Pathname<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/pathname_rb.html');">ruby-1.8.7-p22/lib/pathname.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><h2><a href="index.html?a=C00000205&name=Pathname">Pathname</a></h2>
+<p>
+<a href="index.html?a=C00000205&name=Pathname">Pathname</a> represents a
+pathname which locates a file in a filesystem. The pathname depends on OS:
+Unix, Windows, etc. <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> library works with
+pathnames of local OS. However non-Unix pathnames are supported
+experimentally.
+</p>
+<p>
+It does not represent the file itself. A <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> can be relative or
+absolute. It&#8217;s not until you try to reference the file that it even
+matters whether the file exists or not.
+</p>
+<p>
+<a href="index.html?a=C00000205&name=Pathname">Pathname</a> is immutable.
+It has no method for destructive update.
+</p>
+<p>
+The value of this class is to manipulate file path information in a neater
+way than standard Ruby provides. The examples below demonstrate the
+difference. <b>All</b> functionality from <a
+href="index.html?a=C00000276&name=File">File</a>, <a
+href="index.html?a=C00001614&name=FileTest">FileTest</a>, and some from <a
+href="index.html?a=C00000246&name=Dir">Dir</a> and <a
+href="index.html?a=C00000904&name=FileUtils">FileUtils</a> is included, in
+an unsurprising way. It is essentially a facade for all of these, and more.
+</p>
+<h2>Examples</h2>
+<h3>Example 1: Using <a href="index.html?a=C00000205&name=Pathname">Pathname</a></h3>
+<pre>
+  require 'pathname'
+  p = Pathname.new(&quot;/usr/bin/ruby&quot;)
+  size = p.size              # 27662
+  isdir = p.directory?       # false
+  dir  = p.dirname           # Pathname:/usr/bin
+  base = p.basename          # Pathname:ruby
+  dir, base = p.split        # [Pathname:/usr/bin, Pathname:ruby]
+  data = p.read
+  p.open { |f| _ }
+  p.each_line { |line| _ }
+</pre>
+<h3>Example 2: Using standard Ruby</h3>
+<pre>
+  p = &quot;/usr/bin/ruby&quot;
+  size = File.size(p)        # 27662
+  isdir = File.directory?(p) # false
+  dir  = File.dirname(p)     # &quot;/usr/bin&quot;
+  base = File.basename(p)    # &quot;ruby&quot;
+  dir, base = File.split(p)  # [&quot;/usr/bin&quot;, &quot;ruby&quot;]
+  data = File.read(p)
+  File.open(p) { |f| _ }
+  File.foreach(p) { |line| _ }
+</pre>
+<h3>Example 3: Special features</h3>
+<pre>
+  p1 = Pathname.new(&quot;/usr/lib&quot;)   # Pathname:/usr/lib
+  p2 = p1 + &quot;ruby/1.8&quot;            # Pathname:/usr/lib/ruby/1.8
+  p3 = p1.parent                  # Pathname:/usr
+  p4 = p2.relative_path_from(p3)  # Pathname:lib/ruby/1.8
+  pwd = Pathname.pwd              # Pathname:/home/gavin
+  pwd.absolute?                   # true
+  p5 = Pathname.new &quot;.&quot;           # Pathname:.
+  p5 = p5 + &quot;music/../articles&quot;   # Pathname:music/../articles
+  p5.cleanpath                    # Pathname:articles
+  p5.realpath                     # Pathname:/home/gavin/articles
+  p5.children                     # [Pathname:/home/gavin/articles/linux, ...]
+</pre>
+<h2>Breakdown of functionality</h2>
+<h3>Core methods</h3>
+<p>
+These methods are effectively manipulating a <a
+href="index.html?a=C00000055&name=String">String</a>, because that&#8217;s
+all a path is. Except for <a
+href="index.html?a=M001612&name=mountpoint?">mountpoint?</a>, <a
+href="index.html?a=M001621&name=children">children</a>, and <a
+href="index.html?a=M001610&name=realpath">realpath</a>, they don&#8217;t
+access the filesystem.
+</p>
+<ul>
+<li>+
+
+</li>
+<li><a href="index.html?a=M001620&name=join">join</a>
+
+</li>
+<li><a href="index.html?a=M001611&name=parent">parent</a>
+
+</li>
+<li><a href="index.html?a=M001613&name=root?">root?</a>
+
+</li>
+<li><a href="index.html?a=M001614&name=absolute?">absolute?</a>
+
+</li>
+<li><a href="index.html?a=M001615&name=relative?">relative?</a>
+
+</li>
+<li><a
+href="index.html?a=M001622&name=relative_path_from">relative_path_from</a>
+
+</li>
+<li><a href="index.html?a=M001616&name=each_filename">each_filename</a>
+
+</li>
+<li><a href="index.html?a=M001609&name=cleanpath">cleanpath</a>
+
+</li>
+<li><a href="index.html?a=M001610&name=realpath">realpath</a>
+
+</li>
+<li><a href="index.html?a=M001621&name=children">children</a>
+
+</li>
+<li><a href="index.html?a=M001612&name=mountpoint?">mountpoint?</a>
+
+</li>
+</ul>
+<h3><a href="index.html?a=C00000276&name=File">File</a> status predicate methods</h3>
+<p>
+These methods are a facade for <a
+href="index.html?a=C00001614&name=FileTest">FileTest</a>:
+</p>
+<ul>
+<li><a href="index.html?a=M001654&name=blockdev?">blockdev?</a>
+
+</li>
+<li><a href="index.html?a=M001655&name=chardev?">chardev?</a>
+
+</li>
+<li><a href="index.html?a=M001660&name=directory?">directory?</a>
+
+</li>
+<li><a href="index.html?a=M001656&name=executable?">executable?</a>
+
+</li>
+<li><a href="index.html?a=M001657&name=executable_real?">executable_real?</a>
+
+</li>
+<li><a href="index.html?a=M001658&name=exist?">exist?</a>
+
+</li>
+<li><a href="index.html?a=M001661&name=file?">file?</a>
+
+</li>
+<li><a href="index.html?a=M001659&name=grpowned?">grpowned?</a>
+
+</li>
+<li><a href="index.html?a=M001664&name=owned?">owned?</a>
+
+</li>
+<li><a href="index.html?a=M001662&name=pipe?">pipe?</a>
+
+</li>
+<li><a href="index.html?a=M001665&name=readable?">readable?</a>
+
+</li>
+<li><a href="index.html?a=M001666&name=world_readable?">world_readable?</a>
+
+</li>
+<li><a href="index.html?a=M001667&name=readable_real?">readable_real?</a>
+
+</li>
+<li><a href="index.html?a=M001669&name=setgid?">setgid?</a>
+
+</li>
+<li><a href="index.html?a=M001668&name=setuid?">setuid?</a>
+
+</li>
+<li><a href="index.html?a=M001670&name=size">size</a>
+
+</li>
+<li><a href="index.html?a=M001671&name=size?">size?</a>
+
+</li>
+<li><a href="index.html?a=M001663&name=socket?">socket?</a>
+
+</li>
+<li><a href="index.html?a=M001672&name=sticky?">sticky?</a>
+
+</li>
+<li><a href="index.html?a=M001673&name=symlink?">symlink?</a>
+
+</li>
+<li><a href="index.html?a=M001674&name=writable?">writable?</a>
+
+</li>
+<li><a href="index.html?a=M001675&name=world_writable?">world_writable?</a>
+
+</li>
+<li><a href="index.html?a=M001676&name=writable_real?">writable_real?</a>
+
+</li>
+<li><a href="index.html?a=M001677&name=zero?">zero?</a>
+
+</li>
+</ul>
+<h3><a href="index.html?a=C00000276&name=File">File</a> property and manipulation methods</h3>
+<p>
+These methods are a facade for <a
+href="index.html?a=C00000276&name=File">File</a>:
+</p>
+<ul>
+<li><a href="index.html?a=M001628&name=atime">atime</a>
+
+</li>
+<li><a href="index.html?a=M001629&name=ctime">ctime</a>
+
+</li>
+<li><a href="index.html?a=M001630&name=mtime">mtime</a>
+
+</li>
+<li><a href="index.html?a=M001631&name=chmod">chmod</a>(mode)
+
+</li>
+<li><a href="index.html?a=M001632&name=lchmod">lchmod</a>(mode)
+
+</li>
+<li><a href="index.html?a=M001633&name=chown">chown</a>(owner, group)
+
+</li>
+<li><a href="index.html?a=M001634&name=lchown">lchown</a>(owner, group)
+
+</li>
+<li><a href="index.html?a=M001635&name=fnmatch">fnmatch</a>(pattern, *args)
+
+</li>
+<li><a href="index.html?a=M001636&name=fnmatch?">fnmatch?</a>(pattern, *args)
+
+</li>
+<li><a href="index.html?a=M001637&name=ftype">ftype</a>
+
+</li>
+<li><a href="index.html?a=M001638&name=make_link">make_link</a>(old)
+
+</li>
+<li><a href="index.html?a=M001639&name=open">open</a>(*args, &amp;block)
+
+</li>
+<li><a href="index.html?a=M001640&name=readlink">readlink</a>
+
+</li>
+<li><a href="index.html?a=M001641&name=rename">rename</a>(to)
+
+</li>
+<li><a href="index.html?a=M001642&name=stat">stat</a>
+
+</li>
+<li><a href="index.html?a=M001643&name=lstat">lstat</a>
+
+</li>
+<li><a href="index.html?a=M001644&name=make_symlink">make_symlink</a>(old)
+
+</li>
+<li><a href="index.html?a=M001645&name=truncate">truncate</a>(length)
+
+</li>
+<li><a href="index.html?a=M001646&name=utime">utime</a>(atime, mtime)
+
+</li>
+<li><a href="index.html?a=M001647&name=basename">basename</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001648&name=dirname">dirname</a>
+
+</li>
+<li><a href="index.html?a=M001649&name=extname">extname</a>
+
+</li>
+<li><a href="index.html?a=M001650&name=expand_path">expand_path</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001651&name=split">split</a>
+
+</li>
+</ul>
+<h3>Directory methods</h3>
+<p>
+These methods are a facade for <a
+href="index.html?a=C00000246&name=Dir">Dir</a>:
+</p>
+<ul>
+<li><a href="index.html?a=M001678&name=Pathname.glob">Pathname.glob</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001679&name=Pathname.getwd">Pathname.getwd</a> /
+Pathname.pwd
+
+</li>
+<li><a href="index.html?a=M001686&name=rmdir">rmdir</a>
+
+</li>
+<li><a href="index.html?a=M001682&name=entries">entries</a>
+
+</li>
+<li><a href="index.html?a=M001683&name=each_entry">each_entry</a>(&amp;block)
+
+</li>
+<li><a href="index.html?a=M001685&name=mkdir">mkdir</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001687&name=opendir">opendir</a>(*args)
+
+</li>
+</ul>
+<h3><a href="index.html?a=C00000245&name=IO">IO</a></h3>
+<p>
+These methods are a facade for <a
+href="index.html?a=C00000245&name=IO">IO</a>:
+</p>
+<ul>
+<li><a href="index.html?a=M001623&name=each_line">each_line</a>(*args,
+&amp;block)
+
+</li>
+<li><a href="index.html?a=M001625&name=read">read</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001626&name=readlines">readlines</a>(*args)
+
+</li>
+<li><a href="index.html?a=M001627&name=sysopen">sysopen</a>(*args)
+
+</li>
+</ul>
+<h3>Utilities</h3>
+<p>
+These methods are a mixture of <a
+href="index.html?a=C00001622&name=Find">Find</a>, <a
+href="index.html?a=C00000904&name=FileUtils">FileUtils</a>, and others:
+</p>
+<ul>
+<li><a href="index.html?a=M001688&name=find">find</a>(&amp;block)
+
+</li>
+<li><a href="index.html?a=M001689&name=mkpath">mkpath</a>
+
+</li>
+<li><a href="index.html?a=M001690&name=rmtree">rmtree</a>
+
+</li>
+<li><a href="index.html?a=M001691&name=unlink">unlink</a> / <a
+href="index.html?a=M001692&name=delete">delete</a>
+
+</li>
+</ul>
+<h2><a href="index.html?a=C00000219&name=Method">Method</a> documentation</h2>
+<p>
+As the above section shows, most of the methods in <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> are facades. The
+documentation for these methods generally just says, for instance,
+&quot;See FileTest.writable?&quot;, as you should be familiar with the
+original method anyway, and its documentation (e.g. through <tt>ri</tt>)
+will contain more information. In some cases, a brief description will
+follow.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001619&name=+" >+</a></li>
+  <li><a href="index.html?a=M001605&name=&lt;=&gt;" >&lt;=&gt;</a></li>
+  <li><a href="index.html?a=M001602&name===" >==</a></li>
+  <li><a href="index.html?a=M001603&name====" >===</a></li>
+  <li><a href="index.html?a=M001607&name=TO_PATH" >TO_PATH</a></li>
+  <li><a href="index.html?a=M001614&name=absolute?" >absolute?</a></li>
+  <li><a href="index.html?a=M001618&name=ascend" >ascend</a></li>
+  <li><a href="index.html?a=M001628&name=atime" >atime</a></li>
+  <li><a href="index.html?a=M001647&name=basename" >basename</a></li>
+  <li><a href="index.html?a=M001654&name=blockdev?" >blockdev?</a></li>
+  <li><a href="index.html?a=M001655&name=chardev?" >chardev?</a></li>
+  <li><a href="index.html?a=M001680&name=chdir" >chdir</a></li>
+  <li><a href="index.html?a=M001621&name=children" >children</a></li>
+  <li><a href="index.html?a=M001631&name=chmod" >chmod</a></li>
+  <li><a href="index.html?a=M001633&name=chown" >chown</a></li>
+  <li><a href="index.html?a=M001681&name=chroot" >chroot</a></li>
+  <li><a href="index.html?a=M001609&name=cleanpath" >cleanpath</a></li>
+  <li><a href="index.html?a=M001629&name=ctime" >ctime</a></li>
+  <li><a href="index.html?a=M001692&name=delete" >delete</a></li>
+  <li><a href="index.html?a=M001617&name=descend" >descend</a></li>
+  <li><a href="index.html?a=M001684&name=dir_foreach" >dir_foreach</a></li>
+  <li><a href="index.html?a=M001660&name=directory?" >directory?</a></li>
+  <li><a href="index.html?a=M001648&name=dirname" >dirname</a></li>
+  <li><a href="index.html?a=M001683&name=each_entry" >each_entry</a></li>
+  <li><a href="index.html?a=M001616&name=each_filename" >each_filename</a></li>
+  <li><a href="index.html?a=M001623&name=each_line" >each_line</a></li>
+  <li><a href="index.html?a=M001682&name=entries" >entries</a></li>
+  <li><a href="index.html?a=M001604&name=eql?" >eql?</a></li>
+  <li><a href="index.html?a=M001656&name=executable?" >executable?</a></li>
+  <li><a href="index.html?a=M001657&name=executable_real?" >executable_real?</a></li>
+  <li><a href="index.html?a=M001658&name=exist?" >exist?</a></li>
+  <li><a href="index.html?a=M001650&name=expand_path" >expand_path</a></li>
+  <li><a href="index.html?a=M001649&name=extname" >extname</a></li>
+  <li><a href="index.html?a=M001661&name=file?" >file?</a></li>
+  <li><a href="index.html?a=M001688&name=find" >find</a></li>
+  <li><a href="index.html?a=M001635&name=fnmatch" >fnmatch</a></li>
+  <li><a href="index.html?a=M001636&name=fnmatch?" >fnmatch?</a></li>
+  <li><a href="index.html?a=M001693&name=foreach" >foreach</a></li>
+  <li><a href="index.html?a=M001624&name=foreachline" >foreachline</a></li>
+  <li><a href="index.html?a=M001599&name=freeze" >freeze</a></li>
+  <li><a href="index.html?a=M001637&name=ftype" >ftype</a></li>
+  <li><a href="index.html?a=M001679&name=getwd" >getwd</a></li>
+  <li><a href="index.html?a=M001678&name=glob" >glob</a></li>
+  <li><a href="index.html?a=M001659&name=grpowned?" >grpowned?</a></li>
+  <li><a href="index.html?a=M001620&name=join" >join</a></li>
+  <li><a href="index.html?a=M001632&name=lchmod" >lchmod</a></li>
+  <li><a href="index.html?a=M001634&name=lchown" >lchown</a></li>
+  <li><a href="index.html?a=M001652&name=link" >link</a></li>
+  <li><a href="index.html?a=M001643&name=lstat" >lstat</a></li>
+  <li><a href="index.html?a=M001638&name=make_link" >make_link</a></li>
+  <li><a href="index.html?a=M001644&name=make_symlink" >make_symlink</a></li>
+  <li><a href="index.html?a=M001685&name=mkdir" >mkdir</a></li>
+  <li><a href="index.html?a=M001689&name=mkpath" >mkpath</a></li>
+  <li><a href="index.html?a=M001612&name=mountpoint?" >mountpoint?</a></li>
+  <li><a href="index.html?a=M001630&name=mtime" >mtime</a></li>
+  <li><a href="index.html?a=M001598&name=new" >new</a></li>
+  <li><a href="index.html?a=M001639&name=open" >open</a></li>
+  <li><a href="index.html?a=M001687&name=opendir" >opendir</a></li>
+  <li><a href="index.html?a=M001664&name=owned?" >owned?</a></li>
+  <li><a href="index.html?a=M001611&name=parent" >parent</a></li>
+  <li><a href="index.html?a=M001662&name=pipe?" >pipe?</a></li>
+  <li><a href="index.html?a=M001625&name=read" >read</a></li>
+  <li><a href="index.html?a=M001665&name=readable?" >readable?</a></li>
+  <li><a href="index.html?a=M001667&name=readable_real?" >readable_real?</a></li>
+  <li><a href="index.html?a=M001626&name=readlines" >readlines</a></li>
+  <li><a href="index.html?a=M001640&name=readlink" >readlink</a></li>
+  <li><a href="index.html?a=M001610&name=realpath" >realpath</a></li>
+  <li><a href="index.html?a=M001615&name=relative?" >relative?</a></li>
+  <li><a href="index.html?a=M001622&name=relative_path_from" >relative_path_from</a></li>
+  <li><a href="index.html?a=M001641&name=rename" >rename</a></li>
+  <li><a href="index.html?a=M001686&name=rmdir" >rmdir</a></li>
+  <li><a href="index.html?a=M001690&name=rmtree" >rmtree</a></li>
+  <li><a href="index.html?a=M001613&name=root?" >root?</a></li>
+  <li><a href="index.html?a=M001669&name=setgid?" >setgid?</a></li>
+  <li><a href="index.html?a=M001668&name=setuid?" >setuid?</a></li>
+  <li><a href="index.html?a=M001670&name=size" >size</a></li>
+  <li><a href="index.html?a=M001671&name=size?" >size?</a></li>
+  <li><a href="index.html?a=M001663&name=socket?" >socket?</a></li>
+  <li><a href="index.html?a=M001651&name=split" >split</a></li>
+  <li><a href="index.html?a=M001642&name=stat" >stat</a></li>
+  <li><a href="index.html?a=M001672&name=sticky?" >sticky?</a></li>
+  <li><a href="index.html?a=M001608&name=sub" >sub</a></li>
+  <li><a href="index.html?a=M001653&name=symlink" >symlink</a></li>
+  <li><a href="index.html?a=M001673&name=symlink?" >symlink?</a></li>
+  <li><a href="index.html?a=M001627&name=sysopen" >sysopen</a></li>
+  <li><a href="index.html?a=M001600&name=taint" >taint</a></li>
+  <li><a href="index.html?a=M001606&name=to_s" >to_s</a></li>
+  <li><a href="index.html?a=M001645&name=truncate" >truncate</a></li>
+  <li><a href="index.html?a=M001691&name=unlink" >unlink</a></li>
+  <li><a href="index.html?a=M001601&name=untaint" >untaint</a></li>
+  <li><a href="index.html?a=M001646&name=utime" >utime</a></li>
+  <li><a href="index.html?a=M001666&name=world_readable?" >world_readable?</a></li>
+  <li><a href="index.html?a=M001675&name=world_writable?" >world_writable?</a></li>
+  <li><a href="index.html?a=M001674&name=writable?" >writable?</a></li>
+  <li><a href="index.html?a=M001676&name=writable_real?" >writable_real?</a></li>
+  <li><a href="index.html?a=M001677&name=zero?" >zero?</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">SEPARATOR_PAT</td>
+    <td>=</td>
+    <td class="attr-value">/[#{Regexp.quote File::ALT_SEPARATOR}#{Regexp.quote File::SEPARATOR}]/</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">SEPARATOR_PAT</td>
+    <td>=</td>
+    <td class="attr-value">/#{Regexp.quote File::SEPARATOR}/</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001679" class="method">
+  <div id="M001679_title" class="title">
+    <b>getwd</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002240&name=Dir.getwd">Dir.getwd</a></tt>.
+Returns the current working directory as a <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001679_source')" id="l_M001679_source">show source</a> ]</p>
+  <div id="M001679_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 941</span>
+941:   <span class="ruby-keyword kw">def</span> <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">getwd</span>() <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">Dir</span>.<span class="ruby-identifier">getwd</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001678" class="method">
+  <div id="M001678_title" class="title">
+    <b>glob</b>(*args) {|p| ...}
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002247&name=Dir.glob">Dir.glob</a></tt>.
+Returns or yields <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> objects.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001678_source')" id="l_M001678_source">show source</a> ]</p>
+  <div id="M001678_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 932</span>
+932:   <span class="ruby-keyword kw">def</span> <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">glob</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-comment cmt"># :yield: p</span>
+933:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+934:       <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">glob</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) }
+935:     <span class="ruby-keyword kw">else</span>
+936:       <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">glob</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>).<span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) }
+937:     <span class="ruby-keyword kw">end</span>
+938:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001598" class="method">
+  <div id="M001598_title" class="title">
+    <b>new</b>(path)
+  </div>
+  <div class="description">
+  <p>
+Create a <a href="index.html?a=C00000205&name=Pathname">Pathname</a> object
+from the given <a href="index.html?a=C00000055&name=String">String</a> (or
+<a href="index.html?a=C00000055&name=String">String</a>-like object). If
+<tt>path</tt> contains a NUL character (<tt>\0</tt>), an <a
+href="index.html?a=C00000316&name=ArgumentError">ArgumentError</a> is
+raised.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001598_source')" id="l_M001598_source">show source</a> ]</p>
+  <div id="M001598_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 203</span>
+203:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">path</span>)
+204:     <span class="ruby-identifier">path</span> = <span class="ruby-identifier">path</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-constant">TO_PATH</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">path</span>.<span class="ruby-identifier">respond_to?</span> <span class="ruby-constant">TO_PATH</span>
+205:     <span class="ruby-ivar">@path</span> = <span class="ruby-identifier">path</span>.<span class="ruby-identifier">dup</span>
+206: 
+207:     <span class="ruby-keyword kw">if</span> <span class="ruby-regexp re">/\0/</span> <span class="ruby-operator">=~</span> <span class="ruby-ivar">@path</span>
+208:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">ArgumentError</span>, <span class="ruby-node">&quot;pathname contains \\0: #{@path.inspect}&quot;</span>
+209:     <span class="ruby-keyword kw">end</span>
+210: 
+211:     <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">taint</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">tainted?</span>
+212:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001619" class="method">
+  <div id="M001619_title" class="title">
+    <b>+</b>(other)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=C00000205&name=Pathname">Pathname</a>#+ appends a
+pathname fragment to this one to produce a new <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> object.
+</p>
+<pre>
+  p1 = Pathname.new(&quot;/usr&quot;)      # Pathname:/usr
+  p2 = p1 + &quot;bin/ruby&quot;           # Pathname:/usr/bin/ruby
+  p3 = p1 + &quot;/etc/passwd&quot;        # Pathname:/etc/passwd
+</pre>
+<p>
+This method doesn&#8217;t access the file system; it is pure string
+manipulation.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001619_source')" id="l_M001619_source">show source</a> ]</p>
+  <div id="M001619_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 581</span>
+581:   <span class="ruby-keyword kw">def</span> <span class="ruby-operator">+</span>(<span class="ruby-identifier">other</span>)
+582:     <span class="ruby-identifier">other</span> = <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">other</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">Pathname</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">other</span>
+583:     <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">plus</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-identifier">other</span>.<span class="ruby-identifier">to_s</span>))
+584:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001605" class="method">
+  <div id="M001605_title" class="title">
+    <b>&lt;=&gt;</b>(other)
+  </div>
+  <div class="description">
+  <p>
+Provides for comparing pathnames, case-sensitively.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001605_source')" id="l_M001605_source">show source</a> ]</p>
+  <div id="M001605_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 231</span>
+231:   <span class="ruby-keyword kw">def</span> <span class="ruby-operator">&lt;=&gt;</span>(<span class="ruby-identifier">other</span>)
+232:     <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">Pathname</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">other</span>
+233:     <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">tr</span>(<span class="ruby-value str">'/'</span>, <span class="ruby-value str">&quot;\0&quot;</span>) <span class="ruby-operator">&lt;=&gt;</span> <span class="ruby-identifier">other</span>.<span class="ruby-identifier">to_s</span>.<span class="ruby-identifier">tr</span>(<span class="ruby-value str">'/'</span>, <span class="ruby-value str">&quot;\0&quot;</span>)
+234:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001602" class="method">
+  <div id="M001602_title" class="title">
+    <b>==</b>(other)
+  </div>
+  <div class="description">
+  <p>
+Compare this pathname with <tt>other</tt>. The comparison is string-based.
+Be aware that two different paths (<tt>foo.txt</tt> and <tt>./foo.txt</tt>)
+can refer to the same file.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001603&name====">===</a>
+  <a href="index.html?a=M001604&name=eql?">eql?</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001602_source')" id="l_M001602_source">show source</a> ]</p>
+  <div id="M001602_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 223</span>
+223:   <span class="ruby-keyword kw">def</span> <span class="ruby-operator">==</span>(<span class="ruby-identifier">other</span>)
+224:     <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">false</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">Pathname</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">other</span>
+225:     <span class="ruby-identifier">other</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-operator">==</span> <span class="ruby-ivar">@path</span>
+226:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001603" class="method">
+  <div id="M001603_title" class="title">
+    <b>===</b>(other)
+  </div>
+  <div class="description">
+  <p>
+Alias for #==
+</p>
+  </div>
+</div>
+<div id="M001607" class="method">
+  <div id="M001607_title" class="title">
+    <b>TO_PATH</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M001606&name=to_s">to_s</a>
+</p>
+  </div>
+</div>
+<div id="M001614" class="method">
+  <div id="M001614_title" class="title">
+    <b>absolute?</b>()
+  </div>
+  <div class="description">
+  <p>
+Predicate method for testing whether a path is absolute. It returns
+<tt>true</tt> if the pathname begins with a slash.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001614_source')" id="l_M001614_source">show source</a> ]</p>
+  <div id="M001614_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 489</span>
+489:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">absolute?</span>
+490:     <span class="ruby-operator">!</span><span class="ruby-identifier">relative?</span>
+491:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001618" class="method">
+  <div id="M001618_title" class="title">
+    <b>ascend</b>() {|self| ...}
+  </div>
+  <div class="description">
+  <p>
+Iterates over and yields a new <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> object for each
+element in the given path in ascending order.
+</p>
+<pre>
+ Pathname.new('/path/to/some/file.rb').ascend {|v| p v}
+    #&lt;Pathname:/path/to/some/file.rb&gt;
+    #&lt;Pathname:/path/to/some&gt;
+    #&lt;Pathname:/path/to&gt;
+    #&lt;Pathname:/path&gt;
+    #&lt;Pathname:/&gt;
+
+ Pathname.new('path/to/some/file.rb').ascend {|v| p v}
+    #&lt;Pathname:path/to/some/file.rb&gt;
+    #&lt;Pathname:path/to/some&gt;
+    #&lt;Pathname:path/to&gt;
+    #&lt;Pathname:path&gt;
+</pre>
+<p>
+It doesn&#8217;t access actual filesystem.
+</p>
+<p>
+This method is available since 1.8.5.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001618_source')" id="l_M001618_source">show source</a> ]</p>
+  <div id="M001618_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 561</span>
+561:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">ascend</span>
+562:     <span class="ruby-identifier">path</span> = <span class="ruby-ivar">@path</span>
+563:     <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>
+564:     <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">r</span> = <span class="ruby-identifier">chop_basename</span>(<span class="ruby-identifier">path</span>)
+565:       <span class="ruby-identifier">path</span>, <span class="ruby-identifier">name</span> = <span class="ruby-identifier">r</span>
+566:       <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">path</span>.<span class="ruby-identifier">empty?</span>
+567:       <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">del_trailing_separator</span>(<span class="ruby-identifier">path</span>))
+568:     <span class="ruby-keyword kw">end</span>
+569:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001628" class="method">
+  <div id="M001628_title" class="title">
+    <b>atime</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002455&name=File.atime">File.atime</a></tt>.
+Returns last access time.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001628_source')" id="l_M001628_source">show source</a> ]</p>
+  <div id="M001628_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 762</span>
+762:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">atime</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">atime</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001647" class="method">
+  <div id="M001647_title" class="title">
+    <b>basename</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002472&name=File.basename">File.basename</a></tt>.
+Returns the last component of the path.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001647_source')" id="l_M001647_source">show source</a> ]</p>
+  <div id="M001647_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 823</span>
+823:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">basename</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">basename</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001654" class="method">
+  <div id="M001654_title" class="title">
+    <b>blockdev?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.blockdev?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001654_source')" id="l_M001654_source">show source</a> ]</p>
+  <div id="M001654_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 857</span>
+857:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">blockdev?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">blockdev?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001655" class="method">
+  <div id="M001655_title" class="title">
+    <b>chardev?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.chardev?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001655_source')" id="l_M001655_source">show source</a> ]</p>
+  <div id="M001655_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 860</span>
+860:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chardev?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">chardev?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001680" class="method">
+  <div id="M001680_title" class="title">
+    <b>chdir</b>(&amp;block)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001680&name=Pathname#chdir">Pathname#chdir</a> is
+<b>obsoleted</b> at 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001680_source')" id="l_M001680_source">show source</a> ]</p>
+  <div id="M001680_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 945</span>
+945:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chdir</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+946:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Pathname#chdir is obsoleted.  Use Dir.chdir.&quot;</span>
+947:     <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">chdir</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+948:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001621" class="method">
+  <div id="M001621_title" class="title">
+    <b>children</b>(with_directory=true)
+  </div>
+  <div class="description">
+  <p>
+Returns the children of the directory (files and subdirectories, not
+recursive) as an array of <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> objects. By
+default, the returned pathnames will have enough information to access the
+files. If you set <tt>with_directory</tt> to <tt>false</tt>, then the
+returned pathnames will contain the filename only.
+</p>
+<p>
+For example:
+</p>
+<pre>
+  p = Pathname(&quot;/usr/lib/ruby/1.8&quot;)
+  p.children
+      # -&gt; [ Pathname:/usr/lib/ruby/1.8/English.rb,
+             Pathname:/usr/lib/ruby/1.8/Env.rb,
+             Pathname:/usr/lib/ruby/1.8/abbrev.rb, ... ]
+  p.children(false)
+      # -&gt; [ Pathname:English.rb, Pathname:Env.rb, Pathname:abbrev.rb, ... ]
+</pre>
+<p>
+Note that the result never contain the entries <tt>.</tt> and <tt>..</tt>
+in the directory because they are not children.
+</p>
+<p>
+This method has existed since 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001621_source')" id="l_M001621_source">show source</a> ]</p>
+  <div id="M001621_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 668</span>
+668:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">children</span>(<span class="ruby-identifier">with_directory</span>=<span class="ruby-keyword kw">true</span>)
+669:     <span class="ruby-identifier">with_directory</span> = <span class="ruby-keyword kw">false</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@path</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'.'</span>
+670:     <span class="ruby-identifier">result</span> = []
+671:     <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-ivar">@path</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span>
+672:       <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">e</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'.'</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">e</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'..'</span>
+673:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">with_directory</span>
+674:         <span class="ruby-identifier">result</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">join</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-identifier">e</span>))
+675:       <span class="ruby-keyword kw">else</span>
+676:         <span class="ruby-identifier">result</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">e</span>)
+677:       <span class="ruby-keyword kw">end</span>
+678:     }
+679:     <span class="ruby-identifier">result</span>
+680:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001631" class="method">
+  <div id="M001631_title" class="title">
+    <b>chmod</b>(mode)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002459&name=File.chmod">File.chmod</a></tt>.
+Changes permissions.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001631_source')" id="l_M001631_source">show source</a> ]</p>
+  <div id="M001631_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 771</span>
+771:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chmod</span>(<span class="ruby-identifier">mode</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">chmod</span>(<span class="ruby-identifier">mode</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001633" class="method">
+  <div id="M001633_title" class="title">
+    <b>chown</b>(owner, group)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002460&name=File.chown">File.chown</a></tt>.
+Change owner and group of file.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001633_source')" id="l_M001633_source">show source</a> ]</p>
+  <div id="M001633_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 777</span>
+777:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chown</span>(<span class="ruby-identifier">owner</span>, <span class="ruby-identifier">group</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">chown</span>(<span class="ruby-identifier">owner</span>, <span class="ruby-identifier">group</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001681" class="method">
+  <div id="M001681_title" class="title">
+    <b>chroot</b>()
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001681&name=Pathname#chroot">Pathname#chroot</a> is
+<b>obsoleted</b> at 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001681_source')" id="l_M001681_source">show source</a> ]</p>
+  <div id="M001681_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 951</span>
+951:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">chroot</span>
+952:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Pathname#chroot is obsoleted.  Use Dir.chroot.&quot;</span>
+953:     <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">chroot</span>(<span class="ruby-ivar">@path</span>)
+954:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001609" class="method">
+  <div id="M001609_title" class="title">
+    <b>cleanpath</b>(consider_symlink=false)
+  </div>
+  <div class="description">
+  <p>
+Returns clean pathname of <tt>self</tt> with consecutive slashes and
+useless dots removed. The filesystem is not accessed.
+</p>
+<p>
+If <tt>consider_symlink</tt> is <tt>true</tt>, then a more conservative
+algorithm is used to avoid breaking symbolic linkages. This may retain more
+<tt>..</tt> entries than absolutely necessary, but without accessing the
+filesystem, this can&#8217;t be avoided. See <a
+href="index.html?a=M001610&name=realpath">realpath</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001609_source')" id="l_M001609_source">show source</a> ]</p>
+  <div id="M001609_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 306</span>
+306:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">cleanpath</span>(<span class="ruby-identifier">consider_symlink</span>=<span class="ruby-keyword kw">false</span>)
+307:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">consider_symlink</span>
+308:       <span class="ruby-identifier">cleanpath_conservative</span>
+309:     <span class="ruby-keyword kw">else</span>
+310:       <span class="ruby-identifier">cleanpath_aggressive</span>
+311:     <span class="ruby-keyword kw">end</span>
+312:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001629" class="method">
+  <div id="M001629_title" class="title">
+    <b>ctime</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002457&name=File.ctime">File.ctime</a></tt>.
+Returns last (directory entry, not file) change time.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001629_source')" id="l_M001629_source">show source</a> ]</p>
+  <div id="M001629_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 765</span>
+765:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">ctime</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">ctime</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001692" class="method">
+  <div id="M001692_title" class="title">
+    <b>delete</b>()
+  </div>
+  <div class="description">
+  <p>
+Alias for <a href="index.html?a=M001691&name=unlink">unlink</a>
+</p>
+  </div>
+</div>
+<div id="M001617" class="method">
+  <div id="M001617_title" class="title">
+    <b>descend</b>() {|v| ...}
+  </div>
+  <div class="description">
+  <p>
+Iterates over and yields a new <a
+href="index.html?a=C00000205&name=Pathname">Pathname</a> object for each
+element in the given path in descending order.
+</p>
+<pre>
+ Pathname.new('/path/to/some/file.rb').descend {|v| p v}
+    #&lt;Pathname:/&gt;
+    #&lt;Pathname:/path&gt;
+    #&lt;Pathname:/path/to&gt;
+    #&lt;Pathname:/path/to/some&gt;
+    #&lt;Pathname:/path/to/some/file.rb&gt;
+
+ Pathname.new('path/to/some/file.rb').descend {|v| p v}
+    #&lt;Pathname:path&gt;
+    #&lt;Pathname:path/to&gt;
+    #&lt;Pathname:path/to/some&gt;
+    #&lt;Pathname:path/to/some/file.rb&gt;
+</pre>
+<p>
+It doesn&#8217;t access actual filesystem.
+</p>
+<p>
+This method is available since 1.8.5.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001617_source')" id="l_M001617_source">show source</a> ]</p>
+  <div id="M001617_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 534</span>
+534:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">descend</span>
+535:     <span class="ruby-identifier">vs</span> = []
+536:     <span class="ruby-identifier">ascend</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-identifier">vs</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">v</span> }
+537:     <span class="ruby-identifier">vs</span>.<span class="ruby-identifier">reverse_each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">v</span> }
+538:     <span class="ruby-keyword kw">nil</span>
+539:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001684" class="method">
+  <div id="M001684_title" class="title">
+    <b>dir_foreach</b>(*args, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+<a
+href="index.html?a=M001684&name=Pathname#dir_foreach">Pathname#dir_foreach</a>
+is <b>obsoleted</b> at 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001684_source')" id="l_M001684_source">show source</a> ]</p>
+  <div id="M001684_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 969</span>
+969:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">dir_foreach</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+970:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Pathname#dir_foreach is obsoleted.  Use Pathname#each_entry.&quot;</span>
+971:     <span class="ruby-identifier">each_entry</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+972:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001660" class="method">
+  <div id="M001660_title" class="title">
+    <b>directory?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.directory?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001660_source')" id="l_M001660_source">show source</a> ]</p>
+  <div id="M001660_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 875</span>
+875:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">directory?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">directory?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001648" class="method">
+  <div id="M001648_title" class="title">
+    <b>dirname</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002473&name=File.dirname">File.dirname</a></tt>.
+Returns all but the last component of the path.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001648_source')" id="l_M001648_source">show source</a> ]</p>
+  <div id="M001648_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 826</span>
+826:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">dirname</span>() <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">dirname</span>(<span class="ruby-ivar">@path</span>)) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001683" class="method">
+  <div id="M001683_title" class="title">
+    <b>each_entry</b>() {|p| ...}
+  </div>
+  <div class="description">
+  <p>
+Iterates over the entries (files and subdirectories) in the directory. It
+yields a <a href="index.html?a=C00000205&name=Pathname">Pathname</a> object
+for each entry.
+</p>
+<p>
+This method has existed since 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001683_source')" id="l_M001683_source">show source</a> ]</p>
+  <div id="M001683_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 964</span>
+964:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">each_entry</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>) <span class="ruby-comment cmt"># :yield: p</span>
+965:     <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-ivar">@path</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) }
+966:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001616" class="method">
+  <div id="M001616_title" class="title">
+    <b>each_filename</b>( {|filename| ...}
+  </div>
+  <div class="description">
+  <p>
+Iterates over each component of the path.
+</p>
+<pre>
+  Pathname.new(&quot;/usr/bin/ruby&quot;).each_filename {|filename| ... }
+    # yields &quot;usr&quot;, &quot;bin&quot;, and &quot;ruby&quot;.
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001616_source')" id="l_M001616_source">show source</a> ]</p>
+  <div id="M001616_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 508</span>
+508:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">each_filename</span> <span class="ruby-comment cmt"># :yield: filename</span>
+509:     <span class="ruby-identifier">prefix</span>, <span class="ruby-identifier">names</span> = <span class="ruby-identifier">split_names</span>(<span class="ruby-ivar">@path</span>)
+510:     <span class="ruby-identifier">names</span>.<span class="ruby-identifier">each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">filename</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">filename</span> }
+511:     <span class="ruby-keyword kw">nil</span>
+512:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001623" class="method">
+  <div id="M001623_title" class="title">
+    <b>each_line</b>(*args) {|line| ...}
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001623&name=each_line">each_line</a> iterates over
+the line in the file. It yields a <a
+href="index.html?a=C00000055&name=String">String</a> object for each line.
+</p>
+<p>
+This method has existed since 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001623_source')" id="l_M001623_source">show source</a> ]</p>
+  <div id="M001623_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 737</span>
+737:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">each_line</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>) <span class="ruby-comment cmt"># :yield: line</span>
+738:     <span class="ruby-constant">IO</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+739:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001682" class="method">
+  <div id="M001682_title" class="title">
+    <b>entries</b>()
+  </div>
+  <div class="description">
+  <p>
+Return the entries (files and subdirectories) in the directory, each as a
+<a href="index.html?a=C00000205&name=Pathname">Pathname</a> object.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001682_source')" id="l_M001682_source">show source</a> ]</p>
+  <div id="M001682_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 958</span>
+958:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">entries</span>() <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">entries</span>(<span class="ruby-ivar">@path</span>).<span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) } <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001604" class="method">
+  <div id="M001604_title" class="title">
+    <b>eql?</b>(other)
+  </div>
+  <div class="description">
+  <p>
+Alias for #==
+</p>
+  </div>
+</div>
+<div id="M001656" class="method">
+  <div id="M001656_title" class="title">
+    <b>executable?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.executable?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001656_source')" id="l_M001656_source">show source</a> ]</p>
+  <div id="M001656_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 863</span>
+863:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">executable?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">executable?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001657" class="method">
+  <div id="M001657_title" class="title">
+    <b>executable_real?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.executable_real?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001657_source')" id="l_M001657_source">show source</a> ]</p>
+  <div id="M001657_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 866</span>
+866:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">executable_real?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">executable_real?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001658" class="method">
+  <div id="M001658_title" class="title">
+    <b>exist?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.exist?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001658_source')" id="l_M001658_source">show source</a> ]</p>
+  <div id="M001658_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 869</span>
+869:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">exist?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">exist?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001650" class="method">
+  <div id="M001650_title" class="title">
+    <b>expand_path</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002471&name=File.expand_path">File.expand_path</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001650_source')" id="l_M001650_source">show source</a> ]</p>
+  <div id="M001650_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 832</span>
+832:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">expand_path</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">expand_path</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001649" class="method">
+  <div id="M001649_title" class="title">
+    <b>extname</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002474&name=File.extname">File.extname</a></tt>.
+Returns the file&#8217;s extension.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001649_source')" id="l_M001649_source">show source</a> ]</p>
+  <div id="M001649_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 829</span>
+829:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">extname</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">extname</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001661" class="method">
+  <div id="M001661_title" class="title">
+    <b>file?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.file?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001661_source')" id="l_M001661_source">show source</a> ]</p>
+  <div id="M001661_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 878</span>
+878:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">file?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">file?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001688" class="method">
+  <div id="M001688_title" class="title">
+    <b>find</b>() {|p| ...}
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001688&name=Pathname#find">Pathname#find</a> is an
+iterator to traverse a directory tree in a depth first manner. It yields a
+<a href="index.html?a=C00000205&name=Pathname">Pathname</a> for each file
+under &quot;this&quot; directory.
+</p>
+<p>
+Since it is implemented by <tt>find.rb</tt>, <tt><a
+href="index.html?a=M007966&name=Find.prune">Find.prune</a></tt> can be used
+to control the traverse.
+</p>
+<p>
+If <tt>self</tt> is <tt>.</tt>, yielded pathnames begin with a filename in
+the current directory, not <tt>./</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001688_source')" id="l_M001688_source">show source</a> ]</p>
+  <div id="M001688_source" class="dyn-source">
+<pre>
+      <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 998</span>
+ 998:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">find</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>) <span class="ruby-comment cmt"># :yield: p</span>
+ 999:     <span class="ruby-identifier">require</span> <span class="ruby-value str">'find'</span>
+1000:     <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@path</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'.'</span>
+1001:       <span class="ruby-constant">Find</span>.<span class="ruby-identifier">find</span>(<span class="ruby-ivar">@path</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>.<span class="ruby-identifier">sub</span>(<span class="ruby-regexp re">%r{\A\./}</span>, <span class="ruby-value str">''</span>)) }
+1002:     <span class="ruby-keyword kw">else</span>
+1003:       <span class="ruby-constant">Find</span>.<span class="ruby-identifier">find</span>(<span class="ruby-ivar">@path</span>) {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) }
+1004:     <span class="ruby-keyword kw">end</span>
+1005:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001635" class="method">
+  <div id="M001635_title" class="title">
+    <b>fnmatch</b>(pattern, *args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002450&name=File.fnmatch">File.fnmatch</a></tt>. Return
+<tt>true</tt> if the receiver matches the given pattern.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001635_source')" id="l_M001635_source">show source</a> ]</p>
+  <div id="M001635_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 784</span>
+784:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">fnmatch</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">fnmatch</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001636" class="method">
+  <div id="M001636_title" class="title">
+    <b>fnmatch?</b>(pattern, *args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002450&name=File.fnmatch">File.fnmatch</a>?</tt> (same
+as <a href="index.html?a=M001635&name=fnmatch">fnmatch</a>).
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001636_source')" id="l_M001636_source">show source</a> ]</p>
+  <div id="M001636_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 787</span>
+787:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">fnmatch?</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">fnmatch?</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001693" class="method">
+  <div id="M001693_title" class="title">
+    <b>foreach</b>(*args, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+This method is <b>obsoleted</b> at 1.8.1. Use <a
+href="index.html?a=M001623&name=each_line">each_line</a> or <a
+href="index.html?a=M001683&name=each_entry">each_entry</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001693_source')" id="l_M001693_source">show source</a> ]</p>
+  <div id="M001693_source" class="dyn-source">
+<pre>
+      <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 1042</span>
+1042:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">foreach</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+1043:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Pathname#foreach is obsoleted.  Use each_line or each_entry.&quot;</span>
+1044:     <span class="ruby-keyword kw">if</span> <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">directory?</span> <span class="ruby-ivar">@path</span>
+1045:       <span class="ruby-comment cmt"># For polymorphism between Dir.foreach and IO.foreach,</span>
+1046:       <span class="ruby-comment cmt"># Pathname#foreach doesn't yield Pathname object.</span>
+1047:       <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+1048:     <span class="ruby-keyword kw">else</span>
+1049:       <span class="ruby-constant">IO</span>.<span class="ruby-identifier">foreach</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+1050:     <span class="ruby-keyword kw">end</span>
+1051:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001624" class="method">
+  <div id="M001624_title" class="title">
+    <b>foreachline</b>(*args, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+<a
+href="index.html?a=M001624&name=Pathname#foreachline">Pathname#foreachline</a>
+is <b>obsoleted</b> at 1.8.1. Use <a
+href="index.html?a=M001623&name=each_line">each_line</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001624_source')" id="l_M001624_source">show source</a> ]</p>
+  <div id="M001624_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 742</span>
+742:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">foreachline</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+743:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;Pathname#foreachline is obsoleted.  Use Pathname#each_line.&quot;</span>
+744:     <span class="ruby-identifier">each_line</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+745:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001599" class="method">
+  <div id="M001599_title" class="title">
+    <b>freeze</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001599_source')" id="l_M001599_source">show source</a> ]</p>
+  <div id="M001599_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 214</span>
+214:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">freeze</span>() <span class="ruby-keyword kw">super</span>; <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">freeze</span>; <span class="ruby-keyword kw">self</span> <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001637" class="method">
+  <div id="M001637_title" class="title">
+    <b>ftype</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002454&name=File.ftype">File.ftype</a></tt>.
+Returns &quot;type&quot; of file (&quot;file&quot;, &quot;directory&quot;,
+etc).
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001637_source')" id="l_M001637_source">show source</a> ]</p>
+  <div id="M001637_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 791</span>
+791:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">ftype</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">ftype</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001659" class="method">
+  <div id="M001659_title" class="title">
+    <b>grpowned?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.grpowned?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001659_source')" id="l_M001659_source">show source</a> ]</p>
+  <div id="M001659_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 872</span>
+872:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">grpowned?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">grpowned?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001620" class="method">
+  <div id="M001620_title" class="title">
+    <b>join</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001620&name=Pathname#join">Pathname#join</a> joins
+pathnames.
+</p>
+<p>
+<tt>path0.join(path1, &#8230;, pathN)</tt> is the same as <tt>path0 + path1
++ &#8230; + pathN</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001620_source')" id="l_M001620_source">show source</a> ]</p>
+  <div id="M001620_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 634</span>
+634:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">join</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+635:     <span class="ruby-identifier">args</span>.<span class="ruby-identifier">unshift</span> <span class="ruby-keyword kw">self</span>
+636:     <span class="ruby-identifier">result</span> = <span class="ruby-identifier">args</span>.<span class="ruby-identifier">pop</span>
+637:     <span class="ruby-identifier">result</span> = <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">result</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">Pathname</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">result</span>
+638:     <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">result</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">result</span>.<span class="ruby-identifier">absolute?</span>
+639:     <span class="ruby-identifier">args</span>.<span class="ruby-identifier">reverse_each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">arg</span><span class="ruby-operator">|</span>
+640:       <span class="ruby-identifier">arg</span> = <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">arg</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">Pathname</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">arg</span>
+641:       <span class="ruby-identifier">result</span> = <span class="ruby-identifier">arg</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">result</span>
+642:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">result</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">result</span>.<span class="ruby-identifier">absolute?</span>
+643:     }
+644:     <span class="ruby-identifier">result</span>
+645:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001632" class="method">
+  <div id="M001632_title" class="title">
+    <b>lchmod</b>(mode)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002461&name=File.lchmod">File.lchmod</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001632_source')" id="l_M001632_source">show source</a> ]</p>
+  <div id="M001632_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 774</span>
+774:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">lchmod</span>(<span class="ruby-identifier">mode</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">lchmod</span>(<span class="ruby-identifier">mode</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001634" class="method">
+  <div id="M001634_title" class="title">
+    <b>lchown</b>(owner, group)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002462&name=File.lchown">File.lchown</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001634_source')" id="l_M001634_source">show source</a> ]</p>
+  <div id="M001634_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 780</span>
+780:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">lchown</span>(<span class="ruby-identifier">owner</span>, <span class="ruby-identifier">group</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">lchown</span>(<span class="ruby-identifier">owner</span>, <span class="ruby-identifier">group</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001652" class="method">
+  <div id="M001652_title" class="title">
+    <b>link</b>(old)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001652&name=Pathname#link">Pathname#link</a> is
+confusing and <b>obsoleted</b> because the receiver/argument order is
+inverted to corresponding system call.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001652_source')" id="l_M001652_source">show source</a> ]</p>
+  <div id="M001652_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 840</span>
+840:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">link</span>(<span class="ruby-identifier">old</span>)
+841:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">'Pathname#link is obsoleted.  Use Pathname#make_link.'</span>
+842:     <span class="ruby-constant">File</span>.<span class="ruby-identifier">link</span>(<span class="ruby-identifier">old</span>, <span class="ruby-ivar">@path</span>)
+843:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001643" class="method">
+  <div id="M001643_title" class="title">
+    <b>lstat</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002453&name=File.lstat">File.lstat</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001643_source')" id="l_M001643_source">show source</a> ]</p>
+  <div id="M001643_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 811</span>
+811:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">lstat</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">lstat</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001638" class="method">
+  <div id="M001638_title" class="title">
+    <b>make_link</b>(old)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002463&name=File.link">File.link</a></tt>.
+Creates a hard link.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001638_source')" id="l_M001638_source">show source</a> ]</p>
+  <div id="M001638_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 794</span>
+794:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">make_link</span>(<span class="ruby-identifier">old</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">link</span>(<span class="ruby-identifier">old</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001644" class="method">
+  <div id="M001644_title" class="title">
+    <b>make_symlink</b>(old)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002464&name=File.symlink">File.symlink</a></tt>.
+Creates a symbolic link.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001644_source')" id="l_M001644_source">show source</a> ]</p>
+  <div id="M001644_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 814</span>
+814:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">make_symlink</span>(<span class="ruby-identifier">old</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">symlink</span>(<span class="ruby-identifier">old</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001685" class="method">
+  <div id="M001685_title" class="title">
+    <b>mkdir</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002243&name=Dir.mkdir">Dir.mkdir</a></tt>.
+Create the referenced directory.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001685_source')" id="l_M001685_source">show source</a> ]</p>
+  <div id="M001685_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 975</span>
+975:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mkdir</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">mkdir</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001689" class="method">
+  <div id="M001689_title" class="title">
+    <b>mkpath</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M004569&name=FileUtils.mkpath">FileUtils.mkpath</a></tt>.
+Creates a full path, including any intermediate directories that
+don&#8217;t yet exist.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001689_source')" id="l_M001689_source">show source</a> ]</p>
+  <div id="M001689_source" class="dyn-source">
+<pre>
+      <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 1012</span>
+1012:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mkpath</span>
+1013:     <span class="ruby-identifier">require</span> <span class="ruby-value str">'fileutils'</span>
+1014:     <span class="ruby-constant">FileUtils</span>.<span class="ruby-identifier">mkpath</span>(<span class="ruby-ivar">@path</span>)
+1015:     <span class="ruby-keyword kw">nil</span>
+1016:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001612" class="method">
+  <div id="M001612_title" class="title">
+    <b>mountpoint?</b>()
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001612&name=mountpoint?">mountpoint?</a> returns
+<tt>true</tt> if <tt>self</tt> points to a mountpoint.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001612_source')" id="l_M001612_source">show source</a> ]</p>
+  <div id="M001612_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 465</span>
+465:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mountpoint?</span>
+466:     <span class="ruby-keyword kw">begin</span>
+467:       <span class="ruby-identifier">stat1</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">lstat</span>
+468:       <span class="ruby-identifier">stat2</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">parent</span>.<span class="ruby-identifier">lstat</span>
+469:       <span class="ruby-identifier">stat1</span>.<span class="ruby-identifier">dev</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">stat2</span>.<span class="ruby-identifier">dev</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">stat1</span>.<span class="ruby-identifier">ino</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">stat2</span>.<span class="ruby-identifier">ino</span> <span class="ruby-operator">||</span>
+470:         <span class="ruby-identifier">stat1</span>.<span class="ruby-identifier">dev</span> <span class="ruby-operator">!=</span> <span class="ruby-identifier">stat2</span>.<span class="ruby-identifier">dev</span>
+471:     <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Errno</span><span class="ruby-operator">::</span><span class="ruby-constant">ENOENT</span>
+472:       <span class="ruby-keyword kw">false</span>
+473:     <span class="ruby-keyword kw">end</span>
+474:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001630" class="method">
+  <div id="M001630_title" class="title">
+    <b>mtime</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002456&name=File.mtime">File.mtime</a></tt>.
+Returns last modification time.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001630_source')" id="l_M001630_source">show source</a> ]</p>
+  <div id="M001630_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 768</span>
+768:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mtime</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">mtime</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001639" class="method">
+  <div id="M001639_title" class="title">
+    <b>open</b>(*args) {|file| ...}
+  </div>
+  <div class="description">
+  <p>
+See <tt>File.open</tt>. Opens the file for reading or writing.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001639_source')" id="l_M001639_source">show source</a> ]</p>
+  <div id="M001639_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 797</span>
+797:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">open</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>) <span class="ruby-comment cmt"># :yield: file</span>
+798:     <span class="ruby-constant">File</span>.<span class="ruby-identifier">open</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+799:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001687" class="method">
+  <div id="M001687_title" class="title">
+    <b>opendir</b>() {|dir| ...}
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002225&name=Dir.open">Dir.open</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001687_source')" id="l_M001687_source">show source</a> ]</p>
+  <div id="M001687_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 981</span>
+981:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">opendir</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>) <span class="ruby-comment cmt"># :yield: dir</span>
+982:     <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">open</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+983:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001664" class="method">
+  <div id="M001664_title" class="title">
+    <b>owned?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.owned?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001664_source')" id="l_M001664_source">show source</a> ]</p>
+  <div id="M001664_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 887</span>
+887:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">owned?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">owned?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001611" class="method">
+  <div id="M001611_title" class="title">
+    <b>parent</b>()
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001611&name=parent">parent</a> returns the parent
+directory.
+</p>
+<p>
+This is same as <tt>self + &#8217;..&#8217;</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001611_source')" id="l_M001611_source">show source</a> ]</p>
+  <div id="M001611_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 460</span>
+460:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parent</span>
+461:     <span class="ruby-keyword kw">self</span> <span class="ruby-operator">+</span> <span class="ruby-value str">'..'</span>
+462:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001662" class="method">
+  <div id="M001662_title" class="title">
+    <b>pipe?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.pipe?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001662_source')" id="l_M001662_source">show source</a> ]</p>
+  <div id="M001662_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 881</span>
+881:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">pipe?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">pipe?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001625" class="method">
+  <div id="M001625_title" class="title">
+    <b>read</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002163&name=IO.read">IO.read</a></tt>.
+Returns all the bytes from the file, or the first <tt>N</tt> if specified.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001625_source')" id="l_M001625_source">show source</a> ]</p>
+  <div id="M001625_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 749</span>
+749:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">read</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">IO</span>.<span class="ruby-identifier">read</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001665" class="method">
+  <div id="M001665_title" class="title">
+    <b>readable?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.readable?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001665_source')" id="l_M001665_source">show source</a> ]</p>
+  <div id="M001665_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 890</span>
+890:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">readable?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">readable?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001667" class="method">
+  <div id="M001667_title" class="title">
+    <b>readable_real?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.readable_real?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001667_source')" id="l_M001667_source">show source</a> ]</p>
+  <div id="M001667_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 896</span>
+896:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">readable_real?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">readable_real?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001626" class="method">
+  <div id="M001626_title" class="title">
+    <b>readlines</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002162&name=IO.readlines">IO.readlines</a></tt>.
+Returns all the lines from the file.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001626_source')" id="l_M001626_source">show source</a> ]</p>
+  <div id="M001626_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 752</span>
+752:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">readlines</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">IO</span>.<span class="ruby-identifier">readlines</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001640" class="method">
+  <div id="M001640_title" class="title">
+    <b>readlink</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002465&name=File.readlink">File.readlink</a></tt>. Read
+symbolic link.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001640_source')" id="l_M001640_source">show source</a> ]</p>
+  <div id="M001640_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 802</span>
+802:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">readlink</span>() <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">readlink</span>(<span class="ruby-ivar">@path</span>)) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001610" class="method">
+  <div id="M001610_title" class="title">
+    <b>realpath</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns a real (absolute) pathname of <tt>self</tt> in the actual
+filesystem. The real pathname doesn&#8217;t contain symlinks or useless
+dots.
+</p>
+<p>
+No arguments should be given; the old behaviour is <b>obsoleted</b>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001610_source')" id="l_M001610_source">show source</a> ]</p>
+  <div id="M001610_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 446</span>
+446:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">realpath</span>
+447:     <span class="ruby-identifier">path</span> = <span class="ruby-ivar">@path</span>
+448:     <span class="ruby-identifier">prefix</span>, <span class="ruby-identifier">names</span> = <span class="ruby-identifier">split_names</span>(<span class="ruby-identifier">path</span>)
+449:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">prefix</span> <span class="ruby-operator">==</span> <span class="ruby-value str">''</span>
+450:       <span class="ruby-identifier">prefix</span>, <span class="ruby-identifier">names2</span> = <span class="ruby-identifier">split_names</span>(<span class="ruby-constant">Dir</span>.<span class="ruby-identifier">pwd</span>)
+451:       <span class="ruby-identifier">names</span> = <span class="ruby-identifier">names2</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">names</span>
+452:     <span class="ruby-keyword kw">end</span>
+453:     <span class="ruby-identifier">prefix</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">names</span> = <span class="ruby-identifier">realpath_rec</span>(<span class="ruby-identifier">prefix</span>, <span class="ruby-identifier">names</span>, {})
+454:     <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">prepend_prefix</span>(<span class="ruby-identifier">prefix</span>, <span class="ruby-constant">File</span>.<span class="ruby-identifier">join</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">names</span>)))
+455:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001615" class="method">
+  <div id="M001615_title" class="title">
+    <b>relative?</b>()
+  </div>
+  <div class="description">
+  <p>
+The opposite of <a href="index.html?a=M001614&name=absolute?">absolute?</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001615_source')" id="l_M001615_source">show source</a> ]</p>
+  <div id="M001615_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 494</span>
+494:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">relative?</span>
+495:     <span class="ruby-identifier">path</span> = <span class="ruby-ivar">@path</span>
+496:     <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">r</span> = <span class="ruby-identifier">chop_basename</span>(<span class="ruby-identifier">path</span>)
+497:       <span class="ruby-identifier">path</span>, <span class="ruby-identifier">basename</span> = <span class="ruby-identifier">r</span>
+498:     <span class="ruby-keyword kw">end</span>
+499:     <span class="ruby-identifier">path</span> <span class="ruby-operator">==</span> <span class="ruby-value str">''</span>
+500:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001622" class="method">
+  <div id="M001622_title" class="title">
+    <b>relative_path_from</b>(base_directory)
+  </div>
+  <div class="description">
+  <p>
+<a
+href="index.html?a=M001622&name=relative_path_from">relative_path_from</a>
+returns a relative path from the argument to the receiver. If <tt>self</tt>
+is absolute, the argument must be absolute too. If <tt>self</tt> is
+relative, the argument must be relative too.
+</p>
+<p>
+<a
+href="index.html?a=M001622&name=relative_path_from">relative_path_from</a>
+doesn&#8217;t access the filesystem. It assumes no symlinks.
+</p>
+<p>
+<a href="index.html?a=C00000316&name=ArgumentError">ArgumentError</a> is
+raised when it cannot find a relative path.
+</p>
+<p>
+This method has existed since 1.8.1.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001622_source')" id="l_M001622_source">show source</a> ]</p>
+  <div id="M001622_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 693</span>
+693:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">relative_path_from</span>(<span class="ruby-identifier">base_directory</span>)
+694:     <span class="ruby-identifier">dest_directory</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">cleanpath</span>.<span class="ruby-identifier">to_s</span>
+695:     <span class="ruby-identifier">base_directory</span> = <span class="ruby-identifier">base_directory</span>.<span class="ruby-identifier">cleanpath</span>.<span class="ruby-identifier">to_s</span>
+696:     <span class="ruby-identifier">dest_prefix</span> = <span class="ruby-identifier">dest_directory</span>
+697:     <span class="ruby-identifier">dest_names</span> = []
+698:     <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">r</span> = <span class="ruby-identifier">chop_basename</span>(<span class="ruby-identifier">dest_prefix</span>)
+699:       <span class="ruby-identifier">dest_prefix</span>, <span class="ruby-identifier">basename</span> = <span class="ruby-identifier">r</span>
+700:       <span class="ruby-identifier">dest_names</span>.<span class="ruby-identifier">unshift</span> <span class="ruby-identifier">basename</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">basename</span> <span class="ruby-operator">!=</span> <span class="ruby-value str">'.'</span>
+701:     <span class="ruby-keyword kw">end</span>
+702:     <span class="ruby-identifier">base_prefix</span> = <span class="ruby-identifier">base_directory</span>
+703:     <span class="ruby-identifier">base_names</span> = []
+704:     <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">r</span> = <span class="ruby-identifier">chop_basename</span>(<span class="ruby-identifier">base_prefix</span>)
+705:       <span class="ruby-identifier">base_prefix</span>, <span class="ruby-identifier">basename</span> = <span class="ruby-identifier">r</span>
+706:       <span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">unshift</span> <span class="ruby-identifier">basename</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">basename</span> <span class="ruby-operator">!=</span> <span class="ruby-value str">'.'</span>
+707:     <span class="ruby-keyword kw">end</span>
+708:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">dest_prefix</span> <span class="ruby-operator">!=</span> <span class="ruby-identifier">base_prefix</span>
+709:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">ArgumentError</span>, <span class="ruby-node">&quot;different prefix: #{dest_prefix.inspect} and #{base_directory.inspect}&quot;</span>
+710:     <span class="ruby-keyword kw">end</span>
+711:     <span class="ruby-keyword kw">while</span> <span class="ruby-operator">!</span><span class="ruby-identifier">dest_names</span>.<span class="ruby-identifier">empty?</span> <span class="ruby-operator">&amp;&amp;</span>
+712:           <span class="ruby-operator">!</span><span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">empty?</span> <span class="ruby-operator">&amp;&amp;</span>
+713:           <span class="ruby-identifier">dest_names</span>.<span class="ruby-identifier">first</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">first</span>
+714:       <span class="ruby-identifier">dest_names</span>.<span class="ruby-identifier">shift</span>
+715:       <span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">shift</span>
+716:     <span class="ruby-keyword kw">end</span>
+717:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">include?</span> <span class="ruby-value str">'..'</span>
+718:       <span class="ruby-identifier">raise</span> <span class="ruby-constant">ArgumentError</span>, <span class="ruby-node">&quot;base_directory has ..: #{base_directory.inspect}&quot;</span>
+719:     <span class="ruby-keyword kw">end</span>
+720:     <span class="ruby-identifier">base_names</span>.<span class="ruby-identifier">fill</span>(<span class="ruby-value str">'..'</span>)
+721:     <span class="ruby-identifier">relpath_names</span> = <span class="ruby-identifier">base_names</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">dest_names</span>
+722:     <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">relpath_names</span>.<span class="ruby-identifier">empty?</span>
+723:       <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'.'</span>)
+724:     <span class="ruby-keyword kw">else</span>
+725:       <span class="ruby-constant">Pathname</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">join</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">relpath_names</span>))
+726:     <span class="ruby-keyword kw">end</span>
+727:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001641" class="method">
+  <div id="M001641_title" class="title">
+    <b>rename</b>(to)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002468&name=File.rename">File.rename</a></tt>. Rename
+the file.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001641_source')" id="l_M001641_source">show source</a> ]</p>
+  <div id="M001641_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 805</span>
+805:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rename</span>(<span class="ruby-identifier">to</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">rename</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-identifier">to</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001686" class="method">
+  <div id="M001686_title" class="title">
+    <b>rmdir</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002244&name=Dir.rmdir">Dir.rmdir</a></tt>.
+Remove the referenced directory.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001686_source')" id="l_M001686_source">show source</a> ]</p>
+  <div id="M001686_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 978</span>
+978:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rmdir</span>() <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">rmdir</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001690" class="method">
+  <div id="M001690_title" class="title">
+    <b>rmtree</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M004589&name=FileUtils.rm_r">FileUtils.rm_r</a></tt>.
+Deletes a directory and all beneath it.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001690_source')" id="l_M001690_source">show source</a> ]</p>
+  <div id="M001690_source" class="dyn-source">
+<pre>
+      <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 1019</span>
+1019:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rmtree</span>
+1020:     <span class="ruby-comment cmt"># The name &quot;rmtree&quot; is borrowed from File::Path of Perl.</span>
+1021:     <span class="ruby-comment cmt"># File::Path provides &quot;mkpath&quot; and &quot;rmtree&quot;.</span>
+1022:     <span class="ruby-identifier">require</span> <span class="ruby-value str">'fileutils'</span>
+1023:     <span class="ruby-constant">FileUtils</span>.<span class="ruby-identifier">rm_r</span>(<span class="ruby-ivar">@path</span>)
+1024:     <span class="ruby-keyword kw">nil</span>
+1025:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001613" class="method">
+  <div id="M001613_title" class="title">
+    <b>root?</b>()
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001613&name=root?">root?</a> is a predicate for root
+directories. I.e. it returns <tt>true</tt> if the pathname consists of
+consecutive slashes.
+</p>
+<p>
+It doesn&#8217;t access actual filesystem. So it may return <tt>false</tt>
+for some pathnames which points to roots such as <tt>/usr/..</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001613_source')" id="l_M001613_source">show source</a> ]</p>
+  <div id="M001613_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 483</span>
+483:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">root?</span>
+484:     <span class="ruby-operator">!</span><span class="ruby-operator">!</span>(<span class="ruby-identifier">chop_basename</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-operator">==</span> <span class="ruby-keyword kw">nil</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-node">/#{SEPARATOR_PAT}/o</span> <span class="ruby-operator">=~</span> <span class="ruby-ivar">@path</span>)
+485:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001669" class="method">
+  <div id="M001669_title" class="title">
+    <b>setgid?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.setgid?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001669_source')" id="l_M001669_source">show source</a> ]</p>
+  <div id="M001669_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 902</span>
+902:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setgid?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">setgid?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001668" class="method">
+  <div id="M001668_title" class="title">
+    <b>setuid?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.setuid?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001668_source')" id="l_M001668_source">show source</a> ]</p>
+  <div id="M001668_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 899</span>
+899:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setuid?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">setuid?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001670" class="method">
+  <div id="M001670_title" class="title">
+    <b>size</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M007930&name=FileTest.size">FileTest.size</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001670_source')" id="l_M001670_source">show source</a> ]</p>
+  <div id="M001670_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 905</span>
+905:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">size</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">size</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001671" class="method">
+  <div id="M001671_title" class="title">
+    <b>size?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M007930&name=FileTest.size">FileTest.size</a>?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001671_source')" id="l_M001671_source">show source</a> ]</p>
+  <div id="M001671_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 908</span>
+908:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">size?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">size?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001663" class="method">
+  <div id="M001663_title" class="title">
+    <b>socket?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.socket?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001663_source')" id="l_M001663_source">show source</a> ]</p>
+  <div id="M001663_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 884</span>
+884:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">socket?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">socket?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001651" class="method">
+  <div id="M001651_title" class="title">
+    <b>split</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002475&name=File.split">File.split</a></tt>.
+Returns the <a href="index.html?a=M001648&name=dirname">dirname</a> and the
+<a href="index.html?a=M001647&name=basename">basename</a> in an <a
+href="index.html?a=C00000243&name=Array">Array</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001651_source')" id="l_M001651_source">show source</a> ]</p>
+  <div id="M001651_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 836</span>
+836:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">split</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">split</span>(<span class="ruby-ivar">@path</span>).<span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">f</span>) } <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001642" class="method">
+  <div id="M001642_title" class="title">
+    <b>stat</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002452&name=File.stat">File.stat</a></tt>.
+Returns a <tt><a
+href="index.html?a=C00000278&name=File::Stat">File::Stat</a></tt> object.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001642_source')" id="l_M001642_source">show source</a> ]</p>
+  <div id="M001642_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 808</span>
+808:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stat</span>() <span class="ruby-constant">File</span>.<span class="ruby-identifier">stat</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001672" class="method">
+  <div id="M001672_title" class="title">
+    <b>sticky?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.sticky?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001672_source')" id="l_M001672_source">show source</a> ]</p>
+  <div id="M001672_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 911</span>
+911:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sticky?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">sticky?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001608" class="method">
+  <div id="M001608_title" class="title">
+    <b>sub</b>(pattern, *rest, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+Return a pathname which is substituted by <a
+href="index.html?a=M000803&name=String#sub">String#sub</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001608_source')" id="l_M001608_source">show source</a> ]</p>
+  <div id="M001608_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 253</span>
+253:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sub</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">rest</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+254:     <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@path</span>.<span class="ruby-identifier">sub</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">rest</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>))
+255:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001653" class="method">
+  <div id="M001653_title" class="title">
+    <b>symlink</b>(old)
+  </div>
+  <div class="description">
+  <p>
+<a href="index.html?a=M001653&name=Pathname#symlink">Pathname#symlink</a>
+is confusing and <b>obsoleted</b> because the receiver/argument order is
+inverted to corresponding system call.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001653_source')" id="l_M001653_source">show source</a> ]</p>
+  <div id="M001653_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 847</span>
+847:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">symlink</span>(<span class="ruby-identifier">old</span>)
+848:     <span class="ruby-identifier">warn</span> <span class="ruby-value str">'Pathname#symlink is obsoleted.  Use Pathname#make_symlink.'</span>
+849:     <span class="ruby-constant">File</span>.<span class="ruby-identifier">symlink</span>(<span class="ruby-identifier">old</span>, <span class="ruby-ivar">@path</span>)
+850:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001673" class="method">
+  <div id="M001673_title" class="title">
+    <b>symlink?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.symlink?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001673_source')" id="l_M001673_source">show source</a> ]</p>
+  <div id="M001673_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 914</span>
+914:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">symlink?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">symlink?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001627" class="method">
+  <div id="M001627_title" class="title">
+    <b>sysopen</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002158&name=IO.sysopen">IO.sysopen</a></tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001627_source')" id="l_M001627_source">show source</a> ]</p>
+  <div id="M001627_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 755</span>
+755:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sysopen</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-constant">IO</span>.<span class="ruby-identifier">sysopen</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001600" class="method">
+  <div id="M001600_title" class="title">
+    <b>taint</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001600_source')" id="l_M001600_source">show source</a> ]</p>
+  <div id="M001600_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 215</span>
+215:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">taint</span>() <span class="ruby-keyword kw">super</span>; <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">taint</span>; <span class="ruby-keyword kw">self</span> <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001606" class="method">
+  <div id="M001606_title" class="title">
+    <b>to_s</b>()
+  </div>
+  <div class="description">
+  <p>
+Return the path as a <a
+href="index.html?a=C00000055&name=String">String</a>.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001607&name=TO_PATH">TO_PATH</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001606_source')" id="l_M001606_source">show source</a> ]</p>
+  <div id="M001606_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 241</span>
+241:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">to_s</span>
+242:     <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">dup</span>
+243:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001645" class="method">
+  <div id="M001645_title" class="title">
+    <b>truncate</b>(length)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a
+href="index.html?a=M002470&name=File.truncate">File.truncate</a></tt>.
+Truncate the file to <tt>length</tt> bytes.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001645_source')" id="l_M001645_source">show source</a> ]</p>
+  <div id="M001645_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 817</span>
+817:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">truncate</span>(<span class="ruby-identifier">length</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">truncate</span>(<span class="ruby-ivar">@path</span>, <span class="ruby-identifier">length</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001691" class="method">
+  <div id="M001691_title" class="title">
+    <b>unlink</b>()
+  </div>
+  <div class="description">
+  <p>
+Removes a file or directory, using <tt><a
+href="index.html?a=M002466&name=File.unlink">File.unlink</a></tt> or <tt><a
+href="index.html?a=M002246&name=Dir.unlink">Dir.unlink</a></tt> as
+necessary.
+</p>
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001692&name=delete">delete</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001691_source')" id="l_M001691_source">show source</a> ]</p>
+  <div id="M001691_source" class="dyn-source">
+<pre>
+      <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 1032</span>
+1032:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">unlink</span>()
+1033:     <span class="ruby-keyword kw">begin</span>
+1034:       <span class="ruby-constant">Dir</span>.<span class="ruby-identifier">unlink</span> <span class="ruby-ivar">@path</span>
+1035:     <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Errno</span><span class="ruby-operator">::</span><span class="ruby-constant">ENOTDIR</span>
+1036:       <span class="ruby-constant">File</span>.<span class="ruby-identifier">unlink</span> <span class="ruby-ivar">@path</span>
+1037:     <span class="ruby-keyword kw">end</span>
+1038:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001601" class="method">
+  <div id="M001601_title" class="title">
+    <b>untaint</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001601_source')" id="l_M001601_source">show source</a> ]</p>
+  <div id="M001601_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 216</span>
+216:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">untaint</span>() <span class="ruby-keyword kw">super</span>; <span class="ruby-ivar">@path</span>.<span class="ruby-identifier">untaint</span>; <span class="ruby-keyword kw">self</span> <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001646" class="method">
+  <div id="M001646_title" class="title">
+    <b>utime</b>(atime, mtime)
+  </div>
+  <div class="description">
+  <p>
+See <tt><a href="index.html?a=M002458&name=File.utime">File.utime</a></tt>.
+Update the access and modification times.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001646_source')" id="l_M001646_source">show source</a> ]</p>
+  <div id="M001646_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 820</span>
+820:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">utime</span>(<span class="ruby-identifier">atime</span>, <span class="ruby-identifier">mtime</span>) <span class="ruby-constant">File</span>.<span class="ruby-identifier">utime</span>(<span class="ruby-identifier">atime</span>, <span class="ruby-identifier">mtime</span>, <span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001666" class="method">
+  <div id="M001666_title" class="title">
+    <b>world_readable?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.world_readable?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001666_source')" id="l_M001666_source">show source</a> ]</p>
+  <div id="M001666_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 893</span>
+893:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">world_readable?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">world_readable?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001675" class="method">
+  <div id="M001675_title" class="title">
+    <b>world_writable?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.world_writable?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001675_source')" id="l_M001675_source">show source</a> ]</p>
+  <div id="M001675_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 920</span>
+920:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">world_writable?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">world_writable?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001674" class="method">
+  <div id="M001674_title" class="title">
+    <b>writable?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.writable?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001674_source')" id="l_M001674_source">show source</a> ]</p>
+  <div id="M001674_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 917</span>
+917:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">writable?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">writable?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001676" class="method">
+  <div id="M001676_title" class="title">
+    <b>writable_real?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.writable_real?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001676_source')" id="l_M001676_source">show source</a> ]</p>
+  <div id="M001676_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 923</span>
+923:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">writable_real?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">writable_real?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001677" class="method">
+  <div id="M001677_title" class="title">
+    <b>zero?</b>()
+  </div>
+  <div class="description">
+  <p>
+See <tt>FileTest.zero?</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001677_source')" id="l_M001677_source">show source</a> ]</p>
+  <div id="M001677_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/pathname.rb, line 926</span>
+926:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">zero?</span>() <span class="ruby-constant">FileTest</span>.<span class="ruby-identifier">zero?</span>(<span class="ruby-ivar">@path</span>) <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

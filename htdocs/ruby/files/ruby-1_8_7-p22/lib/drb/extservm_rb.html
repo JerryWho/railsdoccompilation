@@ -1,0 +1,109 @@
+  <div id="fileHeader">
+    <h1>extservm.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/drb/extservm.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Tue Nov 13 07:04:30 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>=begin
+ external service manager
+ 	Copyright (c) 2000 Masatoshi SEKI 
+=end
+
+require 'drb/drb'
+require 'thread'
+require 'monitor'
+
+module DRb
+  class ExtServManager
+    include DRbUndumped
+    include MonitorMixin
+
+    @@command = {}
+
+    def self.command
+      @@command
+    end
+
+    def self.command=(cmd)
+      @@command = cmd
+    end
+      
+    def initialize
+      super()
+      @cond = new_cond
+      @servers = {}
+      @waiting = []
+      @queue = Queue.new
+      @thread = invoke_thread
+      @uri = nil
+    end
+    attr_accessor :uri
+
+    def service(name)
+      synchronize do
+        while true
+          server = @servers[name]
+          return server if server &amp;&amp; server.alive?
+          invoke_service(name)
+          @cond.wait
+        end
+      end
+    end
+
+    def regist(name, ro)
+      synchronize do
+        @servers[name] = ro
+        @cond.signal
+      end
+      self
+    end
+    
+    def unregist(name)
+      synchronize do
+	@servers.delete(name)
+      end
+    end
+
+    private
+    def invoke_thread
+      Thread.new do
+	while true
+	  name = @queue.pop
+	  invoke_service_command(name, @@command[name])
+	end
+      end
+    end
+
+    def invoke_service(name)
+      @queue.push(name)
+    end
+
+    def invoke_service_command(name, command)
+      raise &quot;invalid command. name: #{name}&quot; unless command
+      synchronize do
+	return if @servers.include?(name)
+	@servers[name] = false
+      end
+      uri = @uri || DRb.uri
+      if RUBY_PLATFORM =~ /mswin32/ &amp;&amp; /NT/ =~ ENV[&quot;OS&quot;]
+        system(%Q'cmd /c start &quot;ruby&quot; /b #{command} #{uri} #{name}')
+      else
+	system(&quot;#{command} #{uri} #{name} &amp;&quot;)
+      end
+    end
+  end
+end
+</pre>
+    </div>

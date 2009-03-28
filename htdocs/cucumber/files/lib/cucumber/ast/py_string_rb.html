@@ -1,0 +1,77 @@
+  <div id="fileHeader">
+    <h1>py_string.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/ast/py_string.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Cucumber
+  module Ast
+    # Represents an inline argument in a step. Example:
+    #
+    #   Given the message
+    #     &quot;&quot;&quot;
+    #     I like
+    #     Cucumber sandwich
+    #     &quot;&quot;&quot;
+    #
+    # The text between the pair of &lt;tt&gt;&quot;&quot;&quot;&lt;/tt&gt; is stored inside a PyString,
+    # which is yielded to the StepDefinition block as the last argument.
+    #
+    # The StepDefinition can then access the String via the #to_s method. In the
+    # example above, that would return: &lt;tt&gt;&quot;I like\nCucumber sandwich&quot;&lt;/tt&gt;
+    #
+    # Note how the indentation from the source is stripped away.
+    #
+    class PyString
+      def initialize(start_line, end_line, string, quotes_indent)
+        @start_line, @end_line = start_line, end_line
+        @string, @quotes_indent = string.gsub(/\\&quot;/, '&quot;'), quotes_indent
+        @status = :passed
+      end
+
+      def status=(status)
+        @status = status
+      end
+
+      def to_s
+        @string.indent(-@quotes_indent)
+      end
+
+      def matches_lines?(lines)
+        lines.detect{|l| l &gt;= @start_line &amp;&amp; l &lt;= @end_line}
+      end
+
+      def accept(visitor)
+        visitor.visit_py_string(to_s, @status)
+      end
+      
+      def arguments_replaced(arguments) #:nodoc:
+        string = @string
+        arguments.each do |name, value|
+          value ||= ''
+          string = string.gsub(name, value)
+        end
+        PyString.new(@start_line, @end_line, string, @quotes_indent)
+      end
+      
+      # For testing only
+      def to_sexp #:nodoc:
+        [:py_string, to_s]
+      end
+    
+    end
+  end
+end
+</pre>
+    </div>

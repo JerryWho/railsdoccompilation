@@ -1,0 +1,579 @@
+  <div id="fileHeader">
+    <h1>relaxng.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/rexml/validation/relaxng.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;rexml/validation/validation&quot;
+require &quot;rexml/parsers/baseparser&quot;
+
+module REXML
+  module Validation
+    # Implemented:
+    # * empty
+    # * element
+    # * attribute
+    # * text
+    # * optional
+    # * choice
+    # * oneOrMore
+    # * zeroOrMore
+    # * group
+    # * value
+    # * interleave
+    # * mixed
+    # * ref
+    # * grammar
+    # * start
+    # * define
+    #
+    # Not implemented:
+    # * data
+    # * param
+    # * include
+    # * externalRef
+    # * notAllowed
+    # * anyName
+    # * nsName
+    # * except
+    # * name
+    class RelaxNG
+      include Validator
+
+      INFINITY = 1.0 / 0.0
+      EMPTY = Event.new( nil )
+      TEXT = [:start_element, &quot;text&quot;]
+      attr_accessor :current
+      attr_accessor :count
+      attr_reader :references
+
+      # FIXME: Namespaces
+      def initialize source
+        parser = REXML::Parsers::BaseParser.new( source )
+
+        @count = 0
+        @references = {}
+        @root = @current = Sequence.new(self)
+        @root.previous = true
+        states = [ @current ]
+        begin
+          event = parser.pull
+          case event[0]
+          when :start_element
+            case event[1]
+            when &quot;empty&quot;
+            when &quot;element&quot;, &quot;attribute&quot;, &quot;text&quot;, &quot;value&quot;
+              states[-1] &lt;&lt; event
+            when &quot;optional&quot;
+              states &lt;&lt; Optional.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;choice&quot;
+              states &lt;&lt; Choice.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;oneOrMore&quot;
+              states &lt;&lt; OneOrMore.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;zeroOrMore&quot;
+              states &lt;&lt; ZeroOrMore.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;group&quot;
+              states &lt;&lt; Sequence.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;interleave&quot;
+              states &lt;&lt; Interleave.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;mixed&quot;
+              states &lt;&lt; Interleave.new( self )
+              states[-2] &lt;&lt; states[-1]
+              states[-1] &lt;&lt; TEXT 
+            when &quot;define&quot;
+              states &lt;&lt; [ event[2][&quot;name&quot;] ]
+            when &quot;ref&quot;
+              states[-1] &lt;&lt; Ref.new( event[2][&quot;name&quot;] )
+            when &quot;anyName&quot;
+              states &lt;&lt; AnyName.new( self )
+              states[-2] &lt;&lt; states[-1]
+            when &quot;nsName&quot;
+            when &quot;except&quot;
+            when &quot;name&quot;
+            when &quot;data&quot;
+            when &quot;param&quot;
+            when &quot;include&quot;
+            when &quot;grammar&quot;
+            when &quot;start&quot;
+            when &quot;externalRef&quot;
+            when &quot;notAllowed&quot;
+            end
+          when :end_element
+            case event[1]
+            when &quot;element&quot;, &quot;attribute&quot;
+              states[-1] &lt;&lt; event
+            when &quot;zeroOrMore&quot;, &quot;oneOrMore&quot;, &quot;choice&quot;, &quot;optional&quot;, 
+              &quot;interleave&quot;, &quot;group&quot;, &quot;mixed&quot;
+              states.pop
+            when &quot;define&quot;
+              ref = states.pop
+              @references[ ref.shift ] = ref
+            #when &quot;empty&quot;
+            end
+          when :end_document
+            states[-1] &lt;&lt; event
+          when :text
+            states[-1] &lt;&lt; event
+          end
+        end while event[0] != :end_document
+      end
+
+      def receive event
+        validate( event )
+      end
+    end
+
+    class State
+      def initialize( context )
+        @previous = []
+        @events = []
+        @current = 0
+        @count = context.count += 1
+        @references = context.references
+        @value = false
+      end
+
+      def reset
+        return if @current == 0
+        @current = 0
+        @events.each {|s| s.reset if s.kind_of? State }
+      end
+
+      def previous=( previous ) 
+        @previous &lt;&lt; previous
+      end
+
+      def next( event )
+        #print &quot;In next with #{event.inspect}.  &quot;
+        #puts &quot;Next (#@current) is #{@events[@current]}&quot;
+        #p @previous
+        return @previous.pop.next( event ) if @events[@current].nil?
+        expand_ref_in( @events, @current ) if @events[@current].class == Ref
+        if ( @events[@current].kind_of? State )
+          @current += 1
+          @events[@current-1].previous = self
+          return @events[@current-1].next( event )
+        end
+        #puts &quot;Current isn't a state&quot;
+        if ( @events[@current].matches?(event) )
+          @current += 1
+          if @events[@current].nil?
+            #puts &quot;#{inspect[0,5]} 1RETURNING #{@previous.inspect[0,5]}&quot;
+            return @previous.pop
+          elsif @events[@current].kind_of? State
+            @current += 1
+            #puts &quot;#{inspect[0,5]} 2RETURNING (#{@current-1}) #{@events[@current-1].inspect[0,5]}; on return, next is #{@events[@current]}&quot;
+            @events[@current-1].previous = self
+            return @events[@current-1]
+          else
+            #puts &quot;#{inspect[0,5]} RETURNING self w/ next(#@current) = #{@events[@current]}&quot;
+            return self
+          end
+        else
+          return nil
+        end
+      end
+
+      def to_s
+        # Abbreviated:
+        self.class.name =~ /(?:::)(\w)\w+$/
+        # Full:
+        #self.class.name =~ /(?:::)(\w+)$/
+        &quot;#$1.#@count&quot;
+      end
+
+      def inspect
+        &quot;&lt; #{to_s} #{@events.collect{|e| 
+          pre = e == @events[@current] ? '#' : ''
+          pre + e.inspect unless self == e
+        }.join(', ')} &gt;&quot;
+      end
+
+      def expected
+        return [@events[@current]]
+      end
+
+      def &lt;&lt;( event )
+        add_event_to_arry( @events, event )
+      end
+
+
+      protected
+      def expand_ref_in( arry, ind )
+        new_events = []
+        @references[ arry[ind].to_s ].each{ |evt| 
+          add_event_to_arry(new_events,evt)
+        }
+        arry[ind,1] = new_events
+      end
+
+      def add_event_to_arry( arry, evt ) 
+        evt = generate_event( evt )
+        if evt.kind_of? String 
+          arry[-1].event_arg = evt if arry[-1].kind_of? Event and @value
+          @value = false
+        else
+          arry &lt;&lt; evt
+        end
+      end
+
+      def generate_event( event )
+        return event if event.kind_of? State or event.class == Ref
+        evt = nil
+        arg = nil
+        case event[0]
+        when :start_element
+          case event[1]
+          when &quot;element&quot;
+            evt = :start_element
+            arg = event[2][&quot;name&quot;]
+          when &quot;attribute&quot;
+            evt = :start_attribute
+            arg = event[2][&quot;name&quot;]
+          when &quot;text&quot;
+            evt = :text
+          when &quot;value&quot;
+            evt = :text
+            @value = true
+          end
+        when :text
+          return event[1]
+        when :end_document
+          return Event.new( event[0] )
+        else # then :end_element
+          case event[1]
+          when &quot;element&quot;
+            evt = :end_element
+          when &quot;attribute&quot;
+            evt = :end_attribute
+          end
+        end
+        return Event.new( evt, arg )
+      end
+    end
+
+
+    class Sequence &lt; State
+      def matches?(event)
+        @events[@current].matches?( event )
+      end
+    end
+
+
+    class Optional &lt; State
+      def next( event )
+        if @current == 0
+          rv = super
+          return rv if rv
+          @prior = @previous.pop
+          return @prior.next( event )
+        end
+        super
+      end
+
+      def matches?(event)
+        @events[@current].matches?(event) || 
+        (@current == 0 and @previous[-1].matches?(event))
+      end
+
+      def expected
+        return [ @prior.expected, @events[0] ].flatten if @current == 0
+        return [@events[@current]]
+      end
+    end
+
+
+    class ZeroOrMore &lt; Optional
+      def next( event )
+        expand_ref_in( @events, @current ) if @events[@current].class == Ref
+        if ( @events[@current].matches?(event) )
+          @current += 1
+          if @events[@current].nil?
+            @current = 0
+            return self
+          elsif @events[@current].kind_of? State
+            @current += 1
+            @events[@current-1].previous = self
+            return @events[@current-1]
+          else
+            return self
+          end
+        else
+          @prior = @previous.pop
+          return @prior.next( event ) if @current == 0
+          return nil
+        end
+      end
+
+      def expected
+        return [ @prior.expected, @events[0] ].flatten if @current == 0
+        return [@events[@current]]
+      end
+    end
+
+
+    class OneOrMore &lt; State
+      def initialize context
+        super
+        @ord = 0
+      end
+
+      def reset
+        super 
+        @ord = 0
+      end
+
+      def next( event )
+        expand_ref_in( @events, @current ) if @events[@current].class == Ref
+        if ( @events[@current].matches?(event) )
+          @current += 1
+          @ord += 1
+          if @events[@current].nil?
+            @current = 0
+            return self
+          elsif @events[@current].kind_of? State
+            @current += 1
+            @events[@current-1].previous = self
+            return @events[@current-1]
+          else
+            return self
+          end
+        else
+          return @previous.pop.next( event ) if @current == 0 and @ord &gt; 0
+          return nil
+        end
+      end
+
+      def matches?( event )
+        @events[@current].matches?(event) || 
+        (@current == 0 and @ord &gt; 0 and @previous[-1].matches?(event))
+      end
+
+      def expected
+        if @current == 0 and @ord &gt; 0
+          return [@previous[-1].expected, @events[0]].flatten
+        else
+          return [@events[@current]]
+        end
+      end
+    end
+
+
+    class Choice &lt; State
+      def initialize context
+        super
+        @choices = []
+      end
+
+      def reset
+        super
+        @events = []
+        @choices.each { |c| c.each { |s| s.reset if s.kind_of? State } }
+      end
+
+      def &lt;&lt;( event )
+        add_event_to_arry( @choices, event )
+      end
+
+      def next( event )
+        # Make the choice if we haven't
+        if @events.size == 0
+          c = 0 ; max = @choices.size
+          while c &lt; max
+            if @choices[c][0].class == Ref
+              expand_ref_in( @choices[c], 0 )
+              @choices += @choices[c]
+              @choices.delete( @choices[c] )
+              max -= 1
+            else
+              c += 1
+            end
+          end
+          @events = @choices.find { |evt| evt[0].matches? event }
+          # Remove the references
+          # Find the events
+        end
+        #puts &quot;In next with #{event.inspect}.&quot;
+        #puts &quot;events is #{@events.inspect}&quot;
+        unless @events
+          @events = []
+          return nil
+        end
+        #puts &quot;current = #@current&quot;
+        super
+      end
+
+      def matches?( event )
+        return @events[@current].matches?( event ) if @events.size &gt; 0
+        !@choices.find{|evt| evt[0].matches?(event)}.nil?
+      end
+
+      def expected
+        #puts &quot;IN CHOICE EXPECTED&quot;
+        #puts &quot;EVENTS = #{@events.inspect}&quot;
+        return [@events[@current]] if @events.size &gt; 0
+        return @choices.collect do |x| 
+          if x[0].kind_of? State
+            x[0].expected
+          else
+            x[0]
+          end
+        end.flatten
+      end
+
+      def inspect
+        &quot;&lt; #{to_s} #{@choices.collect{|e| e.collect{|f|f.to_s}.join(', ')}.join(' or ')} &gt;&quot;
+      end
+
+      protected
+      def add_event_to_arry( arry, evt ) 
+        if evt.kind_of? State or evt.class == Ref
+          arry &lt;&lt; [evt]
+        elsif evt[0] == :text 
+         if arry[-1] and
+            arry[-1][-1].kind_of?( Event ) and 
+            arry[-1][-1].event_type == :text and @value
+
+            arry[-1][-1].event_arg = evt[1]
+            @value = false
+          end
+        else
+          arry &lt;&lt; [] if evt[0] == :start_element
+          arry[-1] &lt;&lt; generate_event( evt )
+        end
+      end
+    end
+
+
+    class Interleave &lt; Choice
+      def initialize context
+        super
+        @choice = 0
+      end
+
+      def reset
+        @choice = 0
+      end
+
+      def next_current( event )
+        # Expand references
+        c = 0 ; max = @choices.size
+        while c &lt; max
+          if @choices[c][0].class == Ref
+            expand_ref_in( @choices[c], 0 )
+            @choices += @choices[c]
+            @choices.delete( @choices[c] )
+            max -= 1
+          else
+            c += 1
+          end
+        end
+        @events = @choices[@choice..-1].find { |evt| evt[0].matches? event }
+        @current = 0
+        if @events
+          # reorder the choices
+          old = @choices[@choice]
+          idx = @choices.index( @events )
+          @choices[@choice] = @events
+          @choices[idx] = old
+          @choice += 1
+        end
+        
+       #puts &quot;In next with #{event.inspect}.&quot;
+       #puts &quot;events is #{@events.inspect}&quot;
+        @events = [] unless @events
+      end
+
+
+      def next( event )
+        # Find the next series
+        next_current(event) unless @events[@current]
+        return nil unless @events[@current]
+
+        expand_ref_in( @events, @current ) if @events[@current].class == Ref 
+       #puts &quot;In next with #{event.inspect}.&quot;
+       #puts &quot;Next (#@current) is #{@events[@current]}&quot;
+        if ( @events[@current].kind_of? State )
+          @current += 1
+          @events[@current-1].previous = self
+          return @events[@current-1].next( event )
+        end
+       #puts &quot;Current isn't a state&quot;
+        return @previous.pop.next( event ) if @events[@current].nil?
+        if ( @events[@current].matches?(event) )
+          @current += 1
+          if @events[@current].nil?
+           #puts &quot;#{inspect[0,5]} 1RETURNING self&quot; unless @choices[@choice].nil?
+            return self unless @choices[@choice].nil?
+           #puts &quot;#{inspect[0,5]} 1RETURNING #{@previous[-1].inspect[0,5]}&quot;
+            return @previous.pop
+          elsif @events[@current].kind_of? State
+            @current += 1
+           #puts &quot;#{inspect[0,5]} 2RETURNING (#{@current-1}) #{@events[@current-1].inspect[0,5]}; on return, next is #{@events[@current]}&quot;
+            @events[@current-1].previous = self
+            return @events[@current-1]
+          else
+           #puts &quot;#{inspect[0,5]} RETURNING self w/ next(#@current) = #{@events[@current]}&quot;
+            return self
+          end
+        else
+          return nil
+        end
+      end
+
+      def matches?( event )
+        return @events[@current].matches?( event ) if @events[@current]
+        !@choices[@choice..-1].find{|evt| evt[0].matches?(event)}.nil?
+      end
+
+      def expected
+        #puts &quot;IN CHOICE EXPECTED&quot;
+        #puts &quot;EVENTS = #{@events.inspect}&quot;
+        return [@events[@current]] if @events[@current]
+        return @choices[@choice..-1].collect do |x| 
+          if x[0].kind_of? State
+            x[0].expected
+          else
+            x[0]
+          end
+        end.flatten
+      end
+
+      def inspect
+        &quot;&lt; #{to_s} #{@choices.collect{|e| e.collect{|f|f.to_s}.join(', ')}.join(' and ')} &gt;&quot;
+      end
+    end
+
+    class Ref
+      def initialize value
+        @value = value
+      end
+      def to_s
+        @value
+      end
+      def inspect
+        &quot;{#{to_s}}&quot;
+      end
+    end
+  end
+end
+</pre>
+    </div>

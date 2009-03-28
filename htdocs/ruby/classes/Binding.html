@@ -1,0 +1,166 @@
+  <div id="C00000021">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Binding<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/eval_c.html');">ruby-1.8.7-p22/eval.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Objects of class <tt><a
+href="index.html?a=C00000021&name=Binding">Binding</a></tt> encapsulate the
+execution context at some particular place in the code and retain this
+context for future use. The variables, methods, value of <tt>self</tt>, and
+possibly an iterator block that can be accessed in this context are all
+retained. <a href="index.html?a=C00000021&name=Binding">Binding</a> objects
+can be created using <tt><a
+href="index.html?a=M006198&name=Kernel#binding">Kernel#binding</a></tt>,
+and are made available to the callback of <tt><a
+href="index.html?a=M006191&name=Kernel#set_trace_func">Kernel#set_trace_func</a></tt>.
+</p>
+<p>
+These binding objects can be passed as the second argument of the <tt><a
+href="index.html?a=M006173&name=Kernel#eval">Kernel#eval</a></tt> method,
+establishing an environment for the evaluation.
+</p>
+<pre>
+   class Demo
+     def initialize(n)
+       @secret = n
+     end
+     def getBinding
+       return binding()
+     end
+   end
+
+   k1 = Demo.new(99)
+   b1 = k1.getBinding
+   k2 = Demo.new(-3)
+   b2 = k2.getBinding
+
+   eval(&quot;@secret&quot;, b1)   #=&gt; 99
+   eval(&quot;@secret&quot;, b2)   #=&gt; -3
+   eval(&quot;@secret&quot;)       #=&gt; nil
+</pre>
+<p>
+<a href="index.html?a=C00000021&name=Binding">Binding</a> objects have no
+class-specific methods.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000288&name=clone" >clone</a></li>
+  <li><a href="index.html?a=M000289&name=eval" >eval</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000288" class="method">
+  <div id="M000288_title" class="title">
+    <b>clone</b>()
+  </div>
+  <div class="description">
+  <p>
+MISSING: documentation
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000288_source')" id="l_M000288_source">show source</a> ]</p>
+  <div id="M000288_source" class="dyn-source">
+<pre>
+/*
+ * MISSING: documentation
+ */
+
+static VALUE
+proc_clone(self)
+    VALUE self;
+{
+    struct BLOCK *orig, *data;
+    VALUE bind;
+
+    Data_Get_Struct(self, struct BLOCK, orig);
+    bind = Data_Make_Struct(rb_obj_class(self),struct BLOCK,blk_mark,blk_free,data);
+    CLONESETUP(bind, self);
+    blk_dup(data, orig);
+
+    return bind;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000289" class="method">
+  <div id="M000289_title" class="title">
+    <b>binding.eval(string [, filename [,lineno]])  => obj<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Evaluates the Ruby expression(s) in <em>string</em>, in the
+<em>binding</em>&#8217;s context. If the optional <em>filename</em> and
+<em>lineno</em> parameters are present, they will be used when reporting
+syntax errors.
+</p>
+<pre>
+   def getBinding(param)
+     return binding
+   end
+   b = getBinding(&quot;hello&quot;)
+   b.eval(&quot;param&quot;)   #=&gt; &quot;hello&quot;
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000289_source')" id="l_M000289_source">show source</a> ]</p>
+  <div id="M000289_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *     binding.eval(string [, filename [,lineno]])  =&gt; obj
+ *
+ *  Evaluates the Ruby expression(s) in &lt;em&gt;string&lt;/em&gt;, in the
+ *  &lt;em&gt;binding&lt;/em&gt;'s context.  If the optional &lt;em&gt;filename&lt;/em&gt; and
+ *  &lt;em&gt;lineno&lt;/em&gt; parameters are present, they will be used when
+ *  reporting syntax errors.
+ *
+ *     def getBinding(param)
+ *       return binding
+ *     end
+ *     b = getBinding(&quot;hello&quot;)
+ *     b.eval(&quot;param&quot;)   #=&gt; &quot;hello&quot;
+ */
+
+static VALUE
+bind_eval(argc, argv, bindval)
+    int argc;
+    VALUE *argv;
+    VALUE bindval;
+{
+    VALUE args[4];
+
+    rb_scan_args(argc, argv, &quot;12&quot;, &amp;args[0], &amp;args[2], &amp;args[3]);
+    args[1] = bindval;
+    return rb_f_eval(argc+1, args, Qnil /* self will be searched in eval */);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

@@ -1,0 +1,64 @@
+  <div id="fileHeader">
+    <h1>noisy_backtrace_tweaker_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec/runner/noisy_backtrace_tweaker_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper.rb'
+
+module Spec
+  module Runner
+    describe &quot;NoisyBacktraceTweaker&quot; do
+      before(:each) do
+        @error = RuntimeError.new
+        @tweaker = NoisyBacktraceTweaker.new
+      end
+        
+      it &quot;should leave anything in lib spec dir&quot; do
+        [&quot;expectations&quot;, &quot;mocks&quot;, &quot;runner&quot;, &quot;stubs&quot;].each do |child|
+          @error.set_backtrace([&quot;/lib/spec/#{child}/anything.rb&quot;])
+          @tweaker.tweak_backtrace(@error)
+          @error.backtrace.should_not be_empty
+        end
+      end
+
+      it &quot;should leave anything in spec dir&quot; do
+        @error.set_backtrace([&quot;/lib/spec/expectations/anything.rb&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should_not be_empty
+      end
+
+      it &quot;should leave bin spec&quot; do
+        @error.set_backtrace([&quot;bin/spec:&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should_not be_empty
+      end
+
+      it &quot;should not barf on nil backtrace&quot; do
+        lambda do
+          @tweaker.tweak_backtrace(@error)
+        end.should_not raise_error
+      end
+      
+      it &quot;should clean up double slashes&quot; do
+        @error.set_backtrace([&quot;/a//b/c//d.rb&quot;])
+        @tweaker.tweak_backtrace(@error)
+        @error.backtrace.should include(&quot;/a/b/c/d.rb&quot;)
+      end
+      
+    end
+  end
+end
+</pre>
+    </div>

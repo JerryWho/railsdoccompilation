@@ -1,0 +1,106 @@
+  <div id="fileHeader">
+    <h1>xmp.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/irb/xmp.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Feb 12 17:01:19 -0600 2007</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+#   xmp.rb - irb version of gotoken xmp
+#   	$Release Version: 0.9$
+#   	$Revision: 11708 $
+#   	$Date: 2007-02-13 08:01:19 +0900 (Tue, 13 Feb 2007) $
+#   	by Keiju ISHITSUKA(Nippon Rational Inc.)
+#
+# --
+#
+#   
+#
+
+require &quot;irb&quot;
+require &quot;irb/frame&quot;
+
+class XMP
+  @RCS_ID='-$Id: xmp.rb 11708 2007-02-12 23:01:19Z shyouhei $-'
+
+  def initialize(bind = nil)
+    IRB.init_config(nil)
+    #IRB.parse_opts
+    #IRB.load_modules
+
+    IRB.conf[:PROMPT_MODE] = :XMP
+
+    bind = IRB::Frame.top(1) unless bind
+    ws = IRB::WorkSpace.new(bind)
+    @io = StringInputMethod.new
+    @irb = IRB::Irb.new(ws, @io)
+    @irb.context.ignore_sigint = false
+
+#    IRB.conf[:IRB_RC].call(@irb.context) if IRB.conf[:IRB_RC]
+    IRB.conf[:MAIN_CONTEXT] = @irb.context
+  end
+
+  def puts(exps)
+    @io.puts exps
+
+    if @irb.context.ignore_sigint
+      begin
+	trap_proc_b = trap(&quot;SIGINT&quot;){@irb.signal_handle}
+	catch(:IRB_EXIT) do
+	  @irb.eval_input
+	end
+      ensure
+	trap(&quot;SIGINT&quot;, trap_proc_b)
+      end
+    else
+      catch(:IRB_EXIT) do
+	@irb.eval_input
+      end
+    end
+  end
+
+  class StringInputMethod &lt; IRB::InputMethod
+    def initialize
+      super
+      @exps = []
+    end
+
+    def eof?
+      @exps.empty?
+    end
+
+    def gets
+      while l = @exps.shift
+	next if /^\s+$/ =~ l
+	l.concat &quot;\n&quot;
+	print @prompt, l
+	break
+      end
+      l
+    end
+
+    def puts(exps)
+      @exps.concat exps.split(/\n/)
+    end
+  end
+end
+
+def xmp(exps, bind = nil)
+  bind = IRB::Frame.top(1) unless bind
+  xmp = XMP.new(bind)
+  xmp.puts exps
+  xmp
+end
+</pre>
+    </div>

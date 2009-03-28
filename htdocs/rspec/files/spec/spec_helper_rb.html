@@ -1,0 +1,100 @@
+  <div id="fileHeader">
+    <h1>spec_helper.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/spec_helper.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'stringio'
+
+dir = File.dirname(__FILE__)
+lib_path = File.expand_path(&quot;#{dir}/../lib&quot;)
+$LOAD_PATH.unshift lib_path unless $LOAD_PATH.include?(lib_path)
+$_spec_spec = true # Prevents Kernel.exit in various places
+
+require 'spec'
+require 'spec/mocks'
+require 'spec/story'
+spec_classes_path = File.expand_path(&quot;#{dir}/../spec/spec/spec_classes&quot;)
+require spec_classes_path unless $LOAD_PATH.include?(spec_classes_path)
+require File.dirname(__FILE__) + '/../lib/spec/expectations/differs/default'
+
+module Spec  
+  module Example
+    class NonStandardError &lt; Exception; end
+  end
+
+  module Matchers
+    def fail
+      raise_error(Spec::Expectations::ExpectationNotMetError)
+    end
+
+    def fail_with(message)
+      raise_error(Spec::Expectations::ExpectationNotMetError, message)
+    end
+
+    def exception_from(&amp;block)
+      exception = nil
+      begin
+        yield
+      rescue StandardError =&gt; e
+        exception = e
+      end
+      exception
+    end
+    
+    def run_with(options)
+      ::Spec::Runner::CommandLine.run(options)
+    end
+
+    def with_ruby(version)
+      yield if RUBY_PLATFORM =~ Regexp.compile(&quot;^#{version}&quot;)
+    end
+  end
+end
+
+def with_sandboxed_options
+  attr_reader :options
+  
+  before(:each) do
+    @original_rspec_options = ::Spec::Runner.options
+    ::Spec::Runner.use(@options = ::Spec::Runner::Options.new(StringIO.new, StringIO.new))
+  end
+
+  after(:each) do
+    ::Spec::Runner.use(@original_rspec_options)
+  end
+  
+  yield
+end
+
+def with_sandboxed_config
+  attr_reader :config
+  
+  before(:each) do
+    @config = ::Spec::Example::Configuration.new
+    @original_configuration = ::Spec::Runner.configuration
+    spec_configuration = @config
+    ::Spec::Runner.instance_eval {@configuration = spec_configuration}
+  end
+  
+  after(:each) do
+    original_configuration = @original_configuration
+    ::Spec::Runner.instance_eval {@configuration = original_configuration}
+    ::Spec::Example::ExampleGroupFactory.reset
+  end
+  
+  yield
+end
+</pre>
+    </div>

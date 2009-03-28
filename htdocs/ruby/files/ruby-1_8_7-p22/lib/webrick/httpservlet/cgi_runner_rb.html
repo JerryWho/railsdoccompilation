@@ -1,0 +1,67 @@
+  <div id="fileHeader">
+    <h1>cgi_runner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ruby-1.8.7-p22/lib/webrick/httpservlet/cgi_runner.rb
+      </td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun May 18 10:02:36 -0500 2008</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#
+# cgi_runner.rb -- CGI launcher.
+#
+# Author: IPR -- Internet Programming with Ruby -- writers
+# Copyright (c) 2000 TAKAHASHI Masayoshi, GOTOU YUUZOU
+# Copyright (c) 2002 Internet Programming with Ruby writers. All rights
+# reserved.
+#
+# $IPR: cgi_runner.rb,v 1.9 2002/09/25 11:33:15 gotoyuzo Exp $
+
+def sysread(io, size)
+  buf = &quot;&quot;
+  while size &gt; 0
+    tmp = io.sysread(size)
+    buf &lt;&lt; tmp
+    size -= tmp.size
+  end
+  return buf
+end
+
+STDIN.binmode
+
+buf = &quot;&quot;
+len = sysread(STDIN, 8).to_i
+out = sysread(STDIN, len)
+STDOUT.reopen(open(out, &quot;w&quot;))
+
+len = sysread(STDIN, 8).to_i
+err = sysread(STDIN, len)
+STDERR.reopen(open(err, &quot;w&quot;))
+
+len  = sysread(STDIN, 8).to_i
+dump = sysread(STDIN, len)
+hash = Marshal.restore(dump)
+ENV.keys.each{|name| ENV.delete(name) }
+hash.each{|k, v| ENV[k] = v if v }
+
+dir = File::dirname(ENV[&quot;SCRIPT_FILENAME&quot;])
+Dir::chdir dir
+
+if interpreter = ARGV[0]
+  argv = ARGV.dup
+  argv &lt;&lt; ENV[&quot;SCRIPT_FILENAME&quot;]
+  exec(*argv)
+  # NOTREACHED
+end
+exec ENV[&quot;SCRIPT_FILENAME&quot;]
+</pre>
+    </div>

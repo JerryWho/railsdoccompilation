@@ -1,0 +1,551 @@
+  <div id="C00001034">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />AttributeManager<br/>
+  In:
+<a href="#" onclick="jsHref('files/ruby-1_8_7-p22/lib/rdoc/markup/simple_markup/inline_rb.html');">ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/YAML/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M005258&name=add_html" >add_html</a></li>
+  <li><a href="index.html?a=M005259&name=add_special" >add_special</a></li>
+  <li><a href="index.html?a=M005257&name=add_word_pair" >add_word_pair</a></li>
+  <li><a href="index.html?a=M005247&name=attribute" >attribute</a></li>
+  <li><a href="index.html?a=M005248&name=change_attribute" >change_attribute</a></li>
+  <li><a href="index.html?a=M005249&name=changed_attribute_by_name" >changed_attribute_by_name</a></li>
+  <li><a href="index.html?a=M005251&name=convert_attrs" >convert_attrs</a></li>
+  <li><a href="index.html?a=M005252&name=convert_html" >convert_html</a></li>
+  <li><a href="index.html?a=M005253&name=convert_specials" >convert_specials</a></li>
+  <li><a href="index.html?a=M005250&name=copy_string" >copy_string</a></li>
+  <li><a href="index.html?a=M005261&name=display_attributes" >display_attributes</a></li>
+  <li><a href="index.html?a=M005260&name=flow" >flow</a></li>
+  <li><a href="index.html?a=M005254&name=mask_protected_sequences" >mask_protected_sequences</a></li>
+  <li><a href="index.html?a=M005256&name=new" >new</a></li>
+  <li><a href="index.html?a=M005262&name=split_into_flow" >split_into_flow</a></li>
+  <li><a href="index.html?a=M005255&name=unmask_protected_sequences" >unmask_protected_sequences</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">NULL</td>
+    <td>=</td>
+    <td class="attr-value">&quot;\000&quot;.freeze</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">A_PROTECT</td>
+    <td>=</td>
+    <td class="attr-value">004</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+We work by substituting non-printing characters in to the text. For now
+I&#8217;m assuming that I can substitute a character in the range 0..8 for
+a 7 bit character without damaging the encoded string, but this might be
+optimistic
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">PROTECT_ATTR</td>
+    <td>=</td>
+    <td class="attr-value">A_PROTECT.chr</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">MATCHING_WORD_PAIRS</td>
+    <td>=</td>
+    <td class="attr-value">{}</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+This maps delimiters that occur around words (such as <b>bold</b> or
+<tt>tt</tt>) where the start and end delimiters and the same. This lets us
+optimize the regexp
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">WORD_PAIR_MAP</td>
+    <td>=</td>
+    <td class="attr-value">{}</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+And this is used when the delimiters aren&#8217;t the same. In this case
+the hash maps a pattern to the attribute character
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">HTML_TAGS</td>
+    <td>=</td>
+    <td class="attr-value">{}</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+This maps HTML tags to the corresponding attribute char
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">SPECIAL</td>
+    <td>=</td>
+    <td class="attr-value">{}</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+And this maps <em>special</em> sequences to a name. A special sequence is
+something like a WikiWord
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">PROTECTABLE</td>
+    <td>=</td>
+    <td class="attr-value">[ &quot;&lt;&quot; &lt;&lt; &quot;\\&quot; ]</td>
+  </tr>
+  <tr valign='top'>
+    <td>&nbsp;</td>
+    <td colspan="2" class="attr-desc">
+A \ in front of a character that would normally be processed turns off
+processing. We do this by turning &lt; into &lt;#{PROTECT}
+
+</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M005256" class="method">
+  <div id="M005256_title" class="title">
+    <b>new</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005256_source')" id="l_M005256_source">show source</a> ]</p>
+  <div id="M005256_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 208</span>
+208:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+209:       <span class="ruby-identifier">add_word_pair</span>(<span class="ruby-value str">&quot;*&quot;</span>, <span class="ruby-value str">&quot;*&quot;</span>, <span class="ruby-identifier">:BOLD</span>)
+210:       <span class="ruby-identifier">add_word_pair</span>(<span class="ruby-value str">&quot;_&quot;</span>, <span class="ruby-value str">&quot;_&quot;</span>, <span class="ruby-identifier">:EM</span>)
+211:       <span class="ruby-identifier">add_word_pair</span>(<span class="ruby-value str">&quot;+&quot;</span>, <span class="ruby-value str">&quot;+&quot;</span>, <span class="ruby-identifier">:TT</span>)
+212:       
+213:       <span class="ruby-identifier">add_html</span>(<span class="ruby-value str">&quot;em&quot;</span>, <span class="ruby-identifier">:EM</span>)
+214:       <span class="ruby-identifier">add_html</span>(<span class="ruby-value str">&quot;i&quot;</span>,  <span class="ruby-identifier">:EM</span>)
+215:       <span class="ruby-identifier">add_html</span>(<span class="ruby-value str">&quot;b&quot;</span>,  <span class="ruby-identifier">:BOLD</span>)
+216:       <span class="ruby-identifier">add_html</span>(<span class="ruby-value str">&quot;tt&quot;</span>,   <span class="ruby-identifier">:TT</span>)
+217:       <span class="ruby-identifier">add_html</span>(<span class="ruby-value str">&quot;code&quot;</span>, <span class="ruby-identifier">:TT</span>)
+218: 
+219:       <span class="ruby-identifier">add_special</span>(<span class="ruby-regexp re">/&lt;!--(.*?)--&gt;/</span>, <span class="ruby-identifier">:COMMENT</span>)
+220:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M005258" class="method">
+  <div id="M005258_title" class="title">
+    <b>add_html</b>(tag, name)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005258_source')" id="l_M005258_source">show source</a> ]</p>
+  <div id="M005258_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 238</span>
+238:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_html</span>(<span class="ruby-identifier">tag</span>, <span class="ruby-identifier">name</span>)
+239:       <span class="ruby-constant">HTML_TAGS</span>[<span class="ruby-identifier">tag</span>.<span class="ruby-identifier">downcase</span>] = <span class="ruby-constant">Attribute</span>.<span class="ruby-identifier">bitmap_for</span>(<span class="ruby-identifier">name</span>)
+240:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005259" class="method">
+  <div id="M005259_title" class="title">
+    <b>add_special</b>(pattern, name)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005259_source')" id="l_M005259_source">show source</a> ]</p>
+  <div id="M005259_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 242</span>
+242:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_special</span>(<span class="ruby-identifier">pattern</span>, <span class="ruby-identifier">name</span>)
+243:       <span class="ruby-constant">SPECIAL</span>[<span class="ruby-identifier">pattern</span>] = <span class="ruby-constant">Attribute</span>.<span class="ruby-identifier">bitmap_for</span>(<span class="ruby-identifier">name</span>)
+244:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005257" class="method">
+  <div id="M005257_title" class="title">
+    <b>add_word_pair</b>(start, stop, name)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005257_source')" id="l_M005257_source">show source</a> ]</p>
+  <div id="M005257_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 222</span>
+222:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_word_pair</span>(<span class="ruby-identifier">start</span>, <span class="ruby-identifier">stop</span>, <span class="ruby-identifier">name</span>)
+223:       <span class="ruby-identifier">raise</span> <span class="ruby-value str">&quot;Word flags may not start '&lt;'&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">start</span>[<span class="ruby-value">0</span>] <span class="ruby-operator">==</span> <span class="ruby-value">?&lt;</span>
+224:       <span class="ruby-identifier">bitmap</span> = <span class="ruby-constant">Attribute</span>.<span class="ruby-identifier">bitmap_for</span>(<span class="ruby-identifier">name</span>)
+225:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">start</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">stop</span>
+226:         <span class="ruby-constant">MATCHING_WORD_PAIRS</span>[<span class="ruby-identifier">start</span>] = <span class="ruby-identifier">bitmap</span>
+227:       <span class="ruby-keyword kw">else</span>
+228:         <span class="ruby-identifier">pattern</span> = <span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;(&quot;</span> <span class="ruby-operator">+</span> <span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">escape</span>(<span class="ruby-identifier">start</span>) <span class="ruby-operator">+</span> <span class="ruby-value str">&quot;)&quot;</span> <span class="ruby-operator">+</span>
+229: <span class="ruby-comment cmt">#                             &quot;([A-Za-z]+)&quot; +</span>
+230:                              <span class="ruby-value str">&quot;(\\S+)&quot;</span> <span class="ruby-operator">+</span>
+231:                              <span class="ruby-value str">&quot;(&quot;</span> <span class="ruby-operator">+</span> <span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">escape</span>(<span class="ruby-identifier">stop</span>) <span class="ruby-operator">+</span><span class="ruby-value str">&quot;)&quot;</span>)
+232:         <span class="ruby-constant">WORD_PAIR_MAP</span>[<span class="ruby-identifier">pattern</span>] = <span class="ruby-identifier">bitmap</span>
+233:       <span class="ruby-keyword kw">end</span>
+234:       <span class="ruby-constant">PROTECTABLE</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">start</span>[<span class="ruby-value">0</span>,<span class="ruby-value">1</span>]
+235:       <span class="ruby-constant">PROTECTABLE</span>.<span class="ruby-identifier">uniq!</span>
+236:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005247" class="method">
+  <div id="M005247_title" class="title">
+    <b>attribute</b>(turn_on, turn_off)
+  </div>
+  <div class="description">
+  <p>
+Return an attribute object with the given turn_on and turn_off bits set
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005247_source')" id="l_M005247_source">show source</a> ]</p>
+  <div id="M005247_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 122</span>
+122:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">attribute</span>(<span class="ruby-identifier">turn_on</span>, <span class="ruby-identifier">turn_off</span>)
+123:       <span class="ruby-constant">AttrChanger</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">turn_on</span>, <span class="ruby-identifier">turn_off</span>)
+124:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005248" class="method">
+  <div id="M005248_title" class="title">
+    <b>change_attribute</b>(current, new)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005248_source')" id="l_M005248_source">show source</a> ]</p>
+  <div id="M005248_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 127</span>
+127:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">change_attribute</span>(<span class="ruby-identifier">current</span>, <span class="ruby-identifier">new</span>)
+128:       <span class="ruby-identifier">diff</span> = <span class="ruby-identifier">current</span> <span class="ruby-operator">^</span> <span class="ruby-identifier">new</span>
+129:       <span class="ruby-identifier">attribute</span>(<span class="ruby-identifier">new</span> <span class="ruby-operator">&amp;</span> <span class="ruby-identifier">diff</span>, <span class="ruby-identifier">current</span> <span class="ruby-operator">&amp;</span> <span class="ruby-identifier">diff</span>)
+130:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005249" class="method">
+  <div id="M005249_title" class="title">
+    <b>changed_attribute_by_name</b>(current_set, new_set)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005249_source')" id="l_M005249_source">show source</a> ]</p>
+  <div id="M005249_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 132</span>
+132:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">changed_attribute_by_name</span>(<span class="ruby-identifier">current_set</span>, <span class="ruby-identifier">new_set</span>)
+133:       <span class="ruby-identifier">current</span> = <span class="ruby-identifier">new</span> = <span class="ruby-value">0</span>
+134:       <span class="ruby-identifier">current_set</span>.<span class="ruby-identifier">each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">name</span><span class="ruby-operator">|</span> <span class="ruby-identifier">current</span> <span class="ruby-operator">|=</span> <span class="ruby-constant">Attribute</span>.<span class="ruby-identifier">bitmap_for</span>(<span class="ruby-identifier">name</span>) }
+135:       <span class="ruby-identifier">new_set</span>.<span class="ruby-identifier">each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">name</span><span class="ruby-operator">|</span> <span class="ruby-identifier">new</span> <span class="ruby-operator">|=</span> <span class="ruby-constant">Attribute</span>.<span class="ruby-identifier">bitmap_for</span>(<span class="ruby-identifier">name</span>) }
+136:       <span class="ruby-identifier">change_attribute</span>(<span class="ruby-identifier">current</span>, <span class="ruby-identifier">new</span>)
+137:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005251" class="method">
+  <div id="M005251_title" class="title">
+    <b>convert_attrs</b>(str, attrs)
+  </div>
+  <div class="description">
+  <p>
+Map attributes like <b>text</b>to the sequence
+\001\002&lt;char&gt;\001\003&lt;char&gt;, where &lt;char&gt; is a
+per-attribute specific character
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005251_source')" id="l_M005251_source">show source</a> ]</p>
+  <div id="M005251_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 148</span>
+148:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">convert_attrs</span>(<span class="ruby-identifier">str</span>, <span class="ruby-identifier">attrs</span>)
+149:       <span class="ruby-comment cmt"># first do matching ones</span>
+150:       <span class="ruby-identifier">tags</span> = <span class="ruby-constant">MATCHING_WORD_PAIRS</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">join</span>(<span class="ruby-value str">&quot;&quot;</span>)
+151:       <span class="ruby-identifier">re</span> = <span class="ruby-node">&quot;(^|\\W)([#{tags}])([A-Za-z_]+?)\\2(\\W|\$)&quot;</span>
+152: <span class="ruby-comment cmt">#      re = &quot;(^|\\W)([#{tags}])(\\S+?)\\2(\\W|\$)&quot;</span>
+153:       <span class="ruby-value">1</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">str</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">re</span>)) {
+154:         <span class="ruby-identifier">attr</span> = <span class="ruby-constant">MATCHING_WORD_PAIRS</span>[<span class="ruby-identifier">$2</span>];
+155:         <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">set_attrs</span>(<span class="ruby-identifier">$`</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$1</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$2</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">$3</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">attr</span>)
+156:         <span class="ruby-identifier">$1</span> <span class="ruby-operator">+</span> <span class="ruby-constant">NULL</span><span class="ruby-operator">*</span><span class="ruby-identifier">$2</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$3</span> <span class="ruby-operator">+</span> <span class="ruby-constant">NULL</span><span class="ruby-operator">*</span><span class="ruby-identifier">$2</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$4</span>
+157:       }
+158: 
+159:       <span class="ruby-comment cmt"># then non-matching</span>
+160:       <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">WORD_PAIR_MAP</span>.<span class="ruby-identifier">empty?</span>
+161:         <span class="ruby-constant">WORD_PAIR_MAP</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">regexp</span>, <span class="ruby-identifier">attr</span><span class="ruby-operator">|</span>
+162:           <span class="ruby-identifier">str</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-identifier">regexp</span>) { 
+163:             <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">set_attrs</span>(<span class="ruby-identifier">$`</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$1</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">$2</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">attr</span>)
+164:             <span class="ruby-constant">NULL</span><span class="ruby-operator">*</span><span class="ruby-identifier">$1</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$2</span> <span class="ruby-operator">+</span> <span class="ruby-constant">NULL</span><span class="ruby-operator">*</span><span class="ruby-identifier">$3</span>.<span class="ruby-identifier">length</span>
+165:           }
+166:         <span class="ruby-keyword kw">end</span>
+167:       <span class="ruby-keyword kw">end</span>
+168:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005252" class="method">
+  <div id="M005252_title" class="title">
+    <b>convert_html</b>(str, attrs)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005252_source')" id="l_M005252_source">show source</a> ]</p>
+  <div id="M005252_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 170</span>
+170:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">convert_html</span>(<span class="ruby-identifier">str</span>, <span class="ruby-identifier">attrs</span>)
+171:       <span class="ruby-identifier">tags</span> = <span class="ruby-constant">HTML_TAGS</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">join</span>(<span class="ruby-value str">&quot;|&quot;</span>)
+172:       <span class="ruby-identifier">re</span> = <span class="ruby-node">&quot;&lt;(#{tags})&gt;(.*?)&lt;/\\1&gt;&quot;</span>
+173:       <span class="ruby-value">1</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">str</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">re</span>, <span class="ruby-constant">Regexp</span><span class="ruby-operator">::</span><span class="ruby-constant">IGNORECASE</span>)) {
+174:         <span class="ruby-identifier">attr</span> = <span class="ruby-constant">HTML_TAGS</span>[<span class="ruby-identifier">$1</span>.<span class="ruby-identifier">downcase</span>]
+175:         <span class="ruby-identifier">html_length</span> = <span class="ruby-identifier">$1</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-value">2</span>
+176:         <span class="ruby-identifier">seq</span> = <span class="ruby-constant">NULL</span> <span class="ruby-operator">*</span> <span class="ruby-identifier">html_length</span>
+177:         <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">set_attrs</span>(<span class="ruby-identifier">$`</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">html_length</span>, <span class="ruby-identifier">$2</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">attr</span>)
+178:         <span class="ruby-identifier">seq</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">$2</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">seq</span> <span class="ruby-operator">+</span> <span class="ruby-constant">NULL</span>
+179:       }
+180:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005253" class="method">
+  <div id="M005253_title" class="title">
+    <b>convert_specials</b>(str, attrs)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005253_source')" id="l_M005253_source">show source</a> ]</p>
+  <div id="M005253_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 182</span>
+182:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">convert_specials</span>(<span class="ruby-identifier">str</span>, <span class="ruby-identifier">attrs</span>)
+183:       <span class="ruby-keyword kw">unless</span> <span class="ruby-constant">SPECIAL</span>.<span class="ruby-identifier">empty?</span>
+184:         <span class="ruby-constant">SPECIAL</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">regexp</span>, <span class="ruby-identifier">attr</span><span class="ruby-operator">|</span>
+185:           <span class="ruby-identifier">str</span>.<span class="ruby-identifier">scan</span>(<span class="ruby-identifier">regexp</span>) <span class="ruby-keyword kw">do</span>
+186:             <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">set_attrs</span>(<span class="ruby-identifier">$`</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">$&amp;</span>.<span class="ruby-identifier">length</span>, <span class="ruby-identifier">attr</span> <span class="ruby-operator">|</span> <span class="ruby-constant">Attribute</span><span class="ruby-operator">::</span><span class="ruby-constant">SPECIAL</span>)
+187:           <span class="ruby-keyword kw">end</span>
+188:         <span class="ruby-keyword kw">end</span>
+189:       <span class="ruby-keyword kw">end</span>
+190:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005250" class="method">
+  <div id="M005250_title" class="title">
+    <b>copy_string</b>(start_pos, end_pos)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005250_source')" id="l_M005250_source">show source</a> ]</p>
+  <div id="M005250_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 139</span>
+139:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">copy_string</span>(<span class="ruby-identifier">start_pos</span>, <span class="ruby-identifier">end_pos</span>)
+140:       <span class="ruby-identifier">res</span> = <span class="ruby-ivar">@str</span>[<span class="ruby-identifier">start_pos</span><span class="ruby-operator">...</span><span class="ruby-identifier">end_pos</span>]
+141:       <span class="ruby-identifier">res</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-regexp re">/\000/</span>, <span class="ruby-value str">''</span>)
+142:       <span class="ruby-identifier">res</span>
+143:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005261" class="method">
+  <div id="M005261_title" class="title">
+    <b>display_attributes</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005261_source')" id="l_M005261_source">show source</a> ]</p>
+  <div id="M005261_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 263</span>
+263:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">display_attributes</span>
+264:       <span class="ruby-identifier">puts</span>
+265:       <span class="ruby-identifier">puts</span> <span class="ruby-ivar">@str</span>.<span class="ruby-identifier">tr</span>(<span class="ruby-constant">NULL</span>, <span class="ruby-value str">&quot;!&quot;</span>)
+266:       <span class="ruby-identifier">bit</span> = <span class="ruby-value">1</span>
+267:       <span class="ruby-value">16</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">bno</span><span class="ruby-operator">|</span>
+268:         <span class="ruby-identifier">line</span> = <span class="ruby-value str">&quot;&quot;</span>
+269:         <span class="ruby-ivar">@str</span>.<span class="ruby-identifier">length</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+270:           <span class="ruby-keyword kw">if</span> (<span class="ruby-ivar">@attrs</span>[<span class="ruby-identifier">i</span>] <span class="ruby-operator">&amp;</span> <span class="ruby-identifier">bit</span>) <span class="ruby-operator">==</span> <span class="ruby-value">0</span>
+271:             <span class="ruby-identifier">line</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot; &quot;</span>
+272:           <span class="ruby-keyword kw">else</span>
+273:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">bno</span>.<span class="ruby-identifier">zero?</span>
+274:               <span class="ruby-identifier">line</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;S&quot;</span>
+275:             <span class="ruby-keyword kw">else</span>
+276:               <span class="ruby-identifier">line</span> <span class="ruby-operator">&lt;&lt;</span> (<span class="ruby-value str">&quot;%d&quot;</span> <span class="ruby-operator">%</span> (<span class="ruby-identifier">bno</span><span class="ruby-operator">+</span><span class="ruby-value">1</span>))
+277:             <span class="ruby-keyword kw">end</span>
+278:           <span class="ruby-keyword kw">end</span>
+279:         <span class="ruby-keyword kw">end</span>
+280:         <span class="ruby-identifier">puts</span>(<span class="ruby-identifier">line</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">line</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^ *$/</span>
+281:         <span class="ruby-identifier">bit</span> <span class="ruby-operator">&lt;&lt;=</span> <span class="ruby-value">1</span>
+282:       <span class="ruby-keyword kw">end</span>
+283:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005260" class="method">
+  <div id="M005260_title" class="title">
+    <b>flow</b>(str)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005260_source')" id="l_M005260_source">show source</a> ]</p>
+  <div id="M005260_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 246</span>
+246:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">flow</span>(<span class="ruby-identifier">str</span>)
+247:       <span class="ruby-ivar">@str</span> = <span class="ruby-identifier">str</span>
+248: 
+249:       <span class="ruby-identifier">puts</span>(<span class="ruby-node">&quot;Before flow, str='#{@str.dump}'&quot;</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$DEBUG</span>
+250:       <span class="ruby-identifier">mask_protected_sequences</span>
+251:  
+252:       <span class="ruby-ivar">@attrs</span> = <span class="ruby-constant">AttrSpan</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@str</span>.<span class="ruby-identifier">length</span>)
+253: 
+254:       <span class="ruby-identifier">puts</span>(<span class="ruby-node">&quot;After protecting, str='#{@str.dump}'&quot;</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$DEBUG</span>
+255:       <span class="ruby-identifier">convert_attrs</span>(<span class="ruby-ivar">@str</span>, <span class="ruby-ivar">@attrs</span>)
+256:       <span class="ruby-identifier">convert_html</span>(<span class="ruby-ivar">@str</span>, <span class="ruby-ivar">@attrs</span>)
+257:       <span class="ruby-identifier">convert_specials</span>(<span class="ruby-identifier">str</span>, <span class="ruby-ivar">@attrs</span>)
+258:       <span class="ruby-identifier">unmask_protected_sequences</span>
+259:       <span class="ruby-identifier">puts</span>(<span class="ruby-node">&quot;After flow, str='#{@str.dump}'&quot;</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$DEBUG</span>
+260:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">split_into_flow</span>
+261:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005254" class="method">
+  <div id="M005254_title" class="title">
+    <b>mask_protected_sequences</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005254_source')" id="l_M005254_source">show source</a> ]</p>
+  <div id="M005254_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 199</span>
+199:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">mask_protected_sequences</span>
+200:       <span class="ruby-identifier">protect_pattern</span> = <span class="ruby-constant">Regexp</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;\\\\([#{Regexp.escape(PROTECTABLE.join(''))}])&quot;</span>)
+201:       <span class="ruby-ivar">@str</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-identifier">protect_pattern</span>, <span class="ruby-node">&quot;\\1#{PROTECT_ATTR}&quot;</span>)
+202:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005262" class="method">
+  <div id="M005262_title" class="title">
+    <b>split_into_flow</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005262_source')" id="l_M005262_source">show source</a> ]</p>
+  <div id="M005262_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 285</span>
+285:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">split_into_flow</span>
+286: 
+287:       <span class="ruby-identifier">display_attributes</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$DEBUG</span>
+288: 
+289:       <span class="ruby-identifier">res</span> = []
+290:       <span class="ruby-identifier">current_attr</span> = <span class="ruby-value">0</span>
+291:       <span class="ruby-identifier">str</span> = <span class="ruby-value str">&quot;&quot;</span>
+292: 
+293:       
+294:       <span class="ruby-identifier">str_len</span> = <span class="ruby-ivar">@str</span>.<span class="ruby-identifier">length</span>
+295: 
+296:       <span class="ruby-comment cmt"># skip leading invisible text</span>
+297:       <span class="ruby-identifier">i</span> = <span class="ruby-value">0</span>
+298:       <span class="ruby-identifier">i</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">str_len</span> <span class="ruby-keyword kw">and</span> <span class="ruby-ivar">@str</span>[<span class="ruby-identifier">i</span>].<span class="ruby-identifier">zero?</span>
+299:       <span class="ruby-identifier">start_pos</span> = <span class="ruby-identifier">i</span>
+300: 
+301:       <span class="ruby-comment cmt"># then scan the string, chunking it on attribute changes</span>
+302:       <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">str_len</span>
+303:         <span class="ruby-identifier">new_attr</span> = <span class="ruby-ivar">@attrs</span>[<span class="ruby-identifier">i</span>]
+304:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">new_attr</span> <span class="ruby-operator">!=</span> <span class="ruby-identifier">current_attr</span>
+305:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">start_pos</span>
+306:             <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">copy_string</span>(<span class="ruby-identifier">start_pos</span>, <span class="ruby-identifier">i</span>)
+307:             <span class="ruby-identifier">start_pos</span> = <span class="ruby-identifier">i</span>
+308:           <span class="ruby-keyword kw">end</span>
+309: 
+310:           <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">change_attribute</span>(<span class="ruby-identifier">current_attr</span>, <span class="ruby-identifier">new_attr</span>)
+311:           <span class="ruby-identifier">current_attr</span> = <span class="ruby-identifier">new_attr</span>
+312: 
+313:           <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">current_attr</span> <span class="ruby-operator">&amp;</span> <span class="ruby-constant">Attribute</span><span class="ruby-operator">::</span><span class="ruby-constant">SPECIAL</span>) <span class="ruby-operator">!=</span> <span class="ruby-value">0</span>
+314:             <span class="ruby-identifier">i</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">str_len</span> <span class="ruby-keyword kw">and</span> (<span class="ruby-ivar">@attrs</span>[<span class="ruby-identifier">i</span>] <span class="ruby-operator">&amp;</span> <span class="ruby-constant">Attribute</span><span class="ruby-operator">::</span><span class="ruby-constant">SPECIAL</span>) <span class="ruby-operator">!=</span> <span class="ruby-value">0</span>
+315:             <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Special</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">current_attr</span>, <span class="ruby-identifier">copy_string</span>(<span class="ruby-identifier">start_pos</span>, <span class="ruby-identifier">i</span>))
+316:             <span class="ruby-identifier">start_pos</span> = <span class="ruby-identifier">i</span>
+317:             <span class="ruby-keyword kw">next</span>
+318:           <span class="ruby-keyword kw">end</span>
+319:         <span class="ruby-keyword kw">end</span>
+320: 
+321:         <span class="ruby-comment cmt"># move on, skipping any invisible characters</span>
+322:         <span class="ruby-keyword kw">begin</span>
+323:           <span class="ruby-identifier">i</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+324:         <span class="ruby-keyword kw">end</span> <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">str_len</span> <span class="ruby-keyword kw">and</span> <span class="ruby-ivar">@str</span>[<span class="ruby-identifier">i</span>].<span class="ruby-identifier">zero?</span>
+325:       <span class="ruby-keyword kw">end</span>
+326:       
+327:       <span class="ruby-comment cmt"># tidy up trailing text</span>
+328:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">start_pos</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">str_len</span>
+329:         <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">copy_string</span>(<span class="ruby-identifier">start_pos</span>, <span class="ruby-identifier">str_len</span>)
+330:       <span class="ruby-keyword kw">end</span>
+331: 
+332:       <span class="ruby-comment cmt"># and reset to all attributes off</span>
+333:       <span class="ruby-identifier">res</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">change_attribute</span>(<span class="ruby-identifier">current_attr</span>, <span class="ruby-value">0</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">current_attr</span> <span class="ruby-operator">!=</span> <span class="ruby-value">0</span>
+334: 
+335:       <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">res</span>
+336:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M005255" class="method">
+  <div id="M005255_title" class="title">
+    <b>unmask_protected_sequences</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M005255_source')" id="l_M005255_source">show source</a> ]</p>
+  <div id="M005255_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File ruby-1.8.7-p22/lib/rdoc/markup/simple_markup/inline.rb, line 204</span>
+204:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">unmask_protected_sequences</span>
+205:       <span class="ruby-ivar">@str</span>.<span class="ruby-identifier">gsub!</span>(<span class="ruby-node">/(.)#{PROTECT_ATTR}/</span>, <span class="ruby-value str">&quot;\\1\000&quot;</span>)
+206:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>
