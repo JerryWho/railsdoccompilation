@@ -1,0 +1,274 @@
+  <div id="C00000079">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Document<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/html/document_rb.html');">lib/nokogiri/html/document.rb</a>
+<a href="#" onclick="jsHref('files/ext/nokogiri/html_document_c.html');">ext/nokogiri/html_document.c</a>
+
+Parent:&nbsp;
+XML::Document
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+call-seq:
+</p>
+<pre>
+ type
+</pre>
+<p>
+The type for this document
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000653&name=new" >new</a></li>
+  <li><a href="index.html?a=M000652&name=read_io" >read_io</a></li>
+  <li><a href="index.html?a=M000651&name=read_memory" >read_memory</a></li>
+  <li><a href="index.html?a=M000650&name=serialize" >serialize</a></li>
+  <li><a href="index.html?a=M000654&name=type" >type</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000653" class="method">
+  <div id="M000653_title" class="title">
+    <b>new<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new document
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000653_source')" id="l_M000653_source">show source</a> ]</p>
+  <div id="M000653_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  new
+ *
+ * Create a new document
+ */
+static VALUE new(int argc, VALUE *argv, VALUE klass)
+{
+  VALUE uri, external_id;
+
+  rb_scan_args(argc, argv, &quot;02&quot;, &amp;uri, &amp;external_id);
+
+  htmlDocPtr doc = htmlNewDoc(
+      RTEST(uri) ? (const xmlChar *)StringValuePtr(uri) : NULL,
+      RTEST(external_id) ? (const xmlChar *)StringValuePtr(external_id) : NULL
+  );
+  return Nokogiri_wrap_xml_document(klass, doc);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000652" class="method">
+  <div id="M000652_title" class="title">
+    <b>read_io(io, url, encoding, options)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Read the <a href="index.html?a=C00000066&name=HTML">HTML</a> document from
+<tt>io</tt> with given <tt>url</tt>, <tt>encoding</tt>, and
+<tt>options</tt>. See <a
+href="index.html?a=M000572&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000652_source')" id="l_M000652_source">show source</a> ]</p>
+  <div id="M000652_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  read_io(io, url, encoding, options)
+ *
+ * Read the HTML document from +io+ with given +url+, +encoding+,
+ * and +options+.  See Nokogiri::HTML.parse
+ */
+static VALUE read_io( VALUE klass,
+                      VALUE io,
+                      VALUE url,
+                      VALUE encoding,
+                      VALUE options )
+{
+  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
+  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  VALUE error_list      = rb_ary_new();
+
+  xmlInitParser();
+  xmlResetLastError();
+  xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
+
+  htmlDocPtr doc = htmlReadIO(
+      io_read_callback,
+      io_close_callback,
+      (void *)io,
+      c_url,
+      c_enc,
+      NUM2INT(options)
+  );
+  xmlSetStructuredErrorFunc(NULL, NULL);
+
+  if(doc == NULL) {
+    xmlFreeDoc(doc);
+
+    xmlErrorPtr error = xmlGetLastError();
+    if(error)
+      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
+          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
+      );
+    else
+      rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
+
+    return Qnil;
+  }
+
+  VALUE document = Nokogiri_wrap_xml_document(klass, doc);
+  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  return document;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000651" class="method">
+  <div id="M000651_title" class="title">
+    <b>read_memory(string, url, encoding, options)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Read the <a href="index.html?a=C00000066&name=HTML">HTML</a> document
+contained in <tt>string</tt> with given <tt>url</tt>, <tt>encoding</tt>,
+and <tt>options</tt>. See <a
+href="index.html?a=M000572&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000651_source')" id="l_M000651_source">show source</a> ]</p>
+  <div id="M000651_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  read_memory(string, url, encoding, options)
+ *
+ * Read the HTML document contained in +string+ with given +url+, +encoding+,
+ * and +options+.  See Nokogiri::HTML.parse
+ */
+static VALUE read_memory( VALUE klass,
+                          VALUE string,
+                          VALUE url,
+                          VALUE encoding,
+                          VALUE options )
+{
+  const char * c_buffer = StringValuePtr(string);
+  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
+  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  int len               = RSTRING_LEN(string);
+  VALUE error_list      = rb_ary_new();
+
+  xmlInitParser();
+  xmlResetLastError();
+  xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
+
+  htmlDocPtr doc = htmlReadMemory(c_buffer, len, c_url, c_enc, NUM2INT(options));
+  xmlSetStructuredErrorFunc(NULL, NULL);
+
+  if(doc == NULL) {
+    xmlFreeDoc(doc);
+
+    xmlErrorPtr error = xmlGetLastError();
+    if(error)
+      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
+          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
+      );
+    else
+      rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
+
+    return Qnil;
+  }
+
+  VALUE document = Nokogiri_wrap_xml_document(klass, doc);
+  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  return document;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000650" class="method">
+  <div id="M000650_title" class="title">
+    <b>serialize</b>(encoding = nil, options = XML::Node::SaveOptions::FORMAT | XML::Node::SaveOptions::AS_HTML | XML::Node::SaveOptions::NO_DECLARATION | XML::Node::SaveOptions::NO_EMPTY_TAGS)
+  </div>
+  <div class="description">
+  <p>
+Serialize this <a href="index.html?a=C00000079&name=Document">Document</a>
+with <tt>encoding</tt> using <tt>options</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000650_source')" id="l_M000650_source">show source</a> ]</p>
+  <div id="M000650_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 6</span>
+ 6:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">serialize</span> <span class="ruby-identifier">encoding</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">options</span> = <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">FORMAT</span> <span class="ruby-operator">|</span>
+ 7:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">AS_HTML</span> <span class="ruby-operator">|</span>
+ 8:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_DECLARATION</span> <span class="ruby-operator">|</span>
+ 9:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_EMPTY_TAGS</span>
+10: 
+11:         <span class="ruby-keyword kw">super</span>(<span class="ruby-identifier">encoding</span>, <span class="ruby-identifier">options</span>)
+12:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000654" class="method">
+  <div id="M000654_title" class="title">
+    <b>type<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+The type for this document
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000654_source')" id="l_M000654_source">show source</a> ]</p>
+  <div id="M000654_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  type
+ *
+ * The type for this document
+ */
+static VALUE type(VALUE self)
+{
+  htmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+  return INT2NUM((int)doc-&gt;type);
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

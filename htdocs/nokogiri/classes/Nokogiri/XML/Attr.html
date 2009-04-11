@@ -1,0 +1,141 @@
+  <div id="C00000054">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Attr<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/xml/attr_rb.html');">lib/nokogiri/xml/attr.rb</a>
+<a href="#" onclick="jsHref('files/ext/nokogiri/xml_xpath_context_c.html');">ext/nokogiri/xml_xpath_context.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Nokogiri/CSS/Node.html');">
+Node
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00000054&name=Attr">Attr</a> represents a <a
+href="index.html?a=C00000054&name=Attr">Attr</a> node in an xml document.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000477&name=new" >new</a></li>
+  <li><a href="index.html?a=M000478&name=value=" >value=</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000477" class="method">
+  <div id="M000477_title" class="title">
+    <b>new(document, content)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new <a href="index.html?a=C00000054&name=Attr">Attr</a> element on
+the <tt>document</tt> with <tt>name</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000477_source')" id="l_M000477_source">show source</a> ]</p>
+  <div id="M000477_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  new(document, content)
+ *
+ * Create a new Attr element on the +document+ with +name+
+ */
+static VALUE new(VALUE klass, VALUE doc, VALUE name)
+{
+  xmlDocPtr xml_doc;
+  Data_Get_Struct(doc, xmlDoc, xml_doc);
+
+  xmlAttrPtr node = xmlNewDocProp(
+      xml_doc,
+      (const xmlChar *)StringValuePtr(name),
+      NULL
+  );
+
+  VALUE rb_node = Nokogiri_wrap_xml_node((xmlNodePtr)node);
+
+  if(rb_block_given_p()) rb_yield(rb_node);
+
+  return rb_node;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000478" class="method">
+  <div id="M000478_title" class="title">
+    <b>value=(content)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Set the value for this <a href="index.html?a=C00000054&name=Attr">Attr</a>
+to <tt>content</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000478_source')" id="l_M000478_source">show source</a> ]</p>
+  <div id="M000478_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  value=(content)
+ *
+ * Set the value for this Attr to +content+
+ */
+static VALUE set_value(VALUE self, VALUE content)
+{
+  xmlAttrPtr attr;
+  Data_Get_Struct(self, xmlAttr, attr);
+
+  if(attr-&gt;children) xmlFreeNodeList(attr-&gt;children);
+
+  attr-&gt;children = attr-&gt;last = NULL;
+
+  if(content) {
+    xmlChar *buffer;
+    xmlNode *tmp;
+
+    // Encode our content
+    buffer = xmlEncodeEntitiesReentrant(attr-&gt;doc, (unsigned char *)StringValuePtr(content));
+
+    attr-&gt;children = xmlStringGetNodeList(attr-&gt;doc, buffer);
+    attr-&gt;last = NULL;
+    tmp = attr-&gt;children;
+
+    // Loop through the children
+    for(tmp = attr-&gt;children; tmp; tmp = tmp-&gt;next) {
+      tmp-&gt;parent = (xmlNode *)attr;
+      tmp-&gt;doc = attr-&gt;doc;
+      if(tmp-&gt;next == NULL) attr-&gt;last = tmp;
+    }
+
+    // Free up memory
+    xmlFree(buffer);
+  }
+
+  return content;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

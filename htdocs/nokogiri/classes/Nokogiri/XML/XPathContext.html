@@ -1,0 +1,211 @@
+  <div id="C00000029">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />XPathContext<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/xml/xpath_context_rb.html');">lib/nokogiri/xml/xpath_context.rb</a>
+<a href="#" onclick="jsHref('files/ext/nokogiri/xml_xpath_context_c.html');">ext/nokogiri/xml_xpath_context.c</a>
+
+Parent:&nbsp;
+Object
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00000029&name=XPathContext">XPathContext</a> is the
+entry point for searching a <a
+href="index.html?a=C00000064&name=Document">Document</a> by using <a
+href="index.html?a=C00000058&name=XPath">XPath</a>.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000199&name=evaluate" >evaluate</a></li>
+  <li><a href="index.html?a=M000198&name=new" >new</a></li>
+  <li><a href="index.html?a=M000197&name=register_namespaces" >register_namespaces</a></li>
+  <li><a href="index.html?a=M000200&name=register_ns" >register_ns</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000198" class="method">
+  <div id="M000198_title" class="title">
+    <b>new(node)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new <a
+href="index.html?a=C00000029&name=XPathContext">XPathContext</a> with
+<tt>node</tt> as the reference point.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000198_source')" id="l_M000198_source">show source</a> ]</p>
+  <div id="M000198_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  new(node)
+ *
+ * Create a new XPathContext with +node+ as the reference point.
+ */
+static VALUE new(VALUE klass, VALUE nodeobj)
+{
+  xmlXPathInit();
+
+  xmlNodePtr node ;
+  Data_Get_Struct(nodeobj, xmlNode, node);
+
+  xmlXPathContextPtr ctx = xmlXPathNewContext(node-&gt;doc);
+  ctx-&gt;node = node;
+  VALUE self = Data_Wrap_Struct(klass, 0, deallocate, ctx);
+  //rb_iv_set(self, &quot;@xpath_handler&quot;, Qnil);
+  return self;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000199" class="method">
+  <div id="M000199_title" class="title">
+    <b>evaluate(search_path)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Evaluate the <tt>search_path</tt> returning an <a
+href="index.html?a=C00000058&name=XML::XPath">XML::XPath</a> object.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000199_source')" id="l_M000199_source">show source</a> ]</p>
+  <div id="M000199_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  evaluate(search_path)
+ *
+ * Evaluate the +search_path+ returning an XML::XPath object.
+ */
+static VALUE evaluate(int argc, VALUE *argv, VALUE self)
+{
+  VALUE search_path, xpath_handler;
+  xmlXPathContextPtr ctx;
+  Data_Get_Struct(self, xmlXPathContext, ctx);
+
+  if(rb_scan_args(argc, argv, &quot;11&quot;, &amp;search_path, &amp;xpath_handler) == 1)
+    xpath_handler = Qnil;
+
+  xmlChar* query = (xmlChar *)StringValuePtr(search_path);
+
+  if(Qnil != xpath_handler) {
+    // FIXME: not sure if this is the correct place to shove private data.
+    ctx-&gt;userData = (void *)xpath_handler;
+    xmlXPathRegisterFuncLookup(ctx, lookup, (void *)xpath_handler);
+  }
+
+  xmlResetLastError();
+  xmlSetStructuredErrorFunc(NULL, xpath_exception_handler);
+
+  // For some reason, xmlXPathEvalExpression will blow up with a generic error
+  // when there is a non existent function.
+  xmlSetGenericErrorFunc(NULL, xpath_generic_exception_handler);
+
+  xmlXPathObjectPtr xpath = xmlXPathEvalExpression(query, ctx);
+  xmlSetStructuredErrorFunc(NULL, NULL);
+  xmlSetGenericErrorFunc(NULL, NULL);
+
+  if(xpath == NULL) {
+    VALUE xpath = rb_const_get(mNokogiriXml, rb_intern(&quot;XPath&quot;));
+    VALUE klass = rb_const_get(xpath, rb_intern(&quot;SyntaxError&quot;));
+
+    xmlErrorPtr error = xmlGetLastError();
+    rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
+        Nokogiri_wrap_xml_syntax_error(klass, error)
+    );
+  }
+
+  VALUE xpath_object = Nokogiri_wrap_xml_xpath(xpath);
+
+  assert(ctx-&gt;doc);
+  assert(DOC_RUBY_OBJECT_TEST(ctx-&gt;doc));
+
+  rb_funcall( xpath_object,
+              rb_intern(&quot;document=&quot;),
+              1,
+              DOC_RUBY_OBJECT(ctx-&gt;doc)
+   );
+  return xpath_object;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000197" class="method">
+  <div id="M000197_title" class="title">
+    <b>register_namespaces</b>(namespaces)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000197_source')" id="l_M000197_source">show source</a> ]</p>
+  <div id="M000197_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/xpath_context.rb, line 5</span>
+ 5:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">register_namespaces</span>(<span class="ruby-identifier">namespaces</span>)
+ 6:         <span class="ruby-identifier">namespaces</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">k</span>, <span class="ruby-identifier">v</span><span class="ruby-operator">|</span>
+ 7:           <span class="ruby-identifier">k</span> = <span class="ruby-identifier">k</span>.<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp re">/.*:/</span>,<span class="ruby-value str">''</span>) <span class="ruby-comment cmt"># strip off 'xmlns:' or 'xml:'</span>
+ 8:           <span class="ruby-identifier">register_ns</span>(<span class="ruby-identifier">k</span>, <span class="ruby-identifier">v</span>)
+ 9:         <span class="ruby-keyword kw">end</span>
+10:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000200" class="method">
+  <div id="M000200_title" class="title">
+    <b>register_ns(prefix, uri)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Register the namespace with <tt>prefix</tt> and <tt>uri</tt>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000200_source')" id="l_M000200_source">show source</a> ]</p>
+  <div id="M000200_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  register_ns(prefix, uri)
+ *
+ * Register the namespace with +prefix+ and +uri+.
+ */
+static VALUE register_ns(VALUE self, VALUE prefix, VALUE uri)
+{
+  xmlXPathContextPtr ctx;
+  Data_Get_Struct(self, xmlXPathContext, ctx);
+
+  xmlXPathRegisterNs( ctx,
+                      (const xmlChar *)StringValuePtr(prefix),
+                      (const xmlChar *)StringValuePtr(uri)
+  );
+  return self;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

@@ -1,0 +1,609 @@
+  <div id="C00000064">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Document<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/xml/document_rb.html');">lib/nokogiri/xml/document.rb</a>
+<a href="#" onclick="jsHref('files/ext/nokogiri/xml_xpath_context_c.html');">ext/nokogiri/xml_xpath_context.c</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Nokogiri/CSS/Node.html');">
+Node
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a
+href="index.html?a=C00000064&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
+wraps an xml document.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000560&name=decorate" >decorate</a></li>
+  <li><a href="index.html?a=M000558&name=decorators" >decorators</a></li>
+  <li><a href="index.html?a=M000557&name=document" >document</a></li>
+  <li><a href="index.html?a=M000570&name=dup" >dup</a></li>
+  <li><a href="index.html?a=M000569&name=encoding" >encoding</a></li>
+  <li><a href="index.html?a=M000566&name=load_external_subsets=" >load_external_subsets=</a></li>
+  <li><a href="index.html?a=M000556&name=name" >name</a></li>
+  <li><a href="index.html?a=M000561&name=namespaces" >namespaces</a></li>
+  <li><a href="index.html?a=M000564&name=new" >new</a></li>
+  <li><a href="index.html?a=M000563&name=read_io" >read_io</a></li>
+  <li><a href="index.html?a=M000562&name=read_memory" >read_memory</a></li>
+  <li><a href="index.html?a=M000567&name=root" >root</a></li>
+  <li><a href="index.html?a=M000568&name=root=" >root=</a></li>
+  <li><a href="index.html?a=M000559&name=slop!" >slop!</a></li>
+  <li><a href="index.html?a=M000565&name=substitute_entities=" >substitute_entities=</a></li>
+  <li><a href="index.html?a=M000571&name=url" >url</a></li>
+  </ul>
+
+
+
+
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[RW]
+    </td>
+    <td class='attr-name'>errors</td>
+    <td class='attr-desc'>
+A list of <a
+href="index.html?a=C00000057&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
+found when parsing a document
+
+</td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000566" class="method">
+  <div id="M000566_title" class="title">
+    <b>load_external_subsets=(boolean)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Set the global <a href="index.html?a=C00000018&name=XML">XML</a> default
+for load external subsets.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000566_source')" id="l_M000566_source">show source</a> ]</p>
+  <div id="M000566_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    load_external_subsets=(boolean)
+ *
+ *  Set the global XML default for load external subsets.
+ */
+static VALUE load_external_subsets_set(VALUE klass, VALUE value)
+{
+    xmlLoadExtDtdDefaultValue = NUM2INT(value);
+    return Qnil ;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000564" class="method">
+  <div id="M000564_title" class="title">
+    <b>new<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new document
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000564_source')" id="l_M000564_source">show source</a> ]</p>
+  <div id="M000564_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  new
+ *
+ * Create a new document
+ */
+static VALUE new(int argc, VALUE *argv, VALUE klass)
+{
+  VALUE version;
+  if(rb_scan_args(argc, argv, &quot;01&quot;, &amp;version) == 0)
+    version = rb_str_new2(&quot;1.0&quot;);
+
+  xmlDocPtr doc = xmlNewDoc((xmlChar *)StringValuePtr(version));
+  return Nokogiri_wrap_xml_document(klass, doc);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000563" class="method">
+  <div id="M000563_title" class="title">
+    <b>read_io(io, url, encoding, options)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new document from an IO object
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000563_source')" id="l_M000563_source">show source</a> ]</p>
+  <div id="M000563_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  read_io(io, url, encoding, options)
+ *
+ * Create a new document from an IO object
+ */
+static VALUE read_io( VALUE klass,
+                      VALUE io,
+                      VALUE url,
+                      VALUE encoding,
+                      VALUE options )
+{
+  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
+  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  VALUE error_list      = rb_ary_new();
+
+  xmlInitParser();
+  xmlResetLastError();
+  xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
+
+  xmlDocPtr doc = xmlReadIO(
+      (xmlInputReadCallback)io_read_callback,
+      (xmlInputCloseCallback)io_close_callback,
+      (void *)io,
+      c_url,
+      c_enc,
+      NUM2INT(options)
+  );
+  xmlSetStructuredErrorFunc(NULL, NULL);
+
+  if(doc == NULL) {
+    xmlFreeDoc(doc);
+
+    xmlErrorPtr error = xmlGetLastError();
+    if(error)
+      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
+          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
+      );
+    else
+      rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
+
+    return Qnil;
+  }
+
+  VALUE document = Nokogiri_wrap_xml_document(klass, doc);
+  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  return document;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000562" class="method">
+  <div id="M000562_title" class="title">
+    <b>read_memory(string, url, encoding, options)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Create a new document from a String
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000562_source')" id="l_M000562_source">show source</a> ]</p>
+  <div id="M000562_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  read_memory(string, url, encoding, options)
+ *
+ * Create a new document from a String
+ */
+static VALUE read_memory( VALUE klass,
+                          VALUE string,
+                          VALUE url,
+                          VALUE encoding,
+                          VALUE options )
+{
+  const char * c_buffer = StringValuePtr(string);
+  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
+  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  int len               = RSTRING_LEN(string);
+  VALUE error_list      = rb_ary_new();
+
+  xmlInitParser();
+  xmlResetLastError();
+  xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
+  xmlDocPtr doc = xmlReadMemory(c_buffer, len, c_url, c_enc, NUM2INT(options));
+  xmlSetStructuredErrorFunc(NULL, NULL);
+
+  if(doc == NULL) {
+    xmlFreeDoc(doc);
+
+    xmlErrorPtr error = xmlGetLastError();
+    if(error)
+      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
+          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
+      );
+    else
+      rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
+
+    return Qnil;
+  }
+
+  VALUE document = Nokogiri_wrap_xml_document(klass, doc);
+  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  return document;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000565" class="method">
+  <div id="M000565_title" class="title">
+    <b>substitute_entities=(boolean)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Set the global <a href="index.html?a=C00000018&name=XML">XML</a> default
+for substitute entities.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000565_source')" id="l_M000565_source">show source</a> ]</p>
+  <div id="M000565_source" class="dyn-source">
+<pre>
+/*
+ *  call-seq:
+ *    substitute_entities=(boolean)
+ *
+ *  Set the global XML default for substitute entities.
+ */
+static VALUE substitute_entities_set(VALUE klass, VALUE value)
+{
+    xmlSubstituteEntitiesDefault(NUM2INT(value));
+    return Qnil ;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000560" class="method">
+  <div id="M000560_title" class="title">
+    <b>decorate</b>(node)
+  </div>
+  <div class="description">
+  <p>
+Apply any decorators to <tt>node</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000560_source')" id="l_M000560_source">show source</a> ]</p>
+  <div id="M000560_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 43</span>
+43:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">decorate</span>(<span class="ruby-identifier">node</span>)
+44:         <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-ivar">@decorators</span>
+45:         <span class="ruby-ivar">@decorators</span>.<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">klass</span>,<span class="ruby-identifier">list</span><span class="ruby-operator">|</span>
+46:           <span class="ruby-keyword kw">next</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">node</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-identifier">klass</span>)
+47:           <span class="ruby-identifier">list</span>.<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">moodule</span><span class="ruby-operator">|</span> <span class="ruby-identifier">node</span>.<span class="ruby-identifier">extend</span>(<span class="ruby-identifier">moodule</span>) }
+48:         }
+49:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000558" class="method">
+  <div id="M000558_title" class="title">
+    <b>decorators</b>(key)
+  </div>
+  <div class="description">
+  <p>
+Get the list of decorators given <tt>key</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000558_source')" id="l_M000558_source">show source</a> ]</p>
+  <div id="M000558_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 25</span>
+25:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">decorators</span>(<span class="ruby-identifier">key</span>)
+26:         <span class="ruby-ivar">@decorators</span> <span class="ruby-operator">||=</span> <span class="ruby-constant">Hash</span>.<span class="ruby-identifier">new</span>
+27:         <span class="ruby-ivar">@decorators</span>[<span class="ruby-identifier">key</span>] <span class="ruby-operator">||=</span> []
+28:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000557" class="method">
+  <div id="M000557_title" class="title">
+    <b>document</b>()
+  </div>
+  <div class="description">
+  <p>
+A reference to <tt>self</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000557_source')" id="l_M000557_source">show source</a> ]</p>
+  <div id="M000557_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 20</span>
+20:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">document</span>
+21:         <span class="ruby-keyword kw">self</span>
+22:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000570" class="method">
+  <div id="M000570_title" class="title">
+    <b>dup<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Copy this <a href="index.html?a=C00000064&name=Document">Document</a>. An
+optional depth may be passed in, but it defaults to a deep copy. 0 is a
+shallow copy, 1 is a deep copy.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000570_source')" id="l_M000570_source">show source</a> ]</p>
+  <div id="M000570_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  dup
+ *
+ * Copy this Document.  An optional depth may be passed in, but it defaults
+ * to a deep copy.  0 is a shallow copy, 1 is a deep copy.
+ */
+static VALUE duplicate_node(int argc, VALUE *argv, VALUE self)
+{
+  VALUE level;
+
+  if(rb_scan_args(argc, argv, &quot;01&quot;, &amp;level) == 0)
+    level = INT2NUM(1);
+
+  xmlDocPtr doc, dup;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  dup = xmlCopyDoc(doc, NUM2INT(level));
+  if(dup == NULL) return Qnil;
+
+  dup-&gt;type = doc-&gt;type;
+  if(dup-&gt;type == XML_DOCUMENT_NODE)
+    return Nokogiri_wrap_xml_document(cNokogiriXmlDocument, dup);
+  else
+    return Nokogiri_wrap_xml_document(cNokogiriHtmlDocument, dup);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000569" class="method">
+  <div id="M000569_title" class="title">
+    <b>encoding<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Get the encoding for this <a
+href="index.html?a=C00000064&name=Document">Document</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000569_source')" id="l_M000569_source">show source</a> ]</p>
+  <div id="M000569_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  encoding
+ *
+ * Get the encoding for this Document
+ */
+static VALUE encoding(VALUE self)
+{
+  xmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  if(!doc-&gt;encoding) return Qnil;
+  return NOKOGIRI_STR_NEW2(doc-&gt;encoding, doc-&gt;encoding);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000556" class="method">
+  <div id="M000556_title" class="title">
+    <b>name</b>()
+  </div>
+  <div class="description">
+  <p>
+The name of this document. Always returns &quot;document&quot;
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000556_source')" id="l_M000556_source">show source</a> ]</p>
+  <div id="M000556_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 15</span>
+15:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">name</span>
+16:         <span class="ruby-value str">'document'</span>
+17:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000561" class="method">
+  <div id="M000561_title" class="title">
+    <b>namespaces</b>()
+  </div>
+  <div class="description">
+  <p>
+Get the hash of namespaces on the root <a
+href="index.html?a=C00000042&name=Nokogiri::XML::Node">Nokogiri::XML::Node</a>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000561_source')" id="l_M000561_source">show source</a> ]</p>
+  <div id="M000561_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 59</span>
+59:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">namespaces</span>
+60:         <span class="ruby-identifier">root</span> <span class="ruby-value">? </span><span class="ruby-identifier">root</span>.<span class="ruby-identifier">collect_namespaces</span> <span class="ruby-operator">:</span> {}
+61:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000567" class="method">
+  <div id="M000567_title" class="title">
+    <b>root<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Get the root node for this document.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000567_source')" id="l_M000567_source">show source</a> ]</p>
+  <div id="M000567_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  root
+ *
+ * Get the root node for this document.
+ */
+static VALUE root(VALUE self)
+{
+  xmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  xmlNodePtr root = xmlDocGetRootElement(doc);
+
+  if(!root) return Qnil;
+  return Nokogiri_wrap_xml_node(root) ;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000568" class="method">
+  <div id="M000568_title" class="title">
+    <b>root=<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Set the root element on this document
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000568_source')" id="l_M000568_source">show source</a> ]</p>
+  <div id="M000568_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  root=
+ *
+ * Set the root element on this document
+ */
+static VALUE set_root(VALUE self, VALUE root)
+{
+  xmlDocPtr doc;
+  xmlNodePtr new_root;
+
+  Data_Get_Struct(self, xmlDoc, doc);
+  Data_Get_Struct(root, xmlNode, new_root);
+
+  xmlDocSetRootElement(doc, new_root);
+  return root;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000559" class="method">
+  <div id="M000559_title" class="title">
+    <b>slop!</b>()
+  </div>
+  <div class="description">
+  <p>
+Explore a document with shortcut methods.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000559_source')" id="l_M000559_source">show source</a> ]</p>
+  <div id="M000559_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/document.rb, line 32</span>
+32:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">slop!</span>
+33:         <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">decorators</span>(<span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>).<span class="ruby-identifier">include?</span> <span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">Decorators</span><span class="ruby-operator">::</span><span class="ruby-constant">Slop</span>
+34:           <span class="ruby-identifier">decorators</span>(<span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>) <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">Decorators</span><span class="ruby-operator">::</span><span class="ruby-constant">Slop</span>
+35:           <span class="ruby-identifier">decorate!</span>
+36:         <span class="ruby-keyword kw">end</span>
+37: 
+38:         <span class="ruby-keyword kw">self</span>
+39:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000571" class="method">
+  <div id="M000571_title" class="title">
+    <b>url<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Get the url name for this document.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000571_source')" id="l_M000571_source">show source</a> ]</p>
+  <div id="M000571_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  url
+ *
+ * Get the url name for this document.
+ */
+static VALUE url(VALUE self)
+{
+  xmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  if(doc-&gt;URL)
+    return NOKOGIRI_STR_NEW2(doc-&gt;URL, doc-&gt;encoding);
+
+  return Qnil;
+}
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>
