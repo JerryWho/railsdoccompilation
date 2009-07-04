@@ -1,7 +1,8 @@
-  <div id="C00000079">
+  <div id="C00000093">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Document<br/>
   In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/ffi/html/document_rb.html');">lib/nokogiri/ffi/html/document.rb</a>
 <a href="#" onclick="jsHref('files/lib/nokogiri/html/document_rb.html');">lib/nokogiri/html/document.rb</a>
 <a href="#" onclick="jsHref('files/ext/nokogiri/html_document_c.html');">ext/nokogiri/html_document.c</a>
 
@@ -17,10 +18,10 @@ XML::Document
 call-seq:
 </p>
 <pre>
- type
+ meta_encoding
 </pre>
 <p>
-The type for this document
+Get the meta tag encoding for this document.
 </p>
 </div>
 
@@ -28,11 +29,16 @@ The type for this document
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000653&name=new" >new</a></li>
-  <li><a href="index.html?a=M000652&name=read_io" >read_io</a></li>
-  <li><a href="index.html?a=M000651&name=read_memory" >read_memory</a></li>
-  <li><a href="index.html?a=M000650&name=serialize" >serialize</a></li>
-  <li><a href="index.html?a=M000654&name=type" >type</a></li>
+  <li><a href="index.html?a=M000928&name=fragment" >fragment</a></li>
+  <li><a href="index.html?a=M000934&name=meta_encoding" >meta_encoding</a></li>
+  <li><a href="index.html?a=M000935&name=meta_encoding=" >meta_encoding=</a></li>
+  <li><a href="index.html?a=M000932&name=new" >new</a></li>
+  <li><a href="index.html?a=M000926&name=new" >new</a></li>
+  <li><a href="index.html?a=M000929&name=parse" >parse</a></li>
+  <li><a href="index.html?a=M000931&name=read_io" >read_io</a></li>
+  <li><a href="index.html?a=M000930&name=read_memory" >read_memory</a></li>
+  <li><a href="index.html?a=M000927&name=serialize" >serialize</a></li>
+  <li><a href="index.html?a=M000933&name=type" >type</a></li>
   </ul>
 
 
@@ -41,8 +47,8 @@ The type for this document
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000653" class="method">
-  <div id="M000653_title" class="title">
+<div id="M000932" class="method">
+  <div id="M000932_title" class="title">
     <b>new<br />
 </b>
   </div>
@@ -52,8 +58,8 @@ Create a new document
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000653_source')" id="l_M000653_source">show source</a> ]</p>
-  <div id="M000653_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000932_source')" id="l_M000932_source">show source</a> ]</p>
+  <div id="M000932_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -63,36 +69,99 @@ Create a new document
  */
 static VALUE new(int argc, VALUE *argv, VALUE klass)
 {
-  VALUE uri, external_id;
+  VALUE uri, external_id, rest, rb_doc;
 
-  rb_scan_args(argc, argv, &quot;02&quot;, &amp;uri, &amp;external_id);
+  rb_scan_args(argc, argv, &quot;0*&quot;, &amp;rest);
+  uri         = rb_ary_entry(rest, 0);
+  external_id = rb_ary_entry(rest, 1);
 
   htmlDocPtr doc = htmlNewDoc(
       RTEST(uri) ? (const xmlChar *)StringValuePtr(uri) : NULL,
       RTEST(external_id) ? (const xmlChar *)StringValuePtr(external_id) : NULL
   );
-  return Nokogiri_wrap_xml_document(klass, doc);
+  rb_doc = Nokogiri_wrap_xml_document(klass, doc);
+  rb_funcall2(rb_doc, rb_intern(&quot;initialize&quot;), argc, argv);
+  return rb_doc ;
 }
 </pre>
   </div>
 </div>
 </div>
-<div id="M000652" class="method">
-  <div id="M000652_title" class="title">
+<div id="M000926" class="method">
+  <div id="M000926_title" class="title">
+    <b>new</b>(*args)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000926_source')" id="l_M000926_source">show source</a> ]</p>
+  <div id="M000926_source" class="dyn-source">
+<pre>
+   <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 5</span>
+5:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span> <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>
+6:         <span class="ruby-keyword kw">super</span>
+7:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000929" class="method">
+  <div id="M000929_title" class="title">
+    <b>parse</b>(string_or_io, url = nil, encoding = nil, options = XML::ParseOptions::DEFAULT_HTML) {|options if block_given?| ...}
+  </div>
+  <div class="description">
+  <p>
+Parse <a href="index.html?a=C00000077&name=HTML">HTML</a>. <tt>thing</tt>
+may be a String, or any object that responds to <em>read</em> and
+<em>close</em> such as an IO, or StringIO. <tt>url</tt> is resource where
+this document is located. <tt>encoding</tt> is the encoding that should be
+used when processing the document. <tt>options</tt> is a number that sets
+options in the parser, such as Nokogiri::XML::ParseOptions::RECOVER. See
+the constants in <a
+href="index.html?a=C00000044&name=Nokogiri::XML::ParseOptions">Nokogiri::XML::ParseOptions</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000929_source')" id="l_M000929_source">show source</a> ]</p>
+  <div id="M000929_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 50</span>
+50:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parse</span> <span class="ruby-identifier">string_or_io</span>, <span class="ruby-identifier">url</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">encoding</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">options</span> = <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">ParseOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">DEFAULT_HTML</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>
+51: 
+52:           <span class="ruby-identifier">options</span> = <span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">ParseOptions</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">options</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-constant">Fixnum</span> <span class="ruby-operator">===</span> <span class="ruby-identifier">options</span>
+53:           <span class="ruby-comment cmt"># Give the options to the user</span>
+54:           <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">options</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+55: 
+56:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:encoding</span>)
+57:             <span class="ruby-identifier">encoding</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">encoding</span>.<span class="ruby-identifier">name</span>
+58:           <span class="ruby-keyword kw">end</span>
+59: 
+60:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:read</span>)
+61:             <span class="ruby-identifier">url</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:path</span>) <span class="ruby-operator">?</span> <span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">path</span> <span class="ruby-operator">:</span> <span class="ruby-keyword kw">nil</span>
+62:             <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">read_io</span>(<span class="ruby-identifier">string_or_io</span>, <span class="ruby-identifier">url</span>, <span class="ruby-identifier">encoding</span>, <span class="ruby-identifier">options</span>.<span class="ruby-identifier">to_i</span>)
+63:           <span class="ruby-keyword kw">end</span>
+64: 
+65:           <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">if</span>(<span class="ruby-identifier">string_or_io</span>.<span class="ruby-identifier">length</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span>)
+66:           <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">read_memory</span>(<span class="ruby-identifier">string_or_io</span>, <span class="ruby-identifier">url</span>, <span class="ruby-identifier">encoding</span>, <span class="ruby-identifier">options</span>.<span class="ruby-identifier">to_i</span>)
+67:         <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000931" class="method">
+  <div id="M000931_title" class="title">
     <b>read_io(io, url, encoding, options)<br />
 </b>
   </div>
   <div class="description">
   <p>
-Read the <a href="index.html?a=C00000066&name=HTML">HTML</a> document from
+Read the <a href="index.html?a=C00000077&name=HTML">HTML</a> document from
 <tt>io</tt> with given <tt>url</tt>, <tt>encoding</tt>, and
 <tt>options</tt>. See <a
-href="index.html?a=M000572&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
+href="index.html?a=M000777&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000652_source')" id="l_M000652_source">show source</a> ]</p>
-  <div id="M000652_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000931_source')" id="l_M000931_source">show source</a> ]</p>
+  <div id="M000931_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -147,22 +216,22 @@ static VALUE read_io( VALUE klass,
   </div>
 </div>
 </div>
-<div id="M000651" class="method">
-  <div id="M000651_title" class="title">
+<div id="M000930" class="method">
+  <div id="M000930_title" class="title">
     <b>read_memory(string, url, encoding, options)<br />
 </b>
   </div>
   <div class="description">
   <p>
-Read the <a href="index.html?a=C00000066&name=HTML">HTML</a> document
+Read the <a href="index.html?a=C00000077&name=HTML">HTML</a> document
 contained in <tt>string</tt> with given <tt>url</tt>, <tt>encoding</tt>,
 and <tt>options</tt>. See <a
-href="index.html?a=M000572&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
+href="index.html?a=M000777&name=Nokogiri::HTML.parse">Nokogiri::HTML.parse</a>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000651_source')" id="l_M000651_source">show source</a> ]</p>
-  <div id="M000651_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000930_source')" id="l_M000930_source">show source</a> ]</p>
+  <div id="M000930_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -213,34 +282,128 @@ static VALUE read_memory( VALUE klass,
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000650" class="method">
-  <div id="M000650_title" class="title">
-    <b>serialize</b>(encoding = nil, options = XML::Node::SaveOptions::FORMAT | XML::Node::SaveOptions::AS_HTML | XML::Node::SaveOptions::NO_DECLARATION | XML::Node::SaveOptions::NO_EMPTY_TAGS)
+<div id="M000928" class="method">
+  <div id="M000928_title" class="title">
+    <b>fragment</b>(tags)
   </div>
   <div class="description">
   <p>
-Serialize this <a href="index.html?a=C00000079&name=Document">Document</a>
-with <tt>encoding</tt> using <tt>options</tt>
+Create a <a
+href="index.html?a=C00000031&name=Nokogiri::XML::DocumentFragment">Nokogiri::XML::DocumentFragment</a>
+from <tt>tags</tt>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000650_source')" id="l_M000650_source">show source</a> ]</p>
-  <div id="M000650_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000928_source')" id="l_M000928_source">show source</a> ]</p>
+  <div id="M000928_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 6</span>
- 6:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">serialize</span> <span class="ruby-identifier">encoding</span> = <span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">options</span> = <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">FORMAT</span> <span class="ruby-operator">|</span>
- 7:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">AS_HTML</span> <span class="ruby-operator">|</span>
- 8:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_DECLARATION</span> <span class="ruby-operator">|</span>
- 9:         <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_EMPTY_TAGS</span>
-10: 
-11:         <span class="ruby-keyword kw">super</span>(<span class="ruby-identifier">encoding</span>, <span class="ruby-identifier">options</span>)
-12:       <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 37</span>
+37:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">fragment</span> <span class="ruby-identifier">tags</span>
+38:         <span class="ruby-constant">DocumentFragment</span>.<span class="ruby-identifier">new</span>(<span class="ruby-keyword kw">self</span>, <span class="ruby-identifier">tags</span>)
+39:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000654" class="method">
-  <div id="M000654_title" class="title">
+<div id="M000934" class="method">
+  <div id="M000934_title" class="title">
+    <b>meta_encoding<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Get the meta tag encoding for this document.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000934_source')" id="l_M000934_source">show source</a> ]</p>
+  <div id="M000934_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  meta_encoding
+ *
+ * Get the meta tag encoding for this document.
+ */
+static VALUE meta_encoding(VALUE self)
+{
+  htmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  return NOKOGIRI_STR_NEW2(htmlGetMetaEncoding(doc), doc-&gt;encoding);
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000935" class="method">
+  <div id="M000935_title" class="title">
+    <b>meta_encoding=<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Set the meta tag encoding for this document.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000935_source')" id="l_M000935_source">show source</a> ]</p>
+  <div id="M000935_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  meta_encoding=
+ *
+ * Set the meta tag encoding for this document.
+ */
+static VALUE set_meta_encoding(VALUE self, VALUE encoding)
+{
+  htmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  htmlSetMetaEncoding(doc, (const xmlChar *)StringValuePtr(encoding));
+
+  return encoding;
+}
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000927" class="method">
+  <div id="M000927_title" class="title">
+    <b>serialize</b>(*args)
+  </div>
+  <div class="description">
+  <p>
+Serialize this <a href="index.html?a=C00000093&name=Document">Document</a>
+with <tt>encoding</tt> using <tt>options</tt>
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000927_source')" id="l_M000927_source">show source</a> ]</p>
+  <div id="M000927_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/nokogiri/html/document.rb, line 11</span>
+11:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">serialize</span> <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>
+12:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">args</span>.<span class="ruby-identifier">first</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-operator">!</span><span class="ruby-identifier">args</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>)
+13:           <span class="ruby-identifier">$stderr</span>.<span class="ruby-identifier">puts</span>(<span class="ruby-value str">&quot;\#{self.class}#serialize(encoding, save_opts) is deprecated and will be removed in\nNokogiri version 1.4.0 *or* after June 1 2009.\nYou called serialize from here:\n\n\#{caller.join(\&quot;\\n\&quot;)}\n\nPlease change to \#{self.class}#serialize(:encoding =&gt; enc, :save_with =&gt; opts)\n&quot;</span>)
+14:         <span class="ruby-keyword kw">end</span>
+15: 
+16:         <span class="ruby-identifier">options</span> = <span class="ruby-identifier">args</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>) <span class="ruby-operator">?</span> <span class="ruby-identifier">args</span>.<span class="ruby-identifier">shift</span> <span class="ruby-operator">:</span> {
+17:           <span class="ruby-identifier">:encoding</span>   =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">args</span>[<span class="ruby-value">0</span>],
+18:           <span class="ruby-identifier">:save_with</span>  =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">args</span>[<span class="ruby-value">1</span>] <span class="ruby-operator">||</span> <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">FORMAT</span> <span class="ruby-operator">|</span>
+19:             <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">AS_HTML</span> <span class="ruby-operator">|</span>
+20:             <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_DECLARATION</span> <span class="ruby-operator">|</span>
+21:             <span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SaveOptions</span><span class="ruby-operator">::</span><span class="ruby-constant">NO_EMPTY_TAGS</span>
+22:         }
+23:         <span class="ruby-keyword kw">super</span>(<span class="ruby-identifier">options</span>)
+24:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000933" class="method">
+  <div id="M000933_title" class="title">
     <b>type<br />
 </b>
   </div>
@@ -250,8 +413,8 @@ The type for this document
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000654_source')" id="l_M000654_source">show source</a> ]</p>
-  <div id="M000654_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000933_source')" id="l_M000933_source">show source</a> ]</p>
+  <div id="M000933_source" class="dyn-source">
 <pre>
 /*
  * call-seq:

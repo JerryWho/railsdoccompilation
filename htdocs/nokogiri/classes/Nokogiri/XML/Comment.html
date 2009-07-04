@@ -2,7 +2,7 @@
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Comment<br/>
   In:
-<a href="#" onclick="jsHref('files/lib/nokogiri/xml/comment_rb.html');">lib/nokogiri/xml/comment.rb</a>
+<a href="#" onclick="jsHref('files/lib/nokogiri/ffi/xml/comment_rb.html');">lib/nokogiri/ffi/xml/comment.rb</a>
 <a href="#" onclick="jsHref('files/ext/nokogiri/xml_xpath_context_c.html');">ext/nokogiri/xml_xpath_context.c</a>
 
 Parent:&nbsp;
@@ -25,7 +25,7 @@ comment node in an xml document.
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000201&name=new" >new</a></li>
+  <li><a href="index.html?a=M000234&name=new" >new</a></li>
   </ul>
 
 
@@ -34,8 +34,8 @@ comment node in an xml document.
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000201" class="method">
-  <div id="M000201_title" class="title">
+<div id="M000234" class="method">
+  <div id="M000234_title" class="title">
     <b>new(document, content)<br />
 </b>
   </div>
@@ -46,8 +46,8 @@ element on the <tt>document</tt> with <tt>content</tt>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000201_source')" id="l_M000201_source">show source</a> ]</p>
-  <div id="M000201_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000234_source')" id="l_M000234_source">show source</a> ]</p>
+  <div id="M000234_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -55,17 +55,26 @@ element on the <tt>document</tt> with <tt>content</tt>
  *
  * Create a new Comment element on the +document+ with +content+
  */
-static VALUE new(VALUE klass, VALUE doc, VALUE content)
+static VALUE new(int argc, VALUE *argv, VALUE klass)
 {
   xmlDocPtr xml_doc;
-  Data_Get_Struct(doc, xmlDoc, xml_doc);
+  VALUE document;
+  VALUE content;
+  VALUE rest;
+
+  rb_scan_args(argc, argv, &quot;2*&quot;, &amp;document, &amp;content, &amp;rest);
+
+  Data_Get_Struct(document, xmlDoc, xml_doc);
 
   xmlNodePtr node = xmlNewDocComment(
       xml_doc,
       (const xmlChar *)StringValuePtr(content)
   );
 
-  VALUE rb_node = Nokogiri_wrap_xml_node(node);
+  VALUE rb_node = Nokogiri_wrap_xml_node(klass, node);
+  rb_funcall2(rb_node, rb_intern(&quot;initialize&quot;), argc, argv);
+
+  NOKOGIRI_ROOT_NODE(node);
 
   if(rb_block_given_p()) rb_yield(rb_node);
 

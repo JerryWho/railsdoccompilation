@@ -1,7 +1,8 @@
-  <div id="C00000097">
+  <div id="C00000114">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Stylesheet<br/>
   In:
+<a href="#" onclick="jsHref('files/lib/nokogiri/ffi/xslt/stylesheet_rb.html');">lib/nokogiri/ffi/xslt/stylesheet.rb</a>
 <a href="#" onclick="jsHref('files/lib/nokogiri/xslt/stylesheet_rb.html');">lib/nokogiri/xslt/stylesheet.rb</a>
 <a href="#" onclick="jsHref('files/ext/nokogiri/xslt_stylesheet_c.html');">ext/nokogiri/xslt_stylesheet.c</a>
 
@@ -17,25 +18,33 @@ Object
 call-seq:
 </p>
 <pre>
-  apply_to(document, params)
+  transform(document, params = [])
 </pre>
 <p>
-Apply an <a href="index.html?a=C00000096&name=XSLT">XSLT</a> stylesheet to
-an <a href="index.html?a=C00000064&name=XML::Document">XML::Document</a>.
+Apply an <a href="index.html?a=C00000113&name=XSLT">XSLT</a> stylesheet to
+an <a href="index.html?a=C00000074&name=XML::Document">XML::Document</a>.
 <tt>params</tt> is an array of strings used as <a
-href="index.html?a=C00000096&name=XSLT">XSLT</a> parameters. returns
-serialized document
+href="index.html?a=C00000113&name=XSLT">XSLT</a> parameters. returns <a
+href="index.html?a=C00000074&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
 </p>
+<p>
+Example:
+</p>
+<pre>
+  doc   = Nokogiri::XML(File.read(ARGV[0]))
+  xslt  = Nokogiri::XSLT(File.read(ARGV[1]))
+  puts xslt.transform(doc, ['key', 'value'])
+</pre>
 </div>
 
 
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000788&name=apply_to" >apply_to</a></li>
-  <li><a href="index.html?a=M000786&name=parse_stylesheet_doc" >parse_stylesheet_doc</a></li>
-  <li><a href="index.html?a=M000787&name=serialize" >serialize</a></li>
-  <li><a href="index.html?a=M000789&name=transform" >transform</a></li>
+  <li><a href="index.html?a=M001056&name=apply_to" >apply_to</a></li>
+  <li><a href="index.html?a=M001057&name=parse_stylesheet_doc" >parse_stylesheet_doc</a></li>
+  <li><a href="index.html?a=M001058&name=serialize" >serialize</a></li>
+  <li><a href="index.html?a=M001059&name=transform" >transform</a></li>
   </ul>
 
 
@@ -44,8 +53,8 @@ serialized document
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000786" class="method">
-  <div id="M000786_title" class="title">
+<div id="M001057" class="method">
+  <div id="M001057_title" class="title">
     <b>parse_stylesheet_doc(document)<br />
 </b>
   </div>
@@ -55,8 +64,8 @@ Parse a stylesheet from <tt>document</tt>.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000786_source')" id="l_M000786_source">show source</a> ]</p>
-  <div id="M000786_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001057_source')" id="l_M001057_source">show source</a> ]</p>
+  <div id="M001057_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -70,7 +79,13 @@ static VALUE parse_stylesheet_doc(VALUE klass, VALUE xmldocobj)
     xsltStylesheetPtr ss ;
     Data_Get_Struct(xmldocobj, xmlDoc, xml);
     exsltRegisterAll();
+
+    xsltSetGenericErrorFunc(NULL, xslt_generic_error_handler);
+
     ss = xsltParseStylesheetDoc(xmlCopyDoc(xml, 1)); /* 1 =&gt; recursive */
+
+    xsltSetGenericErrorFunc(NULL, NULL);
+
     return Data_Wrap_Struct(klass, NULL, dealloc, ss);
 }
 </pre>
@@ -78,43 +93,33 @@ static VALUE parse_stylesheet_doc(VALUE klass, VALUE xmldocobj)
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000788" class="method">
-  <div id="M000788_title" class="title">
-    <b>apply_to(document, params)<br />
-</b>
+<div id="M001056" class="method">
+  <div id="M001056_title" class="title">
+    <b>apply_to</b>(document, params = [])
   </div>
   <div class="description">
   <p>
-Apply an <a href="index.html?a=C00000096&name=XSLT">XSLT</a> stylesheet to
-an <a href="index.html?a=C00000064&name=XML::Document">XML::Document</a>.
+Apply an <a href="index.html?a=C00000113&name=XSLT">XSLT</a> stylesheet to
+an <a href="index.html?a=C00000074&name=XML::Document">XML::Document</a>.
 <tt>params</tt> is an array of strings used as <a
-href="index.html?a=C00000096&name=XSLT">XSLT</a> parameters. returns
+href="index.html?a=C00000113&name=XSLT">XSLT</a> parameters. returns
 serialized document
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000788_source')" id="l_M000788_source">show source</a> ]</p>
-  <div id="M000788_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001056_source')" id="l_M001056_source">show source</a> ]</p>
+  <div id="M001056_source" class="dyn-source">
 <pre>
-/*
- *  call-seq:
- *    apply_to(document, params)
- *
- *  Apply an XSLT stylesheet to an XML::Document.
- *  +params+ is an array of strings used as XSLT parameters.
- *  returns serialized document
- */
-static VALUE apply_to(int argc, VALUE* argv, VALUE self)
-{
-  return rb_funcall(self, rb_intern(&quot;serialize&quot;), 1, 
-                    transform(argc, argv, self));
-}
+    <span class="ruby-comment cmt"># File lib/nokogiri/xslt/stylesheet.rb, line 20</span>
+20:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">apply_to</span> <span class="ruby-identifier">document</span>, <span class="ruby-identifier">params</span> = []
+21:         <span class="ruby-identifier">serialize</span>(<span class="ruby-identifier">transform</span>(<span class="ruby-identifier">document</span>, <span class="ruby-identifier">params</span>))
+22:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000787" class="method">
-  <div id="M000787_title" class="title">
+<div id="M001058" class="method">
+  <div id="M001058_title" class="title">
     <b>serialize(document)<br />
 </b>
   </div>
@@ -124,8 +129,8 @@ Serialize <tt>document</tt> to an xml string.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000787_source')" id="l_M000787_source">show source</a> ]</p>
-  <div id="M000787_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001058_source')" id="l_M001058_source">show source</a> ]</p>
+  <div id="M001058_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -152,31 +157,46 @@ static VALUE serialize(VALUE self, VALUE xmlobj)
   </div>
 </div>
 </div>
-<div id="M000789" class="method">
-  <div id="M000789_title" class="title">
-    <b>transform(document, params)<br />
+<div id="M001059" class="method">
+  <div id="M001059_title" class="title">
+    <b>transform(document, params = [])<br />
 </b>
   </div>
   <div class="description">
   <p>
-Apply an <a href="index.html?a=C00000096&name=XSLT">XSLT</a> stylesheet to
-an <a href="index.html?a=C00000064&name=XML::Document">XML::Document</a>.
+Apply an <a href="index.html?a=C00000113&name=XSLT">XSLT</a> stylesheet to
+an <a href="index.html?a=C00000074&name=XML::Document">XML::Document</a>.
 <tt>params</tt> is an array of strings used as <a
-href="index.html?a=C00000096&name=XSLT">XSLT</a> parameters. returns <a
-href="index.html?a=C00000064&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
+href="index.html?a=C00000113&name=XSLT">XSLT</a> parameters. returns <a
+href="index.html?a=C00000074&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
 </p>
+<p>
+Example:
+</p>
+<pre>
+  doc   = Nokogiri::XML(File.read(ARGV[0]))
+  xslt  = Nokogiri::XSLT(File.read(ARGV[1]))
+  puts xslt.transform(doc, ['key', 'value'])
+</pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000789_source')" id="l_M000789_source">show source</a> ]</p>
-  <div id="M000789_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001059_source')" id="l_M001059_source">show source</a> ]</p>
+  <div id="M001059_source" class="dyn-source">
 <pre>
 /*
  *  call-seq:
- *    transform(document, params)
+ *    transform(document, params = [])
  *
  *  Apply an XSLT stylesheet to an XML::Document.
  *  +params+ is an array of strings used as XSLT parameters.
  *  returns Nokogiri::XML::Document
+ *
+ *  Example:
+ * 
+ *    doc   = Nokogiri::XML(File.read(ARGV[0]))
+ *    xslt  = Nokogiri::XSLT(File.read(ARGV[1]))
+ *    puts xslt.transform(doc, ['key', 'value'])
+ *
  */
 static VALUE transform(int argc, VALUE* argv, VALUE self)
 {
@@ -204,6 +224,8 @@ static VALUE transform(int argc, VALUE* argv, VALUE self)
 
     result = xsltApplyStylesheet(ss, xml, params);
     free(params);
+
+    if (!result) rb_raise(rb_eRuntimeError, &quot;could not perform xslt transform on document&quot;);
 
     return Nokogiri_wrap_xml_document(0, result) ;
 }
