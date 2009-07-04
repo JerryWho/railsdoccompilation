@@ -1,4 +1,4 @@
-  <div id="C00000138">
+  <div id="C00000141">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Task<br/>
   In:
@@ -15,7 +15,7 @@ Object
       <div id="content">
 
   <div class="description"><p>
-Defines a <a href="index.html?a=C00000137&name=Rake">Rake</a> task for
+Defines a <a href="index.html?a=C00000140&name=Rake">Rake</a> task for
 running features.
 </p>
 <p>
@@ -35,7 +35,7 @@ To further configure the task, you can pass a block:
 </p>
 <pre>
   Cucumber::Rake::Task.new do |t|
-    t.cucumber_opts = &quot;--format progress&quot;
+    t.cucumber_opts = %w{--format progress}
   end
 </pre>
 <p>
@@ -55,8 +55,7 @@ See the attributes for additional configuration possibilities.
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000539&name=new" >new</a></li>
-  <li><a href="index.html?a=M000538&name=profile=" >profile=</a></li>
+  <li><a href="index.html?a=M000594&name=new" >new</a></li>
   </ul>
 
 
@@ -83,7 +82,20 @@ Cucumber::BINARY
     <td class='attr-name'>cucumber_opts</td>
     <td class='attr-desc'>
 Extra options to pass to the cucumber binary. Can be overridden by the
-CUCUMBER_OPTS environment variable.
+CUCUMBER_OPTS environment variable. It&#8217;s recommended to pass an
+Array, but if it&#8217;s a <a
+href="index.html?a=C00000021&name=String">String</a> it will be split by
+&#8217; &#8217;.
+
+</td>
+  </tr>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[RW]
+    </td>
+    <td class='attr-name'>fork</td>
+    <td class='attr-desc'>
+Whether or not to fork a new ruby interpreter. Defaults to true.
 
 </td>
   </tr>
@@ -99,10 +111,14 @@ Directories to add to the Ruby $LOAD_PATH
   </tr>
   <tr valign='top'>
     <td class='attr-rw'>
-[R]
+[RW]
     </td>
     <td class='attr-name'>profile</td>
-    <td class='attr-desc'></td>
+    <td class='attr-desc'>
+Define what profile to be used. When used with cucumber_opts it is simply
+appended to it. Will be ignored when CUCUMBER_OPTS is used.
+
+</td>
   </tr>
   <tr valign='top'>
     <td class='attr-rw'>
@@ -110,7 +126,8 @@ Directories to add to the Ruby $LOAD_PATH
     </td>
     <td class='attr-name'>rcov</td>
     <td class='attr-desc'>
-Run cucumber with RCov?
+Run cucumber with RCov? Defaults to false. If you set this to true,
+<tt>fork</tt> is implicit.
 
 </td>
   </tr>
@@ -120,68 +137,45 @@ Run cucumber with RCov?
     </td>
     <td class='attr-name'>rcov_opts</td>
     <td class='attr-desc'>
-Extra options to pass to rcov
+Extra options to pass to rcov. It&#8217;s recommended to pass an Array, but
+if it&#8217;s a <a href="index.html?a=C00000021&name=String">String</a> it
+will be split by &#8217; &#8217;.
 
 </td>
   </tr>
   </table>
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000539" class="method">
-  <div id="M000539_title" class="title">
+<div id="M000594" class="method">
+  <div id="M000594_title" class="title">
     <b>new</b>(task_name = &quot;features&quot;, desc = &quot;Run Features with Cucumber&quot;) {|self if block_given?| ...}
   </div>
   <div class="description">
   <p>
-Define a <a href="index.html?a=C00000137&name=Rake">Rake</a>
+Define Cucumber <a href="index.html?a=C00000140&name=Rake">Rake</a> task
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000539_source')" id="l_M000539_source">show source</a> ]</p>
-  <div id="M000539_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000594_source')" id="l_M000594_source">show source</a> ]</p>
+  <div id="M000594_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rake/task.rb, line 72</span>
-72:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">task_name</span> = <span class="ruby-value str">&quot;features&quot;</span>, <span class="ruby-identifier">desc</span> = <span class="ruby-value str">&quot;Run Features with Cucumber&quot;</span>)
-73:         <span class="ruby-ivar">@task_name</span>, <span class="ruby-ivar">@desc</span> = <span class="ruby-identifier">task_name</span>, <span class="ruby-identifier">desc</span>
-74:         <span class="ruby-ivar">@libs</span> = [<span class="ruby-value str">'lib'</span>]
-75:         <span class="ruby-ivar">@rcov_opts</span> = <span class="ruby-node">%w{--rails --exclude osx\/objc,gems\/}</span>
-76: 
-77:         <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
-78: 
-79:         <span class="ruby-ivar">@feature_pattern</span> = <span class="ruby-value str">&quot;features/**/*.feature&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">feature_pattern</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">feature_list</span>.<span class="ruby-identifier">nil?</span>
-80:         <span class="ruby-ivar">@step_pattern</span>    = <span class="ruby-value str">&quot;features/**/*.rb&quot;</span>      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">step_pattern</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">step_list</span>.<span class="ruby-identifier">nil?</span>
-81: 
-82:         <span class="ruby-ivar">@binary</span> = <span class="ruby-identifier">binary</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-value">? </span><span class="ruby-constant">Cucumber</span><span class="ruby-operator">::</span><span class="ruby-constant">BINARY</span> <span class="ruby-operator">:</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">expand_path</span>(<span class="ruby-identifier">binary</span>)
-83:         <span class="ruby-ivar">@libs</span>.<span class="ruby-identifier">insert</span>(<span class="ruby-value">0</span>, <span class="ruby-constant">LIB</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">binary</span> <span class="ruby-operator">==</span> <span class="ruby-constant">Cucumber</span><span class="ruby-operator">::</span><span class="ruby-constant">BINARY</span>
-84: 
-85:         <span class="ruby-identifier">define_task</span>
-86:       <span class="ruby-keyword kw">end</span>
-</pre>
-  </div>
-</div>
-</div>
-<div class="sectiontitle">Public Instance methods</div>
-<div id="M000538" class="method">
-  <div id="M000538_title" class="title">
-    <b>profile=</b>(profile)
-  </div>
-  <div class="description">
-  <p>
-Define what profile to be used. When used with cucumber_opts it is simply
-appended to it. Will be ignored when CUCUMBER_OPTS is used.
-</p>
-  </div>
-<div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000538_source')" id="l_M000538_source">show source</a> ]</p>
-  <div id="M000538_source" class="dyn-source">
-<pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rake/task.rb, line 63</span>
-63:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">profile=</span>(<span class="ruby-identifier">profile</span>)
-64:         <span class="ruby-ivar">@profile</span> = <span class="ruby-identifier">profile</span>
-65:         <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">feature_list</span>
-66:           <span class="ruby-ivar">@feature_list</span> = [] <span class="ruby-comment cmt"># Don't use accessor to avoid deprecation warning.</span>
-67:         <span class="ruby-keyword kw">end</span>
-68:       <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/cucumber/rake/task.rb, line 152</span>
+152:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">task_name</span> = <span class="ruby-value str">&quot;features&quot;</span>, <span class="ruby-identifier">desc</span> = <span class="ruby-value str">&quot;Run Features with Cucumber&quot;</span>)
+153:         <span class="ruby-ivar">@task_name</span>, <span class="ruby-ivar">@desc</span> = <span class="ruby-identifier">task_name</span>, <span class="ruby-identifier">desc</span>
+154:         <span class="ruby-ivar">@fork</span> = <span class="ruby-keyword kw">true</span>
+155:         <span class="ruby-ivar">@libs</span> = [<span class="ruby-value str">'lib'</span>]
+156:         <span class="ruby-ivar">@rcov_opts</span> = <span class="ruby-node">%w{--rails --exclude osx\/objc,gems\/}</span>
+157: 
+158:         <span class="ruby-keyword kw">yield</span> <span class="ruby-keyword kw">self</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+159: 
+160:         <span class="ruby-ivar">@feature_pattern</span> = <span class="ruby-value str">&quot;features/**/*.feature&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">feature_pattern</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">feature_list</span>.<span class="ruby-identifier">nil?</span>
+161:         <span class="ruby-ivar">@step_pattern</span>    = <span class="ruby-value str">&quot;features/**/*.rb&quot;</span>      <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">step_pattern</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-identifier">step_list</span>.<span class="ruby-identifier">nil?</span>
+162: 
+163:         <span class="ruby-ivar">@binary</span> = <span class="ruby-identifier">binary</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-value">? </span><span class="ruby-constant">Cucumber</span><span class="ruby-operator">::</span><span class="ruby-constant">BINARY</span> <span class="ruby-operator">:</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">expand_path</span>(<span class="ruby-identifier">binary</span>)
+164:         <span class="ruby-ivar">@libs</span>.<span class="ruby-identifier">insert</span>(<span class="ruby-value">0</span>, <span class="ruby-constant">LIB</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">binary</span> <span class="ruby-operator">==</span> <span class="ruby-constant">Cucumber</span><span class="ruby-operator">::</span><span class="ruby-constant">BINARY</span>
+165: 
+166:         <span class="ruby-identifier">define_task</span>
+167:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>

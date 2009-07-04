@@ -1,4 +1,4 @@
-  <div id="C00000130">
+  <div id="C00000133">
 <div class='banner'>
   <span class="file-title-prefix">Module</span><br />Rails<br/>
   In:
@@ -15,10 +15,11 @@
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000498&name=bypass_rescue" >bypass_rescue</a></li>
-  <li><a href="index.html?a=M000500&name=failsafe_response" >failsafe_response</a></li>
-  <li><a href="index.html?a=M000499&name=rescue_action" >rescue_action</a></li>
-  <li><a href="index.html?a=M000497&name=use_transactional_fixtures" >use_transactional_fixtures</a></li>
+  <li><a href="index.html?a=M000549&name=bypass_rescue" >bypass_rescue</a></li>
+  <li><a href="index.html?a=M000552&name=failsafe_response" >failsafe_response</a></li>
+  <li><a href="index.html?a=M000551&name=failsafe_response" >failsafe_response</a></li>
+  <li><a href="index.html?a=M000550&name=rescue_action" >rescue_action</a></li>
+  <li><a href="index.html?a=M000548&name=use_transactional_fixtures" >use_transactional_fixtures</a></li>
   </ul>
 
 
@@ -30,102 +31,131 @@
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000498" class="method">
-  <div id="M000498_title" class="title">
+<div id="M000549" class="method">
+  <div id="M000549_title" class="title">
     <b>bypass_rescue</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000498_source')" id="l_M000498_source">show source</a> ]</p>
-  <div id="M000498_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000549_source')" id="l_M000549_source">show source</a> ]</p>
+  <div id="M000549_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 63</span>
-63:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">bypass_rescue</span>
-64:       <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">class_eval</span> <span class="ruby-keyword kw">do</span>
-65:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rescue_action</span>(<span class="ruby-identifier">exception</span>)
-66:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
-67:         <span class="ruby-keyword kw">end</span>
-68:       <span class="ruby-keyword kw">end</span>
-69:       <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Dispatcher</span>.<span class="ruby-identifier">class_eval</span> <span class="ruby-keyword kw">do</span>
-70:         <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">output</span>, <span class="ruby-identifier">status</span>, <span class="ruby-identifier">exception</span> = <span class="ruby-keyword kw">nil</span>)
-71:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
-72:         <span class="ruby-keyword kw">end</span>
-73:       <span class="ruby-keyword kw">end</span>
-74:     <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 69</span>
+69:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">bypass_rescue</span>
+70:       <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">class_eval</span> <span class="ruby-keyword kw">do</span>
+71:         <span class="ruby-identifier">alias_method</span> <span class="ruby-identifier">:rescue_action_without_bypass</span>, <span class="ruby-identifier">:rescue_action</span>
+72: 
+73:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rescue_action</span>(<span class="ruby-identifier">exception</span>)
+74:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+75:         <span class="ruby-keyword kw">end</span>
+76:       <span class="ruby-keyword kw">end</span>
+77: 
+78:       <span class="ruby-keyword kw">begin</span>
+79:         <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Failsafe</span>.<span class="ruby-identifier">class_eval</span> <span class="ruby-keyword kw">do</span>
+80:           <span class="ruby-identifier">alias_method</span> <span class="ruby-identifier">:failsafe_response_without_bypass</span>, <span class="ruby-identifier">:failsafe_response</span>
+81:         
+82:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">exception</span>)
+83:             <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+84:           <span class="ruby-keyword kw">end</span>
+85:         <span class="ruby-keyword kw">end</span>
+86:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">NameError</span> <span class="ruby-comment cmt"># Failsafe was introduced in Rails 2.3.2</span>
+87:         <span class="ruby-constant">ActionController</span><span class="ruby-operator">::</span><span class="ruby-constant">Dispatcher</span>.<span class="ruby-identifier">class_eval</span> <span class="ruby-keyword kw">do</span>
+88:           <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">output</span>, <span class="ruby-identifier">status</span>, <span class="ruby-identifier">exception</span> = <span class="ruby-keyword kw">nil</span>)
+89:             <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+90:           <span class="ruby-keyword kw">end</span>
+91:         <span class="ruby-keyword kw">end</span>
+92:       <span class="ruby-keyword kw">end</span>
+93:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000500" class="method">
-  <div id="M000500_title" class="title">
+<div id="M000552" class="method">
+  <div id="M000552_title" class="title">
     <b>failsafe_response</b>(output, status, exception = nil)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000500_source')" id="l_M000500_source">show source</a> ]</p>
-  <div id="M000500_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000552_source')" id="l_M000552_source">show source</a> ]</p>
+  <div id="M000552_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 70</span>
-70:         <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">output</span>, <span class="ruby-identifier">status</span>, <span class="ruby-identifier">exception</span> = <span class="ruby-keyword kw">nil</span>)
-71:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
-72:         <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 88</span>
+88:           <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">output</span>, <span class="ruby-identifier">status</span>, <span class="ruby-identifier">exception</span> = <span class="ruby-keyword kw">nil</span>)
+89:             <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+90:           <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000497" class="method">
-  <div id="M000497_title" class="title">
+<div id="M000548" class="method">
+  <div id="M000548_title" class="title">
     <b>use_transactional_fixtures</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000497_source')" id="l_M000497_source">show source</a> ]</p>
-  <div id="M000497_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000548_source')" id="l_M000548_source">show source</a> ]</p>
+  <div id="M000548_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 33</span>
-33:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">use_transactional_fixtures</span>
-34: 
-35:       <span class="ruby-keyword kw">unless</span> <span class="ruby-operator">::</span><span class="ruby-constant">Rails</span>.<span class="ruby-identifier">configuration</span>.<span class="ruby-identifier">cache_classes</span>
-36:         <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;WARNING: You have set Rails' config.cache_classes to false (most likely in config/environments/test.rb).  This setting is known to break Cucumber's use_transactional_fixtures method. Set config.cache_classes to true if you want to use transactional fixtures.  For more information see https://rspec.lighthouseapp.com/projects/16211/tickets/165.&quot;</span>
-37:       <span class="ruby-keyword kw">end</span>
-38: 
-39:       <span class="ruby-constant">World</span>.<span class="ruby-identifier">use_transactional_fixtures</span> = <span class="ruby-keyword kw">true</span>
-40:       <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>)
-41:         <span class="ruby-identifier">$_</span><span class="ruby-identifier">_cucumber_toplevel</span>.<span class="ruby-constant">Before</span> <span class="ruby-keyword kw">do</span>
-42:           <span class="ruby-ivar">@__cucumber_ar_connection</span> = <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">connection</span>
-43:           <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:increment_open_transactions</span>)
-44:             <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">increment_open_transactions</span>
-45:           <span class="ruby-keyword kw">else</span>
-46:             <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:increment_open_transactions</span>)
-47:           <span class="ruby-keyword kw">end</span>
-48:           <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">begin_db_transaction</span>
-49:           <span class="ruby-constant">ActionMailer</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">deliveries</span> = [] <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">ActionMailer</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>)
-50:         <span class="ruby-keyword kw">end</span>
-51:         
-52:         <span class="ruby-identifier">$_</span><span class="ruby-identifier">_cucumber_toplevel</span>.<span class="ruby-constant">After</span> <span class="ruby-keyword kw">do</span>
-53:           <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">rollback_db_transaction</span>
-54:           <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:decrement_open_transactions</span>)
-55:             <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">decrement_open_transactions</span>
-56:           <span class="ruby-keyword kw">else</span>
-57:             <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:decrement_open_transactions</span>)
-58:           <span class="ruby-keyword kw">end</span>
-59:         <span class="ruby-keyword kw">end</span>
-60:       <span class="ruby-keyword kw">end</span>
-61:     <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 39</span>
+39:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">use_transactional_fixtures</span>
+40: 
+41:       <span class="ruby-keyword kw">unless</span> <span class="ruby-operator">::</span><span class="ruby-constant">Rails</span>.<span class="ruby-identifier">configuration</span>.<span class="ruby-identifier">cache_classes</span>
+42:         <span class="ruby-identifier">warn</span> <span class="ruby-value str">&quot;WARNING: You have set Rails' config.cache_classes to false (most likely in config/environments/test.rb).  This setting is known to break Cucumber's use_transactional_fixtures method. Set config.cache_classes to true if you want to use transactional fixtures.  For more information see https://rspec.lighthouseapp.com/projects/16211/tickets/165.&quot;</span>
+43:       <span class="ruby-keyword kw">end</span>
+44: 
+45:       <span class="ruby-constant">World</span>.<span class="ruby-identifier">use_transactional_fixtures</span> = <span class="ruby-keyword kw">true</span>
+46:       <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>)
+47:         <span class="ruby-identifier">$_</span><span class="ruby-identifier">_cucumber_toplevel</span>.<span class="ruby-constant">Before</span> <span class="ruby-keyword kw">do</span>
+48:           <span class="ruby-ivar">@__cucumber_ar_connection</span> = <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">connection</span>
+49:           <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:increment_open_transactions</span>)
+50:             <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">increment_open_transactions</span>
+51:           <span class="ruby-keyword kw">else</span>
+52:             <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:increment_open_transactions</span>)
+53:           <span class="ruby-keyword kw">end</span>
+54:           <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">begin_db_transaction</span>
+55:           <span class="ruby-constant">ActionMailer</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">deliveries</span> = [] <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">ActionMailer</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>)
+56:         <span class="ruby-keyword kw">end</span>
+57:         
+58:         <span class="ruby-identifier">$_</span><span class="ruby-identifier">_cucumber_toplevel</span>.<span class="ruby-constant">After</span> <span class="ruby-keyword kw">do</span>
+59:           <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">rollback_db_transaction</span>
+60:           <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-identifier">:decrement_open_transactions</span>)
+61:             <span class="ruby-ivar">@__cucumber_ar_connection</span>.<span class="ruby-identifier">decrement_open_transactions</span>
+62:           <span class="ruby-keyword kw">else</span>
+63:             <span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:decrement_open_transactions</span>)
+64:           <span class="ruby-keyword kw">end</span>
+65:         <span class="ruby-keyword kw">end</span>
+66:       <span class="ruby-keyword kw">end</span>
+67:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000499" class="method">
-  <div id="M000499_title" class="title">
+<div id="M000551" class="method">
+  <div id="M000551_title" class="title">
+    <b>failsafe_response</b>(exception)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000551_source')" id="l_M000551_source">show source</a> ]</p>
+  <div id="M000551_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 82</span>
+82:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">failsafe_response</span>(<span class="ruby-identifier">exception</span>)
+83:             <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+84:           <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000550" class="method">
+  <div id="M000550_title" class="title">
     <b>rescue_action</b>(exception)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000499_source')" id="l_M000499_source">show source</a> ]</p>
-  <div id="M000499_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000550_source')" id="l_M000550_source">show source</a> ]</p>
+  <div id="M000550_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 65</span>
-65:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rescue_action</span>(<span class="ruby-identifier">exception</span>)
-66:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
-67:         <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/cucumber/rails/world.rb, line 73</span>
+73:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">rescue_action</span>(<span class="ruby-identifier">exception</span>)
+74:           <span class="ruby-identifier">raise</span> <span class="ruby-identifier">exception</span>
+75:         <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
