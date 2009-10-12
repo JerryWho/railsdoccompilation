@@ -1,0 +1,119 @@
+  <div id="fileHeader">
+    <h1>post.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/models/post.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class Post &lt; ActiveRecord::Base
+  named_scope :containing_the_letter_a, :conditions =&gt; &quot;body LIKE '%a%'&quot;
+  named_scope :ranked_by_comments, :order =&gt; &quot;comments_count DESC&quot;
+  named_scope :limit, lambda {|limit| {:limit =&gt; limit} }
+  named_scope :with_authors_at_address, lambda { |address| {
+      :conditions =&gt; [ 'authors.author_address_id = ?', address.id ],
+      :joins =&gt; 'JOIN authors ON authors.id = posts.author_id'
+    }
+  }
+
+  belongs_to :author do
+    def greeting
+      &quot;hello&quot;
+    end
+  end
+
+  belongs_to :author_with_posts, :class_name =&gt; &quot;Author&quot;, :foreign_key =&gt; :author_id, :include =&gt; :posts
+  belongs_to :author_with_address, :class_name =&gt; &quot;Author&quot;, :foreign_key =&gt; :author_id, :include =&gt; :author_address
+
+  has_one :last_comment, :class_name =&gt; 'Comment', :order =&gt; 'id desc'
+
+  named_scope :with_special_comments, :joins =&gt; :comments, :conditions =&gt; {:comments =&gt; {:type =&gt; 'SpecialComment'} }
+  named_scope :with_very_special_comments, :joins =&gt; :comments, :conditions =&gt; {:comments =&gt; {:type =&gt; 'VerySpecialComment'} }
+  named_scope :with_post, lambda {|post_id|
+    { :joins =&gt; :comments, :conditions =&gt; {:comments =&gt; {:post_id =&gt; post_id} } }
+  }
+
+  has_many   :comments, :order =&gt; &quot;body&quot; do
+    def find_most_recent
+      find(:first, :order =&gt; &quot;id DESC&quot;)
+    end
+  end
+
+  has_many :author_favorites, :through =&gt; :author
+
+  has_many :comments_with_interpolated_conditions, :class_name =&gt; 'Comment',
+      :conditions =&gt; ['#{&quot;#{aliased_table_name}.&quot; rescue &quot;&quot;}body = ?', 'Thank you for the welcome']
+
+  has_one  :very_special_comment
+  has_one  :very_special_comment_with_post, :class_name =&gt; &quot;VerySpecialComment&quot;, :include =&gt; :post
+  has_many :special_comments
+  has_many :nonexistant_comments, :class_name =&gt; 'Comment', :conditions =&gt; 'comments.id &lt; 0'
+
+  has_and_belongs_to_many :categories
+  has_and_belongs_to_many :special_categories, :join_table =&gt; &quot;categories_posts&quot;, :association_foreign_key =&gt; 'category_id'
+
+  has_many :taggings, :as =&gt; :taggable
+  has_many :tags, :through =&gt; :taggings do
+    def add_joins_and_select
+      find :all, :select =&gt; 'tags.*, authors.id as author_id', :include =&gt; false,
+        :joins =&gt; 'left outer join posts on taggings.taggable_id = posts.id left outer join authors on posts.author_id = authors.id'
+    end
+  end
+
+  has_many :funky_tags, :through =&gt; :taggings, :source =&gt; :tag
+  has_many :super_tags, :through =&gt; :taggings
+  has_one :tagging, :as =&gt; :taggable
+
+  has_many :invalid_taggings, :as =&gt; :taggable, :class_name =&gt; &quot;Tagging&quot;, :conditions =&gt; 'taggings.id &lt; 0'
+  has_many :invalid_tags, :through =&gt; :invalid_taggings, :source =&gt; :tag
+
+  has_many :categorizations, :foreign_key =&gt; :category_id
+  has_many :authors, :through =&gt; :categorizations
+
+  has_many :readers
+  has_many :people, :through =&gt; :readers
+  has_many :people_with_callbacks, :source=&gt;:person, :through =&gt; :readers,
+              :before_add    =&gt; lambda {|owner, reader| log(:added,   :before, reader.first_name) },
+              :after_add     =&gt; lambda {|owner, reader| log(:added,   :after,  reader.first_name) },
+              :before_remove =&gt; lambda {|owner, reader| log(:removed, :before, reader.first_name) },
+              :after_remove  =&gt; lambda {|owner, reader| log(:removed, :after,  reader.first_name) }
+
+  def self.top(limit)
+    ranked_by_comments.limit(limit)
+  end
+
+  def self.reset_log
+    @log = []
+  end
+  
+  def self.log(message=nil, side=nil, new_record=nil)
+    return @log if message.nil?
+    @log &lt;&lt; [message, side, new_record]
+  end
+
+  def self.what_are_you
+    'a post...'
+  end
+end
+
+class SpecialPost &lt; Post; end
+
+class StiPost &lt; Post
+  self.abstract_class = true
+  has_one :special_comment, :class_name =&gt; &quot;SpecialComment&quot;
+end
+
+class SubStiPost &lt; StiPost
+  self.table_name = Post.table_name
+end
+</pre>
+    </div>

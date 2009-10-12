@@ -1,0 +1,141 @@
+  <div id="fileHeader">
+    <h1>authorization_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activeresource/test/authorization_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class AuthorizationTest &lt; Test::Unit::TestCase
+  Response = Struct.new(:code)
+
+  def setup
+    @conn = ActiveResource::Connection.new('http://localhost')
+    @matz  = { :id =&gt; 1, :name =&gt; 'Matz' }.to_xml(:root =&gt; 'person')
+    @david = { :id =&gt; 2, :name =&gt; 'David' }.to_xml(:root =&gt; 'person')
+    @authenticated_conn = ActiveResource::Connection.new(&quot;http://david:test123@localhost&quot;)
+    @authorization_request_header = { 'Authorization' =&gt; 'Basic ZGF2aWQ6dGVzdDEyMw==' }
+
+    ActiveResource::HttpMock.respond_to do |mock|
+      mock.get    &quot;/people/2.xml&quot;,           @authorization_request_header, @david
+      mock.put    &quot;/people/2.xml&quot;,           @authorization_request_header, nil, 204
+      mock.delete &quot;/people/2.xml&quot;,           @authorization_request_header, nil, 200
+      mock.post   &quot;/people/2/addresses.xml&quot;, @authorization_request_header, nil, 201, 'Location' =&gt; '/people/1/addresses/5'
+    end
+  end
+
+  def test_authorization_header
+    authorization_header = @authenticated_conn.__send__(:authorization_header)
+    assert_equal @authorization_request_header['Authorization'], authorization_header['Authorization']
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+    
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;david&quot;, &quot;test123&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+  
+  def test_authorization_header_with_username_but_no_password
+    @conn = ActiveResource::Connection.new(&quot;http://david:@localhost&quot;)
+    authorization_header = @conn.__send__(:authorization_header)
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+    
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;david&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+  
+  def test_authorization_header_with_password_but_no_username
+    @conn = ActiveResource::Connection.new(&quot;http://:test123@localhost&quot;)
+    authorization_header = @conn.__send__(:authorization_header)
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+    
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;&quot;, &quot;test123&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+  
+  def test_authorization_header_with_decoded_credentials_from_url
+    @conn = ActiveResource::Connection.new(&quot;http://my%40email.com:%31%32%33@localhost&quot;)
+    authorization_header = @conn.__send__(:authorization_header)
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;my@email.com&quot;, &quot;123&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+
+  def test_authorization_header_explicitly_setting_username_and_password
+    @authenticated_conn = ActiveResource::Connection.new(&quot;http://@localhost&quot;)
+    @authenticated_conn.user = 'david'
+    @authenticated_conn.password = 'test123'
+    authorization_header = @authenticated_conn.__send__(:authorization_header)
+    assert_equal @authorization_request_header['Authorization'], authorization_header['Authorization']
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;david&quot;, &quot;test123&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+
+  def test_authorization_header_explicitly_setting_username_but_no_password
+    @conn = ActiveResource::Connection.new(&quot;http://@localhost&quot;)
+    @conn.user = &quot;david&quot;
+    authorization_header = @conn.__send__(:authorization_header)
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;david&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+
+  def test_authorization_header_explicitly_setting_password_but_no_username
+    @conn = ActiveResource::Connection.new(&quot;http://@localhost&quot;)
+    @conn.password = &quot;test123&quot;
+    authorization_header = @conn.__send__(:authorization_header)
+    authorization = authorization_header[&quot;Authorization&quot;].to_s.split
+
+    assert_equal &quot;Basic&quot;, authorization[0]
+    assert_equal [&quot;&quot;, &quot;test123&quot;], ActiveSupport::Base64.decode64(authorization[1]).split(&quot;:&quot;)[0..1]
+  end
+
+  def test_get
+    david = @authenticated_conn.get(&quot;/people/2.xml&quot;)
+    assert_equal &quot;David&quot;, david[&quot;name&quot;]
+  end
+  
+  def test_post
+    response = @authenticated_conn.post(&quot;/people/2/addresses.xml&quot;)
+    assert_equal &quot;/people/1/addresses/5&quot;, response[&quot;Location&quot;]
+  end
+  
+  def test_put
+    response = @authenticated_conn.put(&quot;/people/2.xml&quot;)
+    assert_equal 204, response.code
+  end
+  
+  def test_delete
+    response = @authenticated_conn.delete(&quot;/people/2.xml&quot;)
+    assert_equal 200, response.code
+  end
+
+  def test_raises_invalid_request_on_unauthorized_requests
+    assert_raise(ActiveResource::InvalidRequestError) { @conn.post(&quot;/people/2.xml&quot;) }
+    assert_raise(ActiveResource::InvalidRequestError) { @conn.post(&quot;/people/2/addresses.xml&quot;) }
+    assert_raise(ActiveResource::InvalidRequestError) { @conn.put(&quot;/people/2.xml&quot;) }
+    assert_raise(ActiveResource::InvalidRequestError) { @conn.delete(&quot;/people/2.xml&quot;) }
+  end
+
+  protected
+    def assert_response_raises(klass, code)
+      assert_raise(klass, &quot;Expected response code #{code} to raise #{klass}&quot;) do
+        @conn.__send__(:handle_response, Response.new(code))
+      end
+    end
+end
+</pre>
+    </div>

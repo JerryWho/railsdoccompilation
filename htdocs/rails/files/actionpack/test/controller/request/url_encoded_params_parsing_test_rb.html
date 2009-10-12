@@ -1,0 +1,165 @@
+  <div id="fileHeader">
+    <h1>url_encoded_params_parsing_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/request/url_encoded_params_parsing_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class UrlEncodedParamsParsingTest &lt; ActionController::IntegrationTest
+  class TestController &lt; ActionController::Base
+    class &lt;&lt; self
+      attr_accessor :last_request_parameters, :last_request_type
+    end
+
+    def parse
+      self.class.last_request_parameters = request.request_parameters
+      head :ok
+    end
+  end
+
+  def teardown
+    TestController.last_request_parameters = nil
+  end
+
+  test &quot;parses unbalanced query string with array&quot; do
+    assert_parses(
+       {'location' =&gt; [&quot;1&quot;, &quot;2&quot;], 'age_group' =&gt; [&quot;2&quot;]},
+      &quot;location[]=1&amp;location[]=2&amp;age_group[]=2&quot;
+    )
+  end
+
+  test &quot;parses nested hash&quot; do
+    query = [
+      &quot;note[viewers][viewer][][type]=User&quot;,
+      &quot;note[viewers][viewer][][id]=1&quot;,
+      &quot;note[viewers][viewer][][type]=Group&quot;,
+      &quot;note[viewers][viewer][][id]=2&quot;
+    ].join(&quot;&amp;&quot;)
+
+    expected = { &quot;note&quot; =&gt; { &quot;viewers&quot;=&gt;{&quot;viewer&quot;=&gt;[{ &quot;id&quot;=&gt;&quot;1&quot;, &quot;type&quot;=&gt;&quot;User&quot;}, {&quot;type&quot;=&gt;&quot;Group&quot;, &quot;id&quot;=&gt;&quot;2&quot;} ]} } }
+    assert_parses(expected, query)
+  end
+
+  test &quot;parses more complex nesting&quot; do
+    query = [
+      &quot;customers[boston][first][name]=David&quot;,
+      &quot;customers[boston][first][url]=http://David&quot;,
+      &quot;customers[boston][second][name]=Allan&quot;,
+      &quot;customers[boston][second][url]=http://Allan&quot;,
+      &quot;something_else=blah&quot;,
+      &quot;something_nil=&quot;,
+      &quot;something_empty=&quot;,
+      &quot;products[first]=Apple Computer&quot;,
+      &quot;products[second]=Pc&quot;,
+      &quot;=Save&quot;
+    ].join(&quot;&amp;&quot;)
+
+    expected =  {
+      &quot;customers&quot; =&gt; {
+        &quot;boston&quot; =&gt; {
+          &quot;first&quot; =&gt; {
+            &quot;name&quot; =&gt; &quot;David&quot;,
+            &quot;url&quot; =&gt; &quot;http://David&quot;
+          },
+          &quot;second&quot; =&gt; {
+            &quot;name&quot; =&gt; &quot;Allan&quot;,
+            &quot;url&quot; =&gt; &quot;http://Allan&quot;
+          }
+        }
+      },
+      &quot;something_else&quot; =&gt; &quot;blah&quot;,
+      &quot;something_empty&quot; =&gt; &quot;&quot;,
+      &quot;something_nil&quot; =&gt; &quot;&quot;,
+      &quot;products&quot; =&gt; {
+        &quot;first&quot; =&gt; &quot;Apple Computer&quot;,
+        &quot;second&quot; =&gt; &quot;Pc&quot;
+      }
+    }
+
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with array&quot; do
+    query = &quot;selected[]=1&amp;selected[]=2&amp;selected[]=3&quot;
+    expected = { &quot;selected&quot; =&gt; [ &quot;1&quot;, &quot;2&quot;, &quot;3&quot; ] }
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with nil key&quot; do
+    query    = &quot;=&amp;test2=value1&quot;
+    expected = { &quot;test2&quot; =&gt; &quot;value1&quot; }
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with array prefix and hashes&quot; do
+    query    = &quot;a[][b][c]=d&quot;
+    expected = {&quot;a&quot; =&gt; [{&quot;b&quot; =&gt; {&quot;c&quot; =&gt; &quot;d&quot;}}]}
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with complex nesting&quot; do
+    query    = &quot;a[][b][c][][d][]=e&quot;
+    expected = {&quot;a&quot; =&gt; [{&quot;b&quot; =&gt; {&quot;c&quot; =&gt; [{&quot;d&quot; =&gt; [&quot;e&quot;]}]}}]}
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with file path&quot; do
+    query = [
+      &quot;customers[boston][first][name]=David&quot;,
+      &quot;something_else=blah&quot;,
+      &quot;logo=#{File.expand_path(__FILE__)}&quot;
+    ].join(&quot;&amp;&quot;)
+
+    expected = {
+      &quot;customers&quot; =&gt; {
+        &quot;boston&quot; =&gt; {
+          &quot;first&quot; =&gt; {
+            &quot;name&quot; =&gt; &quot;David&quot;
+          }
+        }
+      },
+      &quot;something_else&quot; =&gt; &quot;blah&quot;,
+      &quot;logo&quot; =&gt; File.expand_path(__FILE__),
+    }
+
+    assert_parses expected, query
+  end
+
+  test &quot;parses params with Safari 2 trailing null character&quot; do
+    query = &quot;selected[]=1&amp;selected[]=2&amp;selected[]=3\0&quot;
+    expected = { &quot;selected&quot; =&gt; [ &quot;1&quot;, &quot;2&quot;, &quot;3&quot; ] }
+    assert_parses expected, query
+  end
+
+  private
+    def with_test_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.connect ':action', :controller =&gt; &quot;url_encoded_params_parsing_test/test&quot;
+        end
+        yield
+      end
+    end
+
+    def assert_parses(expected, actual)
+      with_test_routing do
+        post &quot;/parse&quot;, actual
+        assert_response :ok
+        assert_equal(expected, TestController.last_request_parameters)
+      end
+    end
+end
+</pre>
+    </div>

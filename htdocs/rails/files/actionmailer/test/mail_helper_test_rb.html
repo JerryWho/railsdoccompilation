@@ -1,0 +1,114 @@
+  <div id="fileHeader">
+    <h1>mail_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionmailer/test/mail_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:07 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+module MailerHelper
+  def person_name
+    &quot;Mr. Joe Person&quot;
+  end
+end
+
+class HelperMailer &lt; ActionMailer::Base
+  helper MailerHelper
+  helper :example
+
+  def use_helper(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+  end
+
+  def use_example_helper(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+    self.body = { :text =&gt; &quot;emphasize me!&quot; }
+  end
+
+  def use_mail_helper(recipient)
+    recipients recipient
+    subject    &quot;using mailing helpers&quot;
+    from       &quot;tester@example.com&quot;
+    self.body = { :text =&gt; 
+      &quot;But soft! What light through yonder window breaks? It is the east, &quot; +
+      &quot;and Juliet is the sun. Arise, fair sun, and kill the envious moon, &quot; +
+      &quot;which is sick and pale with grief that thou, her maid, art far more &quot; +
+      &quot;fair than she. Be not her maid, for she is envious! Her vestal &quot; +
+      &quot;livery is but sick and green, and none but fools do wear it. Cast &quot; +
+      &quot;it off!&quot;
+    }
+  end
+
+  def use_helper_method(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+    self.body = { :text =&gt; &quot;emphasize me!&quot; }
+  end
+
+  private
+
+    def name_of_the_mailer_class
+      self.class.name
+    end
+    helper_method :name_of_the_mailer_class
+end
+
+class MailerHelperTest &lt; Test::Unit::TestCase
+  def new_mail( charset=&quot;utf-8&quot; )
+    mail = TMail::Mail.new
+    mail.set_content_type &quot;text&quot;, &quot;plain&quot;, { &quot;charset&quot; =&gt; charset } if charset
+    mail
+  end
+
+  def setup
+    set_delivery_method :test
+    ActionMailer::Base.perform_deliveries = true
+    ActionMailer::Base.deliveries = []
+
+    @recipient = 'test@localhost'
+  end
+  
+  def teardown
+    restore_delivery_method
+  end
+  
+  def test_use_helper
+    mail = HelperMailer.create_use_helper(@recipient)
+    assert_match %r{Mr. Joe Person}, mail.encoded
+  end
+
+  def test_use_example_helper
+    mail = HelperMailer.create_use_example_helper(@recipient)
+    assert_match %r{&lt;em&gt;&lt;strong&gt;&lt;small&gt;emphasize me!}, mail.encoded
+  end
+
+  def test_use_helper_method
+    mail = HelperMailer.create_use_helper_method(@recipient)
+    assert_match %r{HelperMailer}, mail.encoded
+  end
+
+  def test_use_mail_helper
+    mail = HelperMailer.create_use_mail_helper(@recipient)
+    assert_match %r{  But soft!}, mail.encoded
+    assert_match %r{east, and\n  Juliet}, mail.encoded
+  end
+end
+
+</pre>
+    </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,78 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/spec/cucumber/ast/scenario_outline_spec.rb-</pre>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'cucumber/step_mother'
+require 'cucumber/ast'
+require 'cucumber/core_ext/string'
+require 'cucumber/rb_support/rb_language'
+
+module Cucumber
+  module Ast
+    describe ScenarioOutline do
+      before do
+        @step_mother = StepMother.new
+        @step_mother.load_programming_language('rb')
+        @step_mother.load_natural_language('en')
+        @dsl = Object.new
+        @dsl.extend(RbSupport::RbDsl)
+
+        @dsl.Given(/^there are (\d+) cucumbers$/) do |n|
+          @initial = n.to_i
+        end
+        @dsl.When(/^I eat (\d+) cucumbers$/) do |n|
+          @eaten = n.to_i
+        end
+        @dsl.Then(/^I should have (\d+) cucumbers$/) do |n|
+          (@initial - @eaten).should == n.to_i
+        end
+        @dsl.Then(/^I should have (\d+) cucumbers in my belly$/) do |n|
+          @eaten.should == n.to_i
+        end
+
+        @scenario_outline = ScenarioOutline.new(
+          background=nil,
+          Comment.new(&quot;&quot;),
+          Tags.new(18, []),
+          19,
+          &quot;Scenario:&quot;, &quot;My outline&quot;,
+          [
+            Step.new(20, 'Given', 'there are &lt;start&gt; cucumbers'),
+            Step.new(21, 'When',  'I eat &lt;eat&gt; cucumbers'),
+            Step.new(22, 'Then',  'I should have &lt;left&gt; cucumbers'),
+            Step.new(23, 'And',   'I should have &lt;eat&gt; cucumbers in my belly')
+          ],
+          [
+            [
+              Comment.new(&quot;#Mmmm... cucumbers\n&quot;),
+              24,
+              'Examples:',
+              'First table',
+              [
+                %w{start eat left},
+                %w{12 5 7},
+                %w{20 6 14}
+              ]
+            ]
+          ]
+
+        )
+      end
+
+      it &quot;should replace all variables and call outline once for each table row&quot; do
+        visitor = TreeWalker.new(@step_mother)
+        visitor.should_receive(:visit_table_row).exactly(3).times
+        visitor.visit_feature_element(@scenario_outline)
+      end
+
+      it &quot;should pretty print&quot; do
+        require 'cucumber/formatter/pretty'
+        formatter = Formatter::Pretty.new(@step_mother, STDOUT, {:comment =&gt; true, :tag_names =&gt; {}})
+        visitor = TreeWalker.new(@step_mother, [formatter])
+        visitor.visit_feature_element(@scenario_outline)
+      end
+    end
+  end
+end
+</pre>
     </div>

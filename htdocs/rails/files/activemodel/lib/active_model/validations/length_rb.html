@@ -1,0 +1,113 @@
+  <div id="fileHeader">
+    <h1>length.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activemodel/lib/active_model/validations/length.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveModel
+  module Validations
+    module ClassMethods
+      ALL_RANGE_OPTIONS = [ :is, :within, :in, :minimum, :maximum ].freeze
+    
+      # Validates that the specified attribute matches the length restrictions supplied. Only one option can be used at a time:
+      #
+      #   class Person &lt; ActiveRecord::Base
+      #     validates_length_of :first_name, :maximum =&gt; 30
+      #     validates_length_of :last_name, :maximum =&gt; 30, :message =&gt; &quot;less than %d if you don't mind&quot;
+      #     validates_length_of :fax, :in =&gt; 7..32, :allow_nil =&gt; true
+      #     validates_length_of :phone, :in =&gt; 7..32, :allow_blank =&gt; true
+      #     validates_length_of :user_name, :within =&gt; 6..20, :too_long =&gt; &quot;pick a shorter name&quot;, :too_short =&gt; &quot;pick a longer name&quot;
+      #     validates_length_of :fav_bra_size, :minimum =&gt; 1, :too_short =&gt; &quot;please enter at least %d character&quot;
+      #     validates_length_of :smurf_leader, :is =&gt; 4, :message =&gt; &quot;papa is spelled with %d characters... don't play me.&quot;
+      #   end
+      #
+      # Configuration options:
+      # * &lt;tt&gt;:minimum&lt;/tt&gt; - The minimum size of the attribute
+      # * &lt;tt&gt;:maximum&lt;/tt&gt; - The maximum size of the attribute
+      # * &lt;tt&gt;:is&lt;/tt&gt; - The exact size of the attribute
+      # * &lt;tt&gt;:within&lt;/tt&gt; - A range specifying the minimum and maximum size of the attribute
+      # * &lt;tt&gt;:in&lt;/tt&gt; - A synonym (or alias) for &lt;tt&gt;:within&lt;/tt&gt;
+      # * &lt;tt&gt;:allow_nil&lt;/tt&gt; - Attribute may be +nil+; skip validation.
+      # * &lt;tt&gt;:allow_blank&lt;/tt&gt; - Attribute may be blank; skip validation.
+      # * &lt;tt&gt;:too_long&lt;/tt&gt; - The error message if the attribute goes over the maximum (default is: &quot;is too long (maximum is %d characters)&quot;)
+      # * &lt;tt&gt;:too_short&lt;/tt&gt; - The error message if the attribute goes under the minimum (default is: &quot;is too short (min is %d characters)&quot;)
+      # * &lt;tt&gt;:wrong_length&lt;/tt&gt; - The error message if using the &lt;tt&gt;:is&lt;/tt&gt; method and the attribute is the wrong size (default is: &quot;is the wrong length (should be %d characters)&quot;)
+      # * &lt;tt&gt;:message&lt;/tt&gt; - The error message to use for a &lt;tt&gt;:minimum&lt;/tt&gt;, &lt;tt&gt;:maximum&lt;/tt&gt;, or &lt;tt&gt;:is&lt;/tt&gt; violation.  An alias of the appropriate &lt;tt&gt;:too_long&lt;/tt&gt;/&lt;tt&gt;too_short&lt;/tt&gt;/&lt;tt&gt;wrong_length&lt;/tt&gt; message
+      # * &lt;tt&gt;:on&lt;/tt&gt; - Specifies when this validation is active (default is &lt;tt&gt;:save&lt;/tt&gt;, other options &lt;tt&gt;:create&lt;/tt&gt;, &lt;tt&gt;:update&lt;/tt&gt;)
+      # * &lt;tt&gt;:if&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   occur (e.g. &lt;tt&gt;:if =&gt; :allow_validation&lt;/tt&gt;, or &lt;tt&gt;:if =&gt; Proc.new { |user| user.signup_step &gt; 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      # * &lt;tt&gt;:unless&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   not occur (e.g. &lt;tt&gt;:unless =&gt; :skip_validation&lt;/tt&gt;, or &lt;tt&gt;:unless =&gt; Proc.new { |user| user.signup_step &lt;= 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      def validates_length_of(*attrs)
+        # Merge given options with defaults.
+        options = {
+          :too_long     =&gt; ActiveRecord::Errors.default_error_messages[:too_long],
+          :too_short    =&gt; ActiveRecord::Errors.default_error_messages[:too_short],
+          :wrong_length =&gt; ActiveRecord::Errors.default_error_messages[:wrong_length]
+        }.merge(DEFAULT_VALIDATION_OPTIONS)
+        options.update(attrs.extract_options!.symbolize_keys)
+
+        # Ensure that one and only one range option is specified.
+        range_options = ALL_RANGE_OPTIONS &amp; options.keys
+        case range_options.size
+          when 0
+            raise ArgumentError, 'Range unspecified.  Specify the :within, :maximum, :minimum, or :is option.'
+          when 1
+            # Valid number of options; do nothing.
+          else
+            raise ArgumentError, 'Too many range options specified.  Choose only one.'
+        end
+
+        # Get range option and value.
+        option = range_options.first
+        option_value = options[range_options.first]
+
+        case option
+          when :within, :in
+            raise ArgumentError, &quot;:#{option} must be a Range&quot; unless option_value.is_a?(Range)
+
+            too_short = options[:too_short] % option_value.begin
+            too_long  = options[:too_long]  % option_value.end
+
+            validates_each(attrs, options) do |record, attr, value|
+              value = value.split(//) if value.kind_of?(String)
+              if value.nil? or value.size &lt; option_value.begin
+                record.errors.add(attr, too_short)
+              elsif value.size &gt; option_value.end
+                record.errors.add(attr, too_long)
+              end
+            end
+          when :is, :minimum, :maximum
+            raise ArgumentError, &quot;:#{option} must be a nonnegative Integer&quot; unless option_value.is_a?(Integer) and option_value &gt;= 0
+
+            # Declare different validations per option.
+            validity_checks = { :is =&gt; &quot;==&quot;, :minimum =&gt; &quot;&gt;=&quot;, :maximum =&gt; &quot;&lt;=&quot; }
+            message_options = { :is =&gt; :wrong_length, :minimum =&gt; :too_short, :maximum =&gt; :too_long }
+
+            message = (options[:message] || options[message_options[option]]) % option_value
+
+            validates_each(attrs, options) do |record, attr, value|
+              value = value.split(//) if value.kind_of?(String)
+              record.errors.add(attr, message) unless !value.nil? and value.size.method(validity_checks[option])[option_value]
+            end
+        end
+      end
+
+      alias_method :validates_size_of, :validates_length_of
+    end
+  end
+end</pre>
+    </div>

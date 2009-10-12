@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,81 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/css/test_xpath_visitor.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module CSS
+    class TestXPathVisitor &lt; Nokogiri::TestCase
+      def setup
+        super
+        @parser = Nokogiri::CSS::Parser.new
+      end
+
+      def test_function_calls_allow_at_params
+        assert_xpath(&quot;//a[foo(., @href)]&quot;, @parser.parse('a:foo(@href)'))
+        assert_xpath(&quot;//a[foo(., @a, b)]&quot;, @parser.parse('a:foo(@a, b)'))
+        assert_xpath(&quot;//a[foo(., a, 10)]&quot;, @parser.parse('a:foo(a, 10)'))
+      end
+
+      def test_namespace_conversion
+        assert_xpath(&quot;//aaron:a&quot;, @parser.parse('aaron|a'))
+        assert_xpath(&quot;//a&quot;, @parser.parse('|a'))
+      end
+
+      def test_unknown_psuedo_classes_get_pushed_down
+        assert_xpath(&quot;//a[aaron(.)]&quot;, @parser.parse('a:aaron'))
+      end
+
+      def test_unknown_functions_get_dot_plus_args
+        assert_xpath(&quot;//a[aaron(.)]&quot;, @parser.parse('a:aaron()'))
+        assert_xpath(&quot;//a[aaron(., 12)]&quot;, @parser.parse('a:aaron(12)'))
+        assert_xpath(&quot;//a[aaron(., 12, 1)]&quot;, @parser.parse('a:aaron(12, 1)'))
+      end
+
+      def test_class_selectors
+        assert_xpath  &quot;//*[contains(concat(' ', @class, ' '), ' red ')]&quot;,
+                      @parser.parse(&quot;.red&quot;)
+      end
+
+      def test_pipe
+        assert_xpath  &quot;//a[@id = 'Boing' or starts-with(@id, concat('Boing', '-'))]&quot;,
+                      @parser.parse(&quot;a[id|='Boing']&quot;)
+      end
+
+      def test_custom_functions
+        visitor = Class.new(XPathVisitor) do
+          attr_accessor :awesome
+          def visit_function_aaron node
+            @awesome = true
+            'aaron() = 1'
+          end
+        end.new
+        ast = @parser.parse('a:aaron()').first
+        assert_equal 'a[aaron() = 1]', visitor.accept(ast)
+        assert visitor.awesome
+      end
+
+      def test_custom_psuedo_classes
+        visitor = Class.new(XPathVisitor) do
+          attr_accessor :awesome
+          def visit_pseudo_class_aaron node
+            @awesome = true
+            'aaron() = 1'
+          end
+        end.new
+        ast = @parser.parse('a:aaron').first
+        assert_equal 'a[aaron() = 1]', visitor.accept(ast)
+        assert visitor.awesome
+      end
+
+      def assert_xpath expecteds, asts
+        expecteds = [expecteds].flatten
+        expecteds.zip(asts).each do |expected, actual|
+          assert_equal expected, actual.to_xpath
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

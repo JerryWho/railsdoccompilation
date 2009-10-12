@@ -1,0 +1,126 @@
+  <div id="fileHeader">
+    <h1>code_statistics.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/code_statistics.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class CodeStatistics #:nodoc:
+
+  TEST_TYPES = %w(Units Functionals Unit\ tests Functional\ tests Integration\ tests)
+
+  def initialize(*pairs)
+    @pairs      = pairs
+    @statistics = calculate_statistics
+    @total      = calculate_total if pairs.length &gt; 1
+  end
+
+  def to_s
+    print_header
+    @pairs.each { |pair| print_line(pair.first, @statistics[pair.first]) }
+    print_splitter
+  
+    if @total
+      print_line(&quot;Total&quot;, @total)
+      print_splitter
+    end
+
+    print_code_test_stats
+  end
+
+  private
+    def calculate_statistics
+      @pairs.inject({}) { |stats, pair| stats[pair.first] = calculate_directory_statistics(pair.last); stats }
+    end
+
+    def calculate_directory_statistics(directory, pattern = /.*\.rb$/)
+      stats = { &quot;lines&quot; =&gt; 0, &quot;codelines&quot; =&gt; 0, &quot;classes&quot; =&gt; 0, &quot;methods&quot; =&gt; 0 }
+
+      Dir.foreach(directory) do |file_name| 
+        if File.stat(directory + &quot;/&quot; + file_name).directory? and (/^\./ !~ file_name)
+          newstats = calculate_directory_statistics(directory + &quot;/&quot; + file_name, pattern)
+          stats.each { |k, v| stats[k] += newstats[k] }
+        end
+
+        next unless file_name =~ pattern
+
+        f = File.open(directory + &quot;/&quot; + file_name)
+
+        while line = f.gets
+          stats[&quot;lines&quot;]     += 1
+          stats[&quot;classes&quot;]   += 1 if line =~ /class [A-Z]/
+          stats[&quot;methods&quot;]   += 1 if line =~ /def [a-z]/
+          stats[&quot;codelines&quot;] += 1 unless line =~ /^\s*$/ || line =~ /^\s*#/
+        end
+      end
+
+      stats
+    end
+
+    def calculate_total
+      total = { &quot;lines&quot; =&gt; 0, &quot;codelines&quot; =&gt; 0, &quot;classes&quot; =&gt; 0, &quot;methods&quot; =&gt; 0 }
+      @statistics.each_value { |pair| pair.each { |k, v| total[k] += v } }
+      total
+    end
+
+    def calculate_code
+      code_loc = 0
+      @statistics.each { |k, v| code_loc += v['codelines'] unless TEST_TYPES.include? k }
+      code_loc
+    end
+
+    def calculate_tests
+      test_loc = 0
+      @statistics.each { |k, v| test_loc += v['codelines'] if TEST_TYPES.include? k }
+      test_loc
+    end
+
+    def print_header
+      print_splitter
+      puts &quot;| Name                 | Lines |   LOC | Classes | Methods | M/C | LOC/M |&quot;
+      print_splitter
+    end
+
+    def print_splitter
+      puts &quot;+----------------------+-------+-------+---------+---------+-----+-------+&quot;
+    end
+
+    def print_line(name, statistics)
+      m_over_c   = (statistics[&quot;methods&quot;] / statistics[&quot;classes&quot;])   rescue m_over_c = 0
+      loc_over_m = (statistics[&quot;codelines&quot;] / statistics[&quot;methods&quot;]) - 2 rescue loc_over_m = 0
+
+      start = if TEST_TYPES.include? name
+        &quot;| #{name.ljust(20)} &quot;
+      else
+        &quot;| #{name.ljust(20)} &quot; 
+      end
+
+      puts start + 
+           &quot;| #{statistics[&quot;lines&quot;].to_s.rjust(5)} &quot; +
+           &quot;| #{statistics[&quot;codelines&quot;].to_s.rjust(5)} &quot; +
+           &quot;| #{statistics[&quot;classes&quot;].to_s.rjust(7)} &quot; +
+           &quot;| #{statistics[&quot;methods&quot;].to_s.rjust(7)} &quot; +
+           &quot;| #{m_over_c.to_s.rjust(3)} &quot; +
+           &quot;| #{loc_over_m.to_s.rjust(5)} |&quot;
+    end
+
+    def print_code_test_stats
+      code  = calculate_code
+      tests = calculate_tests
+
+      puts &quot;  Code LOC: #{code}     Test LOC: #{tests}     Code to Test Ratio: 1:#{sprintf(&quot;%.1f&quot;, tests.to_f/code)}&quot;
+      puts &quot;&quot;
+    end
+  end
+</pre>
+    </div>

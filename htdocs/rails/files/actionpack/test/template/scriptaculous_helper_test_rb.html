@@ -1,0 +1,109 @@
+  <div id="fileHeader">
+    <h1>scriptaculous_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/scriptaculous_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class ScriptaculousHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::ScriptaculousHelper
+
+  def setup
+    @controller = Class.new do
+      def url_for(options)
+        url =  &quot;http://www.example.com/&quot;
+        url &lt;&lt; options[:action].to_s if options and options[:action]
+        url
+      end
+    end.new
+  end
+  
+  def test_effect
+    assert_equal &quot;new Effect.Highlight(\&quot;posts\&quot;,{});&quot;, visual_effect(:highlight, &quot;posts&quot;)
+    assert_equal &quot;new Effect.Highlight(\&quot;posts\&quot;,{});&quot;, visual_effect(&quot;highlight&quot;, :posts)
+    assert_equal &quot;new Effect.Highlight(\&quot;posts\&quot;,{});&quot;, visual_effect(:highlight, :posts)    
+    assert_equal &quot;new Effect.Fade(\&quot;fademe\&quot;,{duration:4.0});&quot;, visual_effect(:fade, &quot;fademe&quot;, :duration =&gt; 4.0)
+    assert_equal &quot;new Effect.Shake(element,{});&quot;, visual_effect(:shake)
+    assert_equal &quot;new Effect.DropOut(\&quot;dropme\&quot;,{queue:'end'});&quot;, visual_effect(:drop_out, 'dropme', :queue =&gt; :end)
+    assert_equal &quot;new Effect.Highlight(\&quot;status\&quot;,{endcolor:'#EEEEEE'});&quot;, visual_effect(:highlight, 'status', :endcolor =&gt; '#EEEEEE')
+    assert_equal &quot;new Effect.Highlight(\&quot;status\&quot;,{restorecolor:'#500000', startcolor:'#FEFEFE'});&quot;, visual_effect(:highlight, 'status', :restorecolor =&gt; '#500000', :startcolor =&gt; '#FEFEFE')
+
+    # chop the queue params into a comma separated list
+    beginning, ending = 'new Effect.DropOut(&quot;dropme&quot;,{queue:{', '}});'
+    ve = [
+      visual_effect(:drop_out, 'dropme', :queue =&gt; {:position =&gt; &quot;end&quot;, :scope =&gt; &quot;test&quot;, :limit =&gt; 2}),
+      visual_effect(:drop_out, 'dropme', :queue =&gt; {:scope =&gt; :list, :limit =&gt; 2}),
+      visual_effect(:drop_out, 'dropme', :queue =&gt; {:position =&gt; :end, :scope =&gt; :test, :limit =&gt; 2})
+    ].collect { |v| v[beginning.length..-ending.length-1].split(',') }
+
+    assert ve[0].include?(&quot;limit:2&quot;)
+    assert ve[0].include?(&quot;scope:'test'&quot;)
+    assert ve[0].include?(&quot;position:'end'&quot;)
+
+    assert ve[1].include?(&quot;limit:2&quot;)
+    assert ve[1].include?(&quot;scope:'list'&quot;)
+
+    assert ve[2].include?(&quot;limit:2&quot;)
+    assert ve[2].include?(&quot;scope:'test'&quot;)
+    assert ve[2].include?(&quot;position:'end'&quot;)
+  end
+  
+  def test_toggle_effects
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'appear',{});&quot;, visual_effect(:toggle_appear,  &quot;posts&quot;)
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'slide',{});&quot;,  visual_effect(:toggle_slide,   &quot;posts&quot;)
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'blind',{});&quot;,  visual_effect(:toggle_blind,   &quot;posts&quot;)
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'appear',{});&quot;, visual_effect(&quot;toggle_appear&quot;, &quot;posts&quot;)
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'slide',{});&quot;,  visual_effect(&quot;toggle_slide&quot;,  &quot;posts&quot;)
+    assert_equal &quot;Effect.toggle(\&quot;posts\&quot;,'blind',{});&quot;,  visual_effect(&quot;toggle_blind&quot;,  &quot;posts&quot;)
+  end
+  
+
+  def test_sortable_element
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nSortable.create(\&quot;mylist\&quot;, {onUpdate:function(){new Ajax.Request('http://www.example.com/order', {asynchronous:true, evalScripts:true, parameters:Sortable.serialize(\&quot;mylist\&quot;)})}})\n//]]&gt;\n&lt;/script&gt;), 
+      sortable_element(&quot;mylist&quot;, :url =&gt; { :action =&gt; &quot;order&quot; })
+    assert_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nSortable.create(\&quot;mylist\&quot;, {constraint:'horizontal', onUpdate:function(){new Ajax.Request('http://www.example.com/order', {asynchronous:true, evalScripts:true, parameters:Sortable.serialize(\&quot;mylist\&quot;)})}, tag:'div'})\n//]]&gt;\n&lt;/script&gt;), 
+      sortable_element(&quot;mylist&quot;, :tag =&gt; &quot;div&quot;, :constraint =&gt; &quot;horizontal&quot;, :url =&gt; { :action =&gt; &quot;order&quot; })
+    assert_dom_equal %|&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nSortable.create(\&quot;mylist\&quot;, {constraint:'horizontal', containment:['list1','list2'], onUpdate:function(){new Ajax.Request('http://www.example.com/order', {asynchronous:true, evalScripts:true, parameters:Sortable.serialize(\&quot;mylist\&quot;)})}})\n//]]&gt;\n&lt;/script&gt;|, 
+      sortable_element(&quot;mylist&quot;, :containment =&gt; ['list1','list2'], :constraint =&gt; &quot;horizontal&quot;, :url =&gt; { :action =&gt; &quot;order&quot; })
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nSortable.create(\&quot;mylist\&quot;, {constraint:'horizontal', containment:'list1', onUpdate:function(){new Ajax.Request('http://www.example.com/order', {asynchronous:true, evalScripts:true, parameters:Sortable.serialize(\&quot;mylist\&quot;)})}})\n//]]&gt;\n&lt;/script&gt;), 
+      sortable_element(&quot;mylist&quot;, :containment =&gt; 'list1', :constraint =&gt; &quot;horizontal&quot;, :url =&gt; { :action =&gt; &quot;order&quot; })
+  end
+  
+  def test_draggable_element
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nnew Draggable(\&quot;product_13\&quot;, {})\n//]]&gt;\n&lt;/script&gt;),
+      draggable_element(&quot;product_13&quot;)
+    assert_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nnew Draggable(\&quot;product_13\&quot;, {revert:true})\n//]]&gt;\n&lt;/script&gt;),
+      draggable_element(&quot;product_13&quot;, :revert =&gt; true)
+  end
+  
+  def test_drop_receiving_element
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nDroppables.add(\&quot;droptarget1\&quot;, {onDrop:function(element){new Ajax.Request('http://www.example.com/', {asynchronous:true, evalScripts:true, parameters:'id=' + encodeURIComponent(element.id)})}})\n//]]&gt;\n&lt;/script&gt;),
+      drop_receiving_element(&quot;droptarget1&quot;)
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nDroppables.add(\&quot;droptarget1\&quot;, {accept:'products', onDrop:function(element){new Ajax.Request('http://www.example.com/', {asynchronous:true, evalScripts:true, parameters:'id=' + encodeURIComponent(element.id)})}})\n//]]&gt;\n&lt;/script&gt;),
+      drop_receiving_element(&quot;droptarget1&quot;, :accept =&gt; 'products')
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nDroppables.add(\&quot;droptarget1\&quot;, {accept:'products', onDrop:function(element){new Ajax.Updater('infobox', 'http://www.example.com/', {asynchronous:true, evalScripts:true, parameters:'id=' + encodeURIComponent(element.id)})}})\n//]]&gt;\n&lt;/script&gt;),
+      drop_receiving_element(&quot;droptarget1&quot;, :accept =&gt; 'products', :update =&gt; 'infobox')
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nDroppables.add(\&quot;droptarget1\&quot;, {accept:['tshirts','mugs'], onDrop:function(element){new Ajax.Updater('infobox', 'http://www.example.com/', {asynchronous:true, evalScripts:true, parameters:'id=' + encodeURIComponent(element.id)})}})\n//]]&gt;\n&lt;/script&gt;),
+      drop_receiving_element(&quot;droptarget1&quot;, :accept =&gt; ['tshirts','mugs'], :update =&gt; 'infobox')
+    assert_dom_equal %(&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nDroppables.add(&quot;droptarget1&quot;, {hoverclass:'dropready', onDrop:function(element){if (confirm('Are you sure?')) { new Ajax.Request('http://www.example.com/update_drop', {asynchronous:true, evalScripts:true, parameters:'id=' + encodeURIComponent(element.id)}); }}})\n//]]&gt;\n&lt;/script&gt;),
+    drop_receiving_element('droptarget1', :hoverclass=&gt;'dropready', :url=&gt;{:action=&gt;'update_drop'}, :confirm =&gt; 'Are you sure?')
+
+  end
+  def protect_against_forgery?
+    false
+  end
+end
+</pre>
+    </div>

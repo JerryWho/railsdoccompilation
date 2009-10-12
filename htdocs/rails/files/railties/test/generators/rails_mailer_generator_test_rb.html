@@ -1,0 +1,48 @@
+  <div id="fileHeader">
+    <h1>rails_mailer_generator_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/test/generators/rails_mailer_generator_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'generators/generator_test_helper'
+
+class RailsMailerGeneratorTest &lt; GeneratorTestCase
+
+  def test_generates_mailer
+    run_generator('mailer', %w(Notifier reset_password))
+
+    assert_generated_model_for :notifier, 'ActionMailer::Base' do |model|
+      assert_has_method model, :reset_password do |name, body|
+        assert_equal [
+            &quot;subject    'Notifier#reset_password'&quot;,
+            &quot;recipients ''&quot;,
+            &quot;from       ''&quot;,
+            &quot;sent_on    sent_at&quot;,
+            &quot;&quot;,
+            &quot;body       :greeting =&gt; 'Hi,'&quot;
+          ],
+          body.split(&quot;\n&quot;).map{|line| line.sub(' '*4, '') }
+      end
+      
+      assert_no_match /(self.default_url_options =|default_url_options\[.*\] =)/, model,
+        'individual mailer models should not set default_url_options because the options are shared by all mailers'
+    end
+    
+    assert_generated_views_for :notifier, 'reset_password.erb'
+    assert_generated_unit_test_for :notifier, 'ActionMailer::TestCase'
+    assert_generated_file &quot;test/fixtures/notifier/reset_password&quot;
+  end
+end
+</pre>
+    </div>

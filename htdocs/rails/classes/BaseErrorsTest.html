@@ -1,0 +1,190 @@
+  <div id="C00000143">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />BaseErrorsTest<br/>
+  In:
+<a href="#" onclick="jsHref('files/activeresource/test/base_errors_test_rb.html');">activeresource/test/base_errors_test.rb</a>
+
+Parent:&nbsp;
+Test::Unit::TestCase
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000961&name=setup" >setup</a></li>
+  <li><a href="index.html?a=M000967&name=test_should_format_full_errors" >test_should_format_full_errors</a></li>
+  <li><a href="index.html?a=M000965&name=test_should_iterate_over_errors" >test_should_iterate_over_errors</a></li>
+  <li><a href="index.html?a=M000966&name=test_should_iterate_over_full_errors" >test_should_iterate_over_full_errors</a></li>
+  <li><a href="index.html?a=M000962&name=test_should_mark_as_invalid" >test_should_mark_as_invalid</a></li>
+  <li><a href="index.html?a=M000964&name=test_should_parse_errors_to_individual_attributes" >test_should_parse_errors_to_individual_attributes</a></li>
+  <li><a href="index.html?a=M000963&name=test_should_parse_xml_errors" >test_should_parse_xml_errors</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000961" class="method">
+  <div id="M000961_title" class="title">
+    <b>setup</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000961_source')" id="l_M000961_source">show source</a> ]</p>
+  <div id="M000961_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 5</span>
+ 5:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setup</span>
+ 6:     <span class="ruby-constant">ActiveResource</span><span class="ruby-operator">::</span><span class="ruby-constant">HttpMock</span>.<span class="ruby-identifier">respond_to</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">mock</span><span class="ruby-operator">|</span>
+ 7:       <span class="ruby-identifier">mock</span>.<span class="ruby-identifier">post</span> <span class="ruby-value str">&quot;/people.xml&quot;</span>, {}, <span class="ruby-value str">%q(&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;errors&gt;&lt;error&gt;Age can't be blank&lt;/error&gt;&lt;error&gt;Name can't be blank&lt;/error&gt;&lt;error&gt;Name must start with a letter&lt;/error&gt;&lt;error&gt;Person quota full for today.&lt;/error&gt;&lt;/errors&gt;)</span>, <span class="ruby-value">422</span>, {<span class="ruby-value str">'Content-Type'</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">'application/xml'</span>}
+ 8:       <span class="ruby-identifier">mock</span>.<span class="ruby-identifier">post</span> <span class="ruby-value str">&quot;/people.json&quot;</span>, {}, <span class="ruby-value str">%q({&quot;errors&quot;:[&quot;Age can't be blank&quot;,&quot;Name can't be blank&quot;,&quot;Name must start with a letter&quot;,&quot;Person quota full for today.&quot;]})</span>, <span class="ruby-value">422</span>, {<span class="ruby-value str">'Content-Type'</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">'application/json'</span>}
+ 9:     <span class="ruby-keyword kw">end</span>
+10:     <span class="ruby-ivar">@person</span> = <span class="ruby-constant">Person</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">:name</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">''</span>, <span class="ruby-identifier">:age</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">''</span>)
+11:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">save</span>, <span class="ruby-keyword kw">false</span>
+12:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000967" class="method">
+  <div id="M000967_title" class="title">
+    <b>test_should_format_full_errors</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000967_source')" id="l_M000967_source">show source</a> ]</p>
+  <div id="M000967_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 62</span>
+62:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_format_full_errors</span>
+63:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+64:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+65:         <span class="ruby-identifier">full</span> = <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>.<span class="ruby-identifier">full_messages</span>
+66:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">full</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-value str">&quot;Age can't be blank&quot;</span>)
+67:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">full</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-value str">&quot;Name can't be blank&quot;</span>)
+68:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">full</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-value str">&quot;Name must start with a letter&quot;</span>)
+69:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">full</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-value str">&quot;Person quota full for today.&quot;</span>)
+70:       <span class="ruby-keyword kw">end</span>
+71:     <span class="ruby-keyword kw">end</span>
+72:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000965" class="method">
+  <div id="M000965_title" class="title">
+    <b>test_should_iterate_over_errors</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000965_source')" id="l_M000965_source">show source</a> ]</p>
+  <div id="M000965_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 42</span>
+42:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_iterate_over_errors</span>
+43:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+44:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+45:         <span class="ruby-identifier">errors</span> = []
+46:         <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>.<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">attribute</span>, <span class="ruby-identifier">message</span><span class="ruby-operator">|</span> <span class="ruby-identifier">errors</span> <span class="ruby-operator">&lt;&lt;</span> [<span class="ruby-identifier">attribute</span>, <span class="ruby-identifier">message</span>] }
+47:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">errors</span>.<span class="ruby-identifier">include?</span>([<span class="ruby-value str">'name'</span>, <span class="ruby-value str">&quot;can't be blank&quot;</span>])
+48:       <span class="ruby-keyword kw">end</span>
+49:     <span class="ruby-keyword kw">end</span>
+50:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000966" class="method">
+  <div id="M000966_title" class="title">
+    <b>test_should_iterate_over_full_errors</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000966_source')" id="l_M000966_source">show source</a> ]</p>
+  <div id="M000966_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 52</span>
+52:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_iterate_over_full_errors</span>
+53:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+54:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+55:         <span class="ruby-identifier">errors</span> = []
+56:         <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>.<span class="ruby-identifier">to_a</span>.<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">message</span><span class="ruby-operator">|</span> <span class="ruby-identifier">errors</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">message</span> }
+57:         <span class="ruby-identifier">assert</span> <span class="ruby-identifier">errors</span>.<span class="ruby-identifier">include?</span>([<span class="ruby-value str">&quot;name&quot;</span>, <span class="ruby-value str">&quot;can't be blank&quot;</span>])
+58:       <span class="ruby-keyword kw">end</span>
+59:     <span class="ruby-keyword kw">end</span>
+60:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000962" class="method">
+  <div id="M000962_title" class="title">
+    <b>test_should_mark_as_invalid</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000962_source')" id="l_M000962_source">show source</a> ]</p>
+  <div id="M000962_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 14</span>
+14:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_mark_as_invalid</span>
+15:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+16:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+17:         <span class="ruby-identifier">assert</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@person</span>.<span class="ruby-identifier">valid?</span>
+18:       <span class="ruby-keyword kw">end</span>
+19:     <span class="ruby-keyword kw">end</span>
+20:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000964" class="method">
+  <div id="M000964_title" class="title">
+    <b>test_should_parse_errors_to_individual_attributes</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000964_source')" id="l_M000964_source">show source</a> ]</p>
+  <div id="M000964_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 31</span>
+31:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_parse_errors_to_individual_attributes</span>
+32:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+33:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+34:         <span class="ruby-identifier">assert</span> <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>[<span class="ruby-identifier">:name</span>].<span class="ruby-identifier">any?</span>
+35:         <span class="ruby-identifier">assert_equal</span> <span class="ruby-value str">&quot;can't be blank&quot;</span>, <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>[<span class="ruby-identifier">:age</span>]
+36:         <span class="ruby-identifier">assert_equal</span> [<span class="ruby-value str">&quot;can't be blank&quot;</span>, <span class="ruby-value str">&quot;must start with a letter&quot;</span>], <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>[<span class="ruby-identifier">:name</span>]
+37:         <span class="ruby-identifier">assert_equal</span> <span class="ruby-value str">&quot;Person quota full for today.&quot;</span>, <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>[<span class="ruby-identifier">:base</span>]
+38:       <span class="ruby-keyword kw">end</span>
+39:     <span class="ruby-keyword kw">end</span>
+40:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000963" class="method">
+  <div id="M000963_title" class="title">
+    <b>test_should_parse_xml_errors</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000963_source')" id="l_M000963_source">show source</a> ]</p>
+  <div id="M000963_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activeresource/test/base_errors_test.rb, line 22</span>
+22:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_parse_xml_errors</span>
+23:     [ <span class="ruby-identifier">:json</span>, <span class="ruby-identifier">:xml</span> ].<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">format</span><span class="ruby-operator">|</span>
+24:       <span class="ruby-identifier">invalid_user_using_format</span>(<span class="ruby-identifier">format</span>) <span class="ruby-keyword kw">do</span>
+25:         <span class="ruby-identifier">assert_kind_of</span> <span class="ruby-constant">ActiveResource</span><span class="ruby-operator">::</span><span class="ruby-constant">Errors</span>, <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>
+26:         <span class="ruby-identifier">assert_equal</span> <span class="ruby-value">4</span>, <span class="ruby-ivar">@person</span>.<span class="ruby-identifier">errors</span>.<span class="ruby-identifier">size</span>
+27:       <span class="ruby-keyword kw">end</span>
+28:     <span class="ruby-keyword kw">end</span>
+29:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

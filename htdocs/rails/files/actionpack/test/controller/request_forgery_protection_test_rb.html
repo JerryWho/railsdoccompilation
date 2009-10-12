@@ -1,0 +1,266 @@
+  <div id="fileHeader">
+    <h1>request_forgery_protection_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/request_forgery_protection_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require 'digest/sha1'
+
+ActionController::Routing::Routes.draw do |map|
+  map.connect ':controller/:action/:id'
+end
+
+# common controller actions
+module RequestForgeryProtectionActions
+  def index
+    render :inline =&gt; &quot;&lt;%= form_tag('/') {} %&gt;&quot;
+  end
+  
+  def show_button
+    render :inline =&gt; &quot;&lt;%= button_to('New', '/') {} %&gt;&quot;
+  end
+  
+  def remote_form
+    render :inline =&gt; &quot;&lt;% form_remote_tag(:url =&gt; '/') {} %&gt;&quot;
+  end
+
+  def unsafe
+    render :text =&gt; 'pwn'
+  end
+  
+  def rescue_action(e) raise e end
+end
+
+# sample controllers
+class RequestForgeryProtectionController &lt; ActionController::Base
+  include RequestForgeryProtectionActions
+  protect_from_forgery :only =&gt; :index
+end
+
+class FreeCookieController &lt; RequestForgeryProtectionController
+  self.allow_forgery_protection = false
+  
+  def index
+    render :inline =&gt; &quot;&lt;%= form_tag('/') {} %&gt;&quot;
+  end
+  
+  def show_button
+    render :inline =&gt; &quot;&lt;%= button_to('New', '/') {} %&gt;&quot;
+  end
+end
+
+# common test methods
+
+module RequestForgeryProtectionTests
+  def teardown
+    ActionController::Base.request_forgery_protection_token = nil
+  end
+  
+
+  def test_should_render_form_with_token_tag
+     get :index
+     assert_select 'form&gt;div&gt;input[name=?][value=?]', 'authenticity_token', @token
+   end
+
+   def test_should_render_button_to_with_token_tag
+     get :show_button
+     assert_select 'form&gt;div&gt;input[name=?][value=?]', 'authenticity_token', @token
+   end
+
+   def test_should_render_remote_form_with_only_one_token_parameter
+     get :remote_form
+     assert_equal 1, @response.body.scan(@token).size
+   end
+
+   def test_should_allow_get
+     get :index
+     assert_response :success
+   end
+
+   def test_should_allow_post_without_token_on_unsafe_action
+     post :unsafe
+     assert_response :success
+   end
+
+  def test_should_not_allow_html_post_without_token
+    @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+    assert_raise(ActionController::InvalidAuthenticityToken) { post :index, :format =&gt; :html }
+  end
+  
+  def test_should_not_allow_html_put_without_token
+    @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+    assert_raise(ActionController::InvalidAuthenticityToken) { put :index, :format =&gt; :html }
+  end
+  
+  def test_should_not_allow_html_delete_without_token
+    @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+    assert_raise(ActionController::InvalidAuthenticityToken) { delete :index, :format =&gt; :html }
+  end
+
+  def test_should_allow_api_formatted_post_without_token
+    assert_nothing_raised do
+      post :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_put_without_token
+    assert_nothing_raised do
+      put :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_allow_api_formatted_delete_without_token
+    assert_nothing_raised do
+      delete :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_post_sent_as_url_encoded_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+      post :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_put_sent_as_url_encoded_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+      put :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_delete_sent_as_url_encoded_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+      delete :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_post_sent_as_multipart_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::MULTIPART_FORM.to_s
+      post :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_put_sent_as_multipart_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::MULTIPART_FORM.to_s
+      put :index, :format =&gt; 'xml'
+    end
+  end
+
+  def test_should_not_allow_api_formatted_delete_sent_as_multipart_form_without_token
+    assert_raise(ActionController::InvalidAuthenticityToken) do
+      @request.env['CONTENT_TYPE'] = Mime::MULTIPART_FORM.to_s
+      delete :index, :format =&gt; 'xml'
+    end
+  end
+  
+  def test_should_allow_xhr_post_without_token
+    assert_nothing_raised { xhr :post, :index }
+  end
+  
+  def test_should_allow_xhr_put_without_token
+    assert_nothing_raised { xhr :put, :index }
+  end
+  
+  def test_should_allow_xhr_delete_without_token
+    assert_nothing_raised { xhr :delete, :index }
+  end
+  
+  def test_should_allow_xhr_post_with_encoded_form_content_type_without_token
+    @request.env['CONTENT_TYPE'] = Mime::URL_ENCODED_FORM.to_s
+    assert_nothing_raised { xhr :post, :index }
+  end
+  
+  def test_should_allow_post_with_token
+    post :index, :authenticity_token =&gt; @token
+    assert_response :success
+  end
+  
+  def test_should_allow_put_with_token
+    put :index, :authenticity_token =&gt; @token
+    assert_response :success
+  end
+  
+  def test_should_allow_delete_with_token
+    delete :index, :authenticity_token =&gt; @token
+    assert_response :success
+  end
+  
+  def test_should_allow_post_with_xml
+    @request.env['CONTENT_TYPE'] = Mime::XML.to_s
+    post :index, :format =&gt; 'xml'
+    assert_response :success
+  end
+  
+  def test_should_allow_put_with_xml
+    @request.env['CONTENT_TYPE'] = Mime::XML.to_s
+    put :index, :format =&gt; 'xml'
+    assert_response :success
+  end
+  
+  def test_should_allow_delete_with_xml
+    @request.env['CONTENT_TYPE'] = Mime::XML.to_s
+    delete :index, :format =&gt; 'xml'
+    assert_response :success
+  end
+end
+
+# OK let's get our test on
+
+class RequestForgeryProtectionControllerTest &lt; ActionController::TestCase
+  include RequestForgeryProtectionTests
+  def setup
+    @controller = RequestForgeryProtectionController.new
+    @request    = ActionController::TestRequest.new
+    @request.format = :html
+    @response   = ActionController::TestResponse.new
+    @token      = &quot;cf50faa3fe97702ca1ae&quot;
+
+    ActiveSupport::SecureRandom.stubs(:base64).returns(@token)
+    ActionController::Base.request_forgery_protection_token = :authenticity_token
+  end
+end
+
+class FreeCookieControllerTest &lt; ActionController::TestCase
+  def setup
+    @controller = FreeCookieController.new
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    @token      = &quot;cf50faa3fe97702ca1ae&quot;
+
+    ActiveSupport::SecureRandom.stubs(:base64).returns(@token)
+  end
+  
+  def test_should_not_render_form_with_token_tag
+    get :index
+    assert_select 'form&gt;div&gt;input[name=?][value=?]', 'authenticity_token', @token, false
+  end
+  
+  def test_should_not_render_button_to_with_token_tag
+    get :show_button
+    assert_select 'form&gt;div&gt;input[name=?][value=?]', 'authenticity_token', @token, false
+  end
+  
+  def test_should_allow_all_methods_without_token
+    [:post, :put, :delete].each do |method|
+      assert_nothing_raised { send(method, :index)}
+    end
+  end
+end
+</pre>
+    </div>

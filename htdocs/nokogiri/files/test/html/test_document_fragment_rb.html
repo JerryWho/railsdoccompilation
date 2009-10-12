@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:35:31 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,128 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/html/test_document_fragment.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module HTML
+    class TestDocumentFragment &lt; Nokogiri::TestCase
+      def setup
+        super
+        @html = Nokogiri::HTML.parse(File.read(HTML_FILE), HTML_FILE)
+      end
+
+      def test_new
+        fragment = Nokogiri::HTML::DocumentFragment.new(@html)
+      end
+
+      def test_fragment_should_have_document
+        fragment = Nokogiri::HTML::DocumentFragment.new(@html)
+        assert_equal @html, fragment.document
+      end
+
+      def test_name
+        fragment = Nokogiri::HTML::DocumentFragment.new(@html)
+        assert_equal '#document-fragment', fragment.name
+      end
+
+      def test_static_method
+        fragment = Nokogiri::HTML::DocumentFragment.parse(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of Nokogiri::HTML::DocumentFragment, fragment
+      end
+
+      def test_many_fragments
+        100.times { Nokogiri::HTML::DocumentFragment.new(@html) }
+      end
+
+      def test_subclass
+        klass = Class.new(Nokogiri::HTML::DocumentFragment)
+        fragment = klass.new(@html, &quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of klass, fragment
+      end
+
+      def test_subclass_parse
+        klass = Class.new(Nokogiri::HTML::DocumentFragment)
+        doc = klass.parse(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of klass, doc
+      end
+
+      def test_html_fragment
+        fragment = Nokogiri::HTML.fragment(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_equal &quot;&lt;div&gt;a&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_html_fragment_has_outer_text
+        doc = &quot;a&lt;div&gt;b&lt;/div&gt;c&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        if Nokogiri::VERSION_INFO['libxml']['loaded'] &lt;= &quot;2.6.16&quot;
+          assert_equal &quot;a&lt;div&gt;b&lt;/div&gt;&lt;p&gt;c&lt;/p&gt;&quot;, fragment.to_s
+        else
+          assert_equal &quot;a&lt;div&gt;b&lt;/div&gt;c&quot;, fragment.to_s
+        end
+      end
+
+      def test_html_fragment_case_insensitivity
+        doc = &quot;&lt;crazyDiv&gt;b&lt;/crazyDiv&gt;&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;crazydiv&gt;b&lt;/crazydiv&gt;&quot;, fragment.to_s
+      end
+
+      def test_html_fragment_with_leading_whitespace
+        doc = &quot;     &lt;div&gt;b&lt;/div&gt;  &quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_html_fragment_with_leading_whitespace_and_newline
+        doc = &quot;     \n&lt;div&gt;b&lt;/div&gt;  &quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_to_s
+        doc = &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;, fragment.to_s
+      end
+
+      def test_to_html
+        doc = &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;, fragment.to_html
+      end
+
+      def test_to_xhtml
+        doc = &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        if Nokogiri::VERSION_INFO['libxml']['loaded'] &gt;= &quot;2.7.0&quot;
+          assert_equal &quot;&lt;span&gt;foo&lt;br /&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;, fragment.to_xhtml
+        else
+          assert_equal &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;, fragment.to_xhtml
+        end
+      end
+
+      def test_to_xml
+        doc = &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;
+        fragment = Nokogiri::HTML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;span&gt;foo&lt;br/&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;, fragment.to_xml
+      end
+
+      def test_fragment_script_tag_with_cdata
+        doc = HTML::Document.new
+        fragment = doc.fragment(&quot;&lt;script&gt;var foo = 'bar';&lt;/script&gt;&quot;)
+        assert_equal(&quot;&lt;script&gt;var foo = 'bar';&lt;/script&gt;&quot;,
+          fragment.to_s)
+      end
+
+      def test_fragment_with_comment
+        doc = HTML::Document.new
+        fragment = doc.fragment(&quot;&lt;p&gt;hello&lt;!-- your ad here --&gt;&lt;/p&gt;&quot;)
+        assert_equal(&quot;&lt;p&gt;hello&lt;!-- your ad here --&gt;&lt;/p&gt;&quot;,
+          fragment.to_s)
+      end
+
+    end
+  end
+end
+</pre>
     </div>

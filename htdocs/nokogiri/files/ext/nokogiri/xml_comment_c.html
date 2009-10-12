@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,56 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/ext/nokogiri/xml_comment.c-</pre>
+    <pre>#include &lt;xml_comment.h&gt;
+
+/*
+ * call-seq:
+ *  new(document, content)
+ *
+ * Create a new Comment element on the +document+ with +content+
+ */
+static VALUE new(int argc, VALUE *argv, VALUE klass)
+{
+  xmlDocPtr xml_doc;
+  VALUE document;
+  VALUE content;
+  VALUE rest;
+
+  rb_scan_args(argc, argv, &quot;2*&quot;, &amp;document, &amp;content, &amp;rest);
+
+  Data_Get_Struct(document, xmlDoc, xml_doc);
+
+  xmlNodePtr node = xmlNewDocComment(
+      xml_doc,
+      (const xmlChar *)StringValuePtr(content)
+  );
+
+  VALUE rb_node = Nokogiri_wrap_xml_node(klass, node);
+  rb_funcall2(rb_node, rb_intern(&quot;initialize&quot;), argc, argv);
+
+  NOKOGIRI_ROOT_NODE(node);
+
+  if(rb_block_given_p()) rb_yield(rb_node);
+
+  return rb_node;
+}
+
+VALUE cNokogiriXmlComment;
+void init_xml_comment()
+{
+  VALUE nokogiri = rb_define_module(&quot;Nokogiri&quot;);
+  VALUE xml = rb_define_module_under(nokogiri, &quot;XML&quot;);
+  VALUE node = rb_define_class_under(xml, &quot;Node&quot;, rb_cObject);
+
+  /*
+   * Comment represents a comment node in an xml document.
+   */
+  VALUE klass = rb_define_class_under(xml, &quot;Comment&quot;, node);
+
+
+  cNokogiriXmlComment = klass;
+
+  rb_define_singleton_method(klass, &quot;new&quot;, new, -1);
+}
+</pre>
     </div>

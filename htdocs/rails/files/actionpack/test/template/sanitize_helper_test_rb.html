@@ -1,0 +1,67 @@
+  <div id="fileHeader">
+    <h1>sanitize_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/sanitize_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require 'testing_sandbox'
+
+# The exhaustive tests are in test/controller/html/sanitizer_test.rb.
+# This tests the that the helpers hook up correctly to the sanitizer classes.
+class SanitizeHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::SanitizeHelper
+  include TestingSandbox
+
+  def test_strip_links
+    assert_equal &quot;Dont touch me&quot;, strip_links(&quot;Dont touch me&quot;)
+    assert_equal &quot;&lt;a&lt;a&quot;, strip_links(&quot;&lt;a&lt;a&quot;)
+    assert_equal &quot;on my mind\nall day long&quot;, strip_links(&quot;&lt;a href='almost'&gt;on my mind&lt;/a&gt;\n&lt;A href='almost'&gt;all day long&lt;/A&gt;&quot;)
+    assert_equal &quot;0wn3d&quot;, strip_links(&quot;&lt;a href='http://www.rubyonrails.com/'&gt;&lt;a href='http://www.rubyonrails.com/' onlclick='steal()'&gt;0wn3d&lt;/a&gt;&lt;/a&gt;&quot;)
+    assert_equal &quot;Magic&quot;, strip_links(&quot;&lt;a href='http://www.rubyonrails.com/'&gt;Mag&lt;a href='http://www.ruby-lang.org/'&gt;ic&quot;)
+    assert_equal &quot;FrrFox&quot;, strip_links(&quot;&lt;href onlclick='steal()'&gt;FrrFox&lt;/a&gt;&lt;/href&gt;&quot;)
+    assert_equal &quot;My mind\nall &lt;b&gt;day&lt;/b&gt; long&quot;, strip_links(&quot;&lt;a href='almost'&gt;My mind&lt;/a&gt;\n&lt;A href='almost'&gt;all &lt;b&gt;day&lt;/b&gt; long&lt;/A&gt;&quot;)
+    assert_equal &quot;all &lt;b&gt;day&lt;/b&gt; long&quot;, strip_links(&quot;&lt;&lt;a&gt;a href='hello'&gt;all &lt;b&gt;day&lt;/b&gt; long&lt;&lt;/A&gt;/a&gt;&quot;)
+  end
+
+  def test_sanitize_form
+    assert_sanitized &quot;&lt;form action=\&quot;/foo/bar\&quot; method=\&quot;post\&quot;&gt;&lt;input&gt;&lt;/form&gt;&quot;, ''
+  end
+
+  def test_should_sanitize_illegal_style_properties
+    raw      = %(display:block; position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; background-color:black; background-image:url(http://www.ragingplatypus.com/i/cam-full.jpg); background-x:center; background-y:center; background-repeat:repeat;)
+    expected = %(display: block; width: 100%; height: 100%; background-color: black; background-image: ; background-x: center; background-y: center;)
+    assert_equal expected, sanitize_css(raw)
+  end
+
+  def test_strip_tags
+    assert_equal(&quot;&lt;&lt;&lt;bad html&quot;, strip_tags(&quot;&lt;&lt;&lt;bad html&quot;))
+    assert_equal(&quot;&lt;&lt;&quot;, strip_tags(&quot;&lt;&lt;&lt;bad html&gt;&quot;))
+    assert_equal(&quot;Dont touch me&quot;, strip_tags(&quot;Dont touch me&quot;))
+    assert_equal(&quot;This is a test.&quot;, strip_tags(&quot;&lt;p&gt;This &lt;u&gt;is&lt;u&gt; a &lt;a href='test.html'&gt;&lt;strong&gt;test&lt;/strong&gt;&lt;/a&gt;.&lt;/p&gt;&quot;))
+    assert_equal(&quot;Weirdos&quot;, strip_tags(&quot;Wei&lt;&lt;a&gt;a onclick='alert(document.cookie);'&lt;/a&gt;/&gt;rdos&quot;))
+    assert_equal(&quot;This is a test.&quot;, strip_tags(&quot;This is a test.&quot;))
+    assert_equal(
+    %{This is a test.\n\n\nIt no longer contains any HTML.\n}, strip_tags(
+    %{&lt;title&gt;This is &lt;b&gt;a &lt;a href=&quot;&quot; target=&quot;_blank&quot;&gt;test&lt;/a&gt;&lt;/b&gt;.&lt;/title&gt;\n\n&lt;!-- it has a comment --&gt;\n\n&lt;p&gt;It no &lt;b&gt;longer &lt;strong&gt;contains &lt;em&gt;any &lt;strike&gt;HTML&lt;/strike&gt;&lt;/em&gt;.&lt;/strong&gt;&lt;/b&gt;&lt;/p&gt;\n}))
+    assert_equal &quot;This has a  here.&quot;, strip_tags(&quot;This has a &lt;!-- comment --&gt; here.&quot;)
+    [nil, '', '   '].each { |blank| assert_equal blank, strip_tags(blank) }
+  end
+
+  def assert_sanitized(text, expected = nil)
+    assert_equal((expected || text), sanitize(text))
+  end
+end
+</pre>
+    </div>

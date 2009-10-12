@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,73 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/hpricot/test_alter.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+require File.join(File.dirname(__FILE__),&quot;load_files&quot;)
+
+class TestAlter &lt; Nokogiri::TestCase
+  include Nokogiri
+
+  def setup
+    super
+    @basic = Nokogiri::HTML.parse(TestFiles::BASIC)
+  end
+
+  def test_before
+    test0 = &quot;&lt;link rel='stylesheet' href='test0.css' /&gt;&quot;
+    @basic.at(&quot;link&quot;).before(test0)
+    assert_equal 'test0.css', @basic.at(&quot;link&quot;).attributes['href'].to_s
+  end
+
+  def test_after
+    test_inf = &quot;&lt;link rel='stylesheet' href='test_inf.css' /&gt;&quot;
+    @basic.search(&quot;link&quot;)[-1].after(test_inf)
+    assert_equal 'test_inf.css', @basic.search(&quot;link&quot;)[-1]['href']
+  end
+
+  def test_wrap
+    ohmy = (@basic/&quot;p.ohmy&quot;).wrap(&quot;&lt;div id='wrapper'&gt;&lt;/div&gt;&quot;)
+    assert_equal 'wrapper', ohmy[0].parent['id']
+    assert_equal 'ohmy', Nokogiri(@basic.to_html).at(&quot;#wrapper&quot;).children[0]['class']
+  end
+
+  def test_add_class
+    first_p = (@basic/&quot;p:first&quot;).add_class(&quot;testing123&quot;)
+    assert first_p[0].get_attribute(&quot;class&quot;).split(&quot; &quot;).include?(&quot;testing123&quot;)
+    assert((Nokogiri(@basic.to_html)/&quot;p:first&quot;)[0][&quot;class&quot;].split(&quot; &quot;).include?(&quot;testing123&quot;))
+    ####
+    # Modified.  We do not support OB1 bug.
+    assert !(Nokogiri(@basic.to_html)/&quot;p:gt(1)&quot;)[0][&quot;class&quot;].split(&quot; &quot;).include?(&quot;testing123&quot;)
+  end
+
+  def test_change_attributes
+    all_ps = (@basic/&quot;p&quot;).attr(&quot;title&quot;, &quot;Some Title&quot;)
+    all_as = (@basic/&quot;a&quot;).attr(&quot;href&quot;, &quot;http://my_new_href.com&quot;)
+    all_lb = (@basic/&quot;link&quot;).attr(&quot;href&quot;) { |e| e.name }
+    GC.start # try to shake out GC bugs with xpath and node sets.
+    assert_changed(@basic, &quot;p&quot;, all_ps) {|p| p.attributes[&quot;title&quot;].to_s == &quot;Some Title&quot;}
+    assert_changed(@basic, &quot;a&quot;, all_as) {|a| a.attributes[&quot;href&quot;].to_s == &quot;http://my_new_href.com&quot;}
+    assert_changed(@basic, &quot;link&quot;, all_lb) {|a| a.attributes[&quot;href&quot;].to_s == &quot;link&quot; }
+  end
+
+  def test_remove_attr
+    all_rl = (@basic/&quot;link&quot;).remove_attr(&quot;href&quot;)
+    assert_changed(@basic, &quot;link&quot;, all_rl) { |link| link['href'].nil? }
+  end
+
+  def test_remove_class
+    all_c1 = (@basic/&quot;p[@class*='last']&quot;).remove_class(&quot;last&quot;)
+    assert_changed(@basic, &quot;p[@class*='last']&quot;, all_c1) { |p| p['class'] == 'final' }
+  end
+
+  def test_remove_all_classes
+    all_c2 = (@basic/&quot;p[@class]&quot;).remove_class
+    assert_changed(@basic, &quot;p[@class]&quot;, all_c2) { |p| p['class'].nil? }
+  end
+
+  def assert_changed original, selector, set, &amp;block
+    assert set.all?(&amp;block)
+    assert Nokogiri(original.to_html).search(selector).all?(&amp;block)
+  end
+end
+</pre>
     </div>

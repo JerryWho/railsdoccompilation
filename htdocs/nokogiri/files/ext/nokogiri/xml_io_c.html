@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,29 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/ext/nokogiri/xml_io.c-</pre>
+    <pre>#include &lt;xml_io.h&gt;
+
+int io_read_callback(void * ctx, char * buffer, int len) {
+  VALUE io = (VALUE)ctx;
+  VALUE string = rb_funcall(io, rb_intern(&quot;read&quot;), 1, INT2NUM(len));
+
+  if(Qnil == string) return 0;
+
+  memcpy(buffer, StringValuePtr(string), (unsigned int)RSTRING_LEN(string));
+
+  return RSTRING_LEN(string);
+}
+
+int io_write_callback(void * ctx, char * buffer, int len) {
+  VALUE io = (VALUE)ctx;
+  VALUE string = rb_str_new(buffer, len);
+
+  rb_funcall(io, rb_intern(&quot;write&quot;), 1, string);
+  return len;
+}
+
+int io_close_callback(void * ctx) {
+  return 0;
+}
+</pre>
     </div>

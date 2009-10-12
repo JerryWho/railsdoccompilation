@@ -1,0 +1,464 @@
+  <div id="fileHeader">
+    <h1>integration_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/integration_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class SessionTest &lt; Test::Unit::TestCase
+  StubApp = lambda { |env|
+    [200, {&quot;Content-Type&quot; =&gt; &quot;text/html&quot;, &quot;Content-Length&quot; =&gt; &quot;13&quot;}, [&quot;Hello, World!&quot;]]
+  }
+
+  def setup
+    @session = ActionController::Integration::Session.new(StubApp)
+  end
+
+  def test_https_bang_works_and_sets_truth_by_default
+    assert !@session.https?
+    @session.https!
+    assert @session.https?
+    @session.https! false
+    assert !@session.https?
+  end
+
+  def test_host!
+    assert_not_equal &quot;glu.ttono.us&quot;, @session.host
+    @session.host! &quot;rubyonrails.com&quot;
+    assert_equal &quot;rubyonrails.com&quot;, @session.host
+  end
+
+  def test_follow_redirect_raises_when_no_redirect
+    @session.stubs(:redirect?).returns(false)
+    assert_raise(RuntimeError) { @session.follow_redirect! }
+  end
+
+  def test_request_via_redirect_uses_given_method
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot;}
+    @session.expects(:put).with(path, args, headers)
+    @session.stubs(:redirect?).returns(false)
+    @session.request_via_redirect(:put, path, args, headers)
+  end
+
+  def test_request_via_redirect_follows_redirects
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot;}
+    @session.stubs(:redirect?).returns(true, true, false)
+    @session.expects(:follow_redirect!).times(2)
+    @session.request_via_redirect(:get, path, args, headers)
+  end
+
+  def test_request_via_redirect_returns_status
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot;}
+    @session.stubs(:redirect?).returns(false)
+    @session.stubs(:status).returns(200)
+    assert_equal 200, @session.request_via_redirect(:get, path, args, headers)
+  end
+
+  def test_get_via_redirect
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot; }
+    @session.expects(:request_via_redirect).with(:get, path, args, headers)
+    @session.get_via_redirect(path, args, headers)
+  end
+
+  def test_post_via_redirect
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot; }
+    @session.expects(:request_via_redirect).with(:post, path, args, headers)
+    @session.post_via_redirect(path, args, headers)
+  end
+
+  def test_put_via_redirect
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot; }
+    @session.expects(:request_via_redirect).with(:put, path, args, headers)
+    @session.put_via_redirect(path, args, headers)
+  end
+
+  def test_delete_via_redirect
+    path = &quot;/somepath&quot;; args = {:id =&gt; '1'}; headers = {&quot;X-Test-Header&quot; =&gt; &quot;testvalue&quot; }
+    @session.expects(:request_via_redirect).with(:delete, path, args, headers)
+    @session.delete_via_redirect(path, args, headers)
+  end
+
+  def test_url_for_with_controller
+    options = {:action =&gt; 'show'}
+    mock_controller = mock()
+    mock_controller.expects(:url_for).with(options).returns('/show')
+    @session.stubs(:controller).returns(mock_controller)
+    assert_equal '/show', @session.url_for(options)
+  end
+
+  def test_url_for_without_controller
+    options = {:action =&gt; 'show'}
+    mock_rewriter = mock()
+    mock_rewriter.expects(:rewrite).with(options).returns('/show')
+    @session.stubs(:generic_url_rewriter).returns(mock_rewriter)
+    @session.stubs(:controller).returns(nil)
+    assert_equal '/show', @session.url_for(options)
+  end
+
+  def test_redirect_bool_with_status_in_300s
+    @session.stubs(:status).returns 301
+    assert @session.redirect?
+  end
+
+  def test_redirect_bool_with_status_in_200s
+    @session.stubs(:status).returns 200
+    assert !@session.redirect?
+  end
+
+  def test_get
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    @session.expects(:process).with(:get,path,params,headers)
+    @session.get(path,params,headers)
+  end
+
+  def test_post
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    @session.expects(:process).with(:post,path,params,headers)
+    @session.post(path,params,headers)
+  end
+
+  def test_put
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    @session.expects(:process).with(:put,path,params,headers)
+    @session.put(path,params,headers)
+  end
+
+  def test_delete
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    @session.expects(:process).with(:delete,path,params,headers)
+    @session.delete(path,params,headers)
+  end
+
+  def test_head
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    @session.expects(:process).with(:head,path,params,headers)
+    @session.head(path,params,headers)
+  end
+
+  def test_xml_http_request_get
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;,
+      &quot;Accept&quot;           =&gt; &quot;text/javascript, text/html, application/xml, text/xml, */*&quot;
+    )
+    @session.expects(:process).with(:get,path,params,headers_after_xhr)
+    @session.xml_http_request(:get,path,params,headers)
+  end
+
+  def test_xml_http_request_post
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;,
+      &quot;Accept&quot;           =&gt; &quot;text/javascript, text/html, application/xml, text/xml, */*&quot;
+    )
+    @session.expects(:process).with(:post,path,params,headers_after_xhr)
+    @session.xml_http_request(:post,path,params,headers)
+  end
+
+  def test_xml_http_request_put
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;,
+      &quot;Accept&quot;           =&gt; &quot;text/javascript, text/html, application/xml, text/xml, */*&quot;
+    )
+    @session.expects(:process).with(:put,path,params,headers_after_xhr)
+    @session.xml_http_request(:put,path,params,headers)
+  end
+
+  def test_xml_http_request_delete
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;,
+      &quot;Accept&quot;           =&gt; &quot;text/javascript, text/html, application/xml, text/xml, */*&quot;
+    )
+    @session.expects(:process).with(:delete,path,params,headers_after_xhr)
+    @session.xml_http_request(:delete,path,params,headers)
+  end
+
+  def test_xml_http_request_head
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah'}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;,
+      &quot;Accept&quot;           =&gt; &quot;text/javascript, text/html, application/xml, text/xml, */*&quot;
+    )
+    @session.expects(:process).with(:head,path,params,headers_after_xhr)
+    @session.xml_http_request(:head,path,params,headers)
+  end
+
+  def test_xml_http_request_override_accept
+    path = &quot;/index&quot;; params = &quot;blah&quot;; headers = {:location =&gt; 'blah', &quot;Accept&quot; =&gt; &quot;application/xml&quot;}
+    headers_after_xhr = headers.merge(
+      &quot;X-Requested-With&quot; =&gt; &quot;XMLHttpRequest&quot;
+    )
+    @session.expects(:process).with(:post,path,params,headers_after_xhr)
+    @session.xml_http_request(:post,path,params,headers)
+  end
+end
+
+class IntegrationTestTest &lt; Test::Unit::TestCase
+  def setup
+    @test = ::ActionController::IntegrationTest.new(:default_test)
+    @test.class.stubs(:fixture_table_names).returns([])
+    @session = @test.open_session
+  end
+
+  def test_opens_new_session
+    @test.class.expects(:fixture_table_names).times(2).returns(['foo'])
+
+    session1 = @test.open_session { |sess| }
+    session2 = @test.open_session # implicit session
+
+    assert_equal ::ActionController::Integration::Session, session1.class
+    assert_equal ::ActionController::Integration::Session, session2.class
+    assert_not_equal session1, session2
+  end
+end
+
+# Tests that integration tests don't call Controller test methods for processing.
+# Integration tests have their own setup and teardown.
+class IntegrationTestUsesCorrectClass &lt; ActionController::IntegrationTest
+  def self.fixture_table_names
+    []
+  end
+
+  def test_integration_methods_called
+    reset!
+    @integration_session.stubs(:generic_url_rewriter)
+    @integration_session.stubs(:process)
+
+    %w( get post head put delete ).each do |verb|
+      assert_nothing_raised(&quot;'#{verb}' should use integration test methods&quot;) { __send__(verb, '/') }
+    end
+  end
+end
+
+class IntegrationProcessTest &lt; ActionController::IntegrationTest
+  class IntegrationController &lt; ActionController::Base
+    def get
+      respond_to do |format|
+        format.html { render :text =&gt; &quot;OK&quot;, :status =&gt; 200 }
+        format.js { render :text =&gt; &quot;JS OK&quot;, :status =&gt; 200 }
+      end
+    end
+
+    def get_with_params
+      render :text =&gt; &quot;foo: #{params[:foo]}&quot;, :status =&gt; 200
+    end
+
+    def post_with_multiparameter_params
+      render :text =&gt; &quot;foo(1i): #{params[:&quot;foo(1i)&quot;]}, foo(2i): #{params[:&quot;foo(2i)&quot;]}&quot;, :status =&gt; 200
+    end
+
+    def multipart_post_with_multiparameter_params
+      render :text =&gt; &quot;foo(1i): #{params[:&quot;foo(1i)&quot;]}, foo(2i): #{params[:&quot;foo(2i)&quot;]}, filesize: #{params[:file].size}&quot;, :status =&gt; 200
+    end
+
+    def post
+      render :text =&gt; &quot;Created&quot;, :status =&gt; 201
+    end
+
+    def cookie_monster
+      cookies[&quot;cookie_1&quot;] = nil
+      cookies[&quot;cookie_3&quot;] = &quot;chocolate&quot;
+      render :text =&gt; &quot;Gone&quot;, :status =&gt; 410
+    end
+
+    def redirect
+      redirect_to :action =&gt; &quot;get&quot;
+    end
+  end
+
+  FILES_DIR = File.dirname(__FILE__) + '/../fixtures/multipart'
+
+  def test_get
+    with_test_route_set do
+      get '/get'
+      assert_equal 200, status
+      assert_equal &quot;OK&quot;, status_message
+      assert_response 200
+      assert_response :success
+      assert_response :ok
+      assert_equal({}, cookies)
+      assert_equal &quot;OK&quot;, body
+      assert_equal &quot;OK&quot;, response.body
+      assert_kind_of HTML::Document, html_document
+      assert_equal 1, request_count
+    end
+  end
+
+  def test_post
+    with_test_route_set do
+      post '/post'
+      assert_equal 201, status
+      assert_equal &quot;Created&quot;, status_message
+      assert_response 201
+      assert_response :success
+      assert_response :created
+      assert_equal({}, cookies)
+      assert_equal &quot;Created&quot;, body
+      assert_equal &quot;Created&quot;, response.body
+      assert_kind_of HTML::Document, html_document
+      assert_equal 1, request_count
+    end
+  end
+
+  def test_cookie_monster
+    with_test_route_set do
+      self.cookies['cookie_1'] = &quot;sugar&quot;
+      self.cookies['cookie_2'] = &quot;oatmeal&quot;
+      get '/cookie_monster'
+      assert_equal 410, status
+      assert_equal &quot;Gone&quot;, status_message
+      assert_response 410
+      assert_response :gone
+      assert_equal &quot;cookie_1=; path=/\ncookie_3=chocolate; path=/&quot;, headers[&quot;Set-Cookie&quot;]
+      assert_equal({&quot;cookie_1&quot;=&gt;&quot;&quot;, &quot;cookie_2&quot;=&gt;&quot;oatmeal&quot;, &quot;cookie_3&quot;=&gt;&quot;chocolate&quot;}, cookies)
+      assert_equal &quot;Gone&quot;, response.body
+    end
+  end
+
+  def test_redirect
+    with_test_route_set do
+      get '/redirect'
+      assert_equal 302, status
+      assert_equal &quot;Found&quot;, status_message
+      assert_response 302
+      assert_response :redirect
+      assert_response :found
+      assert_equal &quot;&lt;html&gt;&lt;body&gt;You are being &lt;a href=\&quot;http://www.example.com/get\&quot;&gt;redirected&lt;/a&gt;.&lt;/body&gt;&lt;/html&gt;&quot;, response.body
+      assert_kind_of HTML::Document, html_document
+      assert_equal 1, request_count
+
+      follow_redirect!
+      assert_response :success
+      assert_equal &quot;/get&quot;, path
+    end
+  end
+
+  def test_xml_http_request_get
+    with_test_route_set do
+      xhr :get, '/get'
+      assert_equal 200, status
+      assert_equal &quot;OK&quot;, status_message
+      assert_response 200
+      assert_response :success
+      assert_response :ok
+      assert_equal &quot;JS OK&quot;, response.body
+    end
+  end
+
+  def test_get_with_query_string
+    with_test_route_set do
+      get '/get_with_params?foo=bar'
+      assert_equal '/get_with_params?foo=bar', request.env[&quot;REQUEST_URI&quot;]
+      assert_equal '/get_with_params?foo=bar', request.request_uri
+      assert_equal &quot;&quot;, request.env[&quot;QUERY_STRING&quot;]
+      assert_equal 'foo=bar', request.query_string
+      assert_equal 'bar', request.parameters['foo']
+
+      assert_equal 200, status
+      assert_equal &quot;foo: bar&quot;, response.body
+    end
+  end
+
+  def test_get_with_parameters
+    with_test_route_set do
+      get '/get_with_params', :foo =&gt; &quot;bar&quot;
+      assert_equal '/get_with_params', request.env[&quot;REQUEST_URI&quot;]
+      assert_equal '/get_with_params', request.request_uri
+      assert_equal 'foo=bar', request.env[&quot;QUERY_STRING&quot;]
+      assert_equal 'foo=bar', request.query_string
+      assert_equal 'bar', request.parameters['foo']
+
+      assert_equal 200, status
+      assert_equal &quot;foo: bar&quot;, response.body
+    end
+  end
+
+  def test_post_with_multiparameter_attribute_parameters
+    with_test_route_set do
+      post '/post_with_multiparameter_params', :&quot;foo(1i)&quot; =&gt; &quot;bar&quot;, :&quot;foo(2i)&quot; =&gt; &quot;baz&quot;
+
+      assert_equal 200, status
+      assert_equal &quot;foo(1i): bar, foo(2i): baz&quot;, response.body
+    end
+  end
+
+  def test_multipart_post_with_multiparameter_attribute_parameters
+    with_test_route_set do
+      post '/multipart_post_with_multiparameter_params', :&quot;foo(1i)&quot; =&gt; &quot;bar&quot;, :&quot;foo(2i)&quot; =&gt; &quot;baz&quot;, :file =&gt; fixture_file_upload(FILES_DIR + &quot;/mona_lisa.jpg&quot;, &quot;image/jpg&quot;)
+
+      assert_equal 200, status
+      assert_equal &quot;foo(1i): bar, foo(2i): baz, filesize: 159528&quot;, response.body
+    end
+  end
+
+  def test_head
+    with_test_route_set do
+      head '/get'
+      assert_equal 200, status
+      assert_equal &quot;&quot;, body
+
+      head '/post'
+      assert_equal 201, status
+      assert_equal &quot;&quot;, body
+    end
+  end
+
+  private
+    def with_test_route_set
+      with_routing do |set|
+        set.draw do |map|
+          map.with_options :controller =&gt; &quot;IntegrationProcessTest::Integration&quot; do |c|
+            c.connect &quot;/:action&quot;
+          end
+        end
+        yield
+      end
+    end
+end
+
+class MetalTest &lt; ActionController::IntegrationTest
+  class Poller
+    def self.call(env)
+      if env[&quot;PATH_INFO&quot;] =~ /^\/success/
+        [200, {&quot;Content-Type&quot; =&gt; &quot;text/plain&quot;, &quot;Content-Length&quot; =&gt; &quot;12&quot;}, [&quot;Hello World!&quot;]]
+      else
+        [404, {&quot;Content-Type&quot; =&gt; &quot;text/plain&quot;, &quot;Content-Length&quot; =&gt; &quot;0&quot;}, []]
+      end
+    end
+  end
+
+  def setup
+    @integration_session = ActionController::Integration::Session.new(Poller)
+  end
+
+  def test_successful_get
+    get &quot;/success&quot;
+    assert_response 200
+    assert_response :success
+    assert_response :ok
+    assert_equal &quot;Hello World!&quot;, response.body
+  end
+
+  def test_failed_get
+    get &quot;/failure&quot;
+    assert_response 404
+    assert_response :not_found
+    assert_equal '', response.body
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,69 @@
+  <div id="fileHeader">
+    <h1>funcall.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/script/funcall.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.join(File.dirname(__FILE__), 'functions')
+module Sass
+  module Script
+    # A SassScript parse node representing a function call.
+    #
+    # A function call either calls one of the functions in {Script::Functions},
+    # or if no function with the given name exists
+    # it returns a string representation of the function call.
+    class Funcall &lt; Node
+      # The name of the function.
+      #
+      # @return [String]
+      attr_reader :name
+
+      # The arguments to the function.
+      #
+      # @return [Array&lt;Script::Node&gt;]
+      attr_reader :args
+
+      # @param name [String] See \{#name}
+      # @param name [Array&lt;Script::Node&gt;] See \{#args}
+      def initialize(name, args)
+        @name = name
+        @args = args
+      end
+
+      # @return [String] A string representation of the function call
+      def inspect
+        &quot;#{name}(#{args.map {|a| a.inspect}.join(', ')})&quot;
+      end
+
+      # Evaluates the function call.
+      #
+      # @param environment [Sass::Environment] The environment in which to evaluate the SassScript
+      # @return [Literal] The SassScript object that is the value of the function call
+      # @raise [Sass::SyntaxError] if the function call raises an ArgumentError
+      def perform(environment)
+        args = self.args.map {|a| a.perform(environment)}
+        unless Haml::Util.has?(:public_instance_method, Functions, name) &amp;&amp; name !~ /^__/
+          return Script::String.new(&quot;#{name}(#{args.map {|a| a.perform(environment)}.join(', ')})&quot;)
+        end
+
+        return Functions::EvaluationContext.new(environment.options).send(name, *args)
+      rescue ArgumentError =&gt; e
+        raise e unless e.backtrace.first =~ /:in `(block in )?(#{name}|perform)'$/
+        raise Sass::SyntaxError.new(&quot;#{e.message} for `#{name}'&quot;)
+      end
+    end
+  end
+end
+</pre>
+    </div>

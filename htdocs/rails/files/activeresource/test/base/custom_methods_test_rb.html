@@ -1,0 +1,119 @@
+  <div id="fileHeader">
+    <h1>custom_methods_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activeresource/test/base/custom_methods_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require 'fixtures/person'
+require 'fixtures/street_address'
+
+class CustomMethodsTest &lt; Test::Unit::TestCase
+  def setup
+    @matz  = { :id =&gt; 1, :name =&gt; 'Matz' }.to_xml(:root =&gt; 'person')
+    @matz_deep  = { :id =&gt; 1, :name =&gt; 'Matz', :other =&gt; 'other' }.to_xml(:root =&gt; 'person')
+    @matz_array = [{ :id =&gt; 1, :name =&gt; 'Matz' }].to_xml(:root =&gt; 'people')
+    @ryan  = { :name =&gt; 'Ryan' }.to_xml(:root =&gt; 'person')
+    @addy  = { :id =&gt; 1, :street =&gt; '12345 Street' }.to_xml(:root =&gt; 'address')
+    @addy_deep  = { :id =&gt; 1, :street =&gt; '12345 Street', :zip =&gt; &quot;27519&quot; }.to_xml(:root =&gt; 'address')
+
+    ActiveResource::HttpMock.respond_to do |mock|
+      mock.get    &quot;/people/1.xml&quot;,             {}, @matz
+      mock.get    &quot;/people/1/shallow.xml&quot;, {}, @matz
+      mock.get    &quot;/people/1/deep.xml&quot;, {}, @matz_deep
+      mock.get    &quot;/people/retrieve.xml?name=Matz&quot;, {}, @matz_array
+      mock.get    &quot;/people/managers.xml&quot;, {}, @matz_array
+      mock.post   &quot;/people/hire.xml?name=Matz&quot;, {}, nil, 201
+      mock.put    &quot;/people/1/promote.xml?position=Manager&quot;, {}, nil, 204
+      mock.put    &quot;/people/promote.xml?name=Matz&quot;, {}, nil, 204, {}
+      mock.put    &quot;/people/sort.xml?by=name&quot;, {}, nil, 204
+      mock.delete &quot;/people/deactivate.xml?name=Matz&quot;, {}, nil, 200
+      mock.delete &quot;/people/1/deactivate.xml&quot;, {}, nil, 200
+      mock.post   &quot;/people/new/register.xml&quot;,      {}, @ryan, 201, 'Location' =&gt; '/people/5.xml'
+      mock.post   &quot;/people/1/register.xml&quot;, {}, @matz, 201
+      mock.get    &quot;/people/1/addresses/1.xml&quot;, {}, @addy
+      mock.get    &quot;/people/1/addresses/1/deep.xml&quot;, {}, @addy_deep
+      mock.put    &quot;/people/1/addresses/1/normalize_phone.xml?locale=US&quot;, {}, nil, 204
+      mock.put    &quot;/people/1/addresses/sort.xml?by=name&quot;, {}, nil, 204
+      mock.post   &quot;/people/1/addresses/new/link.xml&quot;, {}, { :street =&gt; '12345 Street' }.to_xml(:root =&gt; 'address'), 201, 'Location' =&gt; '/people/1/addresses/2.xml'
+    end
+
+    Person.user = nil
+    Person.password = nil
+  end  
+
+  def teardown
+    ActiveResource::HttpMock.reset!
+  end
+
+  def test_custom_collection_method
+    # GET
+    assert_equal([{ &quot;id&quot; =&gt; 1, &quot;name&quot; =&gt; 'Matz' }], Person.get(:retrieve, :name =&gt; 'Matz'))
+
+    # POST
+    assert_equal(ActiveResource::Response.new(&quot;&quot;, 201, {}), Person.post(:hire, :name =&gt; 'Matz'))
+
+    # PUT
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 204, {}),
+                   Person.put(:promote, {:name =&gt; 'Matz'}, 'atestbody')
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 204, {}), Person.put(:sort, :by =&gt; 'name')
+
+    # DELETE
+    Person.delete :deactivate, :name =&gt; 'Matz'
+
+    # Nested resource
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 204, {}), StreetAddress.put(:sort, :person_id =&gt; 1, :by =&gt; 'name')
+  end
+
+  def test_custom_element_method
+    # Test GET against an element URL
+    assert_equal Person.find(1).get(:shallow), {&quot;id&quot; =&gt; 1, &quot;name&quot; =&gt; 'Matz'}
+    assert_equal Person.find(1).get(:deep), {&quot;id&quot; =&gt; 1, &quot;name&quot; =&gt; 'Matz', &quot;other&quot; =&gt; 'other'}
+    
+    # Test PUT against an element URL
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 204, {}), Person.find(1).put(:promote, {:position =&gt; 'Manager'}, 'body')
+    
+    # Test DELETE against an element URL
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 200, {}), Person.find(1).delete(:deactivate)
+    
+    # With nested resources
+    assert_equal StreetAddress.find(1, :params =&gt; { :person_id =&gt; 1 }).get(:deep),
+                  { &quot;id&quot; =&gt; 1, &quot;street&quot; =&gt; '12345 Street', &quot;zip&quot; =&gt; &quot;27519&quot; }
+    assert_equal ActiveResource::Response.new(&quot;&quot;, 204, {}),
+                   StreetAddress.find(1, :params =&gt; { :person_id =&gt; 1 }).put(:normalize_phone, :locale =&gt; 'US')
+  end
+
+  def test_custom_new_element_method
+    # Test POST against a new element URL
+    ryan = Person.new(:name =&gt; 'Ryan')
+    assert_equal ActiveResource::Response.new(@ryan, 201, {'Location' =&gt; '/people/5.xml'}), ryan.post(:register)
+    expected_request = ActiveResource::Request.new(:post, '/people/new/register.xml', @ryan)
+    assert_equal expected_request.body, ActiveResource::HttpMock.requests.first.body
+
+    # Test POST against a nested collection URL
+    addy = StreetAddress.new(:street =&gt; '123 Test Dr.', :person_id =&gt; 1)
+    assert_equal ActiveResource::Response.new({ :street =&gt; '12345 Street' }.to_xml(:root =&gt; 'address'), 
+                   201, {'Location' =&gt; '/people/1/addresses/2.xml'}),
+                 addy.post(:link)
+
+    matz = Person.new(:id =&gt; 1, :name =&gt; 'Matz')
+    assert_equal ActiveResource::Response.new(@matz, 201), matz.post(:register)
+  end
+
+  def test_find_custom_resources
+    assert_equal 'Matz', Person.find(:all, :from =&gt; :managers).first.name
+  end
+end
+</pre>
+    </div>

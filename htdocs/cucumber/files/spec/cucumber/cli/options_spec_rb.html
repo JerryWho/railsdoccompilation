@@ -1,0 +1,353 @@
+  <div id="fileHeader">
+    <h1>options_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/cli/options_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'yaml'
+
+module Cucumber
+module Cli
+  describe Options do
+
+    def given_cucumber_yml_defined_as(hash_or_string)
+      File.stub!(:exist?).and_return(true)
+      cucumber_yml = hash_or_string.is_a?(Hash) ? hash_or_string.to_yaml : hash_or_string
+      IO.stub!(:read).with('cucumber.yml').and_return(cucumber_yml)
+    end
+
+    before(:each) do
+      File.stub!(:exist?).and_return(false) # Meaning, no cucumber.yml exists
+      Kernel.stub!(:exit).and_return(nil)
+    end
+
+    def output_stream
+      @output_stream ||= StringIO.new
+    end
+
+    def error_stream
+      @error_stream ||= StringIO.new
+    end
+
+    def options
+      @options ||= Options.new(output_stream, error_stream)
+    end
+
+    def prepare_args(args)
+      args.is_a?(Array) ? args : args.split(' ')
+    end
+
+    describe 'parsing' do
+
+      def when_parsing(args)
+        yield
+        options.parse!(prepare_args(args))
+      end
+
+      def after_parsing(args)
+        options.parse!(prepare_args(args))
+        yield
+      end
+
+      context '-r or --require' do
+        it &quot;collects all specified files into an array&quot; do
+          after_parsing('--require some_file.rb -r another_file.rb') do
+            options[:require].should == ['some_file.rb', 'another_file.rb']
+          end
+        end
+      end
+
+      context '-l LANG or --language LANG' do
+        context &quot;with LANG specified as 'help'&quot; do
+          it &quot;lists all known langues&quot; do
+            when_parsing '-l help' do
+              LanguageHelpFormatter.should_receive(:list_languages).with(output_stream)
+            end
+          end
+          it &quot;exits the program&quot; do
+            when_parsing('--language help') { Kernel.should_receive(:exit) }
+          end
+        end
+        it &quot;sets the langauge&quot; do
+          after_parsing('-l en') { options[:lang].should == 'en' }
+        end
+      end
+
+      context &quot;--port PORT&quot; do
+        it &quot;sets the drb_port to the provided option&quot; do
+          after_parsing('--port 4500') { options[:drb_port].should == '4500' }
+        end
+      end
+
+      context '-f FORMAT or --format FORMAT' do
+        it &quot;defaults the output for the formatter to the output stream (STDOUT)&quot; do
+          after_parsing('-f pretty') { options[:formats].should == [['pretty', output_stream]] }
+        end
+      end
+
+      context '-o [FILE|DIR] or --out [FILE|DIR]' do
+        it &quot;defaults the formatter to 'pretty' when not specified earlier&quot; do
+          after_parsing('-o file.txt') { options[:formats].should == [['pretty', 'file.txt']] }
+        end
+        it &quot;sets the output for the formatter defined immediatly before it&quot; do
+          after_parsing('-f profile --out file.txt -f pretty -o file2.txt') do 
+            options[:formats].should == [['profile', 'file.txt'], ['pretty', 'file2.txt']]
+          end
+        end
+      end
+
+      context '-t TAGS --tags TAGS' do
+        it &quot;designates tags prefixed with ~ as tags to be excluded&quot; do
+          after_parsing('--tags ~@foo,@bar') { options[:tag_names].should == {'~@foo' =&gt; nil, '@bar' =&gt; nil} }
+        end
+      end
+
+      context '-n NAME or --name NAME' do
+        it &quot;stores the provided names as regular expressions&quot; do
+          after_parsing('-n foo --name bar') { options[:name_regexps].should == [/foo/,/bar/] }
+        end
+      end
+
+      context '-e PATTERN or --exclude PATTERN' do
+        it &quot;stores the provided exclusions as regular expressions&quot; do
+          after_parsing('-e foo --exclude bar') { options[:excludes].should == [/foo/,/bar/] }
+        end
+      end
+
+      context '-p PROFILE or --profile PROFILE' do
+
+        it &quot;notifies the user that an individual profile is being used&quot; do
+          given_cucumber_yml_defined_as({'foo' =&gt; [1,2,3]})
+          options.parse!(%w{--profile foo})
+          output_stream.string.should =~ /Using the foo profile...\n/
+        end
+
+        it &quot;notifies the user when multiple profiles are being used&quot; do
+          given_cucumber_yml_defined_as({'foo' =&gt; [1,2,3], 'bar' =&gt; ['v'], 'dog' =&gt; ['v']})
+          options.parse!(%w{--profile foo --profile bar --profile dog})
+          output_stream.string.should =~ /Using the foo, bar and dog profiles...\n/
+        end
+
+        it &quot;notifies the user of all profiles being used, even when they are nested&quot; do
+          given_cucumber_yml_defined_as('foo' =&gt; '-p bar', 'bar' =&gt; 'features')
+          after_parsing('-p foo') do
+            output_stream.string.should =~ /Using the foo and bar profiles.../
+          end
+        end
+
+        it &quot;uses the default profile passed in during initialization if none are specified by the user&quot; do
+          given_cucumber_yml_defined_as({'default' =&gt; '--require some_file'})
+
+          options = Options.new(output_stream, error_stream, :default_profile =&gt; 'default')
+          options.parse!(%w{--format progress})
+          options[:require].should include('some_file')
+        end
+
+        it &quot;merges all uniq values from both cmd line and the profile&quot; do
+          given_cucumber_yml_defined_as('foo' =&gt; %w[--verbose])
+          options.parse!(%w[--wip --profile foo])
+          options[:wip].should be_true
+          options[:verbose].should be_true
+        end
+
+        it &quot;gives precendene to the origianl options' paths&quot; do
+          given_cucumber_yml_defined_as('foo' =&gt; %w[features])
+          options.parse!(%w[my.feature -p foo])
+          options[:paths].should == %w[my.feature]
+        end
+
+        it &quot;combines the require files of both&quot; do
+          given_cucumber_yml_defined_as('bar' =&gt; %w[--require features -r dog.rb])
+          options.parse!(%w[--require foo.rb -p bar])
+          options[:require].should == %w[foo.rb features dog.rb]
+        end
+
+        it &quot;combines the tag names of both&quot; do
+          given_cucumber_yml_defined_as('baz' =&gt; %w[-t @bar])
+          options.parse!(%w[--tags @foo -p baz])
+          options[:tag_names].should == {'@foo' =&gt; nil, '@bar' =&gt; nil}
+        end
+
+        it &quot;only takes the paths from the original options, and disgregards the profiles&quot; do
+          given_cucumber_yml_defined_as('baz' =&gt; %w[features])
+          options.parse!(%w[my.feature -p baz])
+          options[:paths].should == ['my.feature']
+        end
+
+        it &quot;uses the paths from the profile when none are specified originally&quot; do
+          given_cucumber_yml_defined_as('baz' =&gt; %w[some.feature])
+          options.parse!(%w[-p baz])
+          options[:paths].should == ['some.feature']
+        end
+
+        it &quot;combines environment variables from the profile but gives precendene to cmd line args&quot; do
+          given_cucumber_yml_defined_as('baz' =&gt; %w[FOO=bar CHEESE=swiss])
+          options.parse!(%w[-p baz CHEESE=cheddar BAR=foo])
+          options[:env_vars].should == {'BAR' =&gt; 'foo', 'FOO' =&gt; 'bar', 'CHEESE' =&gt; 'cheddar'}
+        end
+
+        it &quot;disregards STDOUT formatter defined in profile when another is passed in (via cmd line)&quot; do
+          given_cucumber_yml_defined_as({'foo' =&gt; %w[--format pretty]})
+          options.parse!(%w{--format progress --profile foo})
+          options[:formats].should == [['progress', output_stream]]
+        end
+
+        it &quot;includes any non-STDOUT formatters from the profile&quot; do
+          given_cucumber_yml_defined_as({'html' =&gt; %w[--format html -o features.html]})
+          options.parse!(%w{--format progress --profile html})
+          options[:formats].should == [['progress', output_stream], ['html', 'features.html']]
+        end
+
+        it &quot;does not include STDOUT formatters from the profile if there is a STDOUT formatter in command line&quot; do
+          given_cucumber_yml_defined_as({'html' =&gt; %w[--format html -o features.html --format pretty]})
+          options.parse!(%w{--format progress --profile html})
+          options[:formats].should == [['progress', output_stream], ['html', 'features.html']]
+        end
+
+        it &quot;includes any STDOUT formatters from the profile if no STDOUT formatter was specified in command line&quot; do
+          given_cucumber_yml_defined_as({'html' =&gt; %w[--format html]})
+          options.parse!(%w{--format rerun -o rerun.txt --profile html})
+          options[:formats].should == [['html', output_stream], ['rerun', 'rerun.txt']]
+        end
+
+        it &quot;assumes all of the formatters defined in the profile when none are specified on cmd line&quot; do
+          given_cucumber_yml_defined_as({'html' =&gt; %w[--format progress --format html -o features.html]})
+          options.parse!(%w{--profile html})
+          options[:formats].should == [['progress', output_stream], ['html', 'features.html']]
+        end
+
+        it &quot;respects --quiet when defined in the profile&quot; do
+          given_cucumber_yml_defined_as('foo' =&gt; '-q')
+          options.parse!(%w[-p foo])
+          options[:snippets].should be_false
+          options[:source].should be_false
+        end
+
+        it &quot;uses the language from profile when none is specified on the command line&quot; do
+          given_cucumber_yml_defined_as({'foo' =&gt; '--language fr'})
+          after_parsing('-p foo') {options[:lang].should == 'fr'}
+        end
+      end
+
+      context '-P or --no-profile' do
+
+        it &quot;disables profiles&quot; do
+          given_cucumber_yml_defined_as({'default' =&gt; '-v --require file_specified_in_default_profile.rb'})
+
+          after_parsing(&quot;-P --require some_file.rb&quot;) do
+            options[:require].should == ['some_file.rb']
+          end
+        end
+
+        it &quot;notifies the user that the profiles are being disabled&quot; do
+          given_cucumber_yml_defined_as({'default' =&gt; '-v'})
+
+          after_parsing(&quot;--no-profile --require some_file.rb&quot;) do
+            output_stream.string.should =~ /Disabling profiles.../
+          end
+        end
+
+      end
+
+      context '-b or --backtrace' do
+        it &quot;turns on cucumber's full backtrace&quot; do
+          when_parsing(&quot;-b&quot;) do
+            Cucumber.should_receive(:use_full_backtrace=).with(true)
+          end
+        end
+      end
+
+      context '--version' do
+        it &quot;displays Cucumber's version&quot; do
+          after_parsing('--version') do
+            output_stream.string.should =~ /#{VERSION::STRING}/
+          end
+        end
+        it &quot;exits the program&quot; do
+          when_parsing('--version') { Kernel.should_receive(:exit) }
+        end
+      end
+
+      context 'environment variables (i.e. MODE=webrat)' do
+        it &quot;places all of the environment variables into a hash&quot; do
+          after_parsing('MODE=webrat FOO=bar') do
+            options[:env_vars].should == {'MODE' =&gt; 'webrat', 'FOO' =&gt; 'bar'}
+          end
+        end
+      end
+
+      it &quot;assigns any extra arguments as paths to features&quot; do
+        after_parsing('-f pretty my_feature.feature my_other_features') do
+          options[:paths].should == ['my_feature.feature', 'my_other_features']
+        end
+      end
+
+      it &quot;does not mistake environment variables as feature paths&quot; do
+        after_parsing('my_feature.feature FOO=bar') do
+          options[:paths].should == ['my_feature.feature']
+        end
+      end
+    end
+
+    describe '#expanded_args_without_drb' do
+      it &quot;returns the orginal args in additon to the args from any profiles&quot; do
+        given_cucumber_yml_defined_as('foo' =&gt; '-v', 
+                                      'bar' =&gt; '--wip -p baz',
+                                      'baz' =&gt; '-r some_file.rb')
+        options.parse!(%w[features -p foo --profile bar])
+
+        options.expanded_args_without_drb.should == %w[features -v --wip -r some_file.rb --no-profile]
+      end
+
+      it &quot;removes the --drb flag so that the args can be safely passed to the drb server&quot; do
+        given_cucumber_yml_defined_as('default' =&gt; 'features -f pretty --drb')
+        options.parse!(%w[--profile default])
+
+        options.expanded_args_without_drb.should == %w[features -f pretty --no-profile]
+      end
+
+      it &quot;contains the environment variables&quot; do
+        options.parse!(%w[features FOO=bar])
+        options.expanded_args_without_drb.should == %w[features FOO=bar --no-profile]
+      end
+
+      it &quot;ignores the paths from the profiles if one was specified on the command line&quot; do
+        given_cucumber_yml_defined_as('foo' =&gt; 'features --drb')
+        options.parse!(%w[some_feature.feature -p foo])
+        options.expanded_args_without_drb.should == %w[some_feature.feature --no-profile]
+      end
+
+
+      it &quot;appends the --no-profile flag so that the DRb server doesn't reload the profiles&quot; do
+        given_cucumber_yml_defined_as('foo' =&gt; 'features --drb')
+        options.parse!(%w[some_feature.feature -p foo])
+        options.expanded_args_without_drb.should == %w[some_feature.feature --no-profile]
+      end
+
+      it &quot;does not append --no-profile if already present&quot; do
+        options.parse!(%w[some_feature.feature -P])
+        options.expanded_args_without_drb.should == %w[some_feature.feature -P]
+      end
+
+
+    end
+
+  end
+
+end
+end
+
+</pre>
+    </div>

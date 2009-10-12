@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 29 13:11:11 +0100 2008</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,82 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/runner/backtrace_tweaker.rb-</pre>
+    <pre>module Spec
+  module Runner
+    class BacktraceTweaker
+      def initialize(*patterns)
+        @ignore_patterns = []
+      end
+
+      def clean_up_double_slashes(line)
+        line.gsub!('//','/')
+      end
+
+      def ignore_patterns(*patterns)
+        # do nothing. Only QuietBacktraceTweaker ignores patterns.
+      end
+
+      def ignored_patterns
+        []
+      end
+
+      def tweak_backtrace(error)
+        return if error.backtrace.nil?
+        tweaked = error.backtrace.collect do |message|
+          clean_up_double_slashes(message)
+          kept_lines = message.split(&quot;\n&quot;).select do |line|
+            ignored_patterns.each do |ignore|
+              break if line =~ ignore
+            end
+          end
+          kept_lines.empty?? nil : kept_lines.join(&quot;\n&quot;)
+        end
+        error.set_backtrace(tweaked.select {|line| line})
+      end
+    end
+
+    class NoisyBacktraceTweaker &lt; BacktraceTweaker
+    end
+
+    # Tweaks raised Exceptions to mask noisy (unneeded) parts of the backtrace
+    class QuietBacktraceTweaker &lt; BacktraceTweaker
+      unless defined?(IGNORE_PATTERNS)
+        spec_files = Dir[&quot;lib/*&quot;].map do |path| 
+          subpath = path[1..-1]
+          /#{subpath}/
+        end
+        IGNORE_PATTERNS = spec_files + [
+          /\/rspec-[^\/]*\/lib\/spec\//,
+          /\/spork-[^\/]*\/lib\/spork\//,
+          /\/lib\/ruby\//,
+          /bin\/spec:/,
+          /bin\/spork:/,
+          /bin\/rcov:/,
+          /lib\/rspec-rails/,
+          /vendor\/rails/,
+          # TextMate's Ruby and RSpec plugins
+          /Ruby\.tmbundle\/Support\/tmruby.rb:/,
+          /RSpec\.tmbundle\/Support\/lib/,
+          /temp_textmate\./,
+          /mock_frameworks\/rspec/,
+          /spec_server/
+        ]
+      end
+
+      def initialize(*patterns)
+        super
+        ignore_patterns(*patterns)
+      end
+
+      def ignore_patterns(*patterns)
+        @ignore_patterns += patterns.flatten.map { |pattern| Regexp.new(pattern) }
+      end
+
+      def ignored_patterns
+        IGNORE_PATTERNS + @ignore_patterns
+      end
+    end
+  end
+end
+</pre>
     </div>

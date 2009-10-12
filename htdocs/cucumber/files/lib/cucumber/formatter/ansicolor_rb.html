@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Tue Apr 14 08:43:55 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,148 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/formatter/ansicolor.rb-</pre>
+    <pre>gem 'term-ansicolor'
+require 'term/ansicolor'
+
+if Cucumber::WINDOWS_MRI
+  begin
+    gem 'win32console', '&gt;= 1.2.0'
+    require 'Win32/Console/ANSI'
+  rescue LoadError
+    STDERR.puts %{*** WARNING: You must &quot;gem install win32console&quot; (1.2.0 or higher) to get coloured output on MRI/Windows}
+    Term::ANSIColor.coloring = false
+  end
+elsif Cucumber::WINDOWS &amp;&amp; Cucumber::JRUBY
+  begin
+    gem 'aslakhellesoy-ansicolor', '&gt;= 1.0'
+    require 'ansicolor'
+  rescue LoadError
+    STDERR.puts %{*** WARNING: You must &quot;gem install aslakhellesoy-ansicolor --source http://gems.github.com&quot; (1.0 or higher) to get coloured output on JRuby/Windows}
+    Term::ANSIColor.coloring = false
+  end
+end
+
+Term::ANSIColor.coloring = false if !STDOUT.tty? and not ENV.has_key?(&quot;AUTOTEST&quot;)
+
+module Cucumber
+  module Formatter
+    # Defines aliases for coloured output. You don't invoke any methods from this
+    # module directly, but you can change the output colours by defining
+    # a &lt;tt&gt;CUCUMBER_COLORS&lt;/tt&gt; variable in your shell, very much like how you can
+    # tweak the familiar POSIX command &lt;tt&gt;ls&lt;/tt&gt; with
+    # &lt;a href=&quot;http://mipsisrisc.com/rambling/2008/06/27/lscolorsls_colors-now-with-linux-support/&quot;&gt;$LSCOLORS/$LS_COLORS&lt;/a&gt;
+    #
+    # The colours that you can change are:
+    #
+    # * &lt;tt&gt;undefined&lt;/tt&gt;     - defaults to &lt;tt&gt;yellow&lt;/tt&gt;
+    # * &lt;tt&gt;pending&lt;/tt&gt;       - defaults to &lt;tt&gt;yellow&lt;/tt&gt;
+    # * &lt;tt&gt;pending_param&lt;/tt&gt; - defaults to &lt;tt&gt;yellow,bold&lt;/tt&gt;
+    # * &lt;tt&gt;failed&lt;/tt&gt;        - defaults to &lt;tt&gt;red&lt;/tt&gt;
+    # * &lt;tt&gt;failed_param&lt;/tt&gt;  - defaults to &lt;tt&gt;red,bold&lt;/tt&gt;
+    # * &lt;tt&gt;passed&lt;/tt&gt;        - defaults to &lt;tt&gt;green&lt;/tt&gt;
+    # * &lt;tt&gt;passed_param&lt;/tt&gt;  - defaults to &lt;tt&gt;green,bold&lt;/tt&gt;
+    # * &lt;tt&gt;outline&lt;/tt&gt;       - defaults to &lt;tt&gt;cyan&lt;/tt&gt;
+    # * &lt;tt&gt;outline_param&lt;/tt&gt; - defaults to &lt;tt&gt;cyan,bold&lt;/tt&gt;
+    # * &lt;tt&gt;skipped&lt;/tt&gt;       - defaults to &lt;tt&gt;cyan&lt;/tt&gt;
+    # * &lt;tt&gt;skipped_param&lt;/tt&gt; - defaults to &lt;tt&gt;cyan,bold&lt;/tt&gt;
+    # * &lt;tt&gt;comment&lt;/tt&gt;       - defaults to &lt;tt&gt;grey&lt;/tt&gt;
+    # * &lt;tt&gt;tag&lt;/tt&gt;           - defaults to &lt;tt&gt;cyan&lt;/tt&gt;
+    #
+    # For instance, if your shell has a black background and a green font (like the
+    # &quot;Homebrew&quot; settings for OS X' Terminal.app), you may want to override passed
+    # steps to be white instead of green. Examples:
+    #
+    #   export CUCUMBER_COLORS=&quot;passed=white&quot;
+    #   export CUCUMBER_COLORS=&quot;passed=white,bold:passed_param=white,bold,underline&quot;
+    #
+    # (If you're on Windows, use SET instead of export).
+    # To see what colours and effects are available, just run this in your shell:
+    #
+    #   ruby -e &quot;require 'rubygems'; require 'term/ansicolor'; puts Term::ANSIColor.attributes&quot;
+    #
+    # Although not listed, you can also use &lt;tt&gt;grey&lt;/tt&gt;
+    module ANSIColor
+      include Term::ANSIColor
+
+      ALIASES = Hash.new do |h,k|
+        if k.to_s =~ /(.*)_param/
+          h[$1] + ',bold'
+        end
+      end.merge({
+        'undefined' =&gt; 'yellow',
+        'pending'   =&gt; 'yellow',
+        'failed'    =&gt; 'red',
+        'passed'    =&gt; 'green',
+        'outline'   =&gt; 'cyan',
+        'skipped'   =&gt; 'cyan',
+        'comment'   =&gt; 'grey',
+        'tag'       =&gt; 'cyan'
+      })
+
+      if ENV['CUCUMBER_COLORS'] # Example: export CUCUMBER_COLORS=&quot;passed=red:failed=yellow&quot;
+        ENV['CUCUMBER_COLORS'].split(':').each do |pair|
+          a = pair.split('=')
+          ALIASES[a[0]] = a[1]
+        end
+      end
+
+      ALIASES.each do |method, color|
+        unless method =~ /.*_param/
+          code = &lt;&lt;-EOF
+          def #{method}(string=nil, &amp;proc)
+            #{ALIASES[method].split(&quot;,&quot;).join(&quot;(&quot;) + &quot;(string, &amp;proc&quot; + &quot;)&quot; * ALIASES[method].split(&quot;,&quot;).length}
+          end
+          # This resets the colour to the non-param colour
+          def #{method}_param(string=nil, &amp;proc)
+            #{ALIASES[method+'_param'].split(&quot;,&quot;).join(&quot;(&quot;) + &quot;(string, &amp;proc&quot; + &quot;)&quot; * ALIASES[method+'_param'].split(&quot;,&quot;).length} + #{ALIASES[method].split(&quot;,&quot;).join(' + ')}
+          end
+          EOF
+          eval(code)
+        end
+      end
+      
+      def self.define_grey #:nodoc:
+        begin
+          gem 'genki-ruby-terminfo'
+          require 'terminfo'
+          case TermInfo.default_object.tigetnum(&quot;colors&quot;)
+          when 0
+            raise &quot;Your terminal doesn't support colours&quot;
+          when 1
+            ::Term::ANSIColor.coloring = false
+            alias grey white
+          when 2..8
+            alias grey white
+          else
+            define_real_grey
+          end
+        rescue Exception =&gt; e
+          if e.class.name == 'TermInfo::TermInfoError'
+            STDERR.puts &quot;*** WARNING ***&quot;
+            STDERR.puts &quot;You have the genki-ruby-terminfo gem installed, but you haven't set your TERM variable.&quot;
+            STDERR.puts &quot;Try setting it to TERM=xterm-256color to get grey colour in output&quot;
+            STDERR.puts &quot;\n&quot;
+            alias grey white
+          else
+            define_real_grey
+          end
+        end
+      end
+      
+      def self.define_real_grey #:nodoc:
+        def grey(m) #:nodoc:
+          if ::Term::ANSIColor.coloring?
+            &quot;\e[90m#{m}\e[0m&quot;
+          else
+            m
+          end
+        end
+      end
+      
+      define_grey
+      
+    end
+  end
+end
+</pre>
     </div>

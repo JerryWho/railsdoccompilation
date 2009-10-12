@@ -1,0 +1,55 @@
+  <div id="fileHeader">
+    <h1>rails_helper_generator_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/test/generators/rails_helper_generator_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/generator_test_helper'
+
+class RailsHelperGeneratorTest &lt; GeneratorTestCase
+  def test_helper_generates_helper
+    run_generator('helper', %w(products))
+
+    assert_generated_helper_for :products
+    assert_generated_helper_test_for :products
+  end
+
+  def test_helper_generates_namespaced_helper
+    run_generator('helper', %w(admin::products))
+
+    assert_generated_helper_for &quot;admin::products&quot;
+    assert_generated_helper_test_for &quot;admin::products&quot;
+  end
+
+  def test_helper_generates_namespaced_and_not_namespaced_helpers
+    run_generator('helper', %w(products))
+
+    # We have to require the generated helper to show the problem because
+    # the test helpers just check for generated files and contents but
+    # do not actually load them. But they have to be loaded (as in a real environment)
+    # to make the second generator run fail
+    require &quot;#{RAILS_ROOT}/app/helpers/products_helper&quot;
+
+    assert_nothing_raised do
+      begin
+        run_generator('helper', %w(admin::products))
+      ensure
+        # cleanup
+        Object.send(:remove_const, :ProductsHelper)
+      end
+    end
+  end
+end
+</pre>
+    </div>

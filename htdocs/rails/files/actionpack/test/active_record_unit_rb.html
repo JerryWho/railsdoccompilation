@@ -1,0 +1,123 @@
+  <div id="fileHeader">
+    <h1>active_record_unit.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/active_record_unit.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:07 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+# Define the essentials
+class ActiveRecordTestConnector
+  cattr_accessor :able_to_connect
+  cattr_accessor :connected
+
+  # Set our defaults
+  self.connected = false
+  self.able_to_connect = true
+end
+
+# Try to grab AR
+if defined?(ActiveRecord) &amp;&amp; defined?(Fixtures)
+  $stderr.puts 'Active Record is already loaded, running tests'
+else
+  $stderr.print 'Attempting to load Active Record... '
+  begin
+    PATH_TO_AR = &quot;#{File.dirname(__FILE__)}/../../activerecord/lib&quot;
+    raise LoadError, &quot;#{PATH_TO_AR} doesn't exist&quot; unless File.directory?(PATH_TO_AR)
+    $LOAD_PATH.unshift PATH_TO_AR
+    require 'active_record'
+    require 'active_record/fixtures'
+    $stderr.puts 'success'
+  rescue LoadError =&gt; e
+    $stderr.print &quot;failed. Skipping Active Record assertion tests: #{e}&quot;
+    ActiveRecordTestConnector.able_to_connect = false
+  end
+end
+$stderr.flush
+
+
+# Define the rest of the connector
+class ActiveRecordTestConnector
+  class &lt;&lt; self
+    def setup
+      unless self.connected || !self.able_to_connect
+        setup_connection
+        load_schema
+        require_fixture_models
+        self.connected = true
+      end
+    rescue Exception =&gt; e  # errors from ActiveRecord setup
+      $stderr.puts &quot;\nSkipping ActiveRecord assertion tests: #{e}&quot;
+      #$stderr.puts &quot;  #{e.backtrace.join(&quot;\n  &quot;)}\n&quot;
+      self.able_to_connect = false
+    end
+
+    private
+      def setup_connection
+        if Object.const_defined?(:ActiveRecord)
+          defaults = { :database =&gt; ':memory:' }
+          begin
+            adapter = defined?(JRUBY_VERSION) ? 'jdbcsqlite3' : 'sqlite3'
+            options = defaults.merge :adapter =&gt; adapter, :timeout =&gt; 500
+            ActiveRecord::Base.establish_connection(options)
+            ActiveRecord::Base.configurations = { 'sqlite3_ar_integration' =&gt; options }
+            ActiveRecord::Base.connection
+          rescue Exception  # errors from establishing a connection
+            $stderr.puts 'SQLite 3 unavailable; trying SQLite 2.'
+            options = defaults.merge :adapter =&gt; 'sqlite'
+            ActiveRecord::Base.establish_connection(options)
+            ActiveRecord::Base.configurations = { 'sqlite2_ar_integration' =&gt; options }
+            ActiveRecord::Base.connection
+          end
+
+          Object.send(:const_set, :QUOTED_TYPE, ActiveRecord::Base.connection.quote_column_name('type')) unless Object.const_defined?(:QUOTED_TYPE)
+        else
+          raise &quot;Can't setup connection since ActiveRecord isn't loaded.&quot;
+        end
+      end
+
+      # Load actionpack sqlite tables
+      def load_schema
+        File.read(File.dirname(__FILE__) + &quot;/fixtures/db_definitions/sqlite.sql&quot;).split(';').each do |sql|
+          ActiveRecord::Base.connection.execute(sql) unless sql.blank?
+        end
+      end
+
+      def require_fixture_models
+        Dir.glob(File.dirname(__FILE__) + &quot;/fixtures/*.rb&quot;).each {|f| require f}
+      end
+  end
+end
+
+class ActiveRecordTestCase &lt; ActionController::TestCase
+  include ActiveRecord::TestFixtures
+
+  # Set our fixture path
+  if ActiveRecordTestConnector.able_to_connect
+    self.fixture_path = [FIXTURE_LOAD_PATH]
+    self.use_transactional_fixtures = false
+  end
+
+  def self.fixtures(*args)
+    super if ActiveRecordTestConnector.connected
+  end
+
+  def run(*args)
+    super if ActiveRecordTestConnector.connected
+  end
+end
+
+ActiveRecordTestConnector.setup
+</pre>
+    </div>

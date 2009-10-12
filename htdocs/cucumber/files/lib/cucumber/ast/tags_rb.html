@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Apr 15 21:43:30 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,76 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/ast/tags.rb-</pre>
+    <pre>module Cucumber
+  module Ast
+    # Holds the names of tags parsed from a feature file:
+    #
+    #   @invoice @release_2
+    #
+    # This gets stored internally as &lt;tt&gt;[&quot;invoice&quot;, &quot;release_2&quot;]&lt;/tt&gt;
+    #
+    class Tags #:nodoc:
+      class &lt;&lt; self
+        EXCLUDE_PATTERN = /^~/
+
+        def matches?(source_tag_names, tag_names)
+          exclude_tag_names, include_tag_names = tag_names.partition{|tag_name| exclude_tag?(tag_name)}
+          exclude_tag_names.map!{|name| name[1..-1]}
+          check_at_sign_prefix(exclude_tag_names + include_tag_names)
+          !excluded?(source_tag_names, exclude_tag_names) &amp;&amp; included?(source_tag_names, include_tag_names)
+        end
+
+        def exclude_tag?(tag_name)
+          tag_name =~ EXCLUDE_PATTERN
+        end
+        
+        private
+
+        def check_at_sign_prefix(tag_names)
+          tag_names.each{|tag_name| raise &quot;Tag names must start with an @ sign. The following tag name didn't: #{tag_name}&quot; unless tag_name[0..0] == '@'}
+        end
+
+        def excluded?(source_tag_names, query_tag_names)
+          source_tag_names.any? &amp;&amp; (source_tag_names &amp; query_tag_names).any?
+        end
+        
+        def included?(source_tag_names, query_tag_names)
+          query_tag_names.empty? || (source_tag_names &amp; query_tag_names).any?
+        end
+      end
+
+      attr_reader :tag_names
+
+      def initialize(line, tag_names)
+        @line, @tag_names = line, tag_names
+      end
+
+      def accept(visitor)
+        return if $cucumber_interrupted
+        @tag_names.each do |tag_name|
+          visitor.visit_tag_name(tag_name)
+        end
+      end
+
+      def accept_hook?(hook)
+        self.class.matches?(@tag_names, hook.tag_names)
+      end
+
+      def count(tag)
+        # See discussion:
+        # http://github.com/weplay/cucumber/commit/2dc592acdf3f7c1a0c333a8164649936bb82d983
+        if @tag_names.respond_to?(:count) &amp;&amp; @tag_names.method(:count).arity &gt; 0
+          @tag_names.count(tag) # 1.9
+        else
+          @tag_names.select{|t| t == tag}.length  # 1.8
+        end
+      end
+
+      def to_sexp
+        @tag_names.map{|tag_name| [:tag, tag_name]}
+      end
+    end
+  end
+end
+</pre>
     </div>

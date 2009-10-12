@@ -1,0 +1,180 @@
+  <div id="fileHeader">
+    <h1>load_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activeresource/test/base/load_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require &quot;fixtures/person&quot;
+require &quot;fixtures/street_address&quot;
+
+module Highrise
+  class Note &lt; ActiveResource::Base
+    self.site = &quot;http://37s.sunrise.i:3000&quot;
+  end
+
+  class Comment &lt; ActiveResource::Base
+    self.site = &quot;http://37s.sunrise.i:3000&quot;
+  end
+
+  module Deeply
+    module Nested
+
+      class Note &lt; ActiveResource::Base
+        self.site = &quot;http://37s.sunrise.i:3000&quot;
+      end
+
+       class Comment &lt; ActiveResource::Base
+         self.site = &quot;http://37s.sunrise.i:3000&quot;
+       end
+
+       module TestDifferentLevels
+
+         class Note &lt; ActiveResource::Base
+           self.site = &quot;http://37s.sunrise.i:3000&quot;
+         end
+
+       end
+
+    end
+  end
+
+end
+
+
+class BaseLoadTest &lt; Test::Unit::TestCase
+  def setup
+    @matz  = { :id =&gt; 1, :name =&gt; 'Matz' }
+
+    @first_address = { :id =&gt; 1, :street =&gt; '12345 Street' }
+    @addresses = [@first_address, { :id =&gt; 2, :street =&gt; '67890 Street' }]
+    @addresses_from_xml = { :street_addresses =&gt; @addresses }
+    @addresses_from_xml_single = { :street_addresses =&gt; [ @first_address ] }
+
+    @deep  = { :id =&gt; 1, :street =&gt; {
+      :id =&gt; 1, :state =&gt; { :id =&gt; 1, :name =&gt; 'Oregon',
+        :notable_rivers =&gt; [
+          { :id =&gt; 1, :name =&gt; 'Willamette' },
+          { :id =&gt; 2, :name =&gt; 'Columbia', :rafted_by =&gt; @matz }],
+        :postal_codes =&gt; [ 97018, 1234567890 ],
+        :places =&gt; [ &quot;Columbia City&quot;, &quot;Unknown&quot; ]}}}
+
+    @person = Person.new
+  end
+
+  def test_load_expects_hash
+    assert_raise(ArgumentError) { @person.load nil }
+    assert_raise(ArgumentError) { @person.load '&lt;person id=&quot;1&quot;/&gt;' }
+  end
+
+  def test_load_simple_hash
+    assert_equal Hash.new, @person.attributes
+    assert_equal @matz.stringify_keys, @person.load(@matz).attributes
+  end
+
+  def test_load_one_with_existing_resource
+    address = @person.load(:street_address =&gt; @first_address).street_address
+    assert_kind_of StreetAddress, address
+    assert_equal @first_address.stringify_keys, address.attributes
+  end
+
+  def test_load_one_with_unknown_resource
+    address = silence_warnings { @person.load(:address =&gt; @first_address).address }
+    assert_kind_of Person::Address, address
+    assert_equal @first_address.stringify_keys, address.attributes
+  end
+
+  def test_load_collection_with_existing_resource
+    addresses = @person.load(@addresses_from_xml).street_addresses
+    assert_kind_of Array, addresses
+    addresses.each { |address| assert_kind_of StreetAddress, address }
+    assert_equal @addresses.map(&amp;:stringify_keys), addresses.map(&amp;:attributes)
+  end
+
+  def test_load_collection_with_unknown_resource
+    Person.__send__(:remove_const, :Address) if Person.const_defined?(:Address)
+    assert !Person.const_defined?(:Address), &quot;Address shouldn't exist until autocreated&quot;
+    addresses = silence_warnings { @person.load(:addresses =&gt; @addresses).addresses }
+    assert Person.const_defined?(:Address), &quot;Address should have been autocreated&quot;
+    addresses.each { |address| assert_kind_of Person::Address, address }
+    assert_equal @addresses.map(&amp;:stringify_keys), addresses.map(&amp;:attributes)
+  end
+
+  def test_load_collection_with_single_existing_resource
+    addresses = @person.load(@addresses_from_xml_single).street_addresses
+    assert_kind_of Array, addresses
+    addresses.each { |address| assert_kind_of StreetAddress, address }
+    assert_equal [ @first_address ].map(&amp;:stringify_keys), addresses.map(&amp;:attributes)
+  end
+
+  def test_load_collection_with_single_unknown_resource
+    Person.__send__(:remove_const, :Address) if Person.const_defined?(:Address)
+    assert !Person.const_defined?(:Address), &quot;Address shouldn't exist until autocreated&quot;
+    addresses = silence_warnings { @person.load(:addresses =&gt; [ @first_address ]).addresses }
+    assert Person.const_defined?(:Address), &quot;Address should have been autocreated&quot;
+    addresses.each { |address| assert_kind_of Person::Address, address }
+    assert_equal [ @first_address ].map(&amp;:stringify_keys), addresses.map(&amp;:attributes)
+  end
+
+  def test_recursively_loaded_collections
+    person = @person.load(@deep)
+    assert_equal @deep[:id], person.id
+
+    street = person.street
+    assert_kind_of Person::Street, street
+    assert_equal @deep[:street][:id], street.id
+
+    state = street.state
+    assert_kind_of Person::Street::State, state
+    assert_equal @deep[:street][:state][:id], state.id
+
+    rivers = state.notable_rivers
+    assert_kind_of Array, rivers
+    assert_kind_of Person::Street::State::NotableRiver, rivers.first
+    assert_equal @deep[:street][:state][:notable_rivers].first[:id], rivers.first.id
+    assert_equal @matz[:id], rivers.last.rafted_by.id
+
+    postal_codes = state.postal_codes
+    assert_kind_of Array, postal_codes
+    assert_equal 2, postal_codes.size
+    assert_kind_of Fixnum, postal_codes.first
+    assert_equal @deep[:street][:state][:postal_codes].first, postal_codes.first
+    assert_kind_of Numeric, postal_codes.last
+    assert_equal @deep[:street][:state][:postal_codes].last, postal_codes.last
+
+    places = state.places
+    assert_kind_of Array, places
+    assert_kind_of String, places.first
+    assert_equal @deep[:street][:state][:places].first, places.first
+  end
+  
+  def test_nested_collections_within_the_same_namespace
+    n = Highrise::Note.new(:comments =&gt; [{ :name =&gt; &quot;1&quot; }])
+    assert_kind_of Highrise::Comment, n.comments.first
+  end
+
+  def test_nested_collections_within_deeply_nested_namespace
+    n = Highrise::Deeply::Nested::Note.new(:comments =&gt; [{ :name =&gt; &quot;1&quot; }])
+    assert_kind_of Highrise::Deeply::Nested::Comment, n.comments.first
+  end
+
+  def test_nested_collections_in_different_levels_of_namespaces
+    n = Highrise::Deeply::Nested::TestDifferentLevels::Note.new(:comments =&gt; [{ :name =&gt; &quot;1&quot; }])
+    assert_kind_of Highrise::Deeply::Nested::Comment, n.comments.first
+  end
+
+
+end
+</pre>
+    </div>

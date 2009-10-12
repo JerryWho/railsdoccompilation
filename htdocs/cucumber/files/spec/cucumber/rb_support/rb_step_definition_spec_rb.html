@@ -1,0 +1,142 @@
+  <div id="fileHeader">
+    <h1>rb_step_definition_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/rb_support/rb_step_definition_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+require 'cucumber/ast'
+require 'cucumber/step_mother'
+require 'cucumber/rb_support/rb_language'
+
+module Cucumber
+  module RbSupport
+    describe RbStepDefinition do
+      before do      
+        @step_mother = StepMother.new
+        @step_mother.load_natural_language('en')
+        @rb = @step_mother.load_programming_language('rb')
+        @dsl = Object.new 
+        @dsl.extend RbSupport::RbDsl
+        @step_mother.before(nil)
+
+        $inside = nil
+      end
+      
+      it &quot;should allow calling of other steps&quot; do
+        @dsl.Given /Outside/ do
+          Given &quot;Inside&quot;
+        end
+        @dsl.Given /Inside/ do
+          $inside = true
+        end
+
+        @step_mother.step_match(&quot;Outside&quot;).invoke(nil)
+        $inside.should == true
+      end
+
+      it &quot;should allow calling of other steps with inline arg&quot; do
+        @dsl.Given /Outside/ do
+          Given &quot;Inside&quot;, Ast::Table.new([['inside']])
+        end
+        @dsl.Given /Inside/ do |table|
+          $inside = table.raw[0][0]
+        end
+
+        @step_mother.step_match(&quot;Outside&quot;).invoke(nil)
+        $inside.should == 'inside'
+      end
+
+      it &quot;should raise Undefined when inside step is not defined&quot; do
+        @dsl.Given /Outside/ do
+          Given 'Inside'
+        end
+
+        lambda do
+          @step_mother.step_match('Outside').invoke(nil)
+        end.should raise_error(Undefined, 'Undefined step: &quot;Inside&quot;')
+      end
+
+      it &quot;should allow forced pending&quot; do
+        @dsl.Given /Outside/ do
+          pending(&quot;Do me!&quot;)
+        end
+
+        lambda do
+          @step_mother.step_match(&quot;Outside&quot;).invoke(nil)
+        end.should raise_error(Pending, &quot;Do me!&quot;)
+      end
+
+      it &quot;should allow announce&quot; do
+        v = mock('visitor')
+        v.should_receive(:announce).with('wasup')
+        @step_mother.visitor = v
+        @dsl.Given /Loud/ do
+          announce 'wasup'
+        end
+        
+        @step_mother.step_match(&quot;Loud&quot;).invoke(nil)
+      end
+      
+      it &quot;should recognize $arg style captures&quot; do
+        @dsl.Given &quot;capture this: $arg&quot; do |arg|
+          arg.should == 'this'
+        end
+
+       @step_mother.step_match('capture this: this').invoke(nil)
+      end
+      
+    
+      def unindented(s)
+        s.split(&quot;\n&quot;)[1..-2].join(&quot;\n&quot;).indent(-10)
+      end
+    
+      it &quot;should recognise quotes in name and make according regexp&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; arg', nil).should == unindented(%{
+          Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1|
+            pending
+          end
+        })
+      end
+
+      it &quot;should recognise several quoted words in name and make according regexp and args&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; and &quot;second&quot; arg', nil).should == unindented(%{
+          Given /^A &quot;([^\\&quot;]*)&quot; and &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, arg2|
+            pending
+          end
+        })
+      end
+      
+      it &quot;should not use quote group when there are no quotes&quot; do
+        @rb.snippet_text('Given', 'A first arg', nil).should == unindented(%{
+          Given /^A first arg$/ do
+            pending
+          end
+        })
+      end
+
+      it &quot;should be helpful with tables&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; arg', Cucumber::Ast::Table).should == unindented(%{
+          Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, table|
+            # table is a Cucumber::Ast::Table
+            pending
+          end
+        })
+      end
+    end
+  end
+end
+</pre>
+    </div>

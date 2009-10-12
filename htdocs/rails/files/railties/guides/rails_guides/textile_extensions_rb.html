@@ -1,0 +1,60 @@
+  <div id="fileHeader">
+    <h1>textile_extensions.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/guides/rails_guides/textile_extensions.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module RailsGuides
+  module TextileExtensions
+    def notestuff(body)
+      body.gsub!(/^(IMPORTANT|CAUTION|WARNING|NOTE|INFO)(?:\.|\:)(.*)$/) do |m|
+        css_class = $1.downcase
+        css_class = 'warning' if ['caution', 'important'].include?(css_class)
+
+        result = &quot;&lt;div class='#{css_class}'&gt;&lt;p&gt;&quot;
+        result &lt;&lt; $2.strip
+        result &lt;&lt; '&lt;/p&gt;&lt;/div&gt;'
+        result
+      end
+    end
+
+    def tip(body)
+      body.gsub!(/^(TIP)\:(.*)$/) do |m|
+        result = &quot;&lt;div class='info'&gt;&lt;p&gt;&quot;
+        result &lt;&lt; $2.strip
+        result &lt;&lt; '&lt;/p&gt;&lt;/div&gt;'
+        result
+      end
+    end
+
+    def plusplus(body)
+      body.gsub!(/\+(.*?)\+/) do |m|
+        &quot;&lt;notextile&gt;&lt;tt&gt;#{$1}&lt;/tt&gt;&lt;/notextile&gt;&quot;
+      end
+
+      # The real plus sign
+      body.gsub!('&lt;plus&gt;', '+')
+    end
+
+    def code(body)
+      body.gsub!(%r{&lt;(yaml|shell|ruby|erb|html|sql|plain)&gt;(.*?)&lt;/\1&gt;}m) do |m|
+        es = ERB::Util.h($2)
+        css_class = ['erb', 'shell'].include?($1) ? 'html' : $1
+        %{&lt;notextile&gt;&lt;div class=&quot;code_container&quot;&gt;&lt;code class=&quot;#{css_class}&quot;&gt;#{es}&lt;/code&gt;&lt;/div&gt;&lt;/notextile&gt;}
+      end
+    end
+  end
+end
+</pre>
+    </div>

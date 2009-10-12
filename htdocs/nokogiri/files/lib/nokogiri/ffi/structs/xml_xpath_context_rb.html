@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 14:56:40 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,42 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/ffi/structs/xml_xpath_context.rb-</pre>
+    <pre>module Nokogiri
+  module LibXML # :nodoc:
+    module XmlXpathContextMixin # :nodoc:
+      def self.included(base)
+        base.class_eval do
+
+          layout(
+            :doc,  :pointer,
+            :node, :pointer
+            )
+
+        end
+      end
+
+      def node
+        LibXML::XmlNode.new(self[:node])
+      end
+
+      def doc
+        LibXML::XmlDocumentCast.new(self[:doc])
+      end
+    end
+
+    class XmlXpathContext &lt; FFI::ManagedStruct # :nodoc:
+      include XmlXpathContextMixin
+
+      def self.release ptr
+        LibXML.xmlXPathFreeContext(ptr)
+      end
+    end
+
+    class XmlXpathContextCast &lt; FFI::Struct # :nodoc:
+      include XmlXpathContextMixin
+    end
+
+  end
+end
+</pre>
     </div>

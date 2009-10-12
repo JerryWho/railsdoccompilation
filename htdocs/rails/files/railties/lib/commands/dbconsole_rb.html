@@ -1,0 +1,106 @@
+  <div id="fileHeader">
+    <h1>dbconsole.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/commands/dbconsole.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'erb'
+require 'yaml'
+require 'optparse'
+
+include_password = false
+options = {}
+
+OptionParser.new do |opt|
+  opt.banner = &quot;Usage: dbconsole [options] [environment]&quot;
+  opt.on(&quot;-p&quot;, &quot;--include-password&quot;, &quot;Automatically provide the password from database.yml&quot;) do |v|
+    include_password = true
+  end
+
+  opt.on(&quot;--mode [MODE]&quot;, ['html', 'list', 'line', 'column'],
+    &quot;Automatically put the sqlite3 database in the specified mode (html, list, line, column).&quot;) do |mode|
+      options['mode'] = mode
+  end
+
+  opt.on(&quot;-h&quot;, &quot;--header&quot;) do |h|
+    options['header'] = h
+  end
+
+  opt.parse!(ARGV)
+  abort opt.to_s unless (0..1).include?(ARGV.size)
+end
+
+env = ARGV.first || ENV['RAILS_ENV'] || 'development'
+unless config = YAML::load(ERB.new(IO.read(RAILS_ROOT + &quot;/config/database.yml&quot;)).result)[env]
+  abort &quot;No database is configured for the environment '#{env}'&quot;
+end
+
+
+def find_cmd(*commands)
+  dirs_on_path = ENV['PATH'].to_s.split(File::PATH_SEPARATOR)
+  commands += commands.map{|cmd| &quot;#{cmd}.exe&quot;} if RUBY_PLATFORM =~ /win32/
+
+  full_path_command = nil
+  found = commands.detect do |cmd|
+    dir = dirs_on_path.detect do |path|
+      full_path_command = File.join(path, cmd)
+      File.executable? full_path_command
+    end
+  end
+  found ? full_path_command : abort(&quot;Couldn't find database client: #{commands.join(', ')}. Check your $PATH and try again.&quot;)
+end
+
+case config[&quot;adapter&quot;]
+when &quot;mysql&quot;
+  args = {
+    'host'      =&gt; '--host',
+    'port'      =&gt; '--port',
+    'socket'    =&gt; '--socket',
+    'username'  =&gt; '--user',
+    'encoding'  =&gt; '--default-character-set'
+  }.map { |opt, arg| &quot;#{arg}=#{config[opt]}&quot; if config[opt] }.compact
+
+  if config['password'] &amp;&amp; include_password
+    args &lt;&lt; &quot;--password=#{config['password']}&quot;
+  elsif config['password'] &amp;&amp; !config['password'].to_s.empty?
+    args &lt;&lt; &quot;-p&quot;
+  end
+
+  args &lt;&lt; config['database']
+
+  exec(find_cmd('mysql', 'mysql5'), *args)
+
+when &quot;postgresql&quot;
+  ENV['PGUSER']     = config[&quot;username&quot;] if config[&quot;username&quot;]
+  ENV['PGHOST']     = config[&quot;host&quot;] if config[&quot;host&quot;]
+  ENV['PGPORT']     = config[&quot;port&quot;].to_s if config[&quot;port&quot;]
+  ENV['PGPASSWORD'] = config[&quot;password&quot;].to_s if config[&quot;password&quot;] &amp;&amp; include_password
+  exec(find_cmd('psql'), config[&quot;database&quot;])
+
+when &quot;sqlite&quot;
+  exec(find_cmd('sqlite'), config[&quot;database&quot;])
+
+when &quot;sqlite3&quot;
+  args = []
+
+  args &lt;&lt; &quot;-#{options['mode']}&quot; if options['mode']
+  args &lt;&lt; &quot;-header&quot; if options['header']
+  args &lt;&lt; config['database']
+
+  exec(find_cmd('sqlite3'), *args)
+else
+  abort &quot;Unknown command-line client for #{config['database']}. Submit a Rails patch to add support!&quot;
+end
+</pre>
+    </div>

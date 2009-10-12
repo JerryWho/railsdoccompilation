@@ -1,0 +1,106 @@
+  <div id="fileHeader">
+    <h1>minimal.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/examples/minimal.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>$:.push File.join(File.dirname(__FILE__), &quot;..&quot;, &quot;lib&quot;)
+$:.push File.join(File.dirname(__FILE__), &quot;..&quot;, &quot;..&quot;, &quot;activesupport&quot;, &quot;lib&quot;)
+require &quot;action_controller&quot;
+
+class Runner
+  def initialize(app, output)
+    @app, @output = app, output
+  end
+
+  def puts(*)
+    super if @output
+  end
+
+  def call(env)
+    env['n'].to_i.times { @app.call(env) }
+    @app.call(env).tap { |response| report(env, response) }
+  end
+
+  def report(env, response)
+    if ENV[&quot;DEBUG&quot;]
+      out = env['rack.errors']
+      p response.headers
+      out.puts response.status, response.headers.to_yaml, '---'
+      response.body.each { |part| out.puts part }
+      out.puts '---'
+    end
+  end
+
+  def self.puts(*)
+    super if @output
+  end
+
+  def self.run(app, n, label = nil, uri = &quot;/&quot;, output = true)
+    @output = output
+    puts label, '=' * label.size if label
+    env = Rack::MockRequest.env_for(uri).merge('n' =&gt; n, 'rack.input' =&gt; StringIO.new(''), 'rack.errors' =&gt; $stdout)
+    t = Benchmark.realtime { new(app, output).call(env) }
+    puts &quot;%d ms / %d req = %.1f usec/req&quot; % [10**3 * t, n, 10**6 * t / n]
+    puts
+  end
+end
+
+N = (ENV['N'] || 1000).to_i
+
+class BasePostController &lt; ActionController::Base
+  append_view_path &quot;#{File.dirname(__FILE__)}/views&quot;
+
+  def index
+    render :text =&gt; 'Hello'
+  end
+
+  def partial
+    render :partial =&gt; &quot;/partial&quot;
+  end
+
+  def many_partials
+    render :partial =&gt; &quot;/many_partials&quot;
+  end
+
+  def partial_collection
+    render :partial =&gt; &quot;/collection&quot;, :collection =&gt; [1,2,3,4,5,6,7,8,9,10]
+  end
+
+  def show_template
+    render :template =&gt; &quot;template&quot;
+  end
+end
+
+# p BasePostController.call(Rack::MockRequest.env_for(&quot;/?action=index&quot;).merge(&quot;REQUEST_URI&quot; =&gt; &quot;/&quot;)).body
+
+Runner.run(BasePostController, N, 'index', &quot;/?action=index&quot;, false)
+Runner.run(BasePostController, N, 'partial', &quot;/?action=partial&quot;, false)
+Runner.run(BasePostController, N, 'many partials', &quot;/?action=many_partials&quot;, false)
+Runner.run(BasePostController, N, 'collection', &quot;/?action=partial_collection&quot;, false)
+Runner.run(BasePostController, N, 'template', &quot;/?action=show_template&quot;, false)
+
+(ENV[&quot;M&quot;] || 1).to_i.times do
+  Runner.run(BasePostController, N, 'index', &quot;/?action=index&quot;)
+  Runner.run(BasePostController, N, 'partial', &quot;/?action=partial&quot;)
+  Runner.run(BasePostController, N, 'many partials', &quot;/?action=many_partials&quot;)
+  Runner.run(BasePostController, N, 'collection', &quot;/?action=partial_collection&quot;)
+  Runner.run(BasePostController, N, 'template', &quot;/?action=show_template&quot;)
+end
+  # Runner.run(BasePostController.action(:many_partials), N, 'index')
+  # Runner.run(BasePostController.action(:many_partials), N, 'many_partials')
+  # Runner.run(BasePostController.action(:partial_collection), N, 'collection')
+  # Runner.run(BasePostController.action(:show_template), N, 'template')
+</pre>
+    </div>

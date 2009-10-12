@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,282 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/css/test_parser.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module CSS
+    class TestParser &lt; Nokogiri::TestCase
+      def setup
+        super
+        @parser = Nokogiri::CSS::Parser.new
+      end
+
+      def test_extra_single_quote
+        assert_raises(CSS::SyntaxError) { @parser.parse(&quot;'&quot;) }
+      end
+
+      def test_syntax_error_raised
+        assert_raises(CSS::SyntaxError) { @parser.parse(&quot;a[x=]&quot;) }
+      end
+
+      def test_find_by_type
+        ast = @parser.parse(&quot;a:nth-child(2)&quot;).first
+        matches = ast.find_by_type(
+          [:CONDITIONAL_SELECTOR,
+            [:ELEMENT_NAME],
+            [:PSEUDO_CLASS,
+              [:FUNCTION]
+            ]
+          ]
+        )
+        assert_equal(1, matches.length)
+        assert_equal(ast, matches.first)
+      end
+
+      def test_to_type
+        ast = @parser.parse(&quot;a:nth-child(2)&quot;).first
+        assert_equal(
+          [:CONDITIONAL_SELECTOR,
+            [:ELEMENT_NAME],
+            [:PSEUDO_CLASS,
+              [:FUNCTION]
+            ]
+          ], ast.to_type
+        )
+      end
+
+      def test_to_a
+        asts = @parser.parse(&quot;a:nth-child(2)&quot;)
+        assert_equal(
+          [:CONDITIONAL_SELECTOR,
+            [:ELEMENT_NAME, [&quot;a&quot;]],
+            [:PSEUDO_CLASS,
+              [:FUNCTION, [&quot;nth-child(&quot;], [&quot;2&quot;]]
+            ]
+          ], asts.first.to_a
+        )
+      end
+
+      def test_dashmatch
+        assert_xpath  &quot;//a[@class = 'bar' or starts-with(@class, concat('bar', '-'))]&quot;,
+                      @parser.parse(&quot;a[@class|='bar']&quot;)
+        assert_xpath  &quot;//a[@class = 'bar' or starts-with(@class, concat('bar', '-'))]&quot;,
+                      @parser.parse(&quot;a[@class |= 'bar']&quot;)
+      end
+
+      def test_includes
+        assert_xpath  &quot;//a[contains(concat(\&quot; \&quot;, @class, \&quot; \&quot;),concat(\&quot; \&quot;, 'bar', \&quot; \&quot;))]&quot;,
+                      @parser.parse(&quot;a[@class~='bar']&quot;)
+        assert_xpath  &quot;//a[contains(concat(\&quot; \&quot;, @class, \&quot; \&quot;),concat(\&quot; \&quot;, 'bar', \&quot; \&quot;))]&quot;,
+                      @parser.parse(&quot;a[@class ~= 'bar']&quot;)
+      end
+
+      def test_function_with_arguments
+        assert_xpath  &quot;//*[position() = 2 and self::a]&quot;,
+                      @parser.parse(&quot;a[2]&quot;)
+        assert_xpath  &quot;//*[position() = 2 and self::a]&quot;,
+                      @parser.parse(&quot;a:nth-child(2)&quot;)
+      end
+
+      def test_carrot
+        assert_xpath  &quot;//a[starts-with(@id, 'Boing')]&quot;,
+                      @parser.parse(&quot;a[id^='Boing']&quot;)
+        assert_xpath  &quot;//a[starts-with(@id, 'Boing')]&quot;,
+                      @parser.parse(&quot;a[id ^= 'Boing']&quot;)
+      end
+
+      def test_suffix_match
+        assert_xpath &quot;//a[substring(@id, string-length(@id) - string-length('Boing') + 1, string-length('Boing')) = 'Boing']&quot;,
+                      @parser.parse(&quot;a[id$='Boing']&quot;)
+        assert_xpath &quot;//a[substring(@id, string-length(@id) - string-length('Boing') + 1, string-length('Boing')) = 'Boing']&quot;,
+                      @parser.parse(&quot;a[id $= 'Boing']&quot;)
+      end
+
+      def test_attributes_with_at
+        ## This is non standard CSS
+        assert_xpath  &quot;//a[@id = 'Boing']&quot;,
+                      @parser.parse(&quot;a[@id='Boing']&quot;)
+        assert_xpath  &quot;//a[@id = 'Boing']&quot;,
+                      @parser.parse(&quot;a[@id = 'Boing']&quot;)
+      end
+
+      def test_attributes_with_at_and_stuff
+        ## This is non standard CSS
+        assert_xpath  &quot;//a[@id = 'Boing']//div&quot;,
+                      @parser.parse(&quot;a[@id='Boing'] div&quot;)
+      end
+
+      def test_not_equal
+        ## This is non standard CSS
+        assert_xpath  &quot;//a[child::text() != 'Boing']&quot;,
+                      @parser.parse(&quot;a[text()!='Boing']&quot;)
+        assert_xpath  &quot;//a[child::text() != 'Boing']&quot;,
+                      @parser.parse(&quot;a[text() != 'Boing']&quot;)
+      end
+
+      def test_function
+        ## This is non standard CSS
+        assert_xpath  &quot;//a[child::text()]&quot;,
+                      @parser.parse(&quot;a[text()]&quot;)
+
+        ## This is non standard CSS
+        assert_xpath  &quot;//child::text()&quot;,
+                      @parser.parse(&quot;text()&quot;)
+
+        ## This is non standard CSS
+        assert_xpath  &quot;//a[contains(child::text(), 'Boing')]&quot;,
+                      @parser.parse(&quot;a[text()*='Boing']&quot;)
+        assert_xpath  &quot;//a[contains(child::text(), 'Boing')]&quot;,
+                      @parser.parse(&quot;a[text() *= 'Boing']&quot;)
+
+        ## This is non standard CSS
+        assert_xpath  &quot;//script//comment()&quot;,
+                      @parser.parse(&quot;script comment()&quot;)
+      end
+
+      def test_nonstandard_nth_selectors
+        ## These are non standard CSS
+        assert_xpath '//a[position() = 99]', @parser.parse('a:eq(99)')
+        assert_xpath '//a[position() = 1]', @parser.parse('a:first') # no parens
+        assert_xpath '//a[position() = last()]', @parser.parse('a:last') # no parens
+        assert_xpath '//a[position() = 99]', @parser.parse('a:nth(99)')
+        assert_xpath '//a[position() = 1]', @parser.parse('a:first()')
+        assert_xpath '//a[position() = last()]', @parser.parse('a:last()')
+        assert_xpath '//a[node()]', @parser.parse('a:parent')
+      end
+
+      def test_standard_nth_selectors
+        assert_xpath '//a[position() = 99]', @parser.parse('a:nth-of-type(99)')
+        assert_xpath '//a[position() = 1]', @parser.parse('a:first-of-type()')
+        assert_xpath '//a[position() = last()]', @parser.parse('a:last-of-type()')
+        assert_xpath '//a[position() = 1]', @parser.parse('a:first-of-type') # no parens
+        assert_xpath '//a[position() = last()]', @parser.parse('a:last-of-type') # no parens
+        assert_xpath '//a[position() = last() - 99]', @parser.parse('a:nth-last-of-type(99)')
+        assert_xpath '//a[position() = last() - 99]', @parser.parse('a:nth-last-of-type(99)')
+      end
+
+      def test_nth_child_selectors
+        assert_xpath '//*[position() = 1 and self::a]', @parser.parse('a:first-child')
+        assert_xpath '//*[position() = last() and self::a]', @parser.parse('a:last-child')
+        assert_xpath '//*[position() = 99 and self::a]', @parser.parse('a:nth-child(99)')
+        assert_xpath '//*[position() = last() - 99 and self::a]', @parser.parse('a:nth-last-child(99)')
+      end
+
+      def test_miscellaneous_selectors
+        assert_xpath '//*[last() = 1 and self::a]',
+          @parser.parse('a:only-child')
+        assert_xpath '//a[last() = 1]', @parser.parse('a:only-of-type')
+        assert_xpath '//a[not(node())]', @parser.parse('a:empty')
+      end
+
+      def test_nth_a_n_plus_b
+        assert_xpath '//a[(position() mod 2) = 0]', @parser.parse('a:nth-of-type(2n)')
+        assert_xpath '//a[(position() &gt;= 1) and (((position()-1) mod 2) = 0)]', @parser.parse('a:nth-of-type(2n+1)')
+        assert_xpath '//a[(position() mod 2) = 0]', @parser.parse('a:nth-of-type(even)')
+        assert_xpath '//a[(position() &gt;= 1) and (((position()-1) mod 2) = 0)]', @parser.parse('a:nth-of-type(odd)')
+        assert_xpath '//a[(position() &gt;= 3) and (((position()-3) mod 4) = 0)]', @parser.parse('a:nth-of-type(4n+3)')
+        assert_xpath '//a[(position() &lt;= 3) and (((position()-3) mod 1) = 0)]', @parser.parse('a:nth-of-type(-1n+3)')
+        assert_xpath '//a[(position() &lt;= 3) and (((position()-3) mod 1) = 0)]', @parser.parse('a:nth-of-type(-n+3)')
+        assert_xpath '//a[(position() &gt;= 3) and (((position()-3) mod 1) = 0)]', @parser.parse('a:nth-of-type(1n+3)')
+        assert_xpath '//a[(position() &gt;= 3) and (((position()-3) mod 1) = 0)]', @parser.parse('a:nth-of-type(n+3)')
+      end
+
+      def test_preceding_selector
+        assert_xpath  &quot;//F[preceding-sibling::E]&quot;,
+                      @parser.parse(&quot;E ~ F&quot;)
+      end
+
+      def test_direct_preceding_selector
+        assert_xpath  &quot;//E/following-sibling::*[1]/self::F&quot;,
+                      @parser.parse(&quot;E + F&quot;)
+      end
+
+      def test_attribute
+        assert_xpath  &quot;//h1[@a = 'Tender Lovemaking']&quot;,
+                      @parser.parse(&quot;h1[a='Tender Lovemaking']&quot;)
+      end
+
+      def test_id
+        assert_xpath &quot;//*[@id = 'foo']&quot;, @parser.parse('#foo')
+      end
+
+      def test_pseudo_class_no_ident
+        assert_xpath &quot;//*[link(.)]&quot;, @parser.parse(':link')
+      end
+
+      def test_pseudo_class
+        assert_xpath &quot;//a[link(.)]&quot;, @parser.parse('a:link')
+        assert_xpath &quot;//a[visited(.)]&quot;, @parser.parse('a:visited')
+        assert_xpath &quot;//a[hover(.)]&quot;, @parser.parse('a:hover')
+        assert_xpath &quot;//a[active(.)]&quot;, @parser.parse('a:active')
+        assert_xpath  &quot;//a[active(.) and contains(concat(' ', @class, ' '), ' foo ')]&quot;,
+                      @parser.parse('a:active.foo')
+      end
+
+      def test_star
+        assert_xpath &quot;//*&quot;, @parser.parse('*')
+        assert_xpath &quot;//*[contains(concat(' ', @class, ' '), ' pastoral ')]&quot;,
+                      @parser.parse('*.pastoral')
+      end
+
+      def test_class
+        assert_xpath  &quot;//*[contains(concat(' ', @class, ' '), ' a ') and contains(concat(' ', @class, ' '), ' b ')]&quot;,
+                      @parser.parse('.a.b')
+        assert_xpath  &quot;//*[contains(concat(' ', @class, ' '), ' awesome ')]&quot;,
+                      @parser.parse('.awesome')
+        assert_xpath  &quot;//foo[contains(concat(' ', @class, ' '), ' awesome ')]&quot;,
+                      @parser.parse('foo.awesome')
+        assert_xpath  &quot;//foo//*[contains(concat(' ', @class, ' '), ' awesome ')]&quot;,
+                      @parser.parse('foo .awesome')
+      end
+
+      def test_not_so_simple_not
+        assert_xpath &quot;//*[@id = 'p' and not(contains(concat(' ', @class, ' '), ' a '))]&quot;,
+                     @parser.parse('#p:not(.a)')
+        assert_xpath &quot;//p[contains(concat(' ', @class, ' '), ' a ') and not(contains(concat(' ', @class, ' '), ' b '))]&quot;,
+                     @parser.parse('p.a:not(.b)')
+        assert_xpath &quot;//p[@a = 'foo' and not(contains(concat(' ', @class, ' '), ' b '))]&quot;,
+                     @parser.parse(&quot;p[a='foo']:not(.b)&quot;)
+      end
+
+      def test_ident
+        assert_xpath '//x', @parser.parse('x')
+      end
+
+      def test_parse_space
+        assert_xpath '//x//y', @parser.parse('x y')
+      end
+
+      def test_parse_descendant
+        assert_xpath '//x/y', @parser.parse('x &gt; y')
+      end
+
+      def test_parse_slash
+        ## This is non standard CSS
+        assert_xpath '//x/y', @parser.parse('x/y')
+      end
+
+      def test_parse_doubleslash
+        ## This is non standard CSS
+        assert_xpath '//x//y', @parser.parse('x//y')
+      end
+
+      def test_multi_path
+        assert_xpath ['//x/y', '//y/z'], @parser.parse('x &gt; y, y &gt; z')
+        assert_xpath ['//x/y', '//y/z'], @parser.parse('x &gt; y,y &gt; z')
+        ###
+        # TODO: should we make this work?
+        # assert_xpath ['//x/y', '//y/z'], @parser.parse('x &gt; y | y &gt; z')
+      end
+
+      def assert_xpath expecteds, asts
+        expecteds = [expecteds].flatten
+        expecteds.zip(asts).each do |expected, actual|
+          assert_equal expected, actual.to_xpath
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

@@ -2,14 +2,12 @@
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />RelaxNG<br/>
   In:
+<a href="#" onclick="jsHref('files/ext/nokogiri/html_document_c.html');">ext/nokogiri/html_document.c</a>
 <a href="#" onclick="jsHref('files/lib/nokogiri/ffi/xml/relax_ng_rb.html');">lib/nokogiri/ffi/xml/relax_ng.rb</a>
 <a href="#" onclick="jsHref('files/lib/nokogiri/xml/relax_ng_rb.html');">lib/nokogiri/xml/relax_ng.rb</a>
-<a href="#" onclick="jsHref('files/ext/nokogiri/xml_xpath_context_c.html');">ext/nokogiri/xml_xpath_context.c</a>
 
 Parent:&nbsp;
-        <a href="#" onclick="jsHref('classes/Nokogiri/XML/Schema.html');">
-Schema
-         </a>
+cNokogiriXmlSchema
 </div>
  <!-- banner header -->
 
@@ -17,16 +15,29 @@ Schema
       <div id="content">
 
   <div class="description"><p>
-call-seq:
+<a
+href="index.html?a=C00000038&name=Nokogiri::XML::RelaxNG">Nokogiri::XML::RelaxNG</a>
+is used for validating <a href="index.html?a=C00000017&name=XML">XML</a>
+against a <a href="index.html?a=C00000038&name=RelaxNG">RelaxNG</a> schema.
+</p>
+<h2>Synopsis</h2>
+<p>
+Validate an <a href="index.html?a=C00000017&name=XML">XML</a> document
+against a <a href="index.html?a=C00000038&name=RelaxNG">RelaxNG</a> schema.
+Loop over the errors that are returned and print them out:
 </p>
 <pre>
- from_document(doc)
+  schema  = Nokogiri::XML::RelaxNG(File.open(ADDRESS_SCHEMA_FILE))
+  doc     = Nokogiri::XML(File.open(ADDRESS_XML_FILE))
+
+  schema.validate(doc).each do |error|
+    puts error.message
+  end
 </pre>
 <p>
-Create a new <a href="index.html?a=C00000038&name=RelaxNG">RelaxNG</a>
-schema from the <a
-href="index.html?a=C00000074&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
-<tt>doc</tt>
+The list of errors are <a
+href="index.html?a=C00000068&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
+objects.
 </p>
 </div>
 
@@ -36,7 +47,6 @@ href="index.html?a=C00000074&name=Nokogiri::XML::Document">Nokogiri::XML::Docume
   <ul>
   <li><a href="index.html?a=M000309&name=from_document" >from_document</a></li>
   <li><a href="index.html?a=M000308&name=read_memory" >read_memory</a></li>
-  <li><a href="index.html?a=M000310&name=validate_document" >validate_document</a></li>
   </ul>
 
 
@@ -92,7 +102,9 @@ static VALUE from_document(VALUE klass, VALUE document)
   xmlRelaxNGPtr schema = xmlRelaxNGParse(ctx);
 
   xmlSetStructuredErrorFunc(NULL, NULL);
-  xmlRelaxNGFreeParserCtxt(ctx);
+  if (! is_2_6_16()) {
+    xmlRelaxNGFreeParserCtxt(ctx);
+  }
 
   if(NULL == schema) {
     xmlErrorPtr error = xmlGetLastError();
@@ -102,6 +114,10 @@ static VALUE from_document(VALUE klass, VALUE document)
       rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
 
     return Qnil;
+  }
+
+  if (is_2_6_16()) {
+    xmlRelaxNGFreeParserCtxt(ctx);
   }
 
   VALUE rb_schema = Data_Wrap_Struct(klass, 0, dealloc, schema);
@@ -171,65 +187,6 @@ static VALUE read_memory(VALUE klass, VALUE content)
   rb_iv_set(rb_schema, &quot;@errors&quot;, errors);
 
   return rb_schema;
-}
-</pre>
-  </div>
-</div>
-</div>
-<div class="sectiontitle">Public Instance methods</div>
-<div id="M000310" class="method">
-  <div id="M000310_title" class="title">
-    <b>validate_document(document)<br />
-</b>
-  </div>
-  <div class="description">
-  <p>
-Validate a <a
-href="index.html?a=C00000074&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
-against this <a href="index.html?a=C00000038&name=RelaxNG">RelaxNG</a>
-schema.
-</p>
-  </div>
-<div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000310_source')" id="l_M000310_source">show source</a> ]</p>
-  <div id="M000310_source" class="dyn-source">
-<pre>
-/*
- * call-seq:
- *  validate_document(document)
- *
- * Validate a Nokogiri::XML::Document against this RelaxNG schema.
- */
-static VALUE validate_document(VALUE self, VALUE document)
-{
-  xmlDocPtr doc;
-  xmlRelaxNGPtr schema;
-
-  Data_Get_Struct(self, xmlRelaxNG, schema);
-  Data_Get_Struct(document, xmlDoc, doc);
-
-  VALUE errors = rb_ary_new();
-
-  xmlRelaxNGValidCtxtPtr valid_ctxt = xmlRelaxNGNewValidCtxt(schema);
-
-  if(NULL == valid_ctxt) {
-    // we have a problem
-    rb_raise(rb_eRuntimeError, &quot;Could not create a validation context&quot;);
-  }
-
-#ifdef HAVE_XMLRELAXNGSETVALIDSTRUCTUREDERRORS
-  xmlRelaxNGSetValidStructuredErrors(
-    valid_ctxt,
-    Nokogiri_error_array_pusher,
-    (void *)errors
-  );
-#endif
-
-  xmlRelaxNGValidateDoc(valid_ctxt, doc);
-
-  xmlRelaxNGFreeValidCtxt(valid_ctxt);
-
-  return errors;
 }
 </pre>
   </div>

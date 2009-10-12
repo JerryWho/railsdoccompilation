@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Apr 13 22:33:30 +0200 2009</td>
+      <td>Mon Oct 12 19:43:12 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,416 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/webrat/newdoc/lib/webrat/core/elements/field.rb-</pre>
+    <pre>require &quot;cgi&quot;
+require &quot;webrat/core_extensions/blank&quot;
+require &quot;webrat/core_extensions/nil_to_param&quot;
+
+require &quot;webrat/core/elements/element&quot;
+
+module Webrat
+  # Raised when Webrat is asked to manipulate a disabled form field
+  class DisabledFieldError &lt; WebratError
+  end
+
+  class Field &lt; Element #:nodoc:
+    attr_reader :value
+
+    def self.xpath_search
+      [&quot;.//button&quot;, &quot;.//input&quot;, &quot;.//textarea&quot;, &quot;.//select&quot;]
+    end
+
+    def self.xpath_search_excluding_hidden
+      [&quot;.//button&quot;, &quot;.//input[ @type != 'hidden']&quot;, &quot;.//textarea&quot;, &quot;.//select&quot;]
+    end
+
+    def self.field_classes
+      @field_classes || []
+    end
+
+    def self.inherited(klass)
+      @field_classes ||= []
+      @field_classes &lt;&lt; klass
+      # raise args.inspect
+    end
+
+    def self.load(session, element)
+      return nil if element.nil?
+      session.elements[Webrat::XML.xpath_to(element)] ||= field_class(element).new(session, element)
+    end
+
+    def self.field_class(element)
+      case element.name
+      when &quot;button&quot;   then ButtonField
+      when &quot;select&quot;   then SelectField
+      when &quot;textarea&quot; then TextareaField
+      else
+        case Webrat::XML.attribute(element, &quot;type&quot;)
+        when &quot;checkbox&quot; then CheckboxField
+        when &quot;hidden&quot;   then HiddenField
+        when &quot;radio&quot;    then RadioField
+        when &quot;password&quot; then PasswordField
+        when &quot;file&quot;     then FileField
+        when &quot;reset&quot;    then ResetField
+        when &quot;submit&quot;   then ButtonField
+        when &quot;button&quot;   then ButtonField
+        when &quot;image&quot;    then ButtonField
+        else  TextField
+        end
+      end
+    end
+
+    def initialize(*args)
+      super
+      @value = default_value
+    end
+
+    def label_text
+      return nil if labels.empty?
+      labels.first.text
+    end
+
+    def id
+      Webrat::XML.attribute(@element, &quot;id&quot;)
+    end
+
+    def disabled?
+      @element.attributes.has_key?(&quot;disabled&quot;) &amp;&amp; Webrat::XML.attribute(@element, &quot;disabled&quot;) != 'false'
+    end
+
+    def raise_error_if_disabled
+      return unless disabled?
+      raise DisabledFieldError.new(&quot;Cannot interact with disabled form element (#{self})&quot;)
+    end
+
+    def to_param
+      return nil if disabled?
+
+      case Webrat.configuration.mode
+      when :rails
+        parse_rails_request_params(&quot;#{name}=#{escaped_value}&quot;)
+      when :merb
+        ::Merb::Parse.query(&quot;#{name}=#{escaped_value}&quot;)
+      else
+        { name =&gt; value }
+      end
+    end
+
+    def set(value)
+      @value = value
+    end
+
+    def unset
+      @value = default_value
+    end
+
+  protected
+
+    def parse_rails_request_params(params)
+      if defined?(ActionController::AbstractRequest)
+        ActionController::AbstractRequest.parse_query_parameters(params)
+      elsif defined?(ActionController::UrlEncodedPairParser)
+        # For Rails &gt; 2.2
+        ActionController::UrlEncodedPairParser.parse_query_parameters(params)
+      else
+        # For Rails &gt; 2.3
+        Rack::Utils.parse_nested_query(params)
+      end
+    end
+
+    def form
+      Form.load(@session, form_element)
+    end
+
+    def form_element
+      parent = @element.parent
+
+      while parent.respond_to?(:parent)
+        return parent if parent.name == 'form'
+        parent = parent.parent
+      end
+    end
+
+    def name
+      Webrat::XML.attribute(@element, &quot;name&quot;)
+    end
+
+    def escaped_value
+      CGI.escape([*@value].first.to_s)
+    end
+
+    def labels
+      @labels ||= label_elements.map do |element|
+        Label.load(@session, element)
+      end
+    end
+
+    def label_elements
+      return @label_elements unless @label_elements.nil?
+      @label_elements = []
+
+      parent = @element.parent
+      while parent.respond_to?(:parent)
+        if parent.name == 'label'
+          @label_elements.push parent
+          break
+        end
+        parent = parent.parent
+      end
+
+      unless id.blank?
+        @label_elements += Webrat::XML.xpath_search(form.element, &quot;.//label[@for = '#{id}']&quot;)
+      end
+
+      @label_elements
+    end
+
+    def default_value
+      Webrat::XML.attribute(@element, &quot;value&quot;)
+    end
+
+    def replace_param_value(params, oval, nval)
+      output = Hash.new
+      params.each do |key, value|
+        case value
+        when Hash
+          value = replace_param_value(value, oval, nval)
+        when Array
+          value = value.map { |o| o == oval ? nval : oval }
+        when oval
+          value = nval
+        end
+        output[key] = value
+      end
+      output
+    end
+  end
+
+  class ButtonField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      [&quot;.//button&quot;, &quot;.//input[@type = 'submit']&quot;, &quot;.//input[@type = 'button']&quot;, &quot;.//input[@type = 'image']&quot;]
+    end
+
+    def to_param
+      return nil if @value.nil?
+      super
+    end
+
+    def default_value
+      nil
+    end
+
+    def click
+      raise_error_if_disabled
+      set(Webrat::XML.attribute(@element, &quot;value&quot;)) unless Webrat::XML.attribute(@element, &quot;name&quot;).blank?
+      form.submit
+    end
+
+  end
+
+  class HiddenField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//input[@type = 'hidden']&quot;
+    end
+
+    def to_param
+      if collection_name?
+        super
+      else
+        checkbox_with_same_name = form.field_named(name, CheckboxField)
+
+        if checkbox_with_same_name.to_param.blank?
+          super
+        else
+          nil
+        end
+      end
+    end
+
+  protected
+
+    def collection_name?
+      name =~ /\[\]/
+    end
+
+  end
+
+  class CheckboxField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//input[@type = 'checkbox']&quot;
+    end
+
+    def to_param
+      return nil if @value.nil?
+      super
+    end
+
+    def check
+      raise_error_if_disabled
+      set(Webrat::XML.attribute(@element, &quot;value&quot;) || &quot;on&quot;)
+    end
+
+    def checked?
+      Webrat::XML.attribute(@element, &quot;checked&quot;) == &quot;checked&quot;
+    end
+
+    def uncheck
+      raise_error_if_disabled
+      set(nil)
+    end
+
+  protected
+
+    def default_value
+      if Webrat::XML.attribute(@element, &quot;checked&quot;) == &quot;checked&quot;
+        Webrat::XML.attribute(@element, &quot;value&quot;) || &quot;on&quot;
+      else
+        nil
+      end
+    end
+
+  end
+
+  class PasswordField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//input[@type = 'password']&quot;
+    end
+
+  end
+
+  class RadioField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//input[@type = 'radio']&quot;
+    end
+
+    def to_param
+      return nil if @value.nil?
+      super
+    end
+
+    def choose
+      raise_error_if_disabled
+      other_options.each do |option|
+        option.set(nil)
+      end
+
+      set(Webrat::XML.attribute(@element, &quot;value&quot;) || &quot;on&quot;)
+    end
+
+    def checked?
+      Webrat::XML.attribute(@element, &quot;checked&quot;) == &quot;checked&quot;
+    end
+
+  protected
+
+    def other_options
+      form.fields.select { |f| f.name == name }
+    end
+
+    def default_value
+      if Webrat::XML.attribute(@element, &quot;checked&quot;) == &quot;checked&quot;
+        Webrat::XML.attribute(@element, &quot;value&quot;) || &quot;on&quot;
+      else
+        nil
+      end
+    end
+
+  end
+
+  class TextareaField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//textarea&quot;
+    end
+
+  protected
+
+    def default_value
+      Webrat::XML.inner_html(@element)
+    end
+
+  end
+
+  class FileField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//input[@type = 'file']&quot;
+    end
+
+    attr_accessor :content_type
+
+    def set(value, content_type = nil)
+      super(value)
+      @content_type = content_type
+    end
+
+    def to_param
+      if @value.nil?
+        super
+      else
+        replace_param_value(super, @value, test_uploaded_file)
+      end
+    end
+
+  protected
+
+    def test_uploaded_file
+      case Webrat.configuration.mode
+      when :rails
+        if content_type
+          ActionController::TestUploadedFile.new(@value, content_type)
+        else
+          ActionController::TestUploadedFile.new(@value)
+        end
+      when :merb
+        # TODO: support content_type
+        File.new(@value)
+      when :rack
+        Rack::Test::UploadedFile.new(@value, content_type)
+      end
+    end
+
+  end
+
+  class TextField &lt; Field #:nodoc:
+    def self.xpath_search
+      [&quot;.//input[@type = 'text']&quot;, &quot;.//input[not(@type)]&quot;]
+    end
+  end
+
+  class ResetField &lt; Field #:nodoc:
+    def self.xpath_search
+      &quot;.//input[@type = 'reset']&quot;
+    end
+  end
+
+  class SelectField &lt; Field #:nodoc:
+
+    def self.xpath_search
+      &quot;.//select&quot;
+    end
+
+    def options
+      @options ||= SelectOption.load_all(@session, @element)
+    end
+
+  protected
+
+    def default_value
+      selected_options = Webrat::XML.xpath_search(@element, &quot;.//option[@selected = 'selected']&quot;)
+      selected_options = Webrat::XML.xpath_search(@element, &quot;.//option[position() = 1]&quot;) if selected_options.empty?
+
+      selected_options.map do |option|
+        return &quot;&quot; if option.nil?
+        Webrat::XML.attribute(option, &quot;value&quot;) || Webrat::XML.inner_html(option)
+      end.uniq
+    end
+
+  end
+end
+</pre>
     </div>

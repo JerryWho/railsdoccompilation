@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,173 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/html/test_node.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+require 'nkf'
+
+module Nokogiri
+  module HTML
+    class TestNode &lt; Nokogiri::TestCase
+      def setup
+        super
+        @html = Nokogiri::HTML(&lt;&lt;-eohtml)
+        &lt;html&gt;
+          &lt;head&gt;&lt;/head&gt;
+          &lt;body&gt;
+            &lt;div class='baz'&gt;&lt;a href=&quot;foo&quot; class=&quot;bar&quot;&gt;first&lt;/a&gt;&lt;/div&gt;
+          &lt;/body&gt;
+        &lt;/html&gt;
+        eohtml
+      end
+
+      def test_description
+        assert desc = @html.at('a.bar').description
+        assert_equal 'a', desc.name
+      end
+
+      def test_add_next_sibling_with_empty_nodeset
+        assert_raises(ArgumentError) {
+          @html.at('a').add_next_sibling(@html.at('head').children)
+        }
+      end
+
+      def test_add_next_sibling_with_non_empty_nodeset
+        assert_raises(ArgumentError) {
+          @html.at('head').add_next_sibling(@html.at('div').children)
+        }
+      end
+
+      def test_ancestors_with_selector
+        assert node = @html.at('a.bar').child
+        assert list = node.ancestors('.baz')
+        assert_equal 1, list.length
+        assert_equal 'div', list.first.name
+      end
+
+      def test_css_matches?
+        assert node = @html.at('a.bar')
+        assert node.matches?('a.bar')
+      end
+
+      def test_xpath_matches?
+        assert node = @html.at('//a')
+        assert node.matches?('//a')
+      end
+
+      def test_swap
+        @html.at('div').swap('&lt;a href=&quot;foo&quot;&gt;bar&lt;/a&gt;')
+        a_tag = @html.css('a').first
+        assert_equal 'body', a_tag.parent.name
+        assert_equal 0, @html.css('div').length
+      end
+
+      def test_swap_with_regex_characters
+        @html.at('div').swap('&lt;a href=&quot;foo&quot;&gt;ba)r&lt;/a&gt;')
+        a_tag = @html.css('a').first
+        assert_equal 'ba)r', a_tag.text
+      end
+
+      def test_attribute_decodes_entities
+        node = @html.at('div')
+        node['href'] = 'foo&amp;bar'
+        assert_equal 'foo&amp;bar', node['href']
+        node['href'] += '&amp;baz'
+        assert_equal 'foo&amp;bar&amp;baz', node['href']
+      end
+
+
+      def test_before_will_prepend_text_nodes
+        assert node = @html.at('//body').children.first
+        node.before &quot;some text&quot;
+        assert_equal 'some text', @html.at('//body').children[0].content.strip
+      end
+
+      def test_fragment_handler_does_not_regurge_on_invalid_attributes
+        iframe = %Q{&lt;iframe style=&quot;width: 0%; height: 0px&quot; src=&quot;http://someurl&quot; allowtransparency&gt;&lt;/iframe&gt;}
+        assert_nothing_raised { @html.at('div').before(iframe) }
+        assert_nothing_raised { @html.at('div').after(iframe) }
+        assert_nothing_raised { @html.at('div').inner_html=(iframe) }
+      end
+
+      def test_inner_html=
+        assert div = @html.at('//div')
+        div.inner_html = '1&lt;span&gt;2&lt;/span&gt;3'
+        assert_equal '1',    div.children[0].to_s
+        assert_equal 'span', div.children[1].name
+        assert_equal '2',    div.children[1].inner_text
+        assert_equal '3',    div.children[2].to_s
+
+        div.inner_html = 'testing'
+        assert_equal 'testing', div.content
+      end
+
+      def test_fragment
+        fragment = @html.fragment(&lt;&lt;-eohtml)
+          hello
+          &lt;div class=&quot;foo&quot;&gt;
+            &lt;p&gt;bar&lt;/p&gt;
+          &lt;/div&gt;
+          world
+        eohtml
+        assert_match(/^hello/, fragment.inner_html.strip)
+        assert_equal 3, fragment.children.length
+        assert p_tag = fragment.css('p').first
+        assert_equal 'div', p_tag.parent.name
+        assert_equal 'foo', p_tag.parent['class']
+      end
+
+      def test_fragment_serialization
+        fragment = Nokogiri::HTML.fragment(&quot;&lt;div&gt;foo&lt;/div&gt;&quot;)
+        assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.serialize.chomp
+        assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.to_xml.chomp
+        assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.inner_html
+        assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.to_html
+        assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_after_will_append_text_nodes
+        assert node = @html.at('//body/div')
+        node.after &quot;some text&quot;
+        assert_equal 'some text', node.next.text.strip
+      end
+
+      def test_replace
+        doc = Nokogiri::HTML(&lt;&lt;-eohtml)
+          &lt;html&gt;
+            &lt;head&gt;&lt;/head&gt;
+            &lt;body&gt;
+              &lt;center&gt;&lt;img src='logo.gif' /&gt;&lt;/center&gt;
+            &lt;/body&gt;
+          &lt;/html&gt;
+        eohtml
+        center = doc.at(&quot;//center&quot;)
+        img = center.search(&quot;//img&quot;)
+        assert_raises ArgumentError do
+          center.replace img
+        end
+      end
+
+      def test_to_html_does_not_contain_entities
+        html = NKF.nkf(&quot;-e --msdos&quot;, &lt;&lt;-EOH)
+        &lt;html&gt;&lt;body&gt;
+        &lt;p&gt; test paragraph
+        foo bar &lt;/p&gt;
+        &lt;/body&gt;&lt;/html&gt;
+        EOH
+        nokogiri = Nokogiri::HTML.parse(html)
+
+        if RUBY_PLATFORM =~ /java/
+          # NKF linebreak modes are not supported as of jruby 1.2
+          # see http://jira.codehaus.org/browse/JRUBY-3602 for status
+          assert_equal &quot;&lt;p&gt;testparagraph\nfoobar&lt;/p&gt;&quot;,
+            nokogiri.at(&quot;p&quot;).to_html.gsub(/ /, '')
+        else
+          assert_equal &quot;&lt;p&gt;testparagraph\r\nfoobar&lt;/p&gt;&quot;,
+            nokogiri.at(&quot;p&quot;).to_html.gsub(/ /, '')
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 12:09:23 +0200 2009</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,48 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/example/module_reopening_fix.rb-</pre>
+    <pre>module Spec
+  module Example
+    # When you reopen a module that is included in another module that is included in a class,
+    # the new material you define does not make it to the class. This fixes that.
+    #
+    # == Example
+    #
+    #   module M1; end
+    #
+    #   module M2
+    #     def foo; &quot;FOO&quot;; end
+    #   end
+    #
+    #   class C
+    #     include M1
+    #   end
+    #
+    #   module M1
+    #     include M2
+    #   end
+    #
+    #   c = C.new
+    #   c.foo
+    #   NoMethodError: undefined method `foo' for #&lt;C:0x5e89a4&gt;
+    #     from (irb):12
+    module ModuleReopeningFix
+      def child_modules
+        @child_modules ||= []
+      end
+
+      def included(mod)
+        child_modules &lt;&lt; mod
+      end
+
+      def include(mod)
+        super
+        child_modules.each do |child_module|
+          child_module.__send__(:include, mod)
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

@@ -1,0 +1,89 @@
+  <div id="fileHeader">
+    <h1>column_definition_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/column_definition_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+
+class ColumnDefinitionTest &lt; ActiveRecord::TestCase
+  def setup
+    @adapter = ActiveRecord::ConnectionAdapters::AbstractAdapter.new(nil)
+    def @adapter.native_database_types
+      {:string =&gt; &quot;varchar&quot;}
+    end
+  end
+
+  # Avoid column definitions in create table statements like:
+  # `title` varchar(255) DEFAULT NULL
+  def test_should_not_include_default_clause_when_default_is_null
+    column = ActiveRecord::ConnectionAdapters::Column.new(&quot;title&quot;, nil, &quot;varchar(20)&quot;)
+    column_def = ActiveRecord::ConnectionAdapters::ColumnDefinition.new(
+      @adapter, column.name, &quot;string&quot;,
+      column.limit, column.precision, column.scale, column.default, column.null)
+    assert_equal &quot;title varchar(20)&quot;, column_def.to_sql
+  end
+
+  def test_should_include_default_clause_when_default_is_present
+    column = ActiveRecord::ConnectionAdapters::Column.new(&quot;title&quot;, &quot;Hello&quot;, &quot;varchar(20)&quot;)
+    column_def = ActiveRecord::ConnectionAdapters::ColumnDefinition.new(
+      @adapter, column.name, &quot;string&quot;,
+      column.limit, column.precision, column.scale, column.default, column.null)
+    assert_equal %Q{title varchar(20) DEFAULT 'Hello'}, column_def.to_sql
+  end
+
+  def test_should_specify_not_null_if_null_option_is_false
+    column = ActiveRecord::ConnectionAdapters::Column.new(&quot;title&quot;, &quot;Hello&quot;, &quot;varchar(20)&quot;, false)
+    column_def = ActiveRecord::ConnectionAdapters::ColumnDefinition.new(
+      @adapter, column.name, &quot;string&quot;,
+      column.limit, column.precision, column.scale, column.default, column.null)
+    assert_equal %Q{title varchar(20) DEFAULT 'Hello' NOT NULL}, column_def.to_sql
+  end
+
+  if current_adapter?(:MysqlAdapter)
+    def test_should_set_default_for_mysql_binary_data_types
+      binary_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, &quot;a&quot;, &quot;binary(1)&quot;)
+      assert_equal &quot;a&quot;, binary_column.default
+
+      varbinary_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, &quot;a&quot;, &quot;varbinary(1)&quot;)
+      assert_equal &quot;a&quot;, varbinary_column.default
+    end
+
+    def test_should_not_set_default_for_blob_and_text_data_types
+      assert_raise ArgumentError do
+        ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, &quot;a&quot;, &quot;blob&quot;)
+      end
+
+      assert_raise ArgumentError do
+        ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, &quot;Hello&quot;, &quot;text&quot;)
+      end
+
+      text_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, nil, &quot;text&quot;)
+      assert_equal nil, text_column.default
+
+      not_null_text_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, nil, &quot;text&quot;, false)
+      assert_equal &quot;&quot;, not_null_text_column.default
+    end
+
+    def test_has_default_should_return_false_for_blog_and_test_data_types
+      blob_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, nil, &quot;blob&quot;)
+      assert !blob_column.has_default?
+
+      text_column = ActiveRecord::ConnectionAdapters::MysqlColumn.new(&quot;title&quot;, nil, &quot;text&quot;)
+      assert !text_column.has_default?
+    end
+  end
+end
+</pre>
+    </div>

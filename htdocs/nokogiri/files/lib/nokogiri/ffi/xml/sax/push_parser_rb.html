@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 14:56:40 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,43 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/ffi/xml/sax/push_parser.rb-</pre>
+    <pre>module Nokogiri
+  module XML
+    module SAX
+      class PushParser
+
+        attr_accessor :cstruct # :nodoc:
+
+        private
+
+        def native_write(chunk, last_chunk) # :nodoc:
+          size = 0
+          unless chunk.nil?
+            chunk = chunk.to_s
+            size = chunk.length
+          end
+
+          last_chunk = last_chunk ? 1 : 0
+
+          rcode = LibXML.xmlParseChunk(cstruct, chunk, size, last_chunk)
+          raise RuntimeError, &quot;Couldn't parse chunk&quot; if 0 != rcode
+
+          self
+        end
+
+        def initialize_native(sax, filename) # :nodoc:
+          filename = filename.to_s unless filename.nil?
+          ctx_ptr = LibXML.xmlCreatePushParserCtxt(
+            sax.cstruct, nil, nil, 0, filename
+            )
+          raise(RuntimeError, &quot;Could not create a parser context&quot;) if ctx_ptr.null?
+          self.cstruct = LibXML::XmlSaxPushParserContext.new(ctx_ptr) ;
+          self
+        end
+
+      end
+    end
+  end
+end
+</pre>
     </div>

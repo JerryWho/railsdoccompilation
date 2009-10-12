@@ -1,0 +1,44 @@
+  <div id="fileHeader">
+    <h1>connection.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/connections/native_sqlite3/connection.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>print &quot;Using native SQLite3\n&quot;
+require_dependency 'models/course'
+require 'logger'
+ActiveRecord::Base.logger = Logger.new(&quot;debug.log&quot;)
+
+class SqliteError &lt; StandardError
+end
+
+BASE_DIR = FIXTURES_ROOT
+sqlite_test_db  = &quot;#{BASE_DIR}/fixture_database.sqlite3&quot;
+sqlite_test_db2 = &quot;#{BASE_DIR}/fixture_database_2.sqlite3&quot;
+
+def make_connection(clazz, db_file)
+  ActiveRecord::Base.configurations = { clazz.name =&gt; { :adapter =&gt; 'sqlite3', :database =&gt; db_file, :timeout =&gt; 5000 } }
+  unless File.exist?(db_file)
+    puts &quot;SQLite3 database not found at #{db_file}. Rebuilding it.&quot;
+    sqlite_command = %Q{sqlite3 &quot;#{db_file}&quot; &quot;create table a (a integer); drop table a;&quot;}
+    puts &quot;Executing '#{sqlite_command}'&quot;
+    raise SqliteError.new(&quot;Seems that there is no sqlite3 executable available&quot;) unless system(sqlite_command)
+  end
+  clazz.establish_connection(clazz.name)
+end
+
+make_connection(ActiveRecord::Base, sqlite_test_db)
+make_connection(Course, sqlite_test_db2)
+</pre>
+    </div>

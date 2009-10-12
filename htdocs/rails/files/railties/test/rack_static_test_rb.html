@@ -1,0 +1,65 @@
+  <div id="fileHeader">
+    <h1>rack_static_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/test/rack_static_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+require 'action_controller'
+require 'rails/rack'
+
+class RackStaticTest &lt; ActiveSupport::TestCase
+  def setup
+    FileUtils.cp_r &quot;#{RAILS_ROOT}/fixtures/public&quot;, &quot;#{RAILS_ROOT}/public&quot;
+  end
+
+  def teardown
+    FileUtils.rm_rf &quot;#{RAILS_ROOT}/public&quot;
+  end
+
+  DummyApp = lambda { |env|
+    [200, {&quot;Content-Type&quot; =&gt; &quot;text/plain&quot;}, [&quot;Hello, World!&quot;]]
+  }
+  App = Rails::Rack::Static.new(DummyApp)
+
+  test &quot;serves dynamic content&quot; do
+    assert_equal &quot;Hello, World!&quot;, get(&quot;/nofile&quot;)
+  end
+
+  test &quot;serves static index at root&quot; do
+    assert_equal &quot;/index.html&quot;, get(&quot;/index.html&quot;)
+    assert_equal &quot;/index.html&quot;, get(&quot;/index&quot;)
+    assert_equal &quot;/index.html&quot;, get(&quot;/&quot;)
+  end
+
+  test &quot;serves static file in directory&quot; do
+    assert_equal &quot;/foo/bar.html&quot;, get(&quot;/foo/bar.html&quot;)
+    assert_equal &quot;/foo/bar.html&quot;, get(&quot;/foo/bar/&quot;)
+    assert_equal &quot;/foo/bar.html&quot;, get(&quot;/foo/bar&quot;)
+  end
+
+  test &quot;serves static index file in directory&quot; do
+    assert_equal &quot;/foo/index.html&quot;, get(&quot;/foo/index.html&quot;)
+    assert_equal &quot;/foo/index.html&quot;, get(&quot;/foo/&quot;)
+    assert_equal &quot;/foo/index.html&quot;, get(&quot;/foo&quot;)
+  end
+
+  private
+    def get(path)
+      Rack::MockRequest.new(App).request(&quot;GET&quot;, path).body
+    end
+end
+</pre>
+    </div>

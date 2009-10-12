@@ -1,0 +1,109 @@
+  <div id="fileHeader">
+    <h1>introspection.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/lib/active_support/core_ext/module/introspection.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveSupport
+  module CoreExtensions
+    module Module
+      # Returns the name of the module containing this one.
+      #
+      #   p M::N.parent_name # =&gt; &quot;M&quot;
+      def parent_name
+        unless defined? @parent_name
+          @parent_name = name =~ /::[^:]+\Z/ ? $`.freeze : nil
+        end
+        @parent_name
+      end
+
+      # Returns the module which contains this one according to its name.
+      #
+      #   module M
+      #     module N
+      #     end
+      #   end
+      #   X = M::N
+      #
+      #   p M::N.parent # =&gt; M
+      #   p X.parent    # =&gt; M
+      #
+      # The parent of top-level and anonymous modules is Object.
+      #
+      #   p M.parent          # =&gt; Object
+      #   p Module.new.parent # =&gt; Object
+      #
+      def parent
+        parent_name ? parent_name.constantize : Object
+      end
+
+      # Returns all the parents of this module according to its name, ordered from
+      # nested outwards. The receiver is not contained within the result.
+      #
+      #   module M
+      #     module N
+      #     end
+      #   end
+      #   X = M::N
+      #
+      #   p M.parents    # =&gt; [Object]
+      #   p M::N.parents # =&gt; [M, Object]
+      #   p X.parents    # =&gt; [M, Object]
+      #
+      def parents
+        parents = []
+        if parent_name
+          parts = parent_name.split('::')
+          until parts.empty?
+            parents &lt;&lt; (parts * '::').constantize
+            parts.pop
+          end
+        end
+        parents &lt;&lt; Object unless parents.include? Object
+        parents
+      end
+
+      if RUBY_VERSION &lt; '1.9'
+        # Returns the constants that have been defined locally by this object and
+        # not in an ancestor. This method is exact if running under Ruby 1.9. In
+        # previous versions it may miss some constants if their definition in some
+        # ancestor is identical to their definition in the receiver.
+        def local_constants
+          inherited = {}
+
+          ancestors.each do |anc|
+            next if anc == self
+            anc.constants.each { |const| inherited[const] = anc.const_get(const) }
+          end
+
+          constants.select do |const|
+            !inherited.key?(const) || inherited[const].object_id != const_get(const).object_id
+          end
+        end
+      else
+        def local_constants #:nodoc:
+          constants(false)
+        end
+      end
+
+      # Returns the names of the constants defined locally rather than the
+      # constants themselves. See &lt;tt&gt;local_constants&lt;/tt&gt;.
+      def local_constant_names
+        local_constants.map { |c| c.to_s }
+      end
+    end
+  end
+end
+</pre>
+    </div>

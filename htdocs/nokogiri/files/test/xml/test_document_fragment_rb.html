@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:35:31 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,93 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/xml/test_document_fragment.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module XML
+    class TestDocumentFragment &lt; Nokogiri::TestCase
+      def setup
+        super
+        @xml = Nokogiri::XML.parse(File.read(XML_FILE), XML_FILE)
+      end
+
+      def test_new
+        fragment = Nokogiri::XML::DocumentFragment.new(@xml)
+      end
+
+      def test_fragment_should_have_document
+        fragment = Nokogiri::XML::DocumentFragment.new(@xml)
+        assert_equal @xml, fragment.document
+      end
+
+      def test_name
+        fragment = Nokogiri::XML::DocumentFragment.new(@xml)
+        assert_equal '#document-fragment', fragment.name
+      end
+
+      def test_static_method
+        fragment = Nokogiri::XML::DocumentFragment.parse(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of Nokogiri::XML::DocumentFragment, fragment
+      end
+
+      def test_many_fragments
+        100.times { Nokogiri::XML::DocumentFragment.new(@xml) }
+      end
+
+      def test_subclass
+        klass = Class.new(Nokogiri::XML::DocumentFragment)
+        fragment = klass.new(@xml, &quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of klass, fragment
+      end
+
+      def test_subclass_parse
+        klass = Class.new(Nokogiri::XML::DocumentFragment)
+        doc = klass.parse(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_instance_of klass, doc
+      end
+
+      def test_xml_fragment
+        fragment = Nokogiri::XML.fragment(&quot;&lt;div&gt;a&lt;/div&gt;&quot;)
+        assert_equal &quot;&lt;div&gt;a&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_xml_fragment_has_multiple_toplevel_children
+        # TODO: this is lame. xml fragment() should support multiple top-level children
+        doc = &quot;&lt;div&gt;b&lt;/div&gt;&lt;div&gt;e&lt;/div&gt;&quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_xml_fragment_has_outer_text
+        # this test is descriptive, not prescriptive.
+        doc = &quot;a&lt;div&gt;b&lt;/div&gt;&quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&quot;, fragment.to_s
+
+        doc = &quot;&lt;div&gt;b&lt;/div&gt;c&quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_xml_fragment_case_sensitivity
+        doc = &quot;&lt;crazyDiv&gt;b&lt;/crazyDiv&gt;&quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;crazyDiv&gt;b&lt;/crazyDiv&gt;&quot;, fragment.to_s
+      end
+
+      def test_xml_fragment_with_leading_whitespace
+        doc = &quot;     &lt;div&gt;b&lt;/div&gt;  &quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_xml_fragment_with_leading_whitespace_and_newline
+        doc = &quot;     \n&lt;div&gt;b&lt;/div&gt;  &quot;
+        fragment = Nokogiri::XML::Document.new.fragment(doc)
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+    end
+  end
+end
+</pre>
     </div>

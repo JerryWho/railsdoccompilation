@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 12:09:23 +0200 2009</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,45 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/deprecation.rb-</pre>
+    <pre>module Spec
+  class &lt;&lt; self
+    def deprecate(method, alternate_method=nil)
+       message = &lt;&lt;-NOTICE
+
+*****************************************************************
+DEPRECATION WARNING: you are using deprecated behaviour that will
+be removed from a future version of RSpec.
+
+#{caller(0)[2]}
+
+* #{method} is deprecated.
+NOTICE
+      if alternate_method
+        message &lt;&lt; &lt;&lt;-ADDITIONAL
+* please use #{alternate_method} instead.
+ADDITIONAL
+      end
+
+      message &lt;&lt; &quot;*****************************************************************&quot;
+      warn(message)
+    end
+
+    def warn(message)
+      Kernel.warn(message)
+    end
+
+  end
+
+  class HashWithDeprecationNotice &lt; Hash
+    def initialize(method, alternate_method=nil, &amp;block)
+      @method, @alternate_method = method, alternate_method
+    end
+    def []=(k,v)
+      Spec.deprecate(@method, @alternate_method)
+      super
+    end
+  end
+end
+
+</pre>
     </div>

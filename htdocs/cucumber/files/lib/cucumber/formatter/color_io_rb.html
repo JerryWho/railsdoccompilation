@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:27:06 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,28 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/formatter/color_io.rb-</pre>
+    <pre>require 'forwardable'
+
+module Cucumber
+  module Formatter
+    # Adapter to make #puts/#print/#flush work with colours on Windows
+    class ColorIO #:nodoc:
+      extend Forwardable
+      def_delegators :@kernel, :puts, :print # win32console colours only work when sent to Kernel
+      def_delegators :@stdout, :flush, :tty?, :write, :close
+
+      def initialize
+        @kernel = Kernel
+        @stdout = STDOUT
+      end
+
+      # Ensure using &lt;&lt; still gets colours in win32console
+      def &lt;&lt;(output)
+        print(output)
+        self
+      end
+    end
+  end
+end
+</pre>
     </div>

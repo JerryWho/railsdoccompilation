@@ -1,0 +1,54 @@
+  <div id="fileHeader">
+    <h1>log_tailer.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/rails/rack/log_tailer.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Rails
+  module Rack
+    class LogTailer
+      EnvironmentLog = &quot;#{File.expand_path(Rails.root)}/log/#{Rails.env}.log&quot;
+
+      def initialize(app, log = nil)
+        @app = app
+
+        path = Pathname.new(log || EnvironmentLog).cleanpath
+        @cursor = ::File.size(path)
+        @last_checked = Time.now.to_f
+
+        @file = ::File.open(path, 'r')
+      end
+
+      def call(env)
+        response = @app.call(env)
+        tail_log
+        response
+      end
+
+      def tail_log
+        @file.seek @cursor
+
+        mod = @file.mtime.to_f
+        if mod &gt; @last_checked
+          contents = @file.read
+          @last_checked = mod
+          @cursor += contents.size
+          $stdout.print contents
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>

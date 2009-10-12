@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -19,19 +19,18 @@
 require 'fileutils'
 
 module Haml
-  # This module contains code for working with the
-  # haml, sass, and haml2html executables,
-  # such as command-line parsing stuff.
-  # It shouldn't need to be invoked by client code.
-  module Exec # :nodoc:
-    # A class that encapsulates the executable code
-    # for all three executables.
-    class Generic # :nodoc:
+  # This module handles the various Haml executables (`haml`, `sass`, `css2sass`, etc).
+  module Exec
+    # An abstract class that encapsulates the executable code for all three executables.
+    class Generic
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         @args = args
         @options = {}
       end
 
+      # Parses the command-line arguments and runs the executable.
+      # Calls `Kernel#exit` at the end, so it never returns.
       def parse!
         begin
           @opts = OptionParser.new(&amp;method(:set_opts))
@@ -49,12 +48,18 @@ module Haml
         exit 0
       end
 
+      # @return [String] A description of the executable
       def to_s
         @opts.to_s
       end
 
       protected
 
+      # Finds the line of the source template
+      # on which an exception was raised.
+      #
+      # @param exception [Exception] The exception
+      # @return [String] The line number
       def get_line(exception)
         # SyntaxErrors have weird line reporting
         # when there's trailing whitespace,
@@ -63,8 +68,13 @@ module Haml
         exception.backtrace[0].scan(/:(\d+)/).first.first
       end
 
-      private
-
+      # Tells optparse how to parse the arguments
+      # available for all executables.
+      #
+      # This is meant to be overridden by subclasses
+      # so they can add their own options.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         opts.on('-s', '--stdin', :NONE, 'Read input from standard input instead of an input file') do
           @options[:input] = $stdin
@@ -80,17 +90,24 @@ module Haml
         end
 
         opts.on_tail(&quot;-v&quot;, &quot;--version&quot;, &quot;Print version&quot;) do
-          puts(&quot;Haml #{::Haml.version[:string]}&quot;)
+          puts(&quot;Haml/Sass #{::Haml.version[:string]}&quot;)
           exit
         end
       end
 
+      # Processes the options set by the command-line arguments.
+      # In particular, sets `@options[:input]` and `@options[:output]`
+      # to appropriate IO streams.
+      #
+      # This is meant to be overridden by subclasses
+      # so they can run their respective programs.
       def process_result
         input, output = @options[:input], @options[:output]
         input_file, output_file = if input
-                                    [nil, open_file(ARGV[0], 'w')]
+                                    [nil, open_file(@args[0], 'w')]
                                   else
-                                    [open_file(ARGV[0]), open_file(ARGV[1], 'w')]
+                                    @options[:filename] = @args[0]
+                                    [open_file(@args[0]), open_file(@args[1], 'w')]
                                   end
 
         input  ||= input_file
@@ -101,22 +118,32 @@ module Haml
         @options[:input], @options[:output] = input, output
       end
 
+      private
+
       def open_file(filename, flag = 'r')
         return if filename.nil?
         File.open(filename, flag)
       end
     end
 
-    # A class encapsulating the executable functionality
-    # specific to Haml and Sass.
-    class HamlSass &lt; Generic # :nodoc:
+    # An abstrac class that encapsulates the code
+    # specific to the `haml` and `sass` executables.
+    class HamlSass &lt; Generic
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         super
         @options[:for_engine] = {}
       end
 
-      private
+      protected
 
+      # Tells optparse how to parse the arguments
+      # available for the `haml` and `sass` executables.
+      #
+      # This is meant to be overridden by subclasses
+      # so they can add their own options.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         opts.banner = &lt;&lt;END
 Usage: #{@name.downcase} [options] [INPUT] [OUTPUT]
@@ -154,7 +181,6 @@ END
           end
 
           File.open(File.join(dir, 'init.rb'), 'w') do |file|
-            file.puts &quot;require 'rubygems'&quot;
             file &lt;&lt; File.read(File.dirname(__FILE__) + &quot;/../../init.rb&quot;)
           end
 
@@ -171,20 +197,33 @@ END
         super
       end
 
+      # Processes the options set by the command-line arguments.
+      # In particular, sets `@options[:for_engine][:filename]` to the input filename
+      # and requires the appropriate file.
+      #
+      # This is meant to be overridden by subclasses
+      # so they can run their respective programs.
       def process_result
         super
+        @options[:for_engine][:filename] = @options[:filename] if @options[:filename]
         require File.dirname(__FILE__) + &quot;/../#{@name.downcase}&quot;
       end
     end
 
-    # A class encapsulating executable functionality
-    # specific to Sass.
-    class Sass &lt; HamlSass # :nodoc:
+    # The `sass` executable.
+    class Sass &lt; HamlSass
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         super
         @name = &quot;Sass&quot;
+        @options[:for_engine][:load_paths] = ['.'] + (ENV['SASSPATH'] || '').split(File::PATH_SEPARATOR)
       end
 
+      protected
+
+      # Tells optparse how to parse the arguments.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         super
 
@@ -192,34 +231,62 @@ END
                 'Output style. Can be nested (default), compact, compressed, or expanded.') do |name|
           @options[:for_engine][:style] = name.to_sym
         end
+        opts.on('-l', '--line-comments',
+                'Line Comments. Emit comments in the generated CSS indicating the corresponding sass line.') do
+          @options[:for_engine][:line_comments] = true
+        end
+        opts.on('-i', '--interactive',
+                'Run an interactive SassScript shell.') do
+          @options[:interactive] = true
+        end
+        opts.on('-I', '--load-path PATH', 'Add a sass import path.') do |path|
+          @options[:for_engine][:load_paths] &lt;&lt; path
+        end
+        opts.on('--cache-location', 'The path to put cached Sass files. Defaults to .sass-cache.') do |loc|
+          @options[:for_engine][:cache_location] = path
+        end
+        opts.on('-C', '--no-cache', &quot;Don't cache to sassc files.&quot;) do
+          @options[:for_engine][:cache] = false
+        end
       end
 
+      # Processes the options set by the command-line arguments,
+      # and runs the Sass compiler appropriately.
       def process_result
+        if @options[:interactive]
+          require 'sass'
+          require 'sass/repl'
+          ::Sass::Repl.new(@options).run
+          return
+        end
+
         super
         input = @options[:input]
         output = @options[:output]
 
-        template = input.read()
-        input.close() if input.is_a? File
+        tree =
+          if input.is_a?(File) &amp;&amp; !@options[:check_syntax]
+            ::Sass::Files.tree_for(input.path, @options[:for_engine])
+          else
+            # We don't need to do any special handling of @options[:check_syntax] here,
+            # because the Sass syntax checking happens alongside evaluation
+            # and evaluation doesn't actually evaluate any code anyway.
+            ::Sass::Engine.new(input.read(), @options[:for_engine]).to_tree
+          end
 
-        begin
-          # We don't need to do any special handling of @options[:check_syntax] here,
-          # because the Sass syntax checking happens alongside evaluation
-          # and evaluation doesn't actually evaluate any code anyway.
-          result = ::Sass::Engine.new(template, @options[:for_engine]).render
-        rescue ::Sass::SyntaxError =&gt; e
-          raise e if @options[:trace]
-          raise &quot;Syntax error on line #{get_line e}: #{e.message}&quot;
-        end
+        input.close() if input.is_a?(File)
 
-        output.write(result)
+        output.write(tree.render)
         output.close() if output.is_a? File
+      rescue ::Sass::SyntaxError =&gt; e
+        raise e if @options[:trace]
+        raise &quot;Syntax error on line #{get_line e}: #{e.message}&quot;
       end
     end
 
-    # A class encapsulating executable functionality
-    # specific to Haml.
-    class Haml &lt; HamlSass # :nodoc:
+    # The `haml` executable.
+    class Haml &lt; HamlSass
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         super
         @name = &quot;Haml&quot;
@@ -227,6 +294,9 @@ END
         @options[:load_paths] = []
       end
 
+      # Tells optparse how to parse the arguments.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         super
 
@@ -258,6 +328,8 @@ END
         end
       end
 
+      # Processes the options set by the command-line arguments,
+      # and runs the Haml compiler appropriately.
       def process_result
         super
         input = @options[:input]
@@ -297,9 +369,9 @@ END
       end
     end
 
-    # A class encapsulating executable functionality
-    # specific to the html2haml executable.
-    class HTML2Haml &lt; Generic # :nodoc:
+    # The `html2haml` executable.
+    class HTML2Haml &lt; Generic
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         super
 
@@ -309,11 +381,15 @@ END
           require 'haml/html'
         rescue LoadError =&gt; err
           dep = err.message.scan(/^no such file to load -- (.*)/)[0]
-          puts &quot;Required dependency #{dep} not found!&quot;
+          raise err if @options[:trace] || dep.nil? || dep.empty?
+          $stderr.puts &quot;Required dependency #{dep} not found!\n  Use --trace for backtrace.&quot;
           exit 1
         end
       end
 
+      # Tells optparse how to parse the arguments.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         opts.banner = &lt;&lt;END
 Usage: html2haml [options] [INPUT] [OUTPUT]
@@ -338,6 +414,8 @@ END
         super
       end
 
+      # Processes the options set by the command-line arguments,
+      # and runs the HTML compiler appropriately.
       def process_result
         super
 
@@ -351,9 +429,9 @@ END
       end
     end
 
-    # A class encapsulating executable functionality
-    # specific to the css2sass executable.
-    class CSS2Sass &lt; Generic # :nodoc:
+    # The `css2sass` executable.
+    class CSS2Sass &lt; Generic
+      # @param args [Array&lt;String&gt;] The command-line arguments
       def initialize(args)
         super
 
@@ -362,6 +440,9 @@ END
         require 'sass/css'
       end
 
+      # Tells optparse how to parse the arguments.
+      #
+      # @param opts [OptionParser]
       def set_opts(opts)
         opts.banner = &lt;&lt;END
 Usage: css2sass [options] [INPUT] [OUTPUT]
@@ -371,13 +452,17 @@ Description: Transforms a CSS file into corresponding Sass code.
 Options:
 END
 
-        opts.on('-a', '--alternate', 'Output using alternative Sass syntax (margin: 1px)') do
-          @module_opts[:alternate] = true
+        opts.on('--old', 'Output the old-style &quot;:prop val&quot; property syntax') do
+          @module_opts[:old] = true
         end
+
+        opts.on_tail('-a', '--alternate', 'Ignored') {}
 
         super
       end
 
+      # Processes the options set by the command-line arguments,
+      # and runs the CSS compiler appropriately.
       def process_result
         super
 

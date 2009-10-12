@@ -1,0 +1,59 @@
+  <div id="fileHeader">
+    <h1>generator_lookup_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/test/generator_lookup_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'plugin_test_helper'
+
+class GeneratorLookupTest &lt; Test::Unit::TestCase
+  def setup
+    @fixture_dirs = %w{alternate default}
+    @configuration = Rails.configuration = Rails::Configuration.new
+    # We need to add our testing plugin directory to the plugin paths so
+    # the locator knows where to look for our plugins
+    @configuration.plugin_paths += @fixture_dirs.map{|fd| plugin_fixture_path(fd)}
+    @initializer = Rails::Initializer.new(@configuration)
+    @initializer.add_plugin_load_paths
+    @initializer.load_plugins
+    load 'rails_generator.rb'
+    require 'rails_generator/scripts'
+  end
+
+  def test_should_load_from_all_plugin_paths
+    assert Rails::Generator::Base.lookup('a_generator')
+    assert Rails::Generator::Base.lookup('stubby_generator')
+  end
+  
+  def test_should_create_generator_source_for_each_directory_in_plugin_paths
+    sources = Rails::Generator::Base.sources
+    @fixture_dirs.each do |gen_dir|
+      expected_label = &quot;plugins (fixtures/plugins/#{gen_dir})&quot;.to_sym
+      assert sources.any? {|source| source.label == expected_label }
+    end
+  end
+  
+  def test_should_preserve_order_in_usage_message
+    msg = Rails::Generator::Scripts::Base.new.send(:usage_message)
+    positions = @fixture_dirs.map do |gen_dir|
+      pos = msg.index(&quot;Plugins (fixtures/plugins/#{gen_dir})&quot;)
+      assert_not_nil pos
+      pos
+    end
+    assert_equal positions.sort, positions
+  end
+
+end
+</pre>
+    </div>

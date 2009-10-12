@@ -1,0 +1,309 @@
+  <div id="fileHeader">
+    <h1>render_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/render_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># encoding: utf-8
+require 'abstract_unit'
+require 'controller/fake_models'
+
+module RenderTestCases
+  def setup_view(paths)
+    @assigns = { :secret =&gt; 'in the sauce' }
+    @view = ActionView::Base.new(paths, @assigns)
+
+    # Reload and register danish language for testing
+    I18n.reload!
+    I18n.backend.store_translations 'da', {}
+    I18n.backend.store_translations 'pt-BR', {}
+
+    # Ensure original are still the same since we are reindexing view paths
+    assert_equal ORIGINAL_LOCALES, I18n.available_locales.map(&amp;:to_s).sort
+  end
+
+  def test_render_file
+    assert_equal &quot;Hello world!&quot;, @view.render(:file =&gt; &quot;test/hello_world.erb&quot;)
+  end
+
+  def test_render_file_not_using_full_path
+    assert_equal &quot;Hello world!&quot;, @view.render(:file =&gt; &quot;test/hello_world.erb&quot;)
+  end
+
+  def test_render_file_without_specific_extension
+    assert_equal &quot;Hello world!&quot;, @view.render(:file =&gt; &quot;test/hello_world&quot;)
+  end
+
+  def test_render_file_with_localization
+    old_locale = I18n.locale
+    I18n.locale = :da
+    assert_equal &quot;Hey verden&quot;, @view.render(:file =&gt; &quot;test/hello_world&quot;)
+  ensure
+    I18n.locale = old_locale
+  end
+
+  def test_render_file_with_dashed_locale
+    old_locale = I18n.locale
+    I18n.locale = :&quot;pt-BR&quot;
+    assert_equal &quot;Ola mundo&quot;, @view.render(:file =&gt; &quot;test/hello_world&quot;)
+  ensure
+    I18n.locale = old_locale
+  end
+
+  def test_render_implicit_html_template_from_xhr_request
+    old_format = @view.template_format
+    @view.template_format = :js
+    assert_equal &quot;Hello HTML!&quot;, @view.render(:file =&gt; &quot;test/render_implicit_html_template_from_xhr_request&quot;)
+  ensure
+    @view.template_format = old_format
+  end
+
+  def test_render_implicit_html_template_from_xhr_request_with_localization
+    old_locale = I18n.locale
+    old_format = @view.template_format
+    I18n.locale = :da
+    @view.template_format = :js
+    assert_equal &quot;Hey HTML!\n&quot;, @view.render(:file =&gt; &quot;test/render_implicit_html_template_from_xhr_request&quot;)
+  ensure
+    I18n.locale = old_locale
+    @view.template_format = old_format
+  end
+
+  def test_render_file_at_top_level
+    assert_equal 'Elastica', @view.render(:file =&gt; '/shared')
+  end
+
+  def test_render_file_with_full_path
+    template_path = File.join(File.dirname(__FILE__), '../fixtures/test/hello_world.erb')
+    assert_equal &quot;Hello world!&quot;, @view.render(:file =&gt; template_path)
+  end
+
+  def test_render_file_with_instance_variables
+    assert_equal &quot;The secret is in the sauce\n&quot;, @view.render(:file =&gt; &quot;test/render_file_with_ivar.erb&quot;)
+  end
+
+  def test_render_file_with_locals
+    locals = { :secret =&gt; 'in the sauce' }
+    assert_equal &quot;The secret is in the sauce\n&quot;, @view.render(:file =&gt; &quot;test/render_file_with_locals.erb&quot;, :locals =&gt; locals)
+  end
+
+  def test_render_file_not_using_full_path_with_dot_in_path
+    assert_equal &quot;The secret is in the sauce\n&quot;, @view.render(:file =&gt; &quot;test/dot.directory/render_file_with_ivar&quot;)
+  end
+
+  def test_render_has_access_current_template
+    assert_equal &quot;test/template.erb&quot;, @view.render(:file =&gt; &quot;test/template.erb&quot;)
+  end
+
+  def test_render_update
+    # TODO: You should not have to stub out template because template is self!
+    @view.instance_variable_set(:@template, @view)
+    assert_equal 'alert(&quot;Hello, World!&quot;);', @view.render(:update) { |page| page.alert('Hello, World!') }
+  end
+
+  def test_render_partial_from_default
+    assert_equal &quot;only partial&quot;, @view.render(&quot;test/partial_only&quot;)
+  end
+
+  def test_render_partial
+    assert_equal &quot;only partial&quot;, @view.render(:partial =&gt; &quot;test/partial_only&quot;)
+  end
+
+  def test_render_partial_with_format
+    assert_equal 'partial html', @view.render(:partial =&gt; 'test/partial')
+  end
+
+  def test_render_partial_at_top_level
+    # file fixtures/_top_level_partial_only.erb (not fixtures/test)
+    assert_equal 'top level partial', @view.render(:partial =&gt; '/top_level_partial_only')
+  end
+
+  def test_render_partial_with_format_at_top_level
+    # file fixtures/_top_level_partial.html.erb (not fixtures/test, with format extension)
+    assert_equal 'top level partial html', @view.render(:partial =&gt; '/top_level_partial')
+  end
+
+  def test_render_partial_with_locals
+    assert_equal &quot;5&quot;, @view.render(:partial =&gt; &quot;test/counter&quot;, :locals =&gt; { :counter_counter =&gt; 5 })
+  end
+
+  def test_render_partial_with_locals_from_default
+    assert_equal &quot;only partial&quot;, @view.render(&quot;test/partial_only&quot;, :counter_counter =&gt; 5)
+  end
+
+  def test_render_partial_with_errors
+    @view.render(:partial =&gt; &quot;test/raise&quot;)
+    flunk &quot;Render did not raise TemplateError&quot;
+  rescue ActionView::TemplateError =&gt; e
+    assert_match &quot;undefined local variable or method `doesnt_exist'&quot;, e.message
+    assert_equal &quot;&quot;, e.sub_template_message
+    assert_equal &quot;1&quot;, e.line_number
+    assert_equal File.expand_path(&quot;#{FIXTURE_LOAD_PATH}/test/_raise.html.erb&quot;), e.file_name
+  end
+
+  def test_render_sub_template_with_errors
+    @view.render(:file =&gt; &quot;test/sub_template_raise&quot;)
+    flunk &quot;Render did not raise TemplateError&quot;
+  rescue ActionView::TemplateError =&gt; e
+    assert_match &quot;undefined local variable or method `doesnt_exist'&quot;, e.message
+    assert_equal &quot;Trace of template inclusion: #{File.expand_path(&quot;#{FIXTURE_LOAD_PATH}/test/sub_template_raise.html.erb&quot;)}&quot;, e.sub_template_message
+    assert_equal &quot;1&quot;, e.line_number
+    assert_equal File.expand_path(&quot;#{FIXTURE_LOAD_PATH}/test/_raise.html.erb&quot;), e.file_name
+  end
+
+  def test_render_object
+    assert_equal &quot;Hello: david&quot;, @view.render(:partial =&gt; &quot;test/customer&quot;, :object =&gt; Customer.new(&quot;david&quot;))
+  end
+
+  def test_render_partial_collection
+    assert_equal &quot;Hello: davidHello: mary&quot;, @view.render(:partial =&gt; &quot;test/customer&quot;, :collection =&gt; [ Customer.new(&quot;david&quot;), Customer.new(&quot;mary&quot;) ])
+  end
+
+  def test_render_partial_collection_as
+    assert_equal &quot;david david davidmary mary mary&quot;,
+      @view.render(:partial =&gt; &quot;test/customer_with_var&quot;, :collection =&gt; [ Customer.new(&quot;david&quot;), Customer.new(&quot;mary&quot;) ], :as =&gt; :customer)
+  end
+
+  def test_render_partial_collection_without_as
+    assert_equal &quot;local_inspector,local_inspector_counter,object&quot;,
+      @view.render(:partial =&gt; &quot;test/local_inspector&quot;, :collection =&gt; [ Customer.new(&quot;mary&quot;) ])
+  end
+
+  def test_render_partial_with_empty_collection_should_return_nil
+    assert_nil @view.render(:partial =&gt; &quot;test/customer&quot;, :collection =&gt; [])
+  end
+
+  def test_render_partial_with_nil_collection_should_return_nil
+    assert_nil @view.render(:partial =&gt; &quot;test/customer&quot;, :collection =&gt; nil)
+  end
+
+  def test_render_partial_with_nil_values_in_collection
+    assert_equal &quot;Hello: davidHello: Anonymous&quot;, @view.render(:partial =&gt; &quot;test/customer&quot;, :collection =&gt; [ Customer.new(&quot;david&quot;), nil ])
+  end
+
+  def test_render_partial_with_empty_array_should_return_nil
+    assert_nil @view.render(:partial =&gt; [])
+  end
+
+  # TODO: The reason for this test is unclear, improve documentation
+  def test_render_partial_and_fallback_to_layout
+    assert_equal &quot;Before (Josh)\n\nAfter&quot;, @view.render(:partial =&gt; &quot;test/layout_for_partial&quot;, :locals =&gt; { :name =&gt; &quot;Josh&quot; })
+  end
+
+  # TODO: The reason for this test is unclear, improve documentation
+  def test_render_missing_xml_partial_and_raise_missing_template
+    @view.template_format = :xml
+    assert_raise(ActionView::MissingTemplate) { @view.render(:partial =&gt; &quot;test/layout_for_partial&quot;) }
+  end
+
+  def test_render_inline
+    assert_equal &quot;Hello, World!&quot;, @view.render(:inline =&gt; &quot;Hello, World!&quot;)
+  end
+
+  def test_render_inline_with_locals
+    assert_equal &quot;Hello, Josh!&quot;, @view.render(:inline =&gt; &quot;Hello, &lt;%= name %&gt;!&quot;, :locals =&gt; { :name =&gt; &quot;Josh&quot; })
+  end
+
+  def test_render_fallbacks_to_erb_for_unknown_types
+    assert_equal &quot;Hello, World!&quot;, @view.render(:inline =&gt; &quot;Hello, World!&quot;, :type =&gt; :bar)
+  end
+
+  CustomHandler = lambda do |template|
+    &quot;@output_buffer = ''\n&quot; +
+      &quot;@output_buffer &lt;&lt; 'source: #{template.source.inspect}'\n&quot;
+  end
+
+  def test_render_inline_with_compilable_custom_type
+    ActionView::Template.register_template_handler :foo, CustomHandler
+    assert_equal 'source: &quot;Hello, World!&quot;', @view.render(:inline =&gt; &quot;Hello, World!&quot;, :type =&gt; :foo)
+  end
+
+  def test_render_inline_with_locals_and_compilable_custom_type
+    ActionView::Template.register_template_handler :foo, CustomHandler
+    assert_equal 'source: &quot;Hello, &lt;%= name %&gt;!&quot;', @view.render(:inline =&gt; &quot;Hello, &lt;%= name %&gt;!&quot;, :locals =&gt; { :name =&gt; &quot;Josh&quot; }, :type =&gt; :foo)
+  end
+
+  class LegacyHandler &lt; ActionView::TemplateHandler
+    def render(template, local_assigns)
+      &quot;source: #{template.source}; locals: #{local_assigns.inspect}&quot;
+    end
+  end
+
+  def test_render_legacy_handler_with_custom_type
+    ActionView::Template.register_template_handler :foo, LegacyHandler
+    assert_equal 'source: Hello, &lt;%= name %&gt;!; locals: {:name=&gt;&quot;Josh&quot;}', @view.render(:inline =&gt; &quot;Hello, &lt;%= name %&gt;!&quot;, :locals =&gt; { :name =&gt; &quot;Josh&quot; }, :type =&gt; :foo)
+  end
+
+  def test_render_ignores_templates_with_malformed_template_handlers
+    %w(malformed malformed.erb malformed.html.erb malformed.en.html.erb).each do |name|
+      assert_raise(ActionView::MissingTemplate) { @view.render(:file =&gt; &quot;test/malformed/#{name}&quot;) }
+    end
+  end
+
+  def test_template_with_malformed_template_handler_is_reachable_through_its_exact_filename
+    assert_equal &quot;Don't render me!&quot;, @view.render(:file =&gt; 'test/malformed/malformed.html.erb~')
+  end
+
+  def test_render_with_layout
+    assert_equal %(&lt;title&gt;&lt;/title&gt;\nHello world!\n),
+      @view.render(:file =&gt; &quot;test/hello_world.erb&quot;, :layout =&gt; &quot;layouts/yield&quot;)
+  end
+
+  def test_render_with_nested_layout
+    assert_equal %(&lt;title&gt;title&lt;/title&gt;\n&lt;div id=&quot;column&quot;&gt;column&lt;/div&gt;\n&lt;div id=&quot;content&quot;&gt;content&lt;/div&gt;\n),
+      @view.render(:file =&gt; &quot;test/nested_layout.erb&quot;, :layout =&gt; &quot;layouts/yield&quot;)
+  end
+
+  if '1.9'.respond_to?(:force_encoding)
+    def test_render_utf8_template
+      result = @view.render(:file =&gt; &quot;test/utf8.html.erb&quot;, :layouts =&gt; &quot;layouts/yield&quot;)
+      assert_equal &quot;Русский текст\n日本語のテキスト&quot;, result
+      assert_equal Encoding::UTF_8, result.encoding
+    end
+  end
+end
+
+module TemplatesSetupTeardown
+  def setup_view_paths_for(new_cache_template_loading)
+    @previous_cache_template_loading, ActionView::Base.cache_template_loading = ActionView::Base.cache_template_loading, new_cache_template_loading
+    view_paths = new_cache_template_loading ? CACHED_VIEW_PATHS : ActionView::Base.process_view_paths(CACHED_VIEW_PATHS.map(&amp;:to_s))
+    assert_equal(new_cache_template_loading ? ActionView::Template::EagerPath : ActionView::ReloadableTemplate::ReloadablePath, view_paths.first.class)
+    setup_view(view_paths)
+  end
+  
+  def teardown
+    ActionView::Base.cache_template_loading = @previous_cache_template_loading
+  end
+end
+
+class CachedRenderTest &lt; Test::Unit::TestCase
+  include TemplatesSetupTeardown
+  include RenderTestCases
+
+  def setup
+    setup_view_paths_for(cache_templates = true)
+  end
+end
+
+class ReloadableRenderTest &lt; Test::Unit::TestCase
+  include TemplatesSetupTeardown
+  include RenderTestCases
+
+  def setup
+    setup_view_paths_for(cache_templates = false)
+  end
+end
+
+</pre>
+    </div>

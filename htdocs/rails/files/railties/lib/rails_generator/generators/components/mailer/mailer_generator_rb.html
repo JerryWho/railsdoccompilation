@@ -1,0 +1,49 @@
+  <div id="fileHeader">
+    <h1>mailer_generator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/rails_generator/generators/components/mailer/mailer_generator.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class MailerGenerator &lt; Rails::Generator::NamedBase
+  def manifest
+    record do |m|
+      # Check for class naming collisions.
+      m.class_collisions class_name, &quot;#{class_name}Test&quot;
+
+      # Mailer, view, test, and fixture directories.
+      m.directory File.join('app/models', class_path)
+      m.directory File.join('app/views', file_path)
+      m.directory File.join('test/unit', class_path)
+      m.directory File.join('test/fixtures', file_path)
+
+      # Mailer class and unit test.
+      m.template &quot;mailer.rb&quot;,    File.join('app/models', class_path, &quot;#{file_name}.rb&quot;)
+      m.template &quot;unit_test.rb&quot;, File.join('test/unit', class_path, &quot;#{file_name}_test.rb&quot;)
+
+      # View template and fixture for each action.
+      actions.each do |action|
+        relative_path = File.join(file_path, action)
+        view_path     = File.join('app/views', &quot;#{relative_path}.erb&quot;)
+        fixture_path  = File.join('test/fixtures', relative_path)
+
+        m.template &quot;view.erb&quot;, view_path,
+                   :assigns =&gt; { :action =&gt; action, :path =&gt; view_path }
+        m.template &quot;fixture.erb&quot;, fixture_path,
+                   :assigns =&gt; { :action =&gt; action, :path =&gt; view_path }
+      end
+    end
+  end
+end
+</pre>
+    </div>

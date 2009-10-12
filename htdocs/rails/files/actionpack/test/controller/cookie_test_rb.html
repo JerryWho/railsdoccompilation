@@ -1,0 +1,146 @@
+  <div id="fileHeader">
+    <h1>cookie_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/cookie_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class CookieTest &lt; ActionController::TestCase
+  class TestController &lt; ActionController::Base
+    def authenticate
+      cookies[&quot;user_name&quot;] = &quot;david&quot;
+    end
+
+    def set_with_with_escapable_characters
+      cookies[&quot;that &amp; guy&quot;] = &quot;foo &amp; bar =&gt; baz&quot;
+    end
+
+    def authenticate_for_fourteen_days
+      cookies[&quot;user_name&quot;] = { &quot;value&quot; =&gt; &quot;david&quot;, &quot;expires&quot; =&gt; Time.utc(2005, 10, 10,5) }
+    end
+
+    def authenticate_for_fourteen_days_with_symbols
+      cookies[:user_name] = { :value =&gt; &quot;david&quot;, :expires =&gt; Time.utc(2005, 10, 10,5) }
+    end
+
+    def set_multiple_cookies
+      cookies[&quot;user_name&quot;] = { &quot;value&quot; =&gt; &quot;david&quot;, &quot;expires&quot; =&gt; Time.utc(2005, 10, 10,5) }
+      cookies[&quot;login&quot;]     = &quot;XJ-122&quot;
+    end
+
+    def access_frozen_cookies
+      cookies[&quot;will&quot;] = &quot;work&quot;
+    end
+
+    def logout
+      cookies.delete(&quot;user_name&quot;)
+    end
+
+    def delete_cookie_with_path
+      cookies.delete(&quot;user_name&quot;, :path =&gt; '/beaten')
+      render :text =&gt; &quot;hello world&quot;
+    end
+
+    def authenticate_with_http_only
+      cookies[&quot;user_name&quot;] = { :value =&gt; &quot;david&quot;, :httponly =&gt; true }
+    end
+
+    def rescue_action(e)
+      raise unless ActionView::MissingTemplate # No templates here, and we don't care about the output
+    end
+  end
+
+  tests TestController
+
+  def setup
+    @request.host = &quot;www.nextangle.com&quot;
+  end
+
+  def test_setting_cookie
+    get :authenticate
+    assert_equal [&quot;user_name=david; path=/&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;user_name&quot; =&gt; &quot;david&quot;}, @response.cookies)
+  end
+
+  def test_setting_with_escapable_characters
+    get :set_with_with_escapable_characters
+    assert_equal [&quot;that+%26+guy=foo+%26+bar+%3D%3E+baz; path=/&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;that &amp; guy&quot; =&gt; &quot;foo &amp; bar =&gt; baz&quot;}, @response.cookies)
+  end
+
+  def test_setting_cookie_for_fourteen_days
+    get :authenticate_for_fourteen_days
+    assert_equal [&quot;user_name=david; path=/; expires=Mon, 10-Oct-2005 05:00:00 GMT&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;user_name&quot; =&gt; &quot;david&quot;}, @response.cookies)
+  end
+
+  def test_setting_cookie_for_fourteen_days_with_symbols
+    get :authenticate_for_fourteen_days_with_symbols
+    assert_equal [&quot;user_name=david; path=/; expires=Mon, 10-Oct-2005 05:00:00 GMT&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;user_name&quot; =&gt; &quot;david&quot;}, @response.cookies)
+  end
+
+  def test_setting_cookie_with_http_only
+    get :authenticate_with_http_only
+    assert_equal [&quot;user_name=david; path=/; HttpOnly&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;user_name&quot; =&gt; &quot;david&quot;}, @response.cookies)
+  end
+
+  def test_multiple_cookies
+    get :set_multiple_cookies
+    assert_equal 2, @response.cookies.size
+    assert_equal &quot;user_name=david; path=/; expires=Mon, 10-Oct-2005 05:00:00 GMT&quot;, @response.headers[&quot;Set-Cookie&quot;][0]
+    assert_equal &quot;login=XJ-122; path=/&quot;, @response.headers[&quot;Set-Cookie&quot;][1]
+    assert_equal({&quot;login&quot; =&gt; &quot;XJ-122&quot;, &quot;user_name&quot; =&gt; &quot;david&quot;}, @response.cookies)
+  end
+
+  def test_setting_test_cookie
+    assert_nothing_raised { get :access_frozen_cookies }
+  end
+
+  def test_expiring_cookie
+    get :logout
+    assert_equal [&quot;user_name=; path=/; expires=Thu, 01-Jan-1970 00:00:00 GMT&quot;], @response.headers[&quot;Set-Cookie&quot;]
+    assert_equal({&quot;user_name&quot; =&gt; nil}, @response.cookies)
+  end
+
+  def test_cookiejar_accessor
+    @request.cookies[&quot;user_name&quot;] = &quot;david&quot;
+    @controller.request = @request
+    jar = ActionController::CookieJar.new(@controller)
+    assert_equal &quot;david&quot;, jar[&quot;user_name&quot;]
+    assert_equal nil, jar[&quot;something_else&quot;]
+  end
+
+  def test_cookiejar_accessor_with_array_value
+    @request.cookies[&quot;pages&quot;] = %w{1 2 3}
+    @controller.request = @request
+    jar = ActionController::CookieJar.new(@controller)
+    assert_equal %w{1 2 3}, jar[&quot;pages&quot;]
+  end
+
+  def test_delete_cookie_with_path
+    get :delete_cookie_with_path
+    assert_equal [&quot;user_name=; path=/beaten; expires=Thu, 01-Jan-1970 00:00:00 GMT&quot;], @response.headers[&quot;Set-Cookie&quot;]
+  end
+
+  def test_cookies_persist_throughout_request
+    get :authenticate
+    cookies = @controller.send(:cookies)
+    assert_equal 'david', cookies['user_name']
+  end
+end
+</pre>
+    </div>

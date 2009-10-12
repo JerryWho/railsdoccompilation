@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:11:15 +0100 2009</td>
+      <td>Mon Oct 12 14:57:39 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,44 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec-rails/newdoc/lib/spec/rails/example/assigns_hash_proxy.rb-</pre>
+    <pre>module Spec
+  module Rails
+    module Example
+      class AssignsHashProxy #:nodoc:
+        def initialize(example_group, &amp;block)
+          @target = block.call
+          @example_group = example_group
+        end
+
+        def [](key)
+          return false if false == assigns[key] || false == assigns[key.to_s]
+          assigns[key] || assigns[key.to_s] || @target.instance_variable_get(&quot;@#{key}&quot;)
+        end
+
+        def []=(key, val)
+          @target.instance_variable_set(&quot;@#{key}&quot;, val)
+        end
+
+        def delete(key)
+          assigns.delete(key.to_s)
+          @target.instance_variable_set(&quot;@#{key}&quot;, nil)
+        end
+
+        def each(&amp;block)
+          assigns.each &amp;block
+        end
+
+        def has_key?(key)
+          assigns.key?(key.to_s)
+        end
+
+        protected
+        def assigns
+          @example_group.orig_assigns
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

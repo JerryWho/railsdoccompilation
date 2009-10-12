@@ -1,0 +1,414 @@
+  <div id="fileHeader">
+    <h1>request_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/request_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class RequestTest &lt; ActiveSupport::TestCase
+  def setup
+    ActionController::Base.relative_url_root = nil
+  end
+
+  def teardown
+    ActionController::Base.relative_url_root = nil
+  end
+
+  def test_remote_ip
+    request = stub_request 'REMOTE_ADDR' =&gt; '1.2.3.4'
+    assert_equal '1.2.3.4', request.remote_ip
+
+    request = stub_request 'REMOTE_ADDR' =&gt; '1.2.3.4,3.4.5.6'
+    assert_equal '1.2.3.4', request.remote_ip
+
+    request = stub_request 'REMOTE_ADDR' =&gt; '1.2.3.4',
+      'HTTP_X_FORWARDED_FOR' =&gt; '3.4.5.6'
+    assert_equal '1.2.3.4', request.remote_ip
+
+    request = stub_request 'REMOTE_ADDR' =&gt; '127.0.0.1',
+      'HTTP_X_FORWARDED_FOR' =&gt; '3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; 'unknown,3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '172.16.0.1,3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '192.168.0.1,3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '10.0.0.1,3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '10.0.0.1, 10.0.0.1, 3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '127.0.0.1,3.4.5.6'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; 'unknown,192.168.0.1'
+    assert_equal 'unknown', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '9.9.9.9, 3.4.5.6, 10.0.0.1, 172.31.4.4'
+    assert_equal '3.4.5.6', request.remote_ip
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '1.1.1.1',
+                           'HTTP_CLIENT_IP'       =&gt; '2.2.2.2'
+    e = assert_raise(ActionController::ActionControllerError) {
+      request.remote_ip
+    }
+    assert_match /IP spoofing attack/, e.message
+    assert_match /HTTP_X_FORWARDED_FOR=&quot;1.1.1.1&quot;/, e.message
+    assert_match /HTTP_CLIENT_IP=&quot;2.2.2.2&quot;/, e.message
+
+    # turn IP Spoofing detection off.
+    # This is useful for sites that are aimed at non-IP clients.  The typical
+    # example is WAP.  Since the cellular network is not IP based, it's a
+    # leap of faith to assume that their proxies are ever going to set the
+    # HTTP_CLIENT_IP/HTTP_X_FORWARDED_FOR headers properly.
+    ActionController::Base.ip_spoofing_check = false
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '1.1.1.1',
+                           'HTTP_CLIENT_IP'       =&gt; '2.2.2.2'
+    assert_equal '2.2.2.2', request.remote_ip
+    ActionController::Base.ip_spoofing_check = true
+
+    request = stub_request 'HTTP_X_FORWARDED_FOR' =&gt; '8.8.8.8, 9.9.9.9'
+    assert_equal '9.9.9.9', request.remote_ip
+  end
+
+  def test_domains
+    request = stub_request 'HTTP_HOST' =&gt; 'www.rubyonrails.org'
+    assert_equal &quot;rubyonrails.org&quot;, request.domain
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;www.rubyonrails.co.uk&quot;
+    assert_equal &quot;rubyonrails.co.uk&quot;, request.domain(2)
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;192.168.1.200&quot;
+    assert_nil request.domain
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;foo.192.168.1.200&quot;
+    assert_nil request.domain
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;192.168.1.200.com&quot;
+    assert_equal &quot;200.com&quot;, request.domain
+  end
+
+  def test_subdomains
+    request = stub_request 'HTTP_HOST' =&gt; &quot;www.rubyonrails.org&quot;
+    assert_equal %w( www ), request.subdomains
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;www.rubyonrails.co.uk&quot;
+    assert_equal %w( www ), request.subdomains(2)
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;dev.www.rubyonrails.co.uk&quot;
+    assert_equal %w( dev www ), request.subdomains(2)
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;foobar.foobar.com&quot;
+    assert_equal %w( foobar ), request.subdomains
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;192.168.1.200&quot;
+    assert_equal [], request.subdomains
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;foo.192.168.1.200&quot;
+    assert_equal [], request.subdomains
+
+    request = stub_request 'HTTP_HOST' =&gt; &quot;192.168.1.200.com&quot;
+    assert_equal %w( 192 168 1 ), request.subdomains
+
+    request = stub_request 'HTTP_HOST' =&gt; nil
+    assert_equal [], request.subdomains
+  end
+
+  def test_port_string
+    request = stub_request 'HTTP_HOST' =&gt; 'www.example.org:80'
+    assert_equal &quot;&quot;, request.port_string
+
+    request = stub_request 'HTTP_HOST' =&gt; 'www.example.org:8080'
+    assert_equal &quot;:8080&quot;, request.port_string
+  end
+
+  def test_request_uri
+    request = stub_request 'REQUEST_URI' =&gt; &quot;http://www.rubyonrails.org/path/of/some/uri?mapped=1&quot;
+    assert_equal &quot;/path/of/some/uri?mapped=1&quot;, request.request_uri
+    assert_equal &quot;/path/of/some/uri&quot;,          request.path
+
+    request = stub_request 'REQUEST_URI' =&gt; &quot;http://www.rubyonrails.org/path/of/some/uri&quot;
+    assert_equal &quot;/path/of/some/uri&quot;, request.request_uri
+    assert_equal &quot;/path/of/some/uri&quot;, request.path
+
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/path/of/some/uri&quot;
+    assert_equal &quot;/path/of/some/uri&quot;, request.request_uri
+    assert_equal &quot;/path/of/some/uri&quot;, request.path
+
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/&quot;
+    assert_equal &quot;/&quot;, request.request_uri
+    assert_equal &quot;/&quot;, request.path
+
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/?m=b&quot;
+    assert_equal &quot;/?m=b&quot;, request.request_uri
+    assert_equal &quot;/&quot;,     request.path
+
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/&quot;, 'SCRIPT_NAME' =&gt; '/dispatch.cgi'
+    assert_equal &quot;/&quot;, request.request_uri
+    assert_equal &quot;/&quot;, request.path
+
+    ActionController::Base.relative_url_root = &quot;/hieraki&quot;
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/hieraki/&quot;, 'SCRIPT_NAME' =&gt; &quot;/hieraki/dispatch.cgi&quot;
+    assert_equal &quot;/hieraki/&quot;, request.request_uri
+    assert_equal &quot;/&quot;,         request.path
+    ActionController::Base.relative_url_root = nil
+
+    ActionController::Base.relative_url_root = &quot;/collaboration/hieraki&quot;
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/collaboration/hieraki/books/edit/2&quot;,
+      'SCRIPT_NAME' =&gt; &quot;/collaboration/hieraki/dispatch.cgi&quot;
+    assert_equal &quot;/collaboration/hieraki/books/edit/2&quot;, request.request_uri
+    assert_equal &quot;/books/edit/2&quot;,                       request.path
+    ActionController::Base.relative_url_root = nil
+
+    # The following tests are for when REQUEST_URI is not supplied (as in IIS)
+    request = stub_request 'PATH_INFO'   =&gt; &quot;/path/of/some/uri?mapped=1&quot;,
+                           'SCRIPT_NAME' =&gt; nil,
+                           'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/path/of/some/uri?mapped=1&quot;, request.request_uri
+    assert_equal &quot;/path/of/some/uri&quot;,          request.path
+
+    ActionController::Base.relative_url_root = '/path'
+    request = stub_request 'PATH_INFO'   =&gt; &quot;/path/of/some/uri?mapped=1&quot;,
+                           'SCRIPT_NAME' =&gt; &quot;/path/dispatch.rb&quot;,
+                           'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/path/of/some/uri?mapped=1&quot;, request.request_uri
+    assert_equal &quot;/of/some/uri&quot;,               request.path
+    ActionController::Base.relative_url_root = nil
+
+    request = stub_request 'PATH_INFO'   =&gt; &quot;/path/of/some/uri&quot;,
+                           'SCRIPT_NAME' =&gt; nil,
+                           'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/path/of/some/uri&quot;, request.request_uri
+    assert_equal &quot;/path/of/some/uri&quot;, request.path
+
+    request = stub_request 'PATH_INFO' =&gt; '/', 'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/&quot;, request.request_uri
+    assert_equal &quot;/&quot;, request.path
+
+    request = stub_request 'PATH_INFO' =&gt; '/?m=b', 'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/?m=b&quot;, request.request_uri
+    assert_equal &quot;/&quot;,     request.path
+
+    request = stub_request 'PATH_INFO'   =&gt; &quot;/&quot;,
+                           'SCRIPT_NAME' =&gt; &quot;/dispatch.cgi&quot;,
+                           'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/&quot;, request.request_uri
+    assert_equal &quot;/&quot;, request.path
+
+    ActionController::Base.relative_url_root = '/hieraki'
+    request = stub_request 'PATH_INFO'   =&gt; &quot;/hieraki/&quot;,
+                           'SCRIPT_NAME' =&gt; &quot;/hieraki/dispatch.cgi&quot;,
+                           'REQUEST_URI' =&gt; nil
+    assert_equal &quot;/hieraki/&quot;, request.request_uri
+    assert_equal &quot;/&quot;,         request.path
+    ActionController::Base.relative_url_root = nil
+
+    request = stub_request 'REQUEST_URI' =&gt; '/hieraki/dispatch.cgi'
+    ActionController::Base.relative_url_root = '/hieraki'
+    assert_equal &quot;/dispatch.cgi&quot;, request.path
+    ActionController::Base.relative_url_root = nil
+
+    request = stub_request 'REQUEST_URI' =&gt; '/hieraki/dispatch.cgi'
+    ActionController::Base.relative_url_root = '/foo'
+    assert_equal &quot;/hieraki/dispatch.cgi&quot;, request.path
+    ActionController::Base.relative_url_root = nil
+
+    # This test ensures that Rails uses REQUEST_URI over PATH_INFO
+    ActionController::Base.relative_url_root = nil
+    request = stub_request 'REQUEST_URI' =&gt; &quot;/some/path&quot;,
+                           'PATH_INFO'   =&gt; &quot;/another/path&quot;,
+                           'SCRIPT_NAME' =&gt; &quot;/dispatch.cgi&quot;
+    assert_equal &quot;/some/path&quot;, request.request_uri
+    assert_equal &quot;/some/path&quot;, request.path
+  end
+
+  def test_host_with_default_port
+    request = stub_request 'HTTP_HOST' =&gt; 'rubyonrails.org:80'
+    assert_equal &quot;rubyonrails.org&quot;, request.host_with_port
+  end
+
+  def test_host_with_non_default_port
+    request = stub_request 'HTTP_HOST' =&gt; 'rubyonrails.org:81'
+    assert_equal &quot;rubyonrails.org:81&quot;, request.host_with_port
+  end
+
+  def test_server_software
+    request = stub_request
+    assert_equal nil, request.server_software
+
+    request = stub_request 'SERVER_SOFTWARE' =&gt; 'Apache3.422'
+    assert_equal 'apache', request.server_software
+
+    request = stub_request 'SERVER_SOFTWARE' =&gt; 'lighttpd(1.1.4)'
+    assert_equal 'lighttpd', request.server_software
+  end
+
+  def test_xml_http_request
+    request = stub_request
+
+    assert !request.xml_http_request?
+    assert !request.xhr?
+
+    request = stub_request 'HTTP_X_REQUESTED_WITH' =&gt; 'DefinitelyNotAjax1.0'
+    assert !request.xml_http_request?
+    assert !request.xhr?
+
+    request = stub_request 'HTTP_X_REQUESTED_WITH' =&gt; 'XMLHttpRequest'
+    assert request.xml_http_request?
+    assert request.xhr?
+  end
+
+  def test_reports_ssl
+    request = stub_request
+    assert !request.ssl?
+
+    request = stub_request 'HTTPS' =&gt; 'on'
+    assert request.ssl?
+  end
+
+  def test_reports_ssl_when_proxied_via_lighttpd
+    request = stub_request
+    assert !request.ssl?
+
+    request = stub_request 'HTTP_X_FORWARDED_PROTO' =&gt; 'https'
+    assert request.ssl?
+  end
+
+  def test_symbolized_request_methods
+    [:get, :post, :put, :delete].each do |method|
+      request = stub_request 'REQUEST_METHOD' =&gt; method.to_s.upcase
+      assert_equal method, request.method
+    end
+  end
+
+  def test_invalid_http_method_raises_exception
+    assert_raise(ActionController::UnknownHttpMethod) do
+      request = stub_request 'REQUEST_METHOD' =&gt; 'RANDOM_METHOD'
+      request.request_method
+    end
+  end
+
+  def test_allow_method_hacking_on_post
+    [:get, :head, :options, :put, :post, :delete].each do |method|
+      request = stub_request 'REQUEST_METHOD' =&gt; method.to_s.upcase
+      assert_equal(method == :head ? :get : method, request.method)
+    end
+  end
+
+  def test_restrict_method_hacking
+    [:get, :put, :delete].each do |method|
+      request = stub_request 'REQUEST_METHOD' =&gt; method.to_s.upcase,
+        'action_controller.request.request_parameters' =&gt; { :_method =&gt; 'put' }
+      assert_equal method, request.method
+    end
+  end
+
+  def test_head_masquerading_as_get
+    request = stub_request 'REQUEST_METHOD' =&gt; 'HEAD'
+    assert_equal :get, request.method
+    assert request.get?
+    assert request.head?
+  end
+
+  def test_xml_format
+    request = stub_request
+    request.expects(:parameters).at_least_once.returns({ :format =&gt; 'xml' })
+    assert_equal Mime::XML, request.format
+  end
+
+  def test_xhtml_format
+    request = stub_request
+    request.expects(:parameters).at_least_once.returns({ :format =&gt; 'xhtml' })
+    assert_equal Mime::HTML, request.format
+  end
+
+  def test_txt_format
+    request = stub_request
+    request.expects(:parameters).at_least_once.returns({ :format =&gt; 'txt' })
+    assert_equal Mime::TEXT, request.format
+  end
+
+  def test_xml_http_request
+    ActionController::Base.use_accept_header, old =
+      false, ActionController::Base.use_accept_header
+
+    request = stub_request 'HTTP_X_REQUESTED_WITH' =&gt; 'XMLHttpRequest'
+    request.expects(:parameters).at_least_once.returns({})
+    assert request.xhr?
+    assert_equal Mime::JS, request.format
+  ensure
+    ActionController::Base.use_accept_header = old
+  end
+
+  def test_content_type
+    request = stub_request 'CONTENT_TYPE' =&gt; 'text/html'
+    assert_equal Mime::HTML, request.content_type
+  end
+
+  def test_can_override_format_with_parameter
+    request = stub_request
+    request.expects(:parameters).at_least_once.returns({ :format =&gt; :txt })
+    assert !request.format.xml?
+
+    request = stub_request
+    request.expects(:parameters).at_least_once.returns({ :format =&gt; :xml })
+    assert request.format.xml?
+  end
+
+  def test_content_no_type
+    request = stub_request
+    assert_equal nil, request.content_type
+  end
+
+  def test_content_type_xml
+    request = stub_request 'CONTENT_TYPE' =&gt; 'application/xml'
+    assert_equal Mime::XML, request.content_type
+  end
+
+  def test_content_type_with_charset
+    request = stub_request 'CONTENT_TYPE' =&gt; 'application/xml; charset=UTF-8'
+    assert_equal Mime::XML, request.content_type
+  end
+
+  def test_user_agent
+    request = stub_request 'HTTP_USER_AGENT' =&gt; 'TestAgent'
+    assert_equal 'TestAgent', request.user_agent
+  end
+
+  def test_parameters
+    request = stub_request
+    request.stubs(:request_parameters).returns({ &quot;foo&quot; =&gt; 1 })
+    request.stubs(:query_parameters).returns({ &quot;bar&quot; =&gt; 2 })
+
+    assert_equal({&quot;foo&quot; =&gt; 1, &quot;bar&quot; =&gt; 2}, request.parameters)
+    assert_equal({&quot;foo&quot; =&gt; 1}, request.request_parameters)
+    assert_equal({&quot;bar&quot; =&gt; 2}, request.query_parameters)
+  end
+
+protected
+
+  def stub_request(env={})
+    ActionController::Request.new(env)
+  end
+
+end
+</pre>
+    </div>

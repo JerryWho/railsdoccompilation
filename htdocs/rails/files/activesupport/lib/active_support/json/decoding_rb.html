@@ -1,0 +1,52 @@
+  <div id="fileHeader">
+    <h1>decoding.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/lib/active_support/json/decoding.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'active_support/core_ext/module/attribute_accessors'
+
+module ActiveSupport
+  # Look for and parse json strings that look like ISO 8601 times.
+  mattr_accessor :parse_json_times
+
+  module JSON
+    class &lt;&lt; self
+      delegate :decode, :to =&gt; :backend
+
+      def backend
+        self.backend = &quot;Yaml&quot; unless defined?(@backend)
+        @backend
+      end
+
+      def backend=(name)
+        if name.is_a?(Module)
+          @backend = name
+        else
+          require &quot;active_support/json/backends/#{name.to_s.downcase}.rb&quot;
+          @backend = ActiveSupport::JSON::Backends::const_get(name)
+        end
+      end
+
+      def with_backend(name)
+        old_backend, self.backend = backend, name
+        yield
+      ensure
+        self.backend = old_backend
+      end
+    end
+  end
+end
+</pre>
+    </div>

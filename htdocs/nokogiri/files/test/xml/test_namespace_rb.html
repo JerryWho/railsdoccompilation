@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,53 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/xml/test_namespace.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module XML
+    class TestNamespace &lt; Nokogiri::TestCase
+      def setup
+        @xml = Nokogiri::XML &lt;&lt;-eoxml
+          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;bar&quot;&gt;
+            &lt;awesome/&gt;
+          &lt;/root&gt;
+        eoxml
+      end
+
+      def test_namespace_is_in_node_cache
+        node = @xml.root.namespace
+        assert @xml.instance_variable_get(:@node_cache).include?(node)
+      end
+
+      def test_namespace_node_prefix
+        namespaces = @xml.root.namespace_definitions
+        assert_equal [nil, 'foo'], namespaces.map { |x| x.prefix }
+      end
+
+      def test_namespace_node_href
+        namespaces = @xml.root.namespace_definitions
+        assert_equal [
+          'http://tenderlovemaking.com/',
+          'bar'
+        ], namespaces.map { |x| x.href }
+      end
+
+      def test_equality
+        namespaces = @xml.root.namespace_definitions
+        assert_equal namespaces, @xml.root.namespace_definitions
+      end
+
+      def test_add_definition
+        @xml.root.add_namespace_definition('baz', 'bar')
+        assert_equal 3, @xml.root.namespace_definitions.length
+      end
+
+      def test_add_definition_return
+        ns = @xml.root.add_namespace_definition('baz', 'bar')
+        assert_equal 'baz', ns.prefix
+      end
+    end
+  end
+end
+</pre>
     </div>

@@ -1,0 +1,64 @@
+  <div id="fileHeader">
+    <h1>sweeper.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/lib/action_controller/caching/sweeper.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'active_record'
+
+module ActionController #:nodoc:
+  module Caching
+    class Sweeper &lt; ActiveRecord::Observer #:nodoc:
+      attr_accessor :controller
+
+      def before(controller)
+        self.controller = controller
+        callback(:before) if controller.perform_caching
+      end
+
+      def after(controller)
+        callback(:after) if controller.perform_caching
+        # Clean up, so that the controller can be collected after this request
+        self.controller = nil
+      end
+
+      protected
+        # gets the action cache path for the given options.
+        def action_path_for(options)
+          ActionController::Caching::Actions::ActionCachePath.path_for(controller, options)
+        end
+
+        # Retrieve instance variables set in the controller.
+        def assigns(key)
+          controller.instance_variable_get(&quot;@#{key}&quot;)
+        end
+
+      private
+        def callback(timing)
+          controller_callback_method_name = &quot;#{timing}_#{controller.controller_name.underscore}&quot;
+          action_callback_method_name     = &quot;#{controller_callback_method_name}_#{controller.action_name}&quot;
+
+          __send__(controller_callback_method_name) if respond_to?(controller_callback_method_name, true)
+          __send__(action_callback_method_name)     if respond_to?(action_callback_method_name, true)
+        end
+
+        def method_missing(method, *arguments, &amp;block)
+          return if @controller.nil?
+          @controller.__send__(method, *arguments, &amp;block)
+        end
+    end
+  end
+end
+</pre>
+    </div>

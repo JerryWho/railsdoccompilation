@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:22:02 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,89 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/config/hoe.rb-</pre>
+    <pre># encoding: utf-8
+require 'cucumber/version'
+
+AUTHOR = 'Aslak Hellesøy'  # can also be an array of Authors
+EMAIL = &quot;aslak.hellesoy@gmail.com&quot;
+DESCRIPTION = &quot;Executable Feature scenarios&quot;
+GEM_NAME = 'cucumber' # what ppl will type to install your gem
+HOMEPATH = &quot;http://cukes.info&quot;
+RUBYFORGE_PROJECT = 'rspec'
+
+@config_file = &quot;~/.rubyforge/user-config.yml&quot;
+@config = nil
+RUBYFORGE_USERNAME = &quot;aslak_hellesoy&quot;
+def rubyforge_username
+  unless @config
+    begin
+      @config = YAML.load(File.read(File.expand_path(@config_file)))
+    rescue
+      puts &lt;&lt;-EOS
+ERROR: No rubyforge config file found: #{@config_file}
+Run 'rubyforge setup' to prepare your env for access to Rubyforge
+ - See http://newgem.rubyforge.org/rubyforge.html for more details
+      EOS
+      exit
+    end
+  end
+  RUBYFORGE_USERNAME.replace @config[&quot;username&quot;]
+end
+
+
+REV = nil 
+# UNCOMMENT IF REQUIRED: 
+# REV = YAML.load(`svn info`)['Revision']
+VERS = Cucumber::VERSION::STRING + (REV ? &quot;.#{REV}&quot; : &quot;&quot;)
+RDOC_OPTS = ['--quiet', '--title', 'Cucumber documentation',
+    &quot;--opname&quot;, &quot;index.html&quot;,
+    &quot;--line-numbers&quot;, 
+    &quot;--main&quot;, &quot;README.textile&quot;,
+    &quot;--inline-source&quot;]
+
+# Remove Hoe dependency
+class Hoe
+  def extra_dev_deps
+    @extra_dev_deps.reject! { |dep| dep[0] == &quot;hoe&quot; }
+    @extra_dev_deps
+  end
+end
+
+# Generate all the Rake tasks
+# Run 'rake -T' to see list of generated tasks (from gem root directory)
+$hoe = Hoe.spec(GEM_NAME) do
+  @version = VERS
+  developer(AUTHOR, EMAIL)
+  @description = DESCRIPTION
+  @summary = DESCRIPTION
+  @url = HOMEPATH
+  @rubyforge_name = RUBYFORGE_PROJECT if RUBYFORGE_PROJECT
+  @clean_globs |= ['**/.*.sw?', '*.gem', '.config', '**/.DS_Store', '**/*.class', '**/*.jar', '**/tmp']  #An array of file patterns to delete on clean.
+  
+  # == Optional
+  @changes = paragraphs_of(&quot;History.txt&quot;, 0..1).join(&quot;\n\n&quot;)
+  # @extra_deps = []     # An array of rubygem dependencies [name, version], e.g. [ ['active_support', '&gt;= 1.3.1'] ]
+  @extra_deps = [ 
+    ['term-ansicolor', '&gt;= 1.0.3'], 
+    ['treetop', '&gt;= 1.4.2'], 
+    ['polyglot', '&gt;= 0.2.9'], # Don't really want polyglot, but it keeps breaking so we'll make people use something that works ok'ish 
+    ['diff-lcs', '&gt;= 1.1.2'],
+    ['builder', '&gt;= 2.1.2']
+  ]
+
+  #@spec_extras = {}    # A hash of extra values to set in the gemspec.
+  @post_install_message = &lt;&lt;-POST_INSTALL_MESSAGE
+*******************************************************************************
+ Thank you for installing cucumber-#{Cucumber::VERSION::STRING}
+ Please be sure to read http://wiki.github.com/aslakhellesoy/cucumber/upgrading
+ for important information about this release.
+*******************************************************************************
+POST_INSTALL_MESSAGE
+end
+
+CHANGES = $hoe.paragraphs_of('History.txt', 0..1).join(&quot;\\n\\n&quot;)
+PATH    = (RUBYFORGE_PROJECT == GEM_NAME) ? RUBYFORGE_PROJECT : &quot;#{RUBYFORGE_PROJECT}/#{GEM_NAME}&quot;
+$hoe.remote_rdoc_dir = File.join(PATH.gsub(/^#{RUBYFORGE_PROJECT}\/?/,''), 'rdoc')
+$hoe.rsync_args = '-av --delete --ignore-errors'
+</pre>
     </div>

@@ -1,0 +1,207 @@
+  <div id="fileHeader">
+    <h1>render_partial_with_record_identification_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/activerecord/render_partial_with_record_identification_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'active_record_unit'
+
+class RenderPartialWithRecordIdentificationController &lt; ActionController::Base
+  def render_with_has_many_and_belongs_to_association
+    @developer = Developer.find(1)
+    render :partial =&gt; @developer.projects
+  end
+
+  def render_with_has_many_association
+    @topic = Topic.find(1)
+    render :partial =&gt; @topic.replies
+  end
+
+  def render_with_named_scope
+    render :partial =&gt; Reply.base
+  end
+
+  def render_with_has_many_through_association
+    @developer = Developer.find(:first)
+    render :partial =&gt; @developer.topics
+  end
+
+  def render_with_has_one_association
+    @company = Company.find(1)
+    render :partial =&gt; @company.mascot
+  end
+
+  def render_with_belongs_to_association
+    @reply = Reply.find(1)
+    render :partial =&gt; @reply.topic
+  end
+
+  def render_with_record
+    @developer = Developer.find(:first)
+    render :partial =&gt; @developer
+  end
+
+  def render_with_record_collection
+    @developers = Developer.find(:all)
+    render :partial =&gt; @developers
+  end
+
+  def render_with_record_collection_and_spacer_template
+    @developer = Developer.find(1)
+    render :partial =&gt; @developer.projects, :spacer_template =&gt; 'test/partial_only'
+  end
+end
+
+class RenderPartialWithRecordIdentificationTest &lt; ActiveRecordTestCase
+  tests RenderPartialWithRecordIdentificationController
+  fixtures :developers, :projects, :developers_projects, :topics, :replies, :companies, :mascots
+
+  def test_rendering_partial_with_has_many_and_belongs_to_association
+    get :render_with_has_many_and_belongs_to_association
+    assert_template 'projects/_project'
+    assert_equal assigns(:developer).projects.map(&amp;:name).join, @response.body
+  end
+
+  def test_rendering_partial_with_has_many_association
+    get :render_with_has_many_association
+    assert_template 'replies/_reply'
+    assert_equal 'Birdman is better!', @response.body
+  end
+
+  def test_rendering_partial_with_named_scope
+    get :render_with_named_scope
+    assert_template 'replies/_reply'
+    assert_equal 'Birdman is better!Nuh uh!', @response.body
+  end
+
+  def test_render_with_record
+    get :render_with_record
+    assert_template 'developers/_developer'
+    assert_equal 'David', @response.body
+  end
+
+  def test_render_with_record_collection
+    get :render_with_record_collection
+    assert_template 'developers/_developer'
+    assert_equal 'DavidJamisfixture_3fixture_4fixture_5fixture_6fixture_7fixture_8fixture_9fixture_10Jamis', @response.body
+  end
+
+  def test_render_with_record_collection_and_spacer_template
+    get :render_with_record_collection_and_spacer_template
+    assert_equal assigns(:developer).projects.map(&amp;:name).join('only partial'), @response.body
+  end
+
+  def test_rendering_partial_with_has_one_association
+    mascot = Company.find(1).mascot
+    get :render_with_has_one_association
+    assert_template 'mascots/_mascot'
+    assert_equal mascot.name, @response.body
+  end
+end
+
+class RenderPartialWithRecordIdentificationController &lt; ActionController::Base
+  def render_with_has_many_and_belongs_to_association
+    @developer = Developer.find(1)
+    render :partial =&gt; @developer.projects
+  end
+
+  def render_with_has_many_association
+    @topic = Topic.find(1)
+    render :partial =&gt; @topic.replies
+  end
+
+  def render_with_has_many_through_association
+    @developer = Developer.find(:first)
+    render :partial =&gt; @developer.topics
+  end
+
+  def render_with_belongs_to_association
+    @reply = Reply.find(1)
+    render :partial =&gt; @reply.topic
+  end
+
+  def render_with_record
+    @developer = Developer.find(:first)
+    render :partial =&gt; @developer
+  end
+
+  def render_with_record_collection
+    @developers = Developer.find(:all)
+    render :partial =&gt; @developers
+  end
+end
+
+class Game &lt; Struct.new(:name, :id)
+  def to_param
+    id.to_s
+  end
+end
+
+module Fun
+  class NestedController &lt; ActionController::Base
+    def render_with_record_in_nested_controller
+      render :partial =&gt; Game.new(&quot;Pong&quot;)
+    end
+
+    def render_with_record_collection_in_nested_controller
+      render :partial =&gt; [ Game.new(&quot;Pong&quot;), Game.new(&quot;Tank&quot;) ]
+    end
+  end
+
+  module Serious
+    class NestedDeeperController &lt; ActionController::Base
+      def render_with_record_in_deeper_nested_controller
+        render :partial =&gt; Game.new(&quot;Chess&quot;)
+      end
+
+      def render_with_record_collection_in_deeper_nested_controller
+        render :partial =&gt; [ Game.new(&quot;Chess&quot;), Game.new(&quot;Sudoku&quot;), Game.new(&quot;Solitaire&quot;) ]
+      end
+    end
+  end
+end
+
+class RenderPartialWithRecordIdentificationAndNestedControllersTest &lt; ActiveRecordTestCase
+  tests Fun::NestedController
+
+  def test_render_with_record_in_nested_controller
+    get :render_with_record_in_nested_controller
+    assert_template 'fun/games/_game'
+    assert_equal 'Pong', @response.body
+  end
+
+  def test_render_with_record_collection_in_nested_controller
+    get :render_with_record_collection_in_nested_controller
+    assert_template 'fun/games/_game'
+    assert_equal 'PongTank', @response.body
+  end
+end
+
+class RenderPartialWithRecordIdentificationAndNestedDeeperControllersTest &lt; ActiveRecordTestCase
+  tests Fun::Serious::NestedDeeperController
+
+  def test_render_with_record_in_deeper_nested_controller
+    get :render_with_record_in_deeper_nested_controller
+    assert_template 'fun/serious/games/_game'
+    assert_equal 'Chess', @response.body
+  end
+
+  def test_render_with_record_collection_in_deeper_nested_controller
+    get :render_with_record_collection_in_deeper_nested_controller
+    assert_template 'fun/serious/games/_game'
+    assert_equal 'ChessSudokuSolitaire', @response.body
+  end
+end
+</pre>
+    </div>

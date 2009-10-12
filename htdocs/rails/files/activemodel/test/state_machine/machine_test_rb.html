@@ -1,0 +1,62 @@
+  <div id="fileHeader">
+    <h1>machine_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activemodel/test/state_machine/machine_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'test_helper'
+
+class MachineTestSubject
+  include ActiveModel::StateMachine
+
+  state_machine do
+    state :open
+    state :closed
+  end
+
+  state_machine :initial =&gt; :foo do
+    event :shutdown do
+      transitions :from =&gt; :open, :to =&gt; :closed
+    end
+
+    event :timeout do
+      transitions :from =&gt; :open, :to =&gt; :closed
+    end
+  end
+
+  state_machine :extra, :initial =&gt; :bar do
+  end
+end
+
+class StateMachineMachineTest &lt; ActiveModel::TestCase
+  test &quot;allows reuse of existing machines&quot; do
+    assert_equal 2, MachineTestSubject.state_machines.size
+  end
+
+  test &quot;sets #initial_state from :initial option&quot; do
+    assert_equal :bar, MachineTestSubject.state_machine(:extra).initial_state
+  end
+
+  test &quot;accesses non-default state machine&quot; do
+    assert_kind_of ActiveModel::StateMachine::Machine, MachineTestSubject.state_machine(:extra)
+  end
+
+  test &quot;finds events for given state&quot; do
+    events = MachineTestSubject.state_machine.events_for(:open)
+    assert events.include?(:shutdown)
+    assert events.include?(:timeout)
+  end
+end
+</pre>
+    </div>

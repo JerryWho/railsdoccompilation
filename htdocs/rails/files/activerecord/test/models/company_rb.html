@@ -1,0 +1,180 @@
+  <div id="fileHeader">
+    <h1>company.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/models/company.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class AbstractCompany &lt; ActiveRecord::Base
+  self.abstract_class = true
+end
+
+class Company &lt; AbstractCompany
+  attr_protected :rating
+  set_sequence_name :companies_nonstd_seq
+
+  validates_presence_of :name
+
+  has_one :dummy_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;
+  has_many :contracts
+  has_many :developers, :through =&gt; :contracts
+
+  def arbitrary_method
+    &quot;I am Jack's profound disappointment&quot;
+  end
+
+  private
+
+  def private_method
+    &quot;I am Jack's innermost fears and aspirations&quot;
+  end
+end
+
+module Namespaced
+  class Company &lt; ::Company
+  end
+
+  class Firm &lt; ::Company
+    has_many :clients, :class_name =&gt; 'Namespaced::Client'
+  end
+
+  class Client &lt; ::Company
+  end
+end
+
+class Firm &lt; Company
+  has_many :clients, :order =&gt; &quot;id&quot;, :dependent =&gt; :destroy, :counter_sql =&gt;
+      &quot;SELECT COUNT(*) FROM companies WHERE firm_id = 1 &quot; +
+      &quot;AND (#{QUOTED_TYPE} = 'Client' OR #{QUOTED_TYPE} = 'SpecialClient' OR #{QUOTED_TYPE} = 'VerySpecialClient' )&quot;
+  has_many :unsorted_clients, :class_name =&gt; &quot;Client&quot;
+  has_many :clients_sorted_desc, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id DESC&quot;
+  has_many :clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;
+  has_many :unvalidated_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :validate =&gt; false
+  has_many :dependent_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :dependent =&gt; :destroy
+  has_many :exclusively_dependent_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :dependent =&gt; :delete_all
+  has_many :limited_clients, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :limit =&gt; 1
+  has_many :clients_like_ms, :conditions =&gt; &quot;name = 'Microsoft'&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;
+  has_many :clients_with_interpolated_conditions, :class_name =&gt; &quot;Client&quot;, :conditions =&gt; 'rating &gt; #{rating}'
+  has_many :clients_like_ms_with_hash_conditions, :conditions =&gt; { :name =&gt; 'Microsoft' }, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;
+  has_many :clients_using_sql, :class_name =&gt; &quot;Client&quot;, :finder_sql =&gt; 'SELECT * FROM companies WHERE client_of = #{id}'
+  has_many :clients_using_counter_sql, :class_name =&gt; &quot;Client&quot;,
+           :finder_sql  =&gt; 'SELECT * FROM companies WHERE client_of = #{id}',
+           :counter_sql =&gt; 'SELECT COUNT(*) FROM companies WHERE client_of = #{id}'
+  has_many :clients_using_zero_counter_sql, :class_name =&gt; &quot;Client&quot;,
+           :finder_sql  =&gt; 'SELECT * FROM companies WHERE client_of = #{id}',
+           :counter_sql =&gt; 'SELECT 0 FROM companies WHERE client_of = #{id}'
+  has_many :no_clients_using_counter_sql, :class_name =&gt; &quot;Client&quot;,
+           :finder_sql  =&gt; 'SELECT * FROM companies WHERE client_of = 1000',
+           :counter_sql =&gt; 'SELECT COUNT(*) FROM companies WHERE client_of = 1000'
+  has_many :clients_using_finder_sql, :class_name =&gt; &quot;Client&quot;, :finder_sql =&gt; 'SELECT * FROM companies WHERE 1=1'
+  has_many :plain_clients, :class_name =&gt; 'Client'
+  has_many :readonly_clients, :class_name =&gt; 'Client', :readonly =&gt; true
+  has_many :clients_using_primary_key, :class_name =&gt; 'Client',
+           :primary_key =&gt; 'name', :foreign_key =&gt; 'firm_name'
+  has_many :clients_grouped_by_firm_id, :class_name =&gt; &quot;Client&quot;, :group =&gt; &quot;firm_id&quot;, :select =&gt; &quot;firm_id&quot;
+  has_many :clients_grouped_by_name, :class_name =&gt; &quot;Client&quot;, :group =&gt; &quot;name&quot;, :select =&gt; &quot;name&quot;
+
+  has_one :account, :foreign_key =&gt; &quot;firm_id&quot;, :dependent =&gt; :destroy, :validate =&gt; true
+  has_one :unvalidated_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; 'Account', :validate =&gt; false
+  has_one :account_with_select, :foreign_key =&gt; &quot;firm_id&quot;, :select =&gt; &quot;id, firm_id&quot;, :class_name=&gt;'Account'
+  has_one :readonly_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;, :readonly =&gt; true
+  has_one :account_using_primary_key, :primary_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;
+  has_one :deletable_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;, :dependent =&gt; :delete
+end
+
+class DependentFirm &lt; Company
+  has_one :account, :foreign_key =&gt; &quot;firm_id&quot;, :dependent =&gt; :nullify
+  has_many :companies, :foreign_key =&gt; 'client_of', :order =&gt; &quot;id&quot;, :dependent =&gt; :nullify
+end
+
+class Client &lt; Company
+  belongs_to :firm, :foreign_key =&gt; &quot;client_of&quot;
+  belongs_to :firm_with_basic_id, :class_name =&gt; &quot;Firm&quot;, :foreign_key =&gt; &quot;firm_id&quot;
+  belongs_to :firm_with_select, :class_name =&gt; &quot;Firm&quot;, :foreign_key =&gt; &quot;firm_id&quot;, :select =&gt; &quot;id&quot;
+  belongs_to :firm_with_other_name, :class_name =&gt; &quot;Firm&quot;, :foreign_key =&gt; &quot;client_of&quot;
+  belongs_to :firm_with_condition, :class_name =&gt; &quot;Firm&quot;, :foreign_key =&gt; &quot;client_of&quot;, :conditions =&gt; [&quot;1 = ?&quot;, 1]
+  belongs_to :firm_with_primary_key, :class_name =&gt; &quot;Firm&quot;, :primary_key =&gt; &quot;name&quot;, :foreign_key =&gt; &quot;firm_name&quot;
+  belongs_to :readonly_firm, :class_name =&gt; &quot;Firm&quot;, :foreign_key =&gt; &quot;firm_id&quot;, :readonly =&gt; true
+
+  # Record destruction so we can test whether firm.clients.clear has
+  # is calling client.destroy, deleting from the database, or setting
+  # foreign keys to NULL.
+  def self.destroyed_client_ids
+    @destroyed_client_ids ||= Hash.new { |h,k| h[k] = [] }
+  end
+
+  before_destroy do |client|
+    if client.firm
+      Client.destroyed_client_ids[client.firm.id] &lt;&lt; client.id
+    end
+    true
+  end
+
+  # Used to test that read and question methods are not generated for these attributes
+  def ruby_type
+    read_attribute :ruby_type
+  end
+
+  def rating?
+    query_attribute :rating
+  end
+
+  class &lt;&lt; self
+    private
+
+    def private_method
+      &quot;darkness&quot;
+    end
+  end
+end
+
+class ExclusivelyDependentFirm &lt; Company
+  has_one :account, :foreign_key =&gt; &quot;firm_id&quot;, :dependent =&gt; :delete
+  has_many :dependent_sanitized_conditional_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :dependent =&gt; :delete_all, :conditions =&gt; &quot;name = 'BigShot Inc.'&quot;
+  has_many :dependent_conditional_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :dependent =&gt; :delete_all, :conditions =&gt; [&quot;name = ?&quot;, 'BigShot Inc.']
+  has_many :dependent_hash_conditional_clients_of_firm, :foreign_key =&gt; &quot;client_of&quot;, :class_name =&gt; &quot;Client&quot;, :order =&gt; &quot;id&quot;, :dependent =&gt; :delete_all, :conditions =&gt; {:name =&gt; 'BigShot Inc.'}
+end
+
+class SpecialClient &lt; Client
+end
+
+class VerySpecialClient &lt; SpecialClient
+end
+
+class Account &lt; ActiveRecord::Base
+  belongs_to :firm
+
+  def self.destroyed_account_ids
+    @destroyed_account_ids ||= Hash.new { |h,k| h[k] = [] }
+  end
+
+  before_destroy do |account|
+    if account.firm
+      Account.destroyed_account_ids[account.firm.id] &lt;&lt; account.id
+    end
+    true
+  end
+
+  protected
+    def validate
+      errors.add_on_empty &quot;credit_limit&quot;
+    end
+
+  private
+
+  def private_method
+    &quot;Sir, yes sir!&quot;
+  end
+end
+</pre>
+    </div>

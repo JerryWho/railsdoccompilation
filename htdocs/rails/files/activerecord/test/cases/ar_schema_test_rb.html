@@ -1,0 +1,51 @@
+  <div id="fileHeader">
+    <h1>ar_schema_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/ar_schema_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+
+if ActiveRecord::Base.connection.supports_migrations?
+
+  class ActiveRecordSchemaTest &lt; ActiveRecord::TestCase
+    self.use_transactional_fixtures = false
+
+    def setup
+      @connection = ActiveRecord::Base.connection
+    end
+
+    def teardown
+      @connection.drop_table :fruits rescue nil
+    end
+
+    def test_schema_define
+      ActiveRecord::Schema.define(:version =&gt; 7) do
+        create_table :fruits do |t|
+          t.column :color, :string
+          t.column :fruit_size, :string  # NOTE: &quot;size&quot; is reserved in Oracle
+          t.column :texture, :string
+          t.column :flavor, :string
+        end
+      end
+
+      assert_nothing_raised { @connection.select_all &quot;SELECT * FROM fruits&quot; }
+      assert_nothing_raised { @connection.select_all &quot;SELECT * FROM schema_migrations&quot; }
+      assert_equal 7, ActiveRecord::Migrator::current_version
+    end
+  end
+
+end
+</pre>
+    </div>

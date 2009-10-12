@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat May 02 12:56:53 +0200 2009</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,31 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/runner/drb_command_line.rb-</pre>
+    <pre>require &quot;drb/drb&quot;
+
+module Spec
+  module Runner
+    # Facade to run specs by connecting to a DRB server
+    class DrbCommandLine
+      # Runs specs on a DRB server. Note that this API is similar to that of
+      # CommandLine - making it possible for clients to use both interchangeably.
+      def self.run(options)
+        begin
+          begin; \
+            DRb.start_service(&quot;druby://localhost:0&quot;); \
+          rescue SocketError; \
+            DRb.start_service(&quot;druby://:0&quot;); \
+          end
+          spec_server = DRbObject.new_with_uri(&quot;druby://127.0.0.1:8989&quot;)
+          spec_server.run(options.argv, options.error_stream, options.output_stream)
+          true
+        rescue DRb::DRbConnError
+          options.error_stream.puts &quot;No server is running&quot;
+          false
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

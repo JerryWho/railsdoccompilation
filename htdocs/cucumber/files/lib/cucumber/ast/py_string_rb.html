@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat May 02 12:57:43 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,62 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/ast/py_string.rb-</pre>
+    <pre>module Cucumber
+  module Ast
+    # Represents an inline argument in a step. Example:
+    #
+    #   Given the message
+    #     &quot;&quot;&quot;
+    #     I like
+    #     Cucumber sandwich
+    #     &quot;&quot;&quot;
+    #
+    # The text between the pair of &lt;tt&gt;&quot;&quot;&quot;&lt;/tt&gt; is stored inside a PyString,
+    # which is yielded to the StepDefinition block as the last argument.
+    #
+    # The StepDefinition can then access the String via the #to_s method. In the
+    # example above, that would return: &lt;tt&gt;&quot;I like\nCucumber sandwich&quot;&lt;/tt&gt;
+    #
+    # Note how the indentation from the source is stripped away.
+    #
+    class PyString #:nodoc:
+      def self.default_arg_name
+        &quot;string&quot;
+      end
+
+      def initialize(start_line, end_line, string, quotes_indent)
+        @start_line, @end_line = start_line, end_line
+        @string, @quotes_indent = string.gsub(/\\&quot;/, '&quot;'), quotes_indent
+      end
+
+      def to_s
+        @string.indent(-@quotes_indent)
+      end
+
+      def accept(visitor)
+        return if $cucumber_interrupted
+        visitor.visit_py_string(to_s)
+      end
+      
+      def arguments_replaced(arguments) #:nodoc:
+        string = @string
+        arguments.each do |name, value|
+          value ||= ''
+          string = string.gsub(name, value)
+        end
+        PyString.new(@start_line, @end_line, string, @quotes_indent)
+      end
+
+      def has_text?(text)
+        @string.index(text)
+      end
+
+      # For testing only
+      def to_sexp #:nodoc:
+        [:py_string, to_s]
+      end
+    end
+  end
+end
+</pre>
     </div>

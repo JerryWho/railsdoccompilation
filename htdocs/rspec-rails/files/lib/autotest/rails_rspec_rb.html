@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:11:15 +0100 2009</td>
+      <td>Mon Oct 12 14:57:39 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,81 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec-rails/newdoc/lib/autotest/rails_rspec.rb-</pre>
+    <pre># (c) Copyright 2006 Nick Sieger &lt;nicksieger@gmail.com&gt;
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation files
+# (the &quot;Software&quot;), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+$:.push(*Dir[&quot;vendor/rails/*/lib&quot;])
+
+require 'active_support'
+require 'autotest/rspec'
+
+Autotest.add_hook :initialize do |at|
+  %w{config/ coverage/ db/ doc/ log/ public/ script/ tmp/ vendor/rails vendor/plugins previous_failures.txt}.each do |exception|
+    at.add_exception(exception)
+  end
+  
+  at.clear_mappings
+  
+  at.add_mapping(%r%^(test|spec)/fixtures/(.*).yml$%) { |_, m|
+    [&quot;spec/models/#{m[2].singularize}_spec.rb&quot;] + at.files_matching(%r%^spec\/views\/#{m[2]}/.*_spec\.rb$%)
+  }
+  at.add_mapping(%r%^spec/(models|controllers|routing|views|helpers|lib)/.*rb$%) { |filename, _|
+    filename
+  }
+  at.add_mapping(%r%^app/models/(.*)\.rb$%) { |_, m|
+    [&quot;spec/models/#{m[1]}_spec.rb&quot;]
+  }
+  at.add_mapping(%r%^app/views/(.*)$%) { |_, m|
+    at.files_matching %r%^spec/views/#{m[1]}_spec.rb$%
+  }
+  at.add_mapping(%r%^app/controllers/(.*)\.rb$%) { |_, m|
+    if m[1] == &quot;application&quot;
+      at.files_matching %r%^spec/controllers/.*_spec\.rb$%
+    else
+      [&quot;spec/controllers/#{m[1]}_spec.rb&quot;]
+    end
+  }
+  at.add_mapping(%r%^app/helpers/(.*)_helper\.rb$%) { |_, m|
+    if m[1] == &quot;application&quot; then
+      at.files_matching(%r%^spec/(views|helpers)/.*_spec\.rb$%)
+    else
+      [&quot;spec/helpers/#{m[1]}_helper_spec.rb&quot;] + at.files_matching(%r%^spec\/views\/#{m[1]}/.*_spec\.rb$%)
+    end
+  }
+  at.add_mapping(%r%^config/routes\.rb$%) {
+    at.files_matching %r%^spec/(controllers|routing|views|helpers)/.*_spec\.rb$%
+  }
+  at.add_mapping(%r%^config/database\.yml$%) { |_, m|
+    at.files_matching %r%^spec/models/.*_spec\.rb$%
+  }
+  at.add_mapping(%r%^(spec/(spec_helper|shared/.*)|config/(boot|environment(s/test)?))\.rb$%) {
+    at.files_matching %r%^spec/(models|controllers|routing|views|helpers)/.*_spec\.rb$%
+  }
+  at.add_mapping(%r%^lib/(.*)\.rb$%) { |_, m|
+    [&quot;spec/lib/#{m[1]}_spec.rb&quot;]
+  }
+end
+
+class Autotest::RailsRspec &lt; Autotest::Rspec
+end
+</pre>
     </div>

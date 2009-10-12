@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -16,6 +16,7 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
 require File.dirname(__FILE__) + '/../test_helper'
 
 class EngineTest &lt; Test::Unit::TestCase
@@ -34,39 +35,59 @@ class EngineTest &lt; Test::Unit::TestCase
     &quot;~&quot; =&gt; &quot;There's no Ruby code for ~ to evaluate.&quot;,
     &quot;=&quot; =&gt; &quot;There's no Ruby code for = to evaluate.&quot;,
     &quot;%p/\n  a&quot; =&gt; &quot;Illegal nesting: nesting within a self-closing tag is illegal.&quot;,
-    &quot;%p\n\ta&quot; =&gt; &lt;&lt;END.strip,
-A tab character was used for indentation. Haml must be indented using two spaces.
-Are you sure you have soft tabs enabled in your editor?
-END
-    &quot;%p\n a&quot; =&gt; &quot;1 space was used for indentation. Haml must be indented using two spaces.&quot;,
-    &quot;%p\n   a&quot; =&gt; &quot;3 spaces were used for indentation. Haml must be indented using two spaces.&quot;,
-    &quot;%p\n    a&quot; =&gt; &quot;4 spaces were used for indentation. Haml must be indented using two spaces.&quot;,
     &quot;:a\n  b&quot; =&gt; ['Filter &quot;a&quot; is not defined.', 1],
     &quot;:a= b&quot; =&gt; 'Invalid filter name &quot;:a= b&quot;.',
     &quot;.&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
     &quot;.#&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
     &quot;.{} a&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
+    &quot;.() a&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
     &quot;.= a&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
     &quot;%p..a&quot; =&gt; &quot;Illegal element: classes and ids must have values.&quot;,
     &quot;%a/ b&quot; =&gt; &quot;Self-closing tags can't have content.&quot;,
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; 'd'}/ e&quot; =&gt; [&quot;Self-closing tags can't have content.&quot;, 2],
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; 'd'}=&quot; =&gt; [&quot;There's no Ruby code for = to evaluate.&quot;, 2],
+    &quot;%p.{:a =&gt; 'b',\n:c =&gt; 'd'} e&quot; =&gt; [&quot;Illegal element: classes and ids must have values.&quot;, 1],
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; 'd',\n:e =&gt; 'f'}\n%p/ a&quot; =&gt; [&quot;Self-closing tags can't have content.&quot;, 4],
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; 'd',\n:e =&gt; 'f'}\n- raise 'foo'&quot; =&gt; [&quot;foo&quot;, 4],
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; raise('foo'),\n:e =&gt; 'f'}&quot; =&gt; [&quot;foo&quot;, 2],
+    &quot;%p{:a =&gt; 'b',\n:c =&gt; 'd',\n:e =&gt; raise('foo')}&quot; =&gt; [&quot;foo&quot;, 3],
     &quot; %p foo&quot; =&gt; &quot;Indenting at the beginning of the document is illegal.&quot;,
     &quot;  %p foo&quot; =&gt; &quot;Indenting at the beginning of the document is illegal.&quot;,
     &quot;- end&quot; =&gt; &quot;You don't need to use \&quot;- end\&quot; in Haml. Use indentation instead:\n- if foo?\n  %strong Foo!\n- else\n  Not foo.&quot;,
     &quot; \n\t\n %p foo&quot; =&gt; [&quot;Indenting at the beginning of the document is illegal.&quot;, 3],
+    &quot;\n\n %p foo&quot; =&gt; [&quot;Indenting at the beginning of the document is illegal.&quot;, 3],
+    &quot;%p\n  foo\n foo&quot; =&gt; [&quot;Inconsistent indentation: 1 space was used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 3],
+    &quot;%p\n  foo\n%p\n foo&quot; =&gt; [&quot;Inconsistent indentation: 1 space was used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 4],
+    &quot;%p\n\t\tfoo\n\tfoo&quot; =&gt; [&quot;Inconsistent indentation: 1 tab was used for indentation, but the rest of the document was indented using 2 tabs.&quot;, 3],
+    &quot;%p\n  foo\n   foo&quot; =&gt; [&quot;Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 3],
+    &quot;%p\n  foo\n  %p\n   bar&quot; =&gt; [&quot;Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 4],
+    &quot;%p\n  :plain\n     bar\n   \t  baz&quot; =&gt; ['Inconsistent indentation: &quot;   \t  &quot; was used for indentation, but the rest of the document was indented using 2 spaces.', 4],
+    &quot;%p\n  foo\n%p\n    bar&quot; =&gt; [&quot;The line was indented 2 levels deeper than the previous line.&quot;, 4],
+    &quot;%p\n  foo\n  %p\n        bar&quot; =&gt; [&quot;The line was indented 3 levels deeper than the previous line.&quot;, 4],
+    &quot;%p\n \tfoo&quot; =&gt; [&quot;Indentation can't use both tabs and spaces.&quot;, 2],
+    &quot;%p(&quot; =&gt; &quot;Invalid attribute list: \&quot;(\&quot;.&quot;,
+    &quot;%p(foo=\nbar)&quot; =&gt; [&quot;Invalid attribute list: \&quot;(foo=\&quot;.&quot;, 1],
+    &quot;%p(foo=)&quot; =&gt; &quot;Invalid attribute list: \&quot;(foo=)\&quot;.&quot;,
+    &quot;%p(foo 'bar')&quot; =&gt; &quot;Invalid attribute list: \&quot;(foo 'bar')\&quot;.&quot;,
+    &quot;%p(foo 'bar'\nbaz='bang')&quot; =&gt; [&quot;Invalid attribute list: \&quot;(foo 'bar'\&quot;.&quot;, 1],
+    &quot;%p(foo='bar'\nbaz 'bang'\nbip='bop')&quot; =&gt; [&quot;Invalid attribute list: \&quot;(foo='bar' baz 'bang'\&quot;.&quot;, 2],
+    &quot;%p{:foo =&gt; 'bar' :bar =&gt; 'baz'}&quot; =&gt; :compile,
+    &quot;%p{:foo =&gt; }&quot; =&gt; :compile,
+    &quot;%p{=&gt; 'bar'}&quot; =&gt; :compile,
+    &quot;%p{:foo =&gt; 'bar}&quot; =&gt; :compile,
+    &quot;%p{'foo =&gt; 'bar'}&quot; =&gt; :compile,
+    &quot;%p{:foo =&gt; 'bar\&quot;}&quot; =&gt; :compile,
 
     # Regression tests
     &quot;- raise 'foo'\n\n\n\nbar&quot; =&gt; [&quot;foo&quot;, 1],
     &quot;= 'foo'\n-raise 'foo'&quot; =&gt; [&quot;foo&quot;, 2],
     &quot;\n\n\n- raise 'foo'&quot; =&gt; [&quot;foo&quot;, 4],
+    &quot;%p foo |\n   bar |\n   baz |\nbop\n- raise 'foo'&quot; =&gt; [&quot;foo&quot;, 5],
     &quot;foo\n\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within plain text is illegal.&quot;, 4],
     &quot;%p/\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within a self-closing tag is illegal.&quot;, 3],
     &quot;%p foo\n\n  bar&quot; =&gt; [&quot;Illegal nesting: content can't be both given on the same line as %p and nested within it.&quot;, 3],
     &quot;/ foo\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within a tag that already has content is illegal.&quot;, 3],
     &quot;!!!\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within a header command is illegal.&quot;, 3],
-    &quot;foo\n\n\n\tbar&quot; =&gt; [&lt;&lt;END.strip, 4],
-A tab character was used for indentation. Haml must be indented using two spaces.
-Are you sure you have soft tabs enabled in your editor?
-END
     &quot;foo\n:ruby\n  1\n  2\n  3\n- raise 'foo'&quot; =&gt; [&quot;foo&quot;, 6],
   }
 
@@ -87,13 +108,31 @@ END
     end
     Haml::Engine.new(text, options)
   end
-  
+
+  def test_empty_render
+    assert_equal &quot;&quot;, render(&quot;&quot;)
+  end
+
+  def test_flexible_tabulation
+    assert_equal(&quot;&lt;p&gt;\n  foo\n&lt;/p&gt;\n&lt;q&gt;\n  bar\n  &lt;a&gt;\n    baz\n  &lt;/a&gt;\n&lt;/q&gt;\n&quot;,
+                 render(&quot;%p\n foo\n%q\n bar\n %a\n  baz&quot;))
+    assert_equal(&quot;&lt;p&gt;\n  foo\n&lt;/p&gt;\n&lt;q&gt;\n  bar\n  &lt;a&gt;\n    baz\n  &lt;/a&gt;\n&lt;/q&gt;\n&quot;,
+                 render(&quot;%p\n\tfoo\n%q\n\tbar\n\t%a\n\t\tbaz&quot;))
+    assert_equal(&quot;&lt;p&gt;\n      \t \t bar\n   baz\n&lt;/p&gt;\n&quot;,
+                 render(&quot;%p\n  :plain\n        \t \t bar\n     baz&quot;))
+  end
+
   def test_empty_render_should_remain_empty
     assert_equal('', render(''))
   end
 
   def test_attributes_should_render_correctly
     assert_equal(&quot;&lt;div class='atlantis' style='ugly'&gt;&lt;/div&gt;&quot;, render(&quot;.atlantis{:style =&gt; 'ugly'}&quot;).chomp)
+  end
+
+  def test_css_id_as_attribute_should_be_appended_with_underscore
+    assert_equal(&quot;&lt;div id='my_id_1'&gt;&lt;/div&gt;&quot;, render(&quot;#my_id{:id =&gt; '1'}&quot;).chomp)
+    assert_equal(&quot;&lt;div id='my_id_1'&gt;&lt;/div&gt;&quot;, render(&quot;#my_id{:id =&gt; 1}&quot;).chomp)
   end
 
   def test_ruby_code_should_work_inside_attributes
@@ -126,14 +165,19 @@ END
     assert_equal(&quot;&lt;strong&gt;Hi there!&lt;/strong&gt;\n&quot;, engine.to_html)
   end
 
-  def test_double_equals
-    assert_equal(&quot;&lt;p&gt;Hello World&lt;/p&gt;\n&quot;, render('%p== Hello #{who}', :locals =&gt; {:who =&gt; 'World'}))
-    assert_equal(&quot;&lt;p&gt;\n  Hello World\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  == Hello \#{who}&quot;, :locals =&gt; {:who =&gt; 'World'}))
+  def test_interpolation
+    assert_equal(&quot;&lt;p&gt;Hello World&lt;/p&gt;\n&quot;, render('%p Hello #{who}', :locals =&gt; {:who =&gt; 'World'}))
+    assert_equal(&quot;&lt;p&gt;\n  Hello World\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  Hello \#{who}&quot;, :locals =&gt; {:who =&gt; 'World'}))
   end
 
-  def test_double_equals_in_the_middle_of_a_string
+  def test_interpolation_in_the_middle_of_a_string
     assert_equal(&quot;\&quot;title 'Title'. \&quot;\n&quot;,
-                 render(&quot;== \&quot;title '\#{\&quot;Title\&quot;}'. \&quot;&quot;))
+                 render(&quot;\&quot;title '\#{\&quot;Title\&quot;}'. \&quot;&quot;))
+  end
+
+  def test_interpolation_at_the_beginning_of_a_line
+    assert_equal(&quot;&lt;p&gt;2&lt;/p&gt;\n&quot;, render('%p #{1 + 1}'))
+    assert_equal(&quot;&lt;p&gt;\n  2\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  \#{1 + 1}&quot;))
   end
 
   def test_nil_tag_value_should_render_as_empty
@@ -150,6 +194,13 @@ END
 
   def test_dynamic_attributes_with_empty_attr
     assert_equal(&quot;&lt;img alt='' src='/foo.png' /&gt;\n&quot;, render(&quot;%img{:width =&gt; nil, :src =&gt; '/foo.png', :alt =&gt; String.new}&quot;))
+  end
+
+  def test_attribute_hash_with_newlines
+    assert_equal(&quot;&lt;p a='b' c='d'&gt;foop&lt;/p&gt;\n&quot;, render(&quot;%p{:a =&gt; 'b',\n   :c =&gt; 'd'} foop&quot;))
+    assert_equal(&quot;&lt;p a='b' c='d'&gt;\n  foop\n&lt;/p&gt;\n&quot;, render(&quot;%p{:a =&gt; 'b',\n   :c =&gt; 'd'}\n  foop&quot;))
+    assert_equal(&quot;&lt;p a='b' c='d' /&gt;\n&quot;, render(&quot;%p{:a =&gt; 'b',\n   :c =&gt; 'd'}/&quot;))
+    assert_equal(&quot;&lt;p a='b' c='d' e='f'&gt;&lt;/p&gt;\n&quot;, render(&quot;%p{:a =&gt; 'b',\n   :c =&gt; 'd',\n   :e =&gt; 'f'}&quot;))
   end
 
   def test_attr_hashes_not_modified
@@ -193,6 +244,19 @@ HAML
 SOURCE
   end
 
+  def test_pre_code
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;pre&gt;&lt;code&gt;Foo&amp;#x000A;  bar&amp;#x000A;    baz&lt;/code&gt;&lt;/pre&gt;
+HTML
+%pre
+  %code
+    :preserve
+      Foo
+        bar
+          baz
+HAML
+  end
+
   def test_boolean_attributes
     assert_equal(&quot;&lt;p bar baz='true' foo='bar'&gt;&lt;/p&gt;\n&quot;,
                  render(&quot;%p{:foo =&gt; 'bar', :bar =&gt; true, :baz =&gt; 'true'}&quot;, :format =&gt; :html4))
@@ -205,8 +269,19 @@ SOURCE
                  render(&quot;%p{:foo =&gt; 'bar', :bar =&gt; false, :baz =&gt; 'false'}&quot;, :format =&gt; :xhtml))
   end
 
+  def test_both_whitespace_nukes_work_together
+    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE))
+&lt;p&gt;&lt;q&gt;Foo
+  Bar&lt;/q&gt;&lt;/p&gt;
+RESULT
+%p
+  %q&gt;&lt;= &quot;Foo\\nBar&quot;
+SOURCE
+  end
+
+  # Regression tests
+
   def test_whitespace_nuke_with_both_newlines
-    # Regression test
     assert_equal(&quot;&lt;p&gt;foo&lt;/p&gt;\n&quot;, render('%p&lt;= &quot;\nfoo\n&quot;'))
     assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
 &lt;p&gt;
@@ -218,17 +293,36 @@ HTML
 HAML
   end
 
-  def test_both_whitespace_nukes_work_together
-    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE))
-&lt;p&gt;&lt;q&gt;Foo
-  Bar&lt;/q&gt;&lt;/p&gt;
-RESULT
-%p
-  %q&gt;&lt;= &quot;Foo\\nBar&quot;
-SOURCE
+  def test_whitespace_nuke_with_tags_and_else
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;a&gt;
+  &lt;b&gt;foo&lt;/b&gt;
+&lt;/a&gt;
+HTML
+%a
+  %b&lt;
+    - if false
+      = &quot;foo&quot;
+    - else
+      foo
+HAML
+
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;a&gt;
+  &lt;b&gt;
+    foo
+  &lt;/b&gt;
+&lt;/a&gt;
+HTML
+%a
+  %b
+    - if false
+      = &quot;foo&quot;
+    - else
+      foo
+HAML
   end
 
-  # Mostly a regression test
   def test_both_case_indentation_work_with_deeply_nested_code
     result = &lt;&lt;RESULT
 &lt;h2&gt;
@@ -252,6 +346,227 @@ HAML
   - when 'other'
     %h2
       other
+HAML
+  end
+
+  def test_equals_block_with_ugly
+    assert_equal(&quot;foo\n&quot;, render(&lt;&lt;HAML, :ugly =&gt; true))
+= capture_haml do
+  foo
+HAML
+  end
+
+  def test_plain_equals_with_ugly
+    assert_equal(&quot;foo\nbar\n&quot;, render(&lt;&lt;HAML, :ugly =&gt; true))
+= &quot;foo&quot;
+bar
+HAML
+  end
+
+  def test_inline_if
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;One&lt;/p&gt;
+&lt;p&gt;&lt;/p&gt;
+&lt;p&gt;Three&lt;/p&gt;
+HTML
+- for name in [&quot;One&quot;, &quot;Two&quot;, &quot;Three&quot;]
+  %p= name unless name == &quot;Two&quot;
+HAML
+  end
+
+  def test_end_with_method_call
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+2|3|4
+b-a-r
+HTML
+= [1, 2, 3].map do |i|
+  - i + 1
+- end.join(&quot;|&quot;)
+= &quot;bar&quot;.gsub(/./) do |s|
+  - s + &quot;-&quot;
+- end.gsub(/-$/) do |s|
+  - ''
+HAML
+  end
+
+  def test_nested_end_with_method_call
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;
+  2|3|4
+  b-a-r
+&lt;/p&gt;
+HTML
+%p
+  = [1, 2, 3].map do |i|
+    - i + 1
+  - end.join(&quot;|&quot;)
+  = &quot;bar&quot;.gsub(/./) do |s|
+    - s + &quot;-&quot;
+  - end.gsub(/-$/) do |s|
+    - ''
+HAML
+  end
+
+  def test_silent_end_with_stuff
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+e
+d
+c
+b
+a
+HTML
+- str = &quot;abcde&quot;
+- if true
+  = str.slice!(-1).chr
+- end until str.empty?
+HAML
+
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;hi!&lt;/p&gt;
+HTML
+- if true
+  %p hi!
+- end if &quot;foo&quot;.gsub(/f/) do
+  - &quot;z&quot;
+- end + &quot;bar&quot;
+HAML
+  end
+
+  def test_multiline_with_colon_after_filter
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+Foo
+Bar
+HTML
+:plain
+  Foo
+= { :a =&gt; &quot;Bar&quot;,      |
+    :b =&gt; &quot;Baz&quot; }[:a] |
+HAML
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+
+Bar
+HTML
+:plain
+= { :a =&gt; &quot;Bar&quot;,      |
+    :b =&gt; &quot;Baz&quot; }[:a] |
+HAML
+  end
+
+  def test_multiline_in_filter
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+Foo |
+Bar |
+Baz
+HTML
+:plain
+  Foo |
+  Bar |
+  Baz
+HAML
+  end
+
+  def test_curly_brace
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+Foo { Bar
+HTML
+== Foo { Bar
+HAML
+  end
+
+  def test_escape_html
+    html = &lt;&lt;HTML
+&amp;amp;
+&amp;
+&amp;amp;
+HTML
+
+    assert_equal(html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+&amp;= &quot;&amp;&quot;
+!= &quot;&amp;&quot;
+= &quot;&amp;&quot;
+HAML
+
+    assert_equal(html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+&amp;~ &quot;&amp;&quot;
+!~ &quot;&amp;&quot;
+~ &quot;&amp;&quot;
+HAML
+
+    assert_equal(html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+&amp; \#{&quot;&amp;&quot;}
+! \#{&quot;&amp;&quot;}
+\#{&quot;&amp;&quot;}
+HAML
+
+    assert_equal(html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+&amp;== \#{&quot;&amp;&quot;}
+!== \#{&quot;&amp;&quot;}
+== \#{&quot;&amp;&quot;}
+HAML
+
+    tag_html = &lt;&lt;HTML
+&lt;p&gt;&amp;amp;&lt;/p&gt;
+&lt;p&gt;&amp;&lt;/p&gt;
+&lt;p&gt;&amp;amp;&lt;/p&gt;
+HTML
+
+    assert_equal(tag_html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+%p&amp;= &quot;&amp;&quot;
+%p!= &quot;&amp;&quot;
+%p= &quot;&amp;&quot;
+HAML
+
+    assert_equal(tag_html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+%p&amp;~ &quot;&amp;&quot;
+%p!~ &quot;&amp;&quot;
+%p~ &quot;&amp;&quot;
+HAML
+
+    assert_equal(tag_html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+%p&amp; \#{&quot;&amp;&quot;}
+%p! \#{&quot;&amp;&quot;}
+%p \#{&quot;&amp;&quot;}
+HAML
+
+    assert_equal(tag_html, render(&lt;&lt;HAML, :escape_html =&gt; true))
+%p&amp;== \#{&quot;&amp;&quot;}
+%p!== \#{&quot;&amp;&quot;}
+%p== \#{&quot;&amp;&quot;}
+HAML
+  end
+
+  def test_new_attrs_with_hash
+    assert_equal(&quot;&lt;a href='#'&gt;&lt;/a&gt;\n&quot;, render('%a(href=&quot;#&quot;)'))
+  end
+
+  def test_javascript_filter_with_dynamic_interp_and_escape_html
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML, :escape_html =&gt; true))
+&lt;script type='text/javascript'&gt;
+  //&lt;![CDATA[
+    &amp; &lt; &gt; &amp;
+  //]]&gt;
+&lt;/script&gt;
+HTML
+:javascript
+ &amp; &lt; &gt; \#{&quot;&amp;&quot;}
+HAML
+  end
+
+  def test_silent_script_with_hyphen_case
+    assert_equal(&quot;&quot;, render(&quot;- 'foo-case-bar-case'&quot;))
+  end
+
+  def test_silent_script_with_hyphen_end
+    assert_equal(&quot;&quot;, render(&quot;- 'foo-end-bar-end'&quot;))
+  end
+
+  def test_silent_script_with_hyphen_end_and_block
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;foo-end&lt;/p&gt;
+&lt;p&gt;bar-end&lt;/p&gt;
+HTML
+- &quot;foo-end-bar-end&quot;.gsub(/\\w+-end/) do |s|
+  %p= s
 HAML
   end
 
@@ -298,30 +613,55 @@ HAML
     assert_equal(&quot;&lt;img alt='' src='foo&amp;#x000A;.png' /&gt;\n&quot;,
                  render(&quot;%img{:width =&gt; nil, :src =&gt; \&quot;foo\\n.png\&quot;, :alt =&gt; String.new}&quot;))
   end
-  
-  def test_string_interpolation_should_be_esaped
+
+  def test_string_double_equals_should_be_esaped
     assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
     assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
   end
 
-  def test_escaped_inline_string_interpolation
+  def test_escaped_inline_string_double_equals
     assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
     assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
   end
 
-  def test_unescaped_inline_string_interpolation
+  def test_unescaped_inline_string_double_equals
     assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
     assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
   end
 
-  def test_escaped_string_interpolation
+  def test_escaped_string_double_equals
     assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
     assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
   end
 
-  def test_unescaped_string_interpolation
+  def test_unescaped_string_double_equals
     assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
     assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+  end
+
+  def test_string_interpolation_should_be_esaped
+    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+  end
+
+  def test_escaped_inline_string_interpolation
+    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+  end
+
+  def test_unescaped_inline_string_interpolation
+    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+  end
+
+  def test_escaped_string_interpolation
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+  end
+
+  def test_unescaped_string_interpolation
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
   end
 
   def test_scripts_should_respect_escape_html_option
@@ -471,18 +811,22 @@ HAML
     assert_equal(&quot;&lt;a b='2' /&gt;\nc\n&quot;, render(&quot;%a{'b' =&gt; 1 + 1}/\n= 'c'\n&quot;))
   end
 
-  def test_exceptions
-    EXCEPTION_MAP.each do |key, value|
+  EXCEPTION_MAP.each do |key, value|
+    define_method(&quot;test_exception (#{key.inspect})&quot;) do
       begin
-        render(key, :filename =&gt; &quot;(exception test for #{key.inspect})&quot;)
+        render(key, :filename =&gt; __FILE__)
       rescue Exception =&gt; err
         value = [value] unless value.is_a?(Array)
         expected_message, line_no = value
         line_no ||= key.split(&quot;\n&quot;).length
-        line_reported = err.backtrace[0].gsub(/\(.+\):/, '').to_i
 
-        assert_equal(expected_message, err.message, &quot;Line: #{key}&quot;)
-        assert_equal(line_no, line_reported, &quot;Line: #{key}&quot;)
+        if expected_message == :compile
+          assert_match(/^compile error\n/, err.message, &quot;Line: #{key}&quot;)
+        else
+          assert_equal(expected_message, err.message, &quot;Line: #{key}&quot;)
+        end
+
+        assert_match(/^#{Regexp.escape(__FILE__)}:#{line_no}/, err.backtrace[0], &quot;Line: #{key}&quot;)
       else
         assert(false, &quot;Exception not raised for\n#{key}&quot;)
       end
@@ -516,7 +860,7 @@ HAML
   end
 
   def test_unbalanced_brackets
-    render('== #{1 + 5} foo #{6 + 7 bar #{8 + 9}')
+    render('foo #{1 + 5} foo #{6 + 7 bar #{8 + 9}')
   rescue Haml::SyntaxError =&gt; e
     assert_equal(&quot;Unbalanced brackets.&quot;, e.message)
   end
@@ -635,6 +979,17 @@ END
     assert_raise(Haml::Error, &quot;Invalid output format :html1&quot;) { engine(&quot;%br&quot;, :format =&gt; :html1) }
   end
 
+  def test_static_hashes
+    assert_equal(&quot;&lt;a b='a =&amp;gt; b'&gt;&lt;/a&gt;\n&quot;, render(&quot;%a{:b =&gt; 'a =&gt; b'}&quot;, :suppress_eval =&gt; true))
+    assert_equal(&quot;&lt;a b='a, b'&gt;&lt;/a&gt;\n&quot;, render(&quot;%a{:b =&gt; 'a, b'}&quot;, :suppress_eval =&gt; true))
+    assert_equal(&quot;&lt;a b='a\tb'&gt;&lt;/a&gt;\n&quot;, render('%a{:b =&gt; &quot;a\tb&quot;}', :suppress_eval =&gt; true))
+    assert_equal(&quot;&lt;a b='a\#{foo}b'&gt;&lt;/a&gt;\n&quot;, render('%a{:b =&gt; &quot;a\\#{foo}b&quot;}', :suppress_eval =&gt; true))
+  end
+
+  def test_dynamic_hashes_with_suppress_eval
+    assert_equal(&quot;&lt;a&gt;&lt;/a&gt;\n&quot;, render('%a{:b =&gt; &quot;a #{1 + 1} b&quot;, :c =&gt; &quot;d&quot;}', :suppress_eval =&gt; true))
+  end
+
   # HTML 4.0
 
   def test_html_has_no_self_closing_tags
@@ -670,6 +1025,155 @@ END
   # HTML5
   def test_html5_doctype
     assert_equal %{&lt;!DOCTYPE html&gt;\n}, render('!!!', :format =&gt; :html5)
+  end
+
+  # New attributes
+
+  def test_basic_new_attributes
+    assert_equal(&quot;&lt;a&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a() bar&quot;))
+    assert_equal(&quot;&lt;a href='foo'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href='foo') bar&quot;))
+    assert_equal(&quot;&lt;a b='c' c='d' d='e'&gt;baz&lt;/a&gt;\n&quot;, render(%q{%a(b=&quot;c&quot; c='d' d=&quot;e&quot;) baz}))
+  end
+
+  def test_new_attribute_ids
+    assert_equal(&quot;&lt;div id='foo_bar'&gt;&lt;/div&gt;\n&quot;, render(&quot;#foo(id='bar')&quot;))
+    assert_equal(&quot;&lt;div id='foo_bar_baz'&gt;&lt;/div&gt;\n&quot;, render(&quot;#foo{:id =&gt; 'bar'}(id='baz')&quot;))
+    assert_equal(&quot;&lt;div id='foo_baz_bar'&gt;&lt;/div&gt;\n&quot;, render(&quot;#foo(id='baz'){:id =&gt; 'bar'}&quot;))
+    foo = User.new(42)
+    assert_equal(&quot;&lt;div class='struct_user' id='foo_baz_bar_struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;#foo(id='baz'){:id =&gt; 'bar'}[foo]&quot;, :locals =&gt; {:foo =&gt; foo}))
+    assert_equal(&quot;&lt;div class='struct_user' id='foo_baz_bar_struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;#foo(id='baz')[foo]{:id =&gt; 'bar'}&quot;, :locals =&gt; {:foo =&gt; foo}))
+    assert_equal(&quot;&lt;div class='struct_user' id='foo_baz_bar_struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;#foo[foo](id='baz'){:id =&gt; 'bar'}&quot;, :locals =&gt; {:foo =&gt; foo}))
+    assert_equal(&quot;&lt;div class='struct_user' id='foo_bar_baz_struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;#foo[foo]{:id =&gt; 'bar'}(id='baz')&quot;, :locals =&gt; {:foo =&gt; foo}))
+  end
+
+  def test_new_attribute_classes
+    assert_equal(&quot;&lt;div class='bar foo'&gt;&lt;/div&gt;\n&quot;, render(&quot;.foo(class='bar')&quot;))
+    assert_equal(&quot;&lt;div class='bar baz foo'&gt;&lt;/div&gt;\n&quot;, render(&quot;.foo{:class =&gt; 'bar'}(class='baz')&quot;))
+    assert_equal(&quot;&lt;div class='bar baz foo'&gt;&lt;/div&gt;\n&quot;, render(&quot;.foo(class='baz'){:class =&gt; 'bar'}&quot;))
+    foo = User.new(42)
+    assert_equal(&quot;&lt;div class='bar baz foo struct_user' id='struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;.foo(class='baz'){:class =&gt; 'bar'}[foo]&quot;, :locals =&gt; {:foo =&gt; foo}))
+    assert_equal(&quot;&lt;div class='bar baz foo struct_user' id='struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;.foo[foo](class='baz'){:class =&gt; 'bar'}&quot;, :locals =&gt; {:foo =&gt; foo}))
+    assert_equal(&quot;&lt;div class='bar baz foo struct_user' id='struct_user_42'&gt;&lt;/div&gt;\n&quot;,
+      render(&quot;.foo[foo]{:class =&gt; 'bar'}(class='baz')&quot;, :locals =&gt; {:foo =&gt; foo}))
+  end
+
+  def test_dynamic_new_attributes
+    assert_equal(&quot;&lt;a href='12'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href=foo) bar&quot;, :locals =&gt; {:foo =&gt; 12}))
+    assert_equal(&quot;&lt;a b='12' c='13' d='14'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(b=b c='13' d=d) bar&quot;, :locals =&gt; {:b =&gt; 12, :d =&gt; 14}))
+  end
+
+  def test_new_attribute_interpolation
+    assert_equal(&quot;&lt;a href='12'&gt;bar&lt;/a&gt;\n&quot;, render('%a(href=&quot;1#{1 + 1}&quot;) bar'))
+    assert_equal(&quot;&lt;a href='2: 2, 3: 3'&gt;bar&lt;/a&gt;\n&quot;, render(%q{%a(href='2: #{1 + 1}, 3: #{foo}') bar}, :locals =&gt; {:foo =&gt; 3}))
+    assert_equal(%Q{&lt;a href='1\#{1 + 1}'&gt;bar&lt;/a&gt;\n}, render('%a(href=&quot;1\#{1 + 1}&quot;) bar'))
+  end
+
+  def test_truthy_new_attributes
+    assert_equal(&quot;&lt;a href='href'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href) bar&quot;))
+    assert_equal(&quot;&lt;a bar='baz' href&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href bar='baz') bar&quot;, :format =&gt; :html5))
+    assert_equal(&quot;&lt;a href='href'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href=true) bar&quot;))
+    assert_equal(&quot;&lt;a&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(href=false) bar&quot;))
+  end
+
+  def test_new_attribute_parsing
+    assert_equal(&quot;&lt;a a2='b2'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a2=b2) bar&quot;, :locals =&gt; {:b2 =&gt; 'b2'}))
+    assert_equal(%Q{&lt;a a='foo&quot;bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;#{'foo&quot;bar'}&quot;) bar})) #'
+    assert_equal(%Q{&lt;a a=&quot;foo'bar&quot;&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;#{&quot;foo'bar&quot;}&quot;) bar})) #'
+    assert_equal(%Q{&lt;a a='foo&quot;bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a='foo&quot;bar') bar}))
+    assert_equal(%Q{&lt;a a=&quot;foo'bar&quot;&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;foo'bar&quot;) bar}))
+    assert_equal(&quot;&lt;a a:b='foo'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a:b='foo') bar&quot;))
+    assert_equal(&quot;&lt;a a='foo' b='bar'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a = 'foo' b = 'bar') bar&quot;))
+    assert_equal(&quot;&lt;a a='foo' b='bar'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a = foo b = bar) bar&quot;, :locals =&gt; {:foo =&gt; 'foo', :bar =&gt; 'bar'}))
+    assert_equal(&quot;&lt;a a='foo'&gt;(b='bar')&lt;/a&gt;\n&quot;, render(&quot;%a(a='foo')(b='bar')&quot;))
+    assert_equal(&quot;&lt;a a='foo)bar'&gt;baz&lt;/a&gt;\n&quot;, render(&quot;%a(a='foo)bar') baz&quot;))
+    assert_equal(&quot;&lt;a a='foo'&gt;baz&lt;/a&gt;\n&quot;, render(&quot;%a( a = 'foo' ) baz&quot;))
+  end
+
+  def test_new_attribute_escaping
+    assert_equal(%Q{&lt;a a='foo &quot; bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;foo \&quot; bar&quot;) bar}))
+    assert_equal(%Q{&lt;a a='foo \\&quot; bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;foo \\\\\&quot; bar&quot;) bar}))
+
+    assert_equal(%Q{&lt;a a=&quot;foo ' bar&quot;&gt;bar&lt;/a&gt;\n}, render(%q{%a(a='foo \' bar') bar}))
+    assert_equal(%Q{&lt;a a=&quot;foo \\' bar&quot;&gt;bar&lt;/a&gt;\n}, render(%q{%a(a='foo \\\\\' bar') bar}))
+
+    assert_equal(%Q{&lt;a a='foo \\ bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;foo \\\\ bar&quot;) bar}))
+    assert_equal(%Q{&lt;a a='foo \#{1 + 1} bar'&gt;bar&lt;/a&gt;\n}, render(%q{%a(a=&quot;foo \#{1 + 1} bar&quot;) bar}))
+  end
+
+  def test_multiline_new_attribute
+    assert_equal(&quot;&lt;a a='b' c='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a='b'\n  c='d') bar&quot;))
+    assert_equal(&quot;&lt;a a='b' b='c' c='d' d='e' e='f' f='j'&gt;bar&lt;/a&gt;\n&quot;,
+      render(&quot;%a(a='b' b='c'\n  c='d' d=e\n  e='f' f='j') bar&quot;, :locals =&gt; {:e =&gt; 'e'}))
+  end
+
+  def test_new_and_old_attributes
+    assert_equal(&quot;&lt;a a='b' c='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a='b'){:c =&gt; 'd'} bar&quot;))
+    assert_equal(&quot;&lt;a a='b' c='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a{:c =&gt; 'd'}(a='b') bar&quot;))
+    assert_equal(&quot;&lt;a a='b' c='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(c='d'){:a =&gt; 'b'} bar&quot;))
+    assert_equal(&quot;&lt;a a='b' c='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a{:a =&gt; 'b'}(c='d') bar&quot;))
+
+    assert_equal(&quot;&lt;a a='d'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a{:a =&gt; 'b'}(a='d') bar&quot;))
+    assert_equal(&quot;&lt;a a='b'&gt;bar&lt;/a&gt;\n&quot;, render(&quot;%a(a='d'){:a =&gt; 'b'} bar&quot;))
+
+    assert_equal(&quot;&lt;a a='b' b='c' c='d' d='e'&gt;bar&lt;/a&gt;\n&quot;,
+      render(&quot;%a{:a =&gt; 'b',\n:b =&gt; 'c'}(c='d'\nd='e') bar&quot;))
+  end
+
+  # Encodings
+
+  unless Haml::Util.ruby1_8?
+    def test_default_encoding
+      assert_equal(Encoding.find(&quot;utf-8&quot;), render(&lt;&lt;HAML.encode(&quot;us-ascii&quot;)).encoding)
+HTML
+%p bar
+%p foo
+HAML
+    end
+
+    def test_convert_template_render
+      assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML.encode(&quot;iso-8859-1&quot;), :encoding =&gt; &quot;utf-8&quot;))
+&lt;p&gt;bâr&lt;/p&gt;
+&lt;p&gt;föö&lt;/p&gt;
+HTML
+%p bâr
+%p föö
+HAML
+    end
+
+    def test_convert_template_render_proc
+      assert_converts_template_properly {|e| e.render_proc.call}
+    end
+
+    def test_convert_template_render
+      assert_converts_template_properly {|e| e.render}
+    end
+
+    def test_convert_template_def_method
+      assert_converts_template_properly do |e|
+        o = Object.new
+        e.def_method(o, :render)
+        o.render
+      end
+    end
+  end
+
+  private
+
+  def assert_converts_template_properly
+    engine = Haml::Engine.new(&lt;&lt;HAML.encode(&quot;iso-8859-1&quot;), :encoding =&gt; &quot;utf-8&quot;)
+%p bâr
+%p föö
+HAML
+    assert_equal(&lt;&lt;HTML, yield(engine))
+&lt;p&gt;bâr&lt;/p&gt;
+&lt;p&gt;föö&lt;/p&gt;
+HTML
   end
 end
 </pre>

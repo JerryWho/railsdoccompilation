@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:22:02 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,58 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/parser/treetop_ext.rb-</pre>
+    <pre>begin
+  require 'treetop'
+  require 'treetop/runtime'
+  require 'treetop/ruby_extensions'
+rescue LoadError
+  require &quot;rubygems&quot;
+  gem &quot;treetop&quot;
+  require 'treetop'
+  require 'treetop/runtime'
+  require 'treetop/ruby_extensions'
+end
+
+module Cucumber
+  module Parser
+    # Raised if Cucumber fails to parse a feature file
+    class SyntaxError &lt; StandardError
+      def initialize(parser, file, line_offset)
+        tf = parser.terminal_failures
+        expected = tf.size == 1 ? tf[0].expected_string.inspect : &quot;one of #{tf.map{|f| f.expected_string.inspect}.uniq*', '}&quot;
+        line = parser.failure_line + line_offset
+        message = &quot;#{file}:#{line}:#{parser.failure_column}: Parse error, expected #{expected}.&quot;
+        super(message)
+      end
+    end
+    
+    module TreetopExt #:nodoc:
+      def parse_or_fail(source, file=nil, filter=nil, line_offset=0)
+        parse_tree = parse(source)
+        if parse_tree.nil?
+          raise Cucumber::Parser::SyntaxError.new(self, file, line_offset)
+        else
+          ast = parse_tree.build(filter) # may return nil if it doesn't match filter.
+          ast.file = file unless ast.nil?
+          ast
+        end
+      end
+    end
+  end
+end
+
+module Treetop #:nodoc:
+  module Runtime #:nodoc:
+    class SyntaxNode #:nodoc:
+      def line
+        input.line_of(interval.first)
+      end
+    end
+
+    class CompiledParser #:nodoc:
+      include Cucumber::Parser::TreetopExt
+    end
+  end
+end
+</pre>
     </div>

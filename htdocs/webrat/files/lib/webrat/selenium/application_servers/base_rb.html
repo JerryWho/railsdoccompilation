@@ -1,0 +1,65 @@
+  <div id="fileHeader">
+    <h1>base.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/selenium/application_servers/base.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:29 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;webrat/selenium/silence_stream&quot;
+
+module Webrat
+  module Selenium
+    module ApplicationServers
+      class Base
+        include Webrat::Selenium::SilenceStream
+
+        def boot
+          start
+          wait
+          stop_at_exit
+        end
+
+        def stop_at_exit
+          at_exit do
+            stop
+          end
+        end
+
+        def wait
+          $stderr.print &quot;==&gt; Waiting for #{Webrat.configuration.application_framework} application server on port #{Webrat.configuration.application_port}... &quot;
+          wait_for_socket
+          $stderr.print &quot;Ready!\n&quot;
+        end
+
+        def wait_for_socket
+          silence_stream(STDOUT) do
+            TCPSocket.wait_for_service_with_timeout \
+              :host     =&gt; &quot;0.0.0.0&quot;,
+              :port     =&gt; Webrat.configuration.application_port.to_i,
+              :timeout  =&gt; 30 # seconds
+          end
+          rescue SocketError
+          fail
+        end
+
+        def prepare_pid_file(file_path, pid_file_name)
+          FileUtils.mkdir_p File.expand_path(file_path)
+          File.expand_path(&quot;#{file_path}/#{pid_file_name}&quot;)
+        end
+
+      end
+    end
+  end
+end
+</pre>
+    </div>

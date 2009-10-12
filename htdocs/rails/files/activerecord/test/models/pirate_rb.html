@@ -1,0 +1,82 @@
+  <div id="fileHeader">
+    <h1>pirate.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/models/pirate.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class Pirate &lt; ActiveRecord::Base
+  belongs_to :parrot
+  has_and_belongs_to_many :parrots
+  has_and_belongs_to_many :parrots_with_method_callbacks, :class_name =&gt; &quot;Parrot&quot;,
+    :before_add    =&gt; :log_before_add,
+    :after_add     =&gt; :log_after_add,
+    :before_remove =&gt; :log_before_remove,
+    :after_remove  =&gt; :log_after_remove
+  has_and_belongs_to_many :parrots_with_proc_callbacks, :class_name =&gt; &quot;Parrot&quot;,
+    :before_add    =&gt; proc {|p,pa| p.ship_log &lt;&lt; &quot;before_adding_proc_parrot_#{pa.id || '&lt;new&gt;'}&quot;},
+    :after_add     =&gt; proc {|p,pa| p.ship_log &lt;&lt; &quot;after_adding_proc_parrot_#{pa.id || '&lt;new&gt;'}&quot;},
+    :before_remove =&gt; proc {|p,pa| p.ship_log &lt;&lt; &quot;before_removing_proc_parrot_#{pa.id}&quot;},
+    :after_remove  =&gt; proc {|p,pa| p.ship_log &lt;&lt; &quot;after_removing_proc_parrot_#{pa.id}&quot;}
+
+  has_many :treasures, :as =&gt; :looter
+  has_many :treasure_estimates, :through =&gt; :treasures, :source =&gt; :price_estimates
+
+  # These both have :autosave enabled because accepts_nested_attributes_for is used on them.
+  has_one :ship
+  has_many :birds
+  has_many :birds_with_method_callbacks, :class_name =&gt; &quot;Bird&quot;,
+    :before_add    =&gt; :log_before_add,
+    :after_add     =&gt; :log_after_add,
+    :before_remove =&gt; :log_before_remove,
+    :after_remove  =&gt; :log_after_remove
+  has_many :birds_with_proc_callbacks, :class_name =&gt; &quot;Bird&quot;,
+    :before_add     =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;before_adding_proc_bird_#{b.id || '&lt;new&gt;'}&quot;},
+    :after_add      =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;after_adding_proc_bird_#{b.id || '&lt;new&gt;'}&quot;},
+    :before_remove  =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;before_removing_proc_bird_#{b.id}&quot;},
+    :after_remove   =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;after_removing_proc_bird_#{b.id}&quot;}
+
+  accepts_nested_attributes_for :parrots, :birds, :allow_destroy =&gt; true, :reject_if =&gt; proc { |attributes| attributes.empty? }
+  accepts_nested_attributes_for :ship, :allow_destroy =&gt; true, :reject_if =&gt; proc { |attributes| attributes.empty? }
+  accepts_nested_attributes_for :parrots_with_method_callbacks, :parrots_with_proc_callbacks,
+    :birds_with_method_callbacks, :birds_with_proc_callbacks, :allow_destroy =&gt; true
+
+  validates_presence_of :catchphrase
+
+  def ship_log
+    @ship_log ||= []
+  end
+
+  private
+    def log_before_add(record)
+      log(record, &quot;before_adding_method&quot;)
+    end
+
+    def log_after_add(record)
+      log(record, &quot;after_adding_method&quot;)
+    end
+
+    def log_before_remove(record)
+      log(record, &quot;before_removing_method&quot;)
+    end
+
+    def log_after_remove(record)
+      log(record, &quot;after_removing_method&quot;)
+    end
+
+    def log(record, callback)
+      ship_log &lt;&lt; &quot;#{callback}_#{record.class.name.downcase}_#{record.id || '&lt;new&gt;'}&quot;
+    end
+end
+</pre>
+    </div>

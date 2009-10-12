@@ -1,0 +1,63 @@
+  <div id="fileHeader">
+    <h1>acceptance.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activemodel/lib/active_model/validations/acceptance.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveModel
+  module Validations
+    module ClassMethods
+      # Encapsulates the pattern of wanting to validate the acceptance of a terms of service check box (or similar agreement). Example:
+      #
+      #   class Person &lt; ActiveRecord::Base
+      #     validates_acceptance_of :terms_of_service
+      #     validates_acceptance_of :eula, :message =&gt; &quot;must be abided&quot;
+      #   end
+      #
+      # If the database column does not exist, the &lt;tt&gt;:terms_of_service&lt;/tt&gt; attribute is entirely virtual. This check is
+      # performed only if &lt;tt&gt;:terms_of_service&lt;/tt&gt; is not +nil+ and by default on save.
+      #
+      # Configuration options:
+      # * &lt;tt&gt;:message&lt;/tt&gt; - A custom error message (default is: &quot;must be accepted&quot;)
+      # * &lt;tt&gt;:on&lt;/tt&gt; - Specifies when this validation is active (default is &lt;tt&gt;:save&lt;/tt&gt;, other options &lt;tt&gt;:create&lt;/tt&gt;, &lt;tt&gt;:update&lt;/tt&gt;)
+      # * &lt;tt&gt;:allow_nil&lt;/tt&gt; - Skip validation if attribute is +nil+. (default is +true+)
+      # * &lt;tt&gt;:accept&lt;/tt&gt; - Specifies value that is considered accepted.  The default value is a string &quot;1&quot;, which
+      #   makes it easy to relate to an HTML checkbox. This should be set to +true+ if you are validating a database
+      #   column, since the attribute is typecasted from &quot;1&quot; to +true+ before validation.
+      # * &lt;tt&gt;:if&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   occur (e.g. &lt;tt&gt;:if =&gt; :allow_validation&lt;/tt&gt;, or &lt;tt&gt;:if =&gt; Proc.new { |user| user.signup_step &gt; 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      # * &lt;tt&gt;:unless&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   not occur (e.g. &lt;tt&gt;:unless =&gt; :skip_validation&lt;/tt&gt;, or &lt;tt&gt;:unless =&gt; Proc.new { |user| user.signup_step &lt;= 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      def validates_acceptance_of(*attr_names)
+        configuration = { :message =&gt; ActiveRecord::Errors.default_error_messages[:accepted], :on =&gt; :save, :allow_nil =&gt; true, :accept =&gt; &quot;1&quot; }
+        configuration.update(attr_names.extract_options!)
+
+        db_cols = begin
+          column_names
+        rescue ActiveRecord::StatementInvalid
+          []
+        end
+        names = attr_names.reject { |name| db_cols.include?(name.to_s) }
+        attr_accessor(*names)
+
+        validates_each(attr_names,configuration) do |record, attr_name, value|
+          record.errors.add(attr_name, configuration[:message]) unless value == configuration[:accept]
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

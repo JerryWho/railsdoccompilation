@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Apr 13 22:28:31 +0200 2009</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,52 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/runner/formatter/profile_formatter.rb-</pre>
+    <pre>require 'spec/runner/formatter/progress_bar_formatter'
+
+module Spec
+  module Runner
+    module Formatter
+      class ProfileFormatter &lt; ProgressBarFormatter
+        
+        def initialize(options, where)
+          super
+          @example_times = []
+        end
+        
+        def start(count)
+          @output.puts &quot;Profiling enabled.&quot;
+        end
+        
+        def example_started(example)
+          @time = Time.now
+        end
+        
+        def example_passed(example)
+          super
+          @example_times &lt;&lt; [
+            example_group.description,
+            example.description,
+            Time.now - @time
+          ]
+        end
+        
+        def start_dump
+          super
+          @output.puts &quot;\n\nTop 10 slowest examples:\n&quot;
+          
+          @example_times = @example_times.sort_by do |description, example, time|
+            time
+          end.reverse
+          
+          @example_times[0..9].each do |description, example, time|
+            @output.print red(sprintf(&quot;%.7f&quot;, time))
+            @output.puts &quot; #{description} #{example}&quot;
+          end
+          @output.flush
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

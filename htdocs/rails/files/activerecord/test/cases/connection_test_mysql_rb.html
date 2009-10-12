@@ -1,0 +1,75 @@
+  <div id="fileHeader">
+    <h1>connection_test_mysql.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/connection_test_mysql.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+
+class MysqlConnectionTest &lt; ActiveRecord::TestCase
+  def setup
+    super
+    @connection = ActiveRecord::Base.connection
+  end
+
+  def test_mysql_reconnect_attribute_after_connection_with_reconnect_true
+    run_without_connection do |orig_connection|
+      ActiveRecord::Base.establish_connection(orig_connection.merge({:reconnect =&gt; true}))
+      assert ActiveRecord::Base.connection.raw_connection.reconnect
+    end
+  end
+
+  def test_mysql_reconnect_attribute_after_connection_with_reconnect_false
+    run_without_connection do |orig_connection|
+      ActiveRecord::Base.establish_connection(orig_connection.merge({:reconnect =&gt; false}))
+      assert !ActiveRecord::Base.connection.raw_connection.reconnect
+    end
+  end
+
+  def test_no_automatic_reconnection_after_timeout
+    assert @connection.active?
+    @connection.update('set @@wait_timeout=1')
+    sleep 2
+    assert !@connection.active?
+  end
+
+  def test_successful_reconnection_after_timeout_with_manual_reconnect
+    assert @connection.active?
+    @connection.update('set @@wait_timeout=1')
+    sleep 2
+    @connection.reconnect!
+    assert @connection.active?
+  end
+
+  def test_successful_reconnection_after_timeout_with_verify
+    assert @connection.active?
+    @connection.update('set @@wait_timeout=1')
+    sleep 2
+    @connection.verify!
+    assert @connection.active?
+  end
+
+  private
+
+  def run_without_connection
+    original_connection = ActiveRecord::Base.remove_connection
+    begin
+      yield original_connection
+    ensure
+      ActiveRecord::Base.establish_connection(original_connection)
+    end
+  end
+end
+</pre>
+    </div>

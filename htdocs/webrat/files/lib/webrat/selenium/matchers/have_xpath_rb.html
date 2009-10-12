@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Apr 13 22:33:30 +0200 2009</td>
+      <td>Mon Oct 12 14:57:29 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,50 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/webrat/newdoc/lib/webrat/selenium/matchers/have_xpath.rb-</pre>
+    <pre>module Webrat
+  module Selenium
+    module Matchers
+      class HaveXpath
+        def initialize(expected)
+          @expected = expected
+        end
+
+        def matches?(response)
+          response.session.wait_for do
+            response.selenium.is_element_present(&quot;xpath=#{@expected}&quot;)
+          end
+          rescue Webrat::TimeoutError
+            false
+        end
+
+        # ==== Returns
+        # String:: The failure message.
+        def failure_message
+          &quot;expected following text to match xpath #{@expected}:\n#{@document}&quot;
+        end
+
+        # ==== Returns
+        # String:: The failure message to be displayed in negative matches.
+        def negative_failure_message
+          &quot;expected following text to not match xpath #{@expected}:\n#{@document}&quot;
+        end
+      end
+
+      def have_xpath(xpath)
+        HaveXpath.new(xpath)
+      end
+
+      def assert_have_xpath(expected)
+        hs = HaveXpath.new(expected)
+        assert hs.matches?(response), hs.failure_message
+      end
+
+      def assert_have_no_xpath(expected)
+        hs = HaveXpath.new(expected)
+        assert !hs.matches?(response), hs.negative_failure_message
+      end
+    end
+  end
+end
+</pre>
     </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 12:09:23 +0200 2009</td>
+      <td>Mon Oct 12 14:57:53 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,51 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/rspec/newdoc/lib/spec/example/predicate_matchers.rb-</pre>
+    <pre>module Spec
+  module Example
+    module PredicateMatchers
+      # :call-seq:
+      #   predicate_matchers[matcher_name] = method_on_object
+      #   predicate_matchers[matcher_name] = [method1_on_object, method2_on_object]
+      #
+      # Dynamically generates a custom matcher that will match
+      # a predicate on your class. RSpec provides a couple of these
+      # out of the box:
+      #
+      #   exist (for state expectations)
+      #     File.should exist(&quot;path/to/file&quot;)
+      #
+      #   an_instance_of (for mock argument matchers)
+      #     mock.should_receive(:message).with(an_instance_of(String))
+      #
+      # == Examples
+      #
+      #   class Fish
+      #     def can_swim?
+      #       true
+      #     end
+      #   end
+      #
+      #   describe Fish do
+      #     predicate_matchers[:swim] = :can_swim?
+      #     it &quot;should swim&quot; do
+      #       Fish.new.should swim
+      #     end
+      #   end
+      def predicate_matchers
+        @predicate_matchers ||= Spec::HashWithDeprecationNotice.new(&quot;predicate_matchers&quot;, &quot;the new Matcher DSL&quot;)
+      end
+
+      def define_methods_from_predicate_matchers # :nodoc:
+        predicate_matchers.each_pair do |matcher_method, method_on_object|
+          define_method matcher_method do |*args|
+            eval(&quot;be_#{method_on_object.to_s.gsub('?','')}(*args)&quot;)
+          end
+        end
+      end
+
+    end
+  end
+end
+</pre>
     </div>

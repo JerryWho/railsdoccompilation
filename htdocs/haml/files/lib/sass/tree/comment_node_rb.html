@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -18,20 +18,84 @@
     <pre>require 'sass/tree/node'
 
 module Sass::Tree
-  class CommentNode &lt; ValueNode
-    def initialize(value, style)
-      super(value[2..-1].strip, style)
+  # A static node representing a Sass comment (silent or loud).
+  #
+  # @see Sass::Tree
+  class CommentNode &lt; Node
+    # The lines of text nested beneath the comment.
+    #
+    # @return [Array&lt;Sass::Engine::Line&gt;]
+    attr_accessor :lines
+
+    # The text on the same line as the comment starter.
+    #
+    # @return [String]
+    attr_accessor :value
+
+    # Whether or not the comment is silent (that is, doesn't output to CSS).
+    #
+    # @return [Boolean]
+    attr_accessor :silent
+
+    # @param value [String] See \{#value}
+    # @param silent [Boolean] See \{#silent}
+    def initialize(value, silent)
+      @lines = []
+      @value = value[2..-1].strip
+      @silent = silent
+      super()
     end
 
-    def to_s(tabs = 0, parent_name = nil)
-      return if @style == :compressed
+    # Compares the contents of two comments.
+    #
+    # @param other [Object] The object to compare with
+    # @return [Boolean] Whether or not this node and the other object
+    #   are the same
+    def ==(other)
+      self.class == other.class &amp;&amp; value == other.value &amp;&amp; silent == other.silent &amp;&amp; lines == other.lines
+    end
 
+    # Computes the CSS for the comment.
+    #
+    # Returns `nil` if this is a silent comment
+    # or the current style doesn't render comments.
+    #
+    # @overload to_s(tabs = 0)
+    # @param tabs [Fixnum] The level of indentation for the CSS
+    # @return [String, nil] The resulting CSS
+    # @see #invisible?
+    def to_s(tabs = 0, _ = nil)
+      return if invisible?
       spaces = '  ' * (tabs - 1)
-      join_string = @style == :compact ? ' ' : &quot;\n#{spaces} * &quot;
-      str = &quot;#{spaces}/* #{value}&quot;
-      str &lt;&lt; join_string unless children.empty?
-      str &lt;&lt; &quot;#{children.join join_string} */&quot;
-      str
+
+      content = (value.split(&quot;\n&quot;) + lines.map {|l| l.text})
+      return spaces + &quot;/* */&quot; if content.empty?
+      content.map! {|l| (l.empty? ? &quot;&quot; : &quot; &quot;) + l}
+      content.first.gsub!(/^ /, '')
+      content.last.gsub!(%r{ ?\*/ *$}, '')
+
+      spaces + &quot;/* &quot; + content.join(style == :compact ? '' : &quot;\n#{spaces} *&quot;) + &quot; */&quot;
+    end
+
+    # Returns `true` if this is a silent comment
+    # or the current style doesn't render comments.
+    #
+    # @return [Boolean]
+    def invisible?
+      style == :compressed || @silent
+    end
+
+    protected
+
+    # Removes this node from the tree if it's a silent comment.
+    #
+    # @param environment [Sass::Environment] The lexical environment containing
+    #   variable and mixin values
+    # @return [Tree::Node, Array&lt;Tree::Node&gt;] The resulting static nodes
+    # @see Sass::Tree
+    def _perform(environment)
+      return [] if @silent
+      self
     end
   end
 end

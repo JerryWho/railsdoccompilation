@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:18:53 +0100 2009</td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -18,21 +18,21 @@
     <pre>require 'haml/engine'
 
 module Haml
-  class Template
-    class &lt;&lt; self
-      @@options = {}
+  # The class that keeps track of the global options for Haml within Rails.
+  module Template
+    extend self
 
-      # Gets various options for Haml. See README.rdoc for details.
-      def options
-        @@options
-      end
-
-      # Sets various options for Haml. See README.rdoc for details.
-      def options=(value)
-        @@options = value
-      end
-    end
+    @options = {}
+    # The options hash for Haml when used within Rails.
+    # See {file:HAML_REFERENCE.md#haml_options the Haml options documentation}.
+    #
+    # @return [Hash&lt;Symbol, Object&gt;]
+    attr_accessor :options
   end
+end
+
+if defined?(RAILS_ENV) &amp;&amp; RAILS_ENV == &quot;production&quot;
+  Haml::Template.options[:ugly] = true
 end
 
 # Decide how we want to load Haml into Rails.
@@ -52,7 +52,7 @@ if defined?(RAILS_ROOT)
   # because the new init file is sufficiently flexible
   # to not need updating.
   rails_init_file = File.join(RAILS_ROOT, 'vendor', 'plugins', 'haml', 'init.rb')
-  haml_init_file = Haml.scope('init.rb')
+  haml_init_file = Haml::Util.scope('init.rb')
   begin
     if File.exists?(rails_init_file)
       require 'fileutils'

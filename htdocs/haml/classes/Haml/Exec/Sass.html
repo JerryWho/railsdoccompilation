@@ -1,0 +1,158 @@
+  <div id="C00000058">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Sass<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/haml/exec_rb.html');">lib/haml/exec.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Haml/Exec/HamlSass.html');">
+HamlSass
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+The `sass` executable.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000402&name=new" >new</a></li>
+  <li><a href="index.html?a=M000404&name=process_result" >process_result</a></li>
+  <li><a href="index.html?a=M000403&name=set_opts" >set_opts</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M000402" class="method">
+  <div id="M000402_title" class="title">
+    <b>new</b>(args)
+  </div>
+  <div class="description">
+  <p>
+@param args [Array&lt;String&gt;] The command-line arguments
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000402_source')" id="l_M000402_source">show source</a> ]</p>
+  <div id="M000402_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/haml/exec.rb, line 200</span>
+200:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">args</span>)
+201:         <span class="ruby-keyword kw">super</span>
+202:         <span class="ruby-ivar">@name</span> = <span class="ruby-value str">&quot;Sass&quot;</span>
+203:         <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:load_paths</span>] = [<span class="ruby-value str">'.'</span>] <span class="ruby-operator">+</span> (<span class="ruby-constant">ENV</span>[<span class="ruby-value str">'SASSPATH'</span>] <span class="ruby-operator">||</span> <span class="ruby-value str">''</span>).<span class="ruby-identifier">split</span>(<span class="ruby-constant">File</span><span class="ruby-operator">::</span><span class="ruby-constant">PATH_SEPARATOR</span>)
+204:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Protected Instance methods</div>
+<div id="M000404" class="method">
+  <div id="M000404_title" class="title">
+    <b>process_result</b>()
+  </div>
+  <div class="description">
+  <p>
+Processes the options set by the command-line arguments, and runs the <a
+href="index.html?a=C00000058&name=Sass">Sass</a> compiler appropriately.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000404_source')" id="l_M000404_source">show source</a> ]</p>
+  <div id="M000404_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/haml/exec.rb, line 239</span>
+239:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">process_result</span>
+240:         <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:interactive</span>]
+241:           <span class="ruby-identifier">require</span> <span class="ruby-value str">'sass'</span>
+242:           <span class="ruby-identifier">require</span> <span class="ruby-value str">'sass/repl'</span>
+243:           <span class="ruby-operator">::</span><span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Repl</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@options</span>).<span class="ruby-identifier">run</span>
+244:           <span class="ruby-keyword kw">return</span>
+245:         <span class="ruby-keyword kw">end</span>
+246: 
+247:         <span class="ruby-keyword kw">super</span>
+248:         <span class="ruby-identifier">input</span> = <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:input</span>]
+249:         <span class="ruby-identifier">output</span> = <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:output</span>]
+250: 
+251:         <span class="ruby-identifier">tree</span> =
+252:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">input</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">File</span>) <span class="ruby-operator">&amp;&amp;</span> <span class="ruby-operator">!</span><span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:check_syntax</span>]
+253:             <span class="ruby-operator">::</span><span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Files</span>.<span class="ruby-identifier">tree_for</span>(<span class="ruby-identifier">input</span>.<span class="ruby-identifier">path</span>, <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>])
+254:           <span class="ruby-keyword kw">else</span>
+255:             <span class="ruby-comment cmt"># We don't need to do any special handling of @options[:check_syntax] here,</span>
+256:             <span class="ruby-comment cmt"># because the Sass syntax checking happens alongside evaluation</span>
+257:             <span class="ruby-comment cmt"># and evaluation doesn't actually evaluate any code anyway.</span>
+258:             <span class="ruby-operator">::</span><span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Engine</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">input</span>.<span class="ruby-identifier">read</span>(), <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>]).<span class="ruby-identifier">to_tree</span>
+259:           <span class="ruby-keyword kw">end</span>
+260: 
+261:         <span class="ruby-identifier">input</span>.<span class="ruby-identifier">close</span>() <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">input</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">File</span>)
+262: 
+263:         <span class="ruby-identifier">output</span>.<span class="ruby-identifier">write</span>(<span class="ruby-identifier">tree</span>.<span class="ruby-identifier">render</span>)
+264:         <span class="ruby-identifier">output</span>.<span class="ruby-identifier">close</span>() <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">output</span>.<span class="ruby-identifier">is_a?</span> <span class="ruby-constant">File</span>
+265:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-operator">::</span><span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">SyntaxError</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+266:         <span class="ruby-identifier">raise</span> <span class="ruby-identifier">e</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:trace</span>]
+267:         <span class="ruby-identifier">raise</span> <span class="ruby-node">&quot;Syntax error on line #{get_line e}: #{e.message}&quot;</span>
+268:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000403" class="method">
+  <div id="M000403_title" class="title">
+    <b>set_opts</b>(opts)
+  </div>
+  <div class="description">
+  <p>
+Tells optparse how to parse the arguments.
+</p>
+<p>
+@param opts [OptionParser]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000403_source')" id="l_M000403_source">show source</a> ]</p>
+  <div id="M000403_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/haml/exec.rb, line 211</span>
+211:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">set_opts</span>(<span class="ruby-identifier">opts</span>)
+212:         <span class="ruby-keyword kw">super</span>
+213: 
+214:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-t'</span>, <span class="ruby-value str">'--style NAME'</span>,
+215:                 <span class="ruby-value str">'Output style. Can be nested (default), compact, compressed, or expanded.'</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">name</span><span class="ruby-operator">|</span>
+216:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:style</span>] = <span class="ruby-identifier">name</span>.<span class="ruby-identifier">to_sym</span>
+217:         <span class="ruby-keyword kw">end</span>
+218:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-l'</span>, <span class="ruby-value str">'--line-comments'</span>,
+219:                 <span class="ruby-value str">'Line Comments. Emit comments in the generated CSS indicating the corresponding sass line.'</span>) <span class="ruby-keyword kw">do</span>
+220:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:line_comments</span>] = <span class="ruby-keyword kw">true</span>
+221:         <span class="ruby-keyword kw">end</span>
+222:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-i'</span>, <span class="ruby-value str">'--interactive'</span>,
+223:                 <span class="ruby-value str">'Run an interactive SassScript shell.'</span>) <span class="ruby-keyword kw">do</span>
+224:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:interactive</span>] = <span class="ruby-keyword kw">true</span>
+225:         <span class="ruby-keyword kw">end</span>
+226:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-I'</span>, <span class="ruby-value str">'--load-path PATH'</span>, <span class="ruby-value str">'Add a sass import path.'</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">path</span><span class="ruby-operator">|</span>
+227:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:load_paths</span>] <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">path</span>
+228:         <span class="ruby-keyword kw">end</span>
+229:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'--cache-location'</span>, <span class="ruby-value str">'The path to put cached Sass files. Defaults to .sass-cache.'</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">loc</span><span class="ruby-operator">|</span>
+230:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:cache_location</span>] = <span class="ruby-identifier">path</span>
+231:         <span class="ruby-keyword kw">end</span>
+232:         <span class="ruby-identifier">opts</span>.<span class="ruby-identifier">on</span>(<span class="ruby-value str">'-C'</span>, <span class="ruby-value str">'--no-cache'</span>, <span class="ruby-value str">&quot;Don't cache to sassc files.&quot;</span>) <span class="ruby-keyword kw">do</span>
+233:           <span class="ruby-ivar">@options</span>[<span class="ruby-identifier">:for_engine</span>][<span class="ruby-identifier">:cache</span>] = <span class="ruby-keyword kw">false</span>
+234:         <span class="ruby-keyword kw">end</span>
+235:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

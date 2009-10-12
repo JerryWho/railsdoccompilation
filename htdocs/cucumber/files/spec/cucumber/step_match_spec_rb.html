@@ -1,0 +1,58 @@
+  <div id="fileHeader">
+    <h1>step_match_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/step_match_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../spec_helper'
+require 'cucumber/rb_support/rb_step_definition'
+require 'cucumber/rb_support/rb_language'
+
+module Cucumber
+  describe StepMatch do
+    before do
+      @rb_language = RbSupport::RbLanguage.new(nil)
+    end
+
+    def stepdef(regexp)
+      RbSupport::RbStepDefinition.new(@rb_language, regexp, lambda{})
+    end
+
+    it &quot;should format groups with format string&quot; do
+      m = stepdef(/I (\w+) (\d+) (\w+) this (\w+)/).step_match(&quot;I ate 1 egg this morning&quot;, nil)
+      m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;I &lt;span&gt;ate&lt;/span&gt; &lt;span&gt;1&lt;/span&gt; &lt;span&gt;egg&lt;/span&gt; this &lt;span&gt;morning&lt;/span&gt;&quot;
+    end
+
+    it &quot;should format groups with format string when there are dupes&quot; do
+      m = stepdef(/I (\w+) (\d+) (\w+) this (\w+)/).step_match(&quot;I bob 1 bo this bobs&quot;, nil)
+      m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;I &lt;span&gt;bob&lt;/span&gt; &lt;span&gt;1&lt;/span&gt; &lt;span&gt;bo&lt;/span&gt; this &lt;span&gt;bobs&lt;/span&gt;&quot;
+    end
+
+    it &quot;should format groups with block&quot; do
+      m = stepdef(/I (\w+) (\d+) (\w+) this (\w+)/).step_match(&quot;I ate 1 egg this morning&quot;, nil)
+      m.format_args(&amp;lambda{|m| &quot;&lt;span&gt;#{m}&lt;/span&gt;&quot;}).should == &quot;I &lt;span&gt;ate&lt;/span&gt; &lt;span&gt;1&lt;/span&gt; &lt;span&gt;egg&lt;/span&gt; this &lt;span&gt;morning&lt;/span&gt;&quot;
+    end
+
+    it &quot;should format groups with proc object&quot; do
+      m = stepdef(/I (\w+) (\d+) (\w+) this (\w+)/).step_match(&quot;I ate 1 egg this morning&quot;, nil)
+      m.format_args(lambda{|m| &quot;&lt;span&gt;#{m}&lt;/span&gt;&quot;}).should == &quot;I &lt;span&gt;ate&lt;/span&gt; &lt;span&gt;1&lt;/span&gt; &lt;span&gt;egg&lt;/span&gt; this &lt;span&gt;morning&lt;/span&gt;&quot;
+    end
+
+    it &quot;should format groups even when first group is optional and not matched&quot; do
+      m = stepdef(/should( not)? be flashed '([^']*?)'$/).step_match(&quot;I should be flashed 'Login failed.'&quot;, nil)
+      m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;I should be flashed '&lt;span&gt;Login failed.&lt;/span&gt;'&quot;
+    end
+  end
+end</pre>
+    </div>

@@ -1,0 +1,122 @@
+  <div id="fileHeader">
+    <h1>xml_params_parsing_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/request/xml_params_parsing_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class XmlParamsParsingTest &lt; ActionController::IntegrationTest
+  class TestController &lt; ActionController::Base
+    class &lt;&lt; self
+      attr_accessor :last_request_parameters
+    end
+
+    def parse
+      self.class.last_request_parameters = request.request_parameters
+      head :ok
+    end
+  end
+
+  def teardown
+    TestController.last_request_parameters = nil
+  end
+
+  test &quot;parses hash params&quot; do
+    with_test_routing do
+      xml = &quot;&lt;person&gt;&lt;name&gt;David&lt;/name&gt;&lt;/person&gt;&quot;
+      post &quot;/parse&quot;, xml, default_headers
+      assert_response :ok
+      assert_equal({&quot;person&quot; =&gt; {&quot;name&quot; =&gt; &quot;David&quot;}}, TestController.last_request_parameters)
+    end
+  end
+
+  test &quot;parses single file&quot; do
+    with_test_routing do
+      xml = &quot;&lt;person&gt;&lt;name&gt;David&lt;/name&gt;&lt;avatar type='file' name='me.jpg' content_type='image/jpg'&gt;#{ActiveSupport::Base64.encode64('ABC')}&lt;/avatar&gt;&lt;/person&gt;&quot;
+      post &quot;/parse&quot;, xml, default_headers
+      assert_response :ok
+
+      person = TestController.last_request_parameters
+      assert_equal &quot;image/jpg&quot;, person['person']['avatar'].content_type
+      assert_equal &quot;me.jpg&quot;, person['person']['avatar'].original_filename
+      assert_equal &quot;ABC&quot;, person['person']['avatar'].read
+    end
+  end
+
+  test &quot;logs error if parsing unsuccessful&quot; do
+    with_test_routing do
+      begin
+        $stderr = StringIO.new
+        xml = &quot;&lt;person&gt;&lt;name&gt;David&lt;/name&gt;&lt;avatar type='file' name='me.jpg' content_type='image/jpg'&gt;#{ActiveSupport::Base64.encode64('ABC')}&lt;/avatar&gt;&lt;/pineapple&gt;&quot;
+        post &quot;/parse&quot;, xml, default_headers
+        assert_response :error
+        $stderr.rewind &amp;&amp; err = $stderr.read
+        assert err =~ /Error occurred while parsing request parameters/
+      ensure
+        $stderr = STDERR
+      end
+    end
+  end
+
+  test &quot;parses multiple files&quot; do
+    xml = &lt;&lt;-end_body
+      &lt;person&gt;
+        &lt;name&gt;David&lt;/name&gt;
+        &lt;avatars&gt;
+          &lt;avatar type='file' name='me.jpg' content_type='image/jpg'&gt;#{ActiveSupport::Base64.encode64('ABC')}&lt;/avatar&gt;
+          &lt;avatar type='file' name='you.gif' content_type='image/gif'&gt;#{ActiveSupport::Base64.encode64('DEF')}&lt;/avatar&gt;
+        &lt;/avatars&gt;
+      &lt;/person&gt;
+    end_body
+
+    with_test_routing do
+      post &quot;/parse&quot;, xml, default_headers
+      assert_response :ok
+    end
+
+    person = TestController.last_request_parameters
+
+    assert_equal &quot;image/jpg&quot;, person['person']['avatars']['avatar'].first.content_type
+    assert_equal &quot;me.jpg&quot;, person['person']['avatars']['avatar'].first.original_filename
+    assert_equal &quot;ABC&quot;, person['person']['avatars']['avatar'].first.read
+
+    assert_equal &quot;image/gif&quot;, person['person']['avatars']['avatar'].last.content_type
+    assert_equal &quot;you.gif&quot;, person['person']['avatars']['avatar'].last.original_filename
+    assert_equal &quot;DEF&quot;, person['person']['avatars']['avatar'].last.read
+  end
+
+  private
+    def with_test_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.connect ':action', :controller =&gt; &quot;xml_params_parsing_test/test&quot;
+        end
+        yield
+      end
+    end
+
+    def default_headers
+      {'CONTENT_TYPE' =&gt; 'application/xml'}
+    end
+end
+
+class LegacyXmlParamsParsingTest &lt; XmlParamsParsingTest
+  private
+    def default_headers
+      {'HTTP_X_POST_DATA_FORMAT' =&gt; 'xml'}
+    end
+end
+</pre>
+    </div>

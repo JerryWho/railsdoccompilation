@@ -1,0 +1,241 @@
+  <div id="C00000713">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />RailsFCGIHandlerSignalsTest<br/>
+  In:
+<a href="#" onclick="jsHref('files/railties/test/fcgi_dispatcher_test_rb.html');">railties/test/fcgi_dispatcher_test.rb</a>
+
+Parent:&nbsp;
+Test::Unit::TestCase
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M004631&name=setup" >setup</a></li>
+  <li><a href="index.html?a=M004632&name=test_interrupted_via_HUP_when_not_in_request" >test_interrupted_via_HUP_when_not_in_request</a></li>
+  <li><a href="index.html?a=M004635&name=test_interrupted_via_TERM" >test_interrupted_via_TERM</a></li>
+  <li><a href="index.html?a=M004633&name=test_interrupted_via_USR1_when_not_in_request" >test_interrupted_via_USR1_when_not_in_request</a></li>
+  <li><a href="index.html?a=M004634&name=test_restart_via_USR2_when_in_request" >test_restart_via_USR2_when_in_request</a></li>
+  <li><a href="index.html?a=M004637&name=test_runtime_error_in_dispatcher" >test_runtime_error_in_dispatcher</a></li>
+  <li><a href="index.html?a=M004636&name=test_runtime_exception_in_fcgi" >test_runtime_exception_in_fcgi</a></li>
+  <li><a href="index.html?a=M004639&name=test_signal_exception_in_dispatcher" >test_signal_exception_in_dispatcher</a></li>
+  <li><a href="index.html?a=M004638&name=test_signal_exception_in_fcgi" >test_signal_exception_in_fcgi</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M004631" class="method">
+  <div id="M004631_title" class="title">
+    <b>setup</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004631_source')" id="l_M004631_source">show source</a> ]</p>
+  <div id="M004631_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 136</span>
+136:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setup</span>
+137:     <span class="ruby-ivar">@log</span> = <span class="ruby-constant">StringIO</span>.<span class="ruby-identifier">new</span>
+138:     <span class="ruby-ivar">@handler</span> = <span class="ruby-constant">RailsFCGIHandler</span>.<span class="ruby-identifier">new</span>(<span class="ruby-ivar">@log</span>)
+139:     <span class="ruby-ivar">@dispatcher</span> = <span class="ruby-identifier">mock</span>
+140:     <span class="ruby-constant">Dispatcher</span>.<span class="ruby-identifier">stubs</span>(<span class="ruby-identifier">:new</span>).<span class="ruby-identifier">returns</span>(<span class="ruby-ivar">@dispatcher</span>)
+141:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004632" class="method">
+  <div id="M004632_title" class="title">
+    <b>test_interrupted_via_HUP_when_not_in_request</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004632_source')" id="l_M004632_source">show source</a> ]</p>
+  <div id="M004632_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 143</span>
+143:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_interrupted_via_HUP_when_not_in_request</span>
+144:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+145:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+146:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:signal</span>).<span class="ruby-identifier">times</span>(<span class="ruby-value">2</span>).<span class="ruby-identifier">returns</span>(<span class="ruby-value str">'HUP'</span>)
+147: 
+148:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:reload!</span>).<span class="ruby-identifier">once</span>
+149:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:close_connection</span>).<span class="ruby-identifier">never</span>
+150:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:exit</span>).<span class="ruby-identifier">never</span>
+151: 
+152:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+153:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-identifier">:reload</span>, <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">when_ready</span>
+154:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004635" class="method">
+  <div id="M004635_title" class="title">
+    <b>test_interrupted_via_TERM</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004635_source')" id="l_M004635_source">show source</a> ]</p>
+  <div id="M004635_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 185</span>
+185:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_interrupted_via_TERM</span>
+186:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+187:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+188:     <span class="ruby-operator">::</span><span class="ruby-constant">Rack</span><span class="ruby-operator">::</span><span class="ruby-constant">Handler</span><span class="ruby-operator">::</span><span class="ruby-constant">FastCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:serve</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">returns</span>(<span class="ruby-value str">'TERM'</span>)
+189: 
+190:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:reload!</span>).<span class="ruby-identifier">never</span>
+191:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:close_connection</span>).<span class="ruby-identifier">never</span>
+192: 
+193:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+194:     <span class="ruby-identifier">assert_nil</span> <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">when_ready</span>
+195:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004633" class="method">
+  <div id="M004633_title" class="title">
+    <b>test_interrupted_via_USR1_when_not_in_request</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004633_source')" id="l_M004633_source">show source</a> ]</p>
+  <div id="M004633_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 156</span>
+156:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_interrupted_via_USR1_when_not_in_request</span>
+157:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+158:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+159:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:signal</span>).<span class="ruby-identifier">times</span>(<span class="ruby-value">2</span>).<span class="ruby-identifier">returns</span>(<span class="ruby-value str">'USR1'</span>)
+160:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:exit_handler</span>).<span class="ruby-identifier">never</span>
+161: 
+162:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:reload!</span>).<span class="ruby-identifier">never</span>
+163:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:close_connection</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">request</span>).<span class="ruby-identifier">once</span>
+164:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:exit</span>).<span class="ruby-identifier">never</span>
+165: 
+166:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+167:     <span class="ruby-identifier">assert_nil</span> <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">when_ready</span>
+168:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004634" class="method">
+  <div id="M004634_title" class="title">
+    <b>test_restart_via_USR2_when_in_request</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004634_source')" id="l_M004634_source">show source</a> ]</p>
+  <div id="M004634_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 170</span>
+170:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_restart_via_USR2_when_in_request</span>
+171:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+172:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+173:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:signal</span>).<span class="ruby-identifier">times</span>(<span class="ruby-value">2</span>).<span class="ruby-identifier">returns</span>(<span class="ruby-value str">'USR2'</span>)
+174:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:exit_handler</span>).<span class="ruby-identifier">never</span>
+175: 
+176:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:reload!</span>).<span class="ruby-identifier">never</span>
+177:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:close_connection</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">request</span>).<span class="ruby-identifier">once</span>
+178:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:exit</span>).<span class="ruby-identifier">never</span>
+179:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:restart!</span>).<span class="ruby-identifier">once</span>
+180: 
+181:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+182:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-identifier">:restart</span>, <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">when_ready</span>
+183:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004637" class="method">
+  <div id="M004637_title" class="title">
+    <b>test_runtime_error_in_dispatcher</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004637_source')" id="l_M004637_source">show source</a> ]</p>
+  <div id="M004637_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 205</span>
+205:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_runtime_error_in_dispatcher</span>
+206:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+207:     <span class="ruby-identifier">error</span> = <span class="ruby-constant">RuntimeError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'foo'</span>)
+208:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+209:     <span class="ruby-operator">::</span><span class="ruby-constant">Rack</span><span class="ruby-operator">::</span><span class="ruby-constant">Handler</span><span class="ruby-operator">::</span><span class="ruby-constant">FastCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:serve</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">raises</span>(<span class="ruby-identifier">error</span>)
+210:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:dispatcher_error</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">regexp_matches</span>(<span class="ruby-regexp re">/^unhandled/</span>))
+211:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+212:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004636" class="method">
+  <div id="M004636_title" class="title">
+    <b>test_runtime_exception_in_fcgi</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004636_source')" id="l_M004636_source">show source</a> ]</p>
+  <div id="M004636_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 197</span>
+197:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_runtime_exception_in_fcgi</span>
+198:     <span class="ruby-identifier">error</span> = <span class="ruby-constant">RuntimeError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'foo'</span>)
+199:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">times</span>(<span class="ruby-value">2</span>).<span class="ruby-identifier">raises</span>(<span class="ruby-identifier">error</span>)
+200:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:dispatcher_error</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">regexp_matches</span>(<span class="ruby-regexp re">/^retrying/</span>))
+201:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:dispatcher_error</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">regexp_matches</span>(<span class="ruby-regexp re">/^stopping/</span>))
+202:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+203:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004639" class="method">
+  <div id="M004639_title" class="title">
+    <b>test_signal_exception_in_dispatcher</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004639_source')" id="l_M004639_source">show source</a> ]</p>
+  <div id="M004639_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 221</span>
+221:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_signal_exception_in_dispatcher</span>
+222:     <span class="ruby-identifier">request</span> = <span class="ruby-identifier">mock</span>
+223:     <span class="ruby-identifier">error</span> = <span class="ruby-constant">SignalException</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'USR2'</span>)
+224:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">yields</span>(<span class="ruby-identifier">request</span>)
+225:     <span class="ruby-operator">::</span><span class="ruby-constant">Rack</span><span class="ruby-operator">::</span><span class="ruby-constant">Handler</span><span class="ruby-operator">::</span><span class="ruby-constant">FastCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:serve</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">raises</span>(<span class="ruby-identifier">error</span>)
+226:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:dispatcher_error</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">regexp_matches</span>(<span class="ruby-regexp re">/^stopping/</span>))
+227:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+228:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004638" class="method">
+  <div id="M004638_title" class="title">
+    <b>test_signal_exception_in_fcgi</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004638_source')" id="l_M004638_source">show source</a> ]</p>
+  <div id="M004638_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File railties/test/fcgi_dispatcher_test.rb, line 214</span>
+214:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_signal_exception_in_fcgi</span>
+215:     <span class="ruby-identifier">error</span> = <span class="ruby-constant">SignalException</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">'USR2'</span>)
+216:     <span class="ruby-constant">FCGI</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:each</span>).<span class="ruby-identifier">once</span>.<span class="ruby-identifier">raises</span>(<span class="ruby-identifier">error</span>)
+217:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">expects</span>(<span class="ruby-identifier">:dispatcher_error</span>).<span class="ruby-identifier">with</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">regexp_matches</span>(<span class="ruby-regexp re">/^stopping/</span>))
+218:     <span class="ruby-ivar">@handler</span>.<span class="ruby-identifier">process!</span>
+219:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

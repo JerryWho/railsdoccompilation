@@ -1,0 +1,63 @@
+  <div id="fileHeader">
+    <h1>rails.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/selenium/application_servers/rails.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:29 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;webrat/selenium/application_servers/base&quot;
+
+module Webrat
+  module Selenium
+    module ApplicationServers
+      class Rails &lt; Webrat::Selenium::ApplicationServers::Base
+
+        def start
+          system start_command
+        end
+
+        def stop
+          silence_stream(STDOUT) do
+            system stop_command
+          end
+        end
+
+        def fail
+          $stderr.puts
+          $stderr.puts
+          $stderr.puts &quot;==&gt; Failed to boot the Rails application server... exiting!&quot;
+          $stderr.puts
+          $stderr.puts &quot;Verify you can start a Rails server on port #{Webrat.configuration.application_port} with the following command:&quot;
+          $stderr.puts
+          $stderr.puts &quot;    #{start_command}&quot;
+          exit
+        end
+
+        def pid_file
+          prepare_pid_file(&quot;#{RAILS_ROOT}/tmp/pids&quot;, &quot;mongrel_selenium.pid&quot;)
+        end
+
+        def start_command
+        &quot;mongrel_rails start -d --chdir='#{RAILS_ROOT}' --port=#{Webrat.configuration.application_port} --environment=#{Webrat.configuration.application_environment} --pid #{pid_file} &amp;&quot;
+        end
+
+        def stop_command
+        &quot;mongrel_rails stop -c #{RAILS_ROOT} --pid #{pid_file}&quot;
+        end
+
+      end
+    end
+  end
+end
+</pre>
+    </div>

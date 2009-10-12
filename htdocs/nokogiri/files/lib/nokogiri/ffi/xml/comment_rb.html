@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,23 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/ffi/xml/comment.rb-</pre>
+    <pre>module Nokogiri
+  module XML
+    class Comment &lt; Node
+      
+      def self.new(document, content, *rest) # :nodoc:
+        node_ptr = LibXML.xmlNewDocComment(document.cstruct, content)
+        node_cstruct = LibXML::XmlNode.new(node_ptr)
+        node_cstruct.keep_reference_from_document!
+
+        node = Node.wrap(node_ptr, self)
+        node.send :initialize, document, content, *rest
+        yield node if block_given?
+        node
+      end
+
+    end
+  end
+end
+</pre>
     </div>

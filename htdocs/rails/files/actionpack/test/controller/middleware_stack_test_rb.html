@@ -1,0 +1,109 @@
+  <div id="fileHeader">
+    <h1>middleware_stack_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/middleware_stack_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class MiddlewareStackTest &lt; ActiveSupport::TestCase
+  class FooMiddleware; end
+  class BarMiddleware; end
+  class BazMiddleware; end
+
+  def setup
+    @stack = ActionController::MiddlewareStack.new
+    @stack.use FooMiddleware
+    @stack.use BarMiddleware
+  end
+
+  test &quot;use should push middleware as class onto the stack&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use BazMiddleware
+    end
+    assert_equal BazMiddleware, @stack.last.klass
+  end
+
+  test &quot;use should push middleware as a string onto the stack&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use &quot;MiddlewareStackTest::BazMiddleware&quot;
+    end
+    assert_equal BazMiddleware, @stack.last.klass
+  end
+
+  test &quot;use should push middleware as a symbol onto the stack&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use :&quot;MiddlewareStackTest::BazMiddleware&quot;
+    end
+    assert_equal BazMiddleware, @stack.last.klass
+  end
+
+  test &quot;use should push middleware class with arguments onto the stack&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use BazMiddleware, true, :foo =&gt; &quot;bar&quot;
+    end
+    assert_equal BazMiddleware, @stack.last.klass
+    assert_equal([true, {:foo =&gt; &quot;bar&quot;}], @stack.last.args)
+  end
+
+  test &quot;insert inserts middleware at the integer index&quot; do
+    @stack.insert(1, BazMiddleware)
+    assert_equal BazMiddleware, @stack[1].klass
+  end
+
+  test &quot;insert_after inserts middleware after the integer index&quot; do
+    @stack.insert_after(1, BazMiddleware)
+    assert_equal BazMiddleware, @stack[2].klass
+  end
+
+  test &quot;insert_before inserts middleware before another middleware class&quot; do
+    @stack.insert_before(BarMiddleware, BazMiddleware)
+    assert_equal BazMiddleware, @stack[1].klass
+  end
+
+  test &quot;insert_after inserts middleware after another middleware class&quot; do
+    @stack.insert_after(BarMiddleware, BazMiddleware)
+    assert_equal BazMiddleware, @stack[2].klass
+  end
+
+  test &quot;swaps one middleware out for another&quot; do
+    assert_equal FooMiddleware, @stack[0].klass
+    @stack.swap(FooMiddleware, BazMiddleware)
+    assert_equal BazMiddleware, @stack[0].klass
+  end
+
+  test &quot;active returns all only enabled middleware&quot; do
+    assert_no_difference &quot;@stack.active.size&quot; do
+      assert_difference &quot;@stack.size&quot; do
+        @stack.use BazMiddleware, :if =&gt; lambda { false }
+      end
+    end
+  end
+
+  test &quot;lazy evaluates middleware class&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use lambda { BazMiddleware }
+    end
+    assert_equal BazMiddleware, @stack.last.klass
+  end
+
+  test &quot;lazy evaluates middleware arguments&quot; do
+    assert_difference &quot;@stack.size&quot; do
+      @stack.use BazMiddleware, lambda { :foo }
+    end
+    assert_equal [:foo], @stack.last.send(:build_args)
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,202 @@
+  <div id="fileHeader">
+    <h1>color.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/script/color.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'sass/script/literal'
+
+module Sass::Script
+  # A SassScript object representing a CSS color.
+  class Color &lt; Literal
+    class &lt;&lt; self; include Haml::Util; end
+
+    # A hash from color names to [red, green, blue] value arrays.
+    HTML4_COLORS = map_vals({
+        'black'   =&gt; 0x000000,
+        'silver'  =&gt; 0xc0c0c0,
+        'gray'    =&gt; 0x808080,
+        'white'   =&gt; 0xffffff,
+        'maroon'  =&gt; 0x800000,
+        'red'     =&gt; 0xff0000,
+        'purple'  =&gt; 0x800080,
+        'fuchsia' =&gt; 0xff00ff,
+        'green'   =&gt; 0x008000,
+        'lime'    =&gt; 0x00ff00,
+        'olive'   =&gt; 0x808000,
+        'yellow'  =&gt; 0xffff00,
+        'navy'    =&gt; 0x000080,
+        'blue'    =&gt; 0x0000ff,
+        'teal'    =&gt; 0x008080,
+        'aqua'    =&gt; 0x00ffff
+      }) {|color| (0..2).map {|n| color &gt;&gt; (n &lt;&lt; 3) &amp; 0xff}.reverse}
+    # A hash from [red, green, blue] value arrays to color names.
+    HTML4_COLORS_REVERSE = map_hash(HTML4_COLORS) {|k, v| [v, k]}
+
+    # @param rgb [Array&lt;Fixnum&gt;] A three-element array of the red, green, and blue values (respectively)
+    #   of the color
+    # @raise [Sass::SyntaxError] if any color value isn't between 0 and 255
+    def initialize(rgb)
+      rgb = rgb.map {|c| c.to_i}
+      raise Sass::SyntaxError.new(&quot;Color values must be between 0 and 255&quot;) if rgb.any? {|c| c &lt; 0 || c &gt; 255}
+      super(rgb)
+    end
+
+    # The SassScript `+` operation.
+    # Its functionality depends on the type of its argument:
+    #
+    # {Number}
+    # : Adds the number to each of the RGB color channels.
+    #
+    # {Color}
+    # : Adds each of the RGB color channels together.
+    #
+    # {Literal}
+    # : See {Literal#plus}.
+    #
+    # @param other [Literal] The right-hand side of the operator
+    # @return [Color] The resulting color
+    # @raise [Sass::SyntaxError] if `other` is a number with units
+    def plus(other)
+      if other.is_a?(Sass::Script::Number) || other.is_a?(Sass::Script::Color)
+        piecewise(other, :+)
+      else
+        super
+      end
+    end
+
+    # The SassScript `-` operation.
+    # Its functionality depends on the type of its argument:
+    #
+    # {Number}
+    # : Subtracts the number from each of the RGB color channels.
+    #
+    # {Color}
+    # : Subtracts each of the other color's RGB color channels from this color's.
+    #
+    # {Literal}
+    # : See {Literal#minus}.
+    #
+    # @param other [Literal] The right-hand side of the operator
+    # @return [Color] The resulting color
+    # @raise [Sass::SyntaxError] if `other` is a number with units
+    def minus(other)
+      if other.is_a?(Sass::Script::Number) || other.is_a?(Sass::Script::Color)
+        piecewise(other, :-)
+      else
+        super
+      end
+    end
+
+    # The SassScript `*` operation.
+    # Its functionality depends on the type of its argument:
+    #
+    # {Number}
+    # : Multiplies the number by each of the RGB color channels.
+    #
+    # {Color}
+    # : Multiplies each of the RGB color channels together.
+    #
+    # {Literal}
+    # : See {Literal#times}.
+    #
+    # @param other [Literal] The right-hand side of the operator
+    # @return [Color] The resulting color
+    # @raise [Sass::SyntaxError] if `other` is a number with units
+    def times(other)
+      if other.is_a?(Sass::Script::Number) || other.is_a?(Sass::Script::Color)
+        piecewise(other, :*)
+      else
+        raise NoMethodError.new(nil, :times)
+      end
+    end
+
+    # The SassScript `/` operation.
+    # Its functionality depends on the type of its argument:
+    #
+    # {Number}
+    # : Divides each of the RGB color channels by the number.
+    #
+    # {Color}
+    # : Divides each of this color's RGB color channels by the other color's.
+    #
+    # {Literal}
+    # : See {Literal#div}.
+    #
+    # @param other [Literal] The right-hand side of the operator
+    # @return [Color] The resulting color
+    # @raise [Sass::SyntaxError] if `other` is a number with units
+    def div(other)
+      if other.is_a?(Sass::Script::Number) || other.is_a?(Sass::Script::Color)
+        piecewise(other, :/)
+      else
+        super
+      end
+    end
+
+    # The SassScript `%` operation.
+    # Its functionality depends on the type of its argument:
+    #
+    # {Number}
+    # : Takes each of the RGB color channels module the number.
+    #
+    # {Color}
+    # : Takes each of this color's RGB color channels modulo the other color's.
+    #
+    # {Literal}
+    # : See {Literal#mod}.
+    #
+    # @param other [Literal] The right-hand side of the operator
+    # @return [Color] The resulting color
+    # @raise [Sass::SyntaxError] if `other` is a number with units
+    def mod(other)
+      if other.is_a?(Sass::Script::Number) || other.is_a?(Sass::Script::Color)
+        piecewise(other, :%)
+      else
+        raise NoMethodError.new(nil, :mod)
+      end
+    end
+
+    # Returns a string representation of the color.
+    # This is usually the color's hex value,
+    # but if the color has a name that's used instead.
+    #
+    # @return [String] The string representation
+    def to_s
+      return HTML4_COLORS_REVERSE[@value] if HTML4_COLORS_REVERSE[@value]
+      red, green, blue = @value.map { |num| num.to_s(16).rjust(2, '0') }
+      &quot;##{red}#{green}#{blue}&quot;
+    end
+    alias_method :inspect, :to_s
+
+    private
+
+    def piecewise(other, operation)
+      other_num = other.is_a? Number
+      other_val = other.value
+      if other_num &amp;&amp; !other.unitless?
+        raise Sass::SyntaxError.new(&quot;Cannot add a number with units (#{other}) to a color (#{self}).&quot;) 
+      end
+
+      rgb = []
+      for i in (0...3)
+        res = @value[i].send(operation, other_num ? other_val : other_val[i])
+        rgb[i] = [ [res, 255].min, 0 ].max
+      end
+      Color.new(rgb)
+    end
+  end
+end
+</pre>
+    </div>

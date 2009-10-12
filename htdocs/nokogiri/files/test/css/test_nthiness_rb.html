@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,164 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/css/test_nthiness.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+
+module Nokogiri
+  module CSS
+    class TestNthiness &lt; Nokogiri::TestCase
+      def setup
+        super
+        doc = &lt;&lt;EOF
+&lt;html&gt;
+&lt;table&gt;
+  &lt;tr&gt;&lt;td&gt;row1 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row2 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row3 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row4 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row5 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row6 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row7 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row8 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row9 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row10 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row11 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row12 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row13 &lt;/td&gt;&lt;/tr&gt;
+  &lt;tr&gt;&lt;td&gt;row14 &lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;div&gt;
+  &lt;b&gt;bold1 &lt;/b&gt;
+  &lt;i&gt;italic1 &lt;/i&gt;
+  &lt;b&gt;bold2 &lt;/b&gt;
+  &lt;i&gt;italic2 &lt;/i&gt;
+  &lt;p&gt;para1 &lt;/p&gt;
+  &lt;b&gt;bold3 &lt;/b&gt;
+&lt;/div&gt;
+&lt;div&gt;
+  &lt;p&gt;para2 &lt;/p&gt;
+  &lt;p&gt;para3 &lt;/p&gt;
+&lt;/div&gt;
+&lt;div&gt;
+  &lt;p&gt;para4 &lt;/p&gt;
+&lt;/div&gt;
+&lt;p class='empty'&gt;&lt;/p&gt;
+&lt;p class='not-empty'&gt;&lt;b&gt;&lt;/b&gt;&lt;/p&gt;
+&lt;/html&gt;
+EOF
+        @parser = Nokogiri.HTML doc
+      end
+
+
+      def test_even
+        assert_result_rows [2,4,6,8,10,12,14], @parser.search(&quot;table/tr:nth(even)&quot;)
+      end
+
+      def test_odd
+        assert_result_rows [1,3,5,7,9,11,13], @parser.search(&quot;table/tr:nth(odd)&quot;)
+      end
+
+      def test_2n
+        assert_equal @parser.search(&quot;table/tr:nth(even)&quot;).inner_text, @parser.search(&quot;table/tr:nth(2n)&quot;).inner_text
+      end
+
+      def test_2np1
+        assert_equal @parser.search(&quot;table/tr:nth(odd)&quot;).inner_text, @parser.search(&quot;table/tr:nth(2n+1)&quot;).inner_text
+      end
+
+      def test_4np3
+        assert_result_rows [3,7,11], @parser.search(&quot;table/tr:nth(4n+3)&quot;)
+      end
+
+      def test_3np4
+        assert_result_rows [4,7,10,13], @parser.search(&quot;table/tr:nth(3n+4)&quot;)
+      end
+
+      def test_mnp3
+        assert_result_rows [1,2,3], @parser.search(&quot;table/tr:nth(-n+3)&quot;)
+      end
+
+      def test_np3
+        assert_result_rows [3,4,5,6,7,8,9,10,11,12,13,14], @parser.search(&quot;table/tr:nth(n+3)&quot;)
+      end
+
+      def test_first
+        assert_result_rows [1], @parser.search(&quot;table/tr:first&quot;)
+        assert_result_rows [1], @parser.search(&quot;table/tr:first()&quot;)
+      end
+
+      def test_last
+        assert_result_rows [14], @parser.search(&quot;table/tr:last&quot;)
+        assert_result_rows [14], @parser.search(&quot;table/tr:last()&quot;)
+      end
+
+      def test_first_child
+        assert_result_rows [1], @parser.search(&quot;div/b:first-child&quot;), &quot;bold&quot;
+        assert_result_rows [1], @parser.search(&quot;table/tr:first-child&quot;)
+      end
+
+      def test_last_child
+        assert_result_rows [3], @parser.search(&quot;div/b:last-child&quot;), &quot;bold&quot;
+        assert_result_rows [14], @parser.search(&quot;table/tr:last-child&quot;)
+      end
+
+      def test_first_of_type
+        assert_result_rows [1], @parser.search(&quot;table/tr:first-of-type&quot;)
+        assert_result_rows [1], @parser.search(&quot;div/b:first-of-type&quot;), &quot;bold&quot;
+      end
+
+      def test_last_of_type
+        assert_result_rows [14], @parser.search(&quot;table/tr:last-of-type&quot;)
+        assert_result_rows [3], @parser.search(&quot;div/b:last-of-type&quot;), &quot;bold&quot;
+      end
+
+      def test_only_of_type
+        assert_result_rows [1,4], @parser.search(&quot;div/p:only-of-type&quot;), &quot;para&quot;
+      end
+
+      def test_only_child
+        assert_result_rows [4], @parser.search(&quot;div/p:only-child&quot;), &quot;para&quot;
+      end
+
+      def test_empty
+        result = @parser.search(&quot;p:empty&quot;)
+        assert_equal 1, result.size, &quot;unexpected number of rows returned: '#{result.inner_text}'&quot;
+        assert_equal 'empty', result.first['class']
+      end
+
+      def test_parent
+        result = @parser.search(&quot;p:parent&quot;)
+        assert_equal 5, result.size
+        0.upto(3) do |j|
+          assert_equal &quot;para#{j+1} &quot;, result[j].inner_text
+        end
+        assert_equal &quot;not-empty&quot;, result[4]['class']
+      end
+
+      def test_siblings
+        doc = &lt;&lt;-EOF
+&lt;html&gt;&lt;body&gt;&lt;div&gt;
+&lt;p id=&quot;1&quot;&gt;p1 &lt;/p&gt;
+&lt;p id=&quot;2&quot;&gt;p2 &lt;/p&gt;
+&lt;p id=&quot;3&quot;&gt;p3 &lt;/p&gt;
+&lt;p id=&quot;4&quot;&gt;p4 &lt;/p&gt;
+&lt;p id=&quot;5&quot;&gt;p5 &lt;/p&gt;
+EOF
+        parser = Nokogiri.HTML doc
+        assert_equal 2, parser.search(&quot;#3 ~ p&quot;).size
+        assert_equal &quot;p4 p5 &quot;, parser.search(&quot;#3 ~ p&quot;).inner_text
+        assert_equal 0, parser.search(&quot;#5 ~ p&quot;).size
+
+        assert_equal 1, parser.search(&quot;#3 + p&quot;).size
+        assert_equal &quot;p4 &quot;, parser.search(&quot;#3 + p&quot;).inner_text
+        assert_equal 0, parser.search(&quot;#5 + p&quot;).size
+      end
+
+      def assert_result_rows intarray, result, word=&quot;row&quot;
+        assert_equal intarray.size, result.size, &quot;unexpected number of rows returned: '#{result.inner_text}'&quot;
+        assert_equal intarray.map{|j| &quot;#{word}#{j}&quot;}.join(' '), result.inner_text.strip, result.inner_text
+      end
+    end
+  end
+end
+</pre>
     </div>

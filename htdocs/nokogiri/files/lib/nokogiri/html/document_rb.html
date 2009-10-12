@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:35:31 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,78 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/html/document.rb-</pre>
+    <pre>module Nokogiri
+  module HTML
+    class Document &lt; Nokogiri::XML::Document
+
+      def initialize *args
+        super
+      end
+
+      ####
+      # Serialize this Document with +encoding+ using +options+
+      def serialize *args
+        if args.first &amp;&amp; !args.first.is_a?(Hash)
+          $stderr.puts(&lt;&lt;-eowarn)
+#{self.class}#serialize(encoding, save_opts) is deprecated and will be removed in
+Nokogiri version 1.4.0 *or* after June 1 2009.
+You called serialize from here:
+
+  #{caller.join(&quot;\n&quot;)}
+
+Please change to #{self.class}#serialize(:encoding =&gt; enc, :save_with =&gt; opts)
+          eowarn
+        end
+
+        options = args.first.is_a?(Hash) ? args.shift : {
+          :encoding   =&gt; args[0],
+          :save_with  =&gt; args[1] || XML::Node::SaveOptions::FORMAT |
+            XML::Node::SaveOptions::AS_HTML |
+            XML::Node::SaveOptions::NO_DECLARATION |
+            XML::Node::SaveOptions::NO_EMPTY_TAGS
+        }
+        super(options)
+      end
+
+      ####
+      # Create a Nokogiri::XML::DocumentFragment from +tags+
+      def fragment tags
+        DocumentFragment.new(self, tags)
+      end
+
+      class &lt;&lt; self
+        ###
+        # Parse HTML.  +thing+ may be a String, or any object that
+        # responds to _read_ and _close_ such as an IO, or StringIO.
+        # +url+ is resource where this document is located.  +encoding+ is the
+        # encoding that should be used when processing the document. +options+
+        # is a number that sets options in the parser, such as
+        # Nokogiri::XML::ParseOptions::RECOVER.  See the constants in
+        # Nokogiri::XML::ParseOptions.
+        def parse string_or_io, url = nil, encoding = nil, options = XML::ParseOptions::DEFAULT_HTML, &amp;block
+
+          options = Nokogiri::XML::ParseOptions.new(options) if Fixnum === options
+          # Give the options to the user
+          yield options if block_given?
+
+          if string_or_io.respond_to?(:encoding)
+            encoding ||= string_or_io.encoding.name
+          end
+
+          if string_or_io.respond_to?(:read)
+            url ||= string_or_io.respond_to?(:path) ? string_or_io.path : nil
+            return self.read_io(string_or_io, url, encoding, options.to_i)
+          end
+
+          # read_memory pukes on empty docs
+          return self.new if string_or_io.nil? or string_or_io.empty?
+
+          self.read_memory(string_or_io, url, encoding, options.to_i)
+        end
+      end
+
+    end
+  end
+end
+</pre>
     </div>

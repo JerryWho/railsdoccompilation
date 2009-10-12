@@ -1,0 +1,258 @@
+  <div id="fileHeader">
+    <h1>fcgi_handler.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/fcgi_handler.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'fcgi'
+require 'logger'
+require 'dispatcher'
+require 'rbconfig'
+
+class RailsFCGIHandler
+  SIGNALS = {
+    'HUP'     =&gt; :reload,
+    'INT'     =&gt; :exit_now,
+    'TERM'    =&gt; :exit_now,
+    'USR1'    =&gt; :exit,
+    'USR2'    =&gt; :restart
+  }
+  GLOBAL_SIGNALS = SIGNALS.keys - %w(USR1)
+
+  attr_reader :when_ready
+
+  attr_accessor :log_file_path
+  attr_accessor :gc_request_period
+
+  # Initialize and run the FastCGI instance, passing arguments through to new.
+  def self.process!(*args, &amp;block)
+    new(*args, &amp;block).process!
+  end
+
+  # Initialize the FastCGI instance with the path to a crash log
+  # detailing unhandled exceptions (default RAILS_ROOT/log/fastcgi.crash.log)
+  # and the number of requests to process between garbage collection runs
+  # (default nil for normal GC behavior.)  Optionally, pass a block which
+  # takes this instance as an argument for further configuration.
+  def initialize(log_file_path = nil, gc_request_period = nil)
+    self.log_file_path = log_file_path || &quot;#{RAILS_ROOT}/log/fastcgi.crash.log&quot;
+    self.gc_request_period = gc_request_period
+
+    # Yield for additional configuration.
+    yield self if block_given?
+
+    # Safely install signal handlers.
+    install_signal_handlers
+
+    @app = Dispatcher.new
+
+    # Start error timestamp at 11 seconds ago.
+    @last_error_on = Time.now - 11
+  end
+
+  def process!(provider = FCGI)
+    mark_features!
+
+    dispatcher_log :info, 'starting'
+    process_each_request provider
+    dispatcher_log :info, 'stopping gracefully'
+
+  rescue Exception =&gt; error
+    case error
+    when SystemExit
+      dispatcher_log :info, 'stopping after explicit exit'
+    when SignalException
+      dispatcher_error error, 'stopping after unhandled signal'
+    else
+      # Retry if exceptions occur more than 10 seconds apart.
+      if Time.now - @last_error_on &gt; 10
+        @last_error_on = Time.now
+        dispatcher_error error, 'retrying after unhandled exception'
+        retry
+      else
+        dispatcher_error error, 'stopping after unhandled exception within 10 seconds of the last'
+      end
+    end
+  end
+
+  protected
+    def process_each_request(provider)
+      request = nil
+
+      catch :exit do
+        provider.each do |request|
+          process_request(request)
+
+          case when_ready
+            when :reload
+              reload!
+            when :restart
+              close_connection(request)
+              restart!
+            when :exit
+              close_connection(request)
+              throw :exit
+          end
+        end
+      end
+    rescue SignalException =&gt; signal
+      raise unless signal.message == 'SIGUSR1'
+      close_connection(request)
+    end
+
+    def process_request(request)
+      @processing, @when_ready = true, nil
+      gc_countdown
+
+      with_signal_handler 'USR1' do
+        begin
+          ::Rack::Handler::FastCGI.serve(request, @app)
+        rescue SignalException, SystemExit
+          raise
+        rescue Exception =&gt; error
+          dispatcher_error error, 'unhandled dispatch error'
+        end
+      end
+    ensure
+      @processing = false
+    end
+
+    def logger
+      @logger ||= Logger.new(@log_file_path)
+    end
+
+    def dispatcher_log(level, msg)
+      time_str = Time.now.strftime(&quot;%d/%b/%Y:%H:%M:%S&quot;)
+      logger.send(level, &quot;[#{time_str} :: #{$$}] #{msg}&quot;)
+    rescue Exception =&gt; log_error  # Logger errors
+      STDERR &lt;&lt; &quot;Couldn't write to #{@log_file_path.inspect}: #{msg}\n&quot;
+      STDERR &lt;&lt; &quot;  #{log_error.class}: #{log_error.message}\n&quot;
+    end
+
+    def dispatcher_error(e, msg = &quot;&quot;)
+      error_message =
+        &quot;Dispatcher failed to catch: #{e} (#{e.class})\n&quot; +
+        &quot;  #{e.backtrace.join(&quot;\n  &quot;)}\n#{msg}&quot;
+      dispatcher_log(:error, error_message)
+    end
+
+    def install_signal_handlers
+      GLOBAL_SIGNALS.each { |signal| install_signal_handler(signal) }
+    end
+
+    def install_signal_handler(signal, handler = nil)
+      if SIGNALS.include?(signal) &amp;&amp; self.class.method_defined?(name = &quot;#{SIGNALS[signal]}_handler&quot;)
+        handler ||= method(name).to_proc
+
+        begin
+          trap(signal, handler)
+        rescue ArgumentError
+          dispatcher_log :warn, &quot;Ignoring unsupported signal #{signal}.&quot;
+        end
+      else
+        dispatcher_log :warn, &quot;Ignoring unsupported signal #{signal}.&quot;
+      end
+    end
+
+    def with_signal_handler(signal)
+      install_signal_handler(signal)
+      yield
+    ensure
+      install_signal_handler(signal, 'DEFAULT')
+    end
+
+    def exit_now_handler(signal)
+      dispatcher_log :info, &quot;asked to stop immediately&quot;
+      exit
+    end
+
+    def exit_handler(signal)
+      dispatcher_log :info, &quot;asked to stop ASAP&quot;
+      if @processing
+        @when_ready = :exit
+      else
+        throw :exit
+      end
+    end
+
+    def reload_handler(signal)
+      dispatcher_log :info, &quot;asked to reload ASAP&quot;
+      if @processing
+        @when_ready = :reload
+      else
+        reload!
+      end
+    end
+
+    def restart_handler(signal)
+      dispatcher_log :info, &quot;asked to restart ASAP&quot;
+      if @processing
+        @when_ready = :restart
+      else
+        restart!
+      end
+    end
+
+    def restart!
+      config       = ::Config::CONFIG
+      ruby         = File::join(config['bindir'], config['ruby_install_name']) + config['EXEEXT']
+      command_line = [ruby, $0, ARGV].flatten.join(' ')
+
+      dispatcher_log :info, &quot;restarted&quot;
+
+      # close resources as they won't be closed by
+      # the OS when using exec
+      logger.close rescue nil
+      Rails.logger.close rescue nil
+
+      exec(command_line)
+    end
+
+    def reload!
+      run_gc! if gc_request_period
+      restore!
+      @when_ready = nil
+      dispatcher_log :info, &quot;reloaded&quot;
+    end
+
+    # Make a note of $&quot; so we can safely reload this instance.
+    def mark_features!
+      @features = $&quot;.clone
+    end
+
+    def restore!
+      $&quot;.replace @features
+      Dispatcher.reset_application!
+      ActionController::Routing::Routes.reload
+    end
+
+    def run_gc!
+      @gc_request_countdown = gc_request_period
+      GC.enable; GC.start; GC.disable
+    end
+
+    def gc_countdown
+      if gc_request_period
+        @gc_request_countdown ||= gc_request_period
+        @gc_request_countdown -= 1
+        run_gc! if @gc_request_countdown &lt;= 0
+      end
+    end
+
+    def close_connection(request)
+      request.finish if request
+    end
+end
+</pre>
+    </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,132 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/helper.rb-</pre>
+    <pre>Process.setrlimit(Process::RLIMIT_CORE, Process::RLIM_INFINITY) unless RUBY_PLATFORM =~ /(java|mswin|mingw)/i
+$VERBOSE = true
+require 'rubygems'
+require 'test/unit'
+require 'tempfile'
+
+%w(../lib ../ext).each do |path|
+  $LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(__FILE__), path)))
+end
+
+require 'nokogiri'
+
+warn &quot;#{__FILE__}:#{__LINE__}: libxml version info: #{Nokogiri::VERSION_INFO.inspect}&quot;
+
+module Nokogiri
+  class TestCase &lt; Test::Unit::TestCase
+    ASSETS_DIR      = File.join(File.dirname(__FILE__), 'files')
+    XML_FILE        = File.join(ASSETS_DIR, 'staff.xml')
+    XSLT_FILE       = File.join(ASSETS_DIR, 'staff.xslt')
+    EXSLT_FILE      = File.join(ASSETS_DIR, 'exslt.xslt')
+    EXML_FILE       = File.join(ASSETS_DIR, 'exslt.xml')
+    HTML_FILE       = File.join(ASSETS_DIR, 'tlm.html')
+    NICH_FILE       = File.join(ASSETS_DIR, '2ch.html')
+    SHIFT_JIS_XML   = File.join(ASSETS_DIR, 'shift_jis.xml')
+    PO_XML_FILE     = File.join(ASSETS_DIR, 'po.xml')
+    PO_SCHEMA_FILE  = File.join(ASSETS_DIR, 'po.xsd')
+    ADDRESS_SCHEMA_FILE = File.join(ASSETS_DIR, 'address_book.rlx')
+    ADDRESS_XML_FILE = File.join(ASSETS_DIR, 'address_book.xml')
+    SNUGGLES_FILE   = File.join(ASSETS_DIR, 'snuggles.xml')
+
+    unless RUBY_VERSION &gt;= '1.9'
+      undef :default_test
+    end
+
+    def setup
+      warn &quot;#{name}&quot; if ENV['TESTOPTS'] == '-v'
+    end
+
+    def teardown
+      if ENV['NOKOGIRI_GC']
+        STDOUT.putc '!'
+        GC.start 
+      end
+    end
+
+    def assert_indent amount, doc, message = nil
+      nodes = []
+      doc.traverse do |node|
+        nodes &lt;&lt; node if node.text? &amp;&amp; node.blank?
+      end
+      assert nodes.length &gt; 0
+      nodes.each do |node|
+        len = node.content.gsub(/[\r\n]/, '').length
+        assert_equal(0, len % amount, message)
+      end
+    end
+  end
+
+  module SAX
+    class TestCase &lt; Nokogiri::TestCase
+      class Doc &lt; XML::SAX::Document
+        attr_reader :start_elements, :start_document_called
+        attr_reader :end_elements, :end_document_called
+        attr_reader :data, :comments, :cdata_blocks, :start_elements_namespace
+        attr_reader :errors, :warnings, :end_elements_namespace
+
+        def start_document
+          @start_document_called = true
+          super
+        end
+
+        def end_document
+          @end_document_called = true
+          super
+        end
+
+        def error error
+          (@errors ||= []) &lt;&lt; error
+          super
+        end
+
+        def warning warning
+          (@warning ||= []) &lt;&lt; warning
+          super
+        end
+
+        def start_element *args
+          (@start_elements ||= []) &lt;&lt; args
+          super
+        end
+
+        def start_element_namespace *args
+          (@start_elements_namespace ||= []) &lt;&lt; args
+          super
+        end
+
+        def end_element *args
+          (@end_elements ||= []) &lt;&lt; args
+          super
+        end
+
+        def end_element_namespace *args
+          (@end_elements_namespace ||= []) &lt;&lt; args
+          super
+        end
+
+        def characters string
+          @data ||= []
+          @data += [string]
+          super
+        end
+
+        def comment string
+          @comments ||= []
+          @comments += [string]
+          super
+        end
+
+        def cdata_block string
+          @cdata_blocks ||= []
+          @cdata_blocks += [string]
+          super
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

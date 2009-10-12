@@ -1,0 +1,64 @@
+  <div id="fileHeader">
+    <h1>associated.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activemodel/lib/active_model/validations/associated.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveModel
+  module Validations
+    module ClassMethods
+      # Validates whether the associated object or objects are all valid themselves. Works with any kind of association.
+      #
+      #   class Book &lt; ActiveRecord::Base
+      #     has_many :pages
+      #     belongs_to :library
+      #
+      #     validates_associated :pages, :library
+      #   end
+      #
+      # Warning: If, after the above definition, you then wrote:
+      #
+      #   class Page &lt; ActiveRecord::Base
+      #     belongs_to :book
+      #
+      #     validates_associated :book
+      #   end
+      #
+      # ...this would specify a circular dependency and cause infinite recursion.
+      #
+      # NOTE: This validation will not fail if the association hasn't been assigned. If you want to ensure that the association
+      # is both present and guaranteed to be valid, you also need to use +validates_presence_of+.
+      #
+      # Configuration options:
+      # * &lt;tt&gt;:message&lt;/tt&gt; - A custom error message (default is: &quot;is invalid&quot;)
+      # * &lt;tt&gt;:on&lt;/tt&gt; - Specifies when this validation is active (default is &lt;tt&gt;:save&lt;/tt&gt;, other options &lt;tt&gt;:create&lt;/tt&gt;, &lt;tt&gt;:update&lt;/tt&gt;)
+      # * &lt;tt&gt;:if&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   occur (e.g. &lt;tt&gt;:if =&gt; :allow_validation&lt;/tt&gt;, or &lt;tt&gt;:if =&gt; Proc.new { |user| user.signup_step &gt; 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      # * &lt;tt&gt;:unless&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   not occur (e.g. &lt;tt&gt;:unless =&gt; :skip_validation&lt;/tt&gt;, or &lt;tt&gt;:unless =&gt; Proc.new { |user| user.signup_step &lt;= 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      def validates_associated(*attr_names)
+        configuration = { :message =&gt; ActiveRecord::Errors.default_error_messages[:invalid], :on =&gt; :save }
+        configuration.update(attr_names.extract_options!)
+
+        validates_each(attr_names, configuration) do |record, attr_name, value|
+          record.errors.add(attr_name, configuration[:message]) unless
+            (value.is_a?(Array) ? value : [value]).inject(true) { |v, r| (r.nil? || r.valid?) &amp;&amp; v }
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

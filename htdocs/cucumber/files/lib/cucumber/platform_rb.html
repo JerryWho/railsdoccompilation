@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:22:02 +0200 2009</td>
+      <td>Mon Oct 12 19:47:38 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,32 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/platform.rb-</pre>
+    <pre># Detect the platform we're running on so we can tweak behaviour
+# in various places.
+require 'rbconfig'
+require 'yaml'
+
+module Cucumber
+  LANGUAGE_FILE = File.expand_path(File.dirname(__FILE__) + '/languages.yml')
+  LANGUAGES     = YAML.load_file(LANGUAGE_FILE)
+  BINARY        = File.expand_path(File.dirname(__FILE__) + '/../../bin/cucumber')
+  LIBDIR        = File.expand_path(File.dirname(__FILE__) + '/../../lib')
+  JRUBY         = defined?(JRUBY_VERSION)
+  IRONRUBY      = Config::CONFIG['sitedir'] =~ /IronRuby/
+  WINDOWS       = Config::CONFIG['host_os'] =~ /mswin|mingw/
+  WINDOWS_MRI   = WINDOWS &amp;&amp; !JRUBY &amp;&amp; !IRONRUBY
+  RAILS         = defined?(Rails)
+  RUBY_BINARY   = File.join(Config::CONFIG['bindir'], Config::CONFIG['ruby_install_name'])
+  RUBY_1_9      = RUBY_VERSION =~ /^1\.9/
+  RUBY_1_8_7    = RUBY_VERSION =~ /^1\.8\.7/
+
+  class &lt;&lt; self
+    attr_accessor :use_full_backtrace
+
+    def file_mode(m) #:nodoc:
+      RUBY_1_9 ? &quot;#{m}:UTF-8&quot; : m
+    end
+  end
+  self.use_full_backtrace = false
+end</pre>
     </div>

@@ -1,0 +1,73 @@
+  <div id="fileHeader">
+    <h1>runner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/commands/runner.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'optparse'
+
+options = { :environment =&gt; (ENV['RAILS_ENV'] || &quot;development&quot;).dup }
+code_or_file = nil
+
+ARGV.clone.options do |opts|
+  script_name = File.basename($0)
+  opts.banner = &quot;Usage: #{$0} [options] ('Some.ruby(code)' or a filename)&quot;
+
+  opts.separator &quot;&quot;
+
+  opts.on(&quot;-e&quot;, &quot;--environment=name&quot;, String,
+          &quot;Specifies the environment for the runner to operate under (test/development/production).&quot;,
+          &quot;Default: development&quot;) { |v| options[:environment] = v }
+
+  opts.separator &quot;&quot;
+
+  opts.on(&quot;-h&quot;, &quot;--help&quot;,
+          &quot;Show this help message.&quot;) { $stderr.puts opts; exit }
+
+  if RUBY_PLATFORM !~ /mswin/
+    opts.separator &quot;&quot;
+    opts.separator &quot;You can also use runner as a shebang line for your scripts like this:&quot;
+    opts.separator &quot;-------------------------------------------------------------&quot;
+    opts.separator &quot;#!/usr/bin/env #{File.expand_path($0)}&quot;
+    opts.separator &quot;&quot;
+    opts.separator &quot;Product.find(:all).each { |p| p.price *= 2 ; p.save! }&quot;
+    opts.separator &quot;-------------------------------------------------------------&quot;
+  end
+
+  opts.order! { |o| code_or_file ||= o } rescue retry
+end
+
+ARGV.delete(code_or_file)
+
+ENV[&quot;RAILS_ENV&quot;] = options[:environment]
+RAILS_ENV.replace(options[:environment]) if defined?(RAILS_ENV)
+
+require RAILS_ROOT + '/config/environment'
+
+begin
+  if code_or_file.nil?
+    $stderr.puts &quot;Run '#{$0} -h' for help.&quot;
+    exit 1
+  elsif File.exist?(code_or_file)
+    eval(File.read(code_or_file), nil, code_or_file)
+  else
+    eval(code_or_file)
+  end
+ensure
+  if defined? Rails
+    Rails.logger.flush if Rails.logger.respond_to?(:flush)
+  end
+end
+</pre>
+    </div>

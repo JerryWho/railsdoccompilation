@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,101 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/xml/sax/test_push_parser.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', &quot;helper&quot;))
+
+module Nokogiri
+  module XML
+    module SAX
+      class TestPushParser &lt; Nokogiri::SAX::TestCase
+        def setup
+          super
+          @parser = XML::SAX::PushParser.new(Doc.new)
+        end
+
+        def test_end_document_called
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;p id=&quot;asdfasdf&quot;&gt;
+              &lt;!-- This is a comment --&gt;
+              Paragraph 1
+            &lt;/p&gt;
+          eoxml
+          assert ! @parser.document.end_document_called
+          @parser.finish
+          assert @parser.document.end_document_called
+        end
+
+        def test_start_element
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;p id=&quot;asdfasdf&quot;&gt;
+          eoxml
+
+          assert_equal [[&quot;p&quot;, [&quot;id&quot;, &quot;asdfasdf&quot;]]],
+            @parser.document.start_elements
+
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+              &lt;!-- This is a comment --&gt;
+              Paragraph 1
+            &lt;/p&gt;
+          eoxml
+          assert_equal [' This is a comment '], @parser.document.comments
+          @parser.finish
+        end
+
+        def test_start_element_ns
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;stream:stream xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0' size='large'&gt;&lt;/stream:stream&gt;
+          eoxml
+
+          assert_equal 1, @parser.document.start_elements_namespace.length
+          el = @parser.document.start_elements_namespace.first
+
+          assert_equal 'stream', el.first
+          assert_equal 2, el[1].length
+          assert_equal [['version', '1.0'], ['size', 'large']],
+            el[1].map { |x| [x.localname, x.value] }
+
+          assert_equal 'stream', el[2]
+          assert_equal 'http://etherx.jabber.org/streams', el[3]
+          @parser.finish
+        end
+
+        def test_end_element_ns
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;stream:stream xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'&gt;&lt;/stream:stream&gt;
+          eoxml
+
+          assert_equal [['stream', 'stream', 'http://etherx.jabber.org/streams']],
+            @parser.document.end_elements_namespace
+          @parser.finish
+        end
+
+        def test_chevron_partial_xml
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;p id=&quot;asdfasdf&quot;&gt;
+          eoxml
+
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+              &lt;!-- This is a comment --&gt;
+              Paragraph 1
+            &lt;/p&gt;
+          eoxml
+          assert_equal [' This is a comment '], @parser.document.comments
+          @parser.finish
+        end
+
+        def test_chevron
+          @parser.&lt;&lt;(&lt;&lt;-eoxml)
+            &lt;p id=&quot;asdfasdf&quot;&gt;
+              &lt;!-- This is a comment --&gt;
+              Paragraph 1
+            &lt;/p&gt;
+          eoxml
+          @parser.finish
+          assert_equal [' This is a comment '], @parser.document.comments
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

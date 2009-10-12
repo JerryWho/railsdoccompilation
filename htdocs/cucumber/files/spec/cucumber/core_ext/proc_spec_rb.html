@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Apr 13 22:34:28 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,73 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/spec/cucumber/core_ext/proc_spec.rb-</pre>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'cucumber/core_ext/proc'
+
+describe Proc do
+  it &quot;should remove extraneous path info for file&quot; do
+    proc = lambda {|a,b|}
+    proc.file_colon_line.should =~ /^spec\/cucumber\/core_ext\/proc_spec\.rb:6/
+  end
+  
+  it &quot;should raise ArityMismatchError for too many args (expecting 0)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, 'foo', 1) do
+      end
+    }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 0 arguments, but the Regexp matched 1 argument.&quot;)
+  end
+
+  it &quot;should raise ArityMismatchError for too many args (expecting 1)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, 'foo', 1,2) do |a|
+      end
+    }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 1 argument, but the Regexp matched 2 arguments.&quot;)
+  end
+
+  it &quot;should raise ArityMismatchError for too few args (expecting 1)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, 'foo') do |a|
+      end
+    }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 1 argument, but the Regexp matched 0 arguments.&quot;)
+  end
+
+  it &quot;should raise ArityMismatchError for too few args (expecting 2)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, 'foo', 1) do |a,b|
+      end
+    }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 2 arguments, but the Regexp matched 1 argument.&quot;)
+  end
+
+  if Cucumber::RUBY_1_9
+    it &quot;should allow varargs (expecting 0+)&quot; do
+      lambda {
+        Object.new.cucumber_instance_exec(true, 'foo', 1) do |*args|
+        end
+      }.should_not raise_error(Cucumber::ArityMismatchError)
+    end
+  else
+    # Ruby 1.8
+    it &quot;should not allow varargs 0+ because Ruby 1.8 reports same arity as with no args, so we can't really tell the difference.&quot; do
+      lambda {
+        Object.new.cucumber_instance_exec(true, 'foo', 1) do |*args|
+        end
+      }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 0 arguments, but the Regexp matched 1 argument.&quot;)
+    end
+  end
+
+  it &quot;should allow varargs (expecting 1+)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, 'foo', 1) do |arg,*args|
+      end
+    }.should_not raise_error(Cucumber::ArityMismatchError)
+  end
+
+  it &quot;should raise ArityMismatchError for too few required args when using varargs (expecting 1+)&quot; do
+    lambda {
+      Object.new.cucumber_instance_exec(true, nil) do |arg,*args|
+      end
+    }.should raise_error(Cucumber::ArityMismatchError, &quot;Your block takes 1+ arguments, but the Regexp matched 0 arguments.&quot;)
+  end
+end
+</pre>
     </div>

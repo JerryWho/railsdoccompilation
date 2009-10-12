@@ -1,0 +1,363 @@
+  <div id="fileHeader">
+    <h1>form_tag_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/form_tag_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class FormTagHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::FormTagHelper
+
+  def setup
+    @controller = Class.new do
+      def url_for(options)
+        &quot;http://www.example.com&quot;
+      end
+    end
+    @controller = @controller.new
+  end
+
+  VALID_HTML_ID = /^[A-Za-z][-_:.A-Za-z0-9]*$/ # see http://www.w3.org/TR/html4/types.html#type-name
+
+  def test_check_box_tag
+    actual = check_box_tag &quot;admin&quot;
+    expected = %(&lt;input id=&quot;admin&quot; name=&quot;admin&quot; type=&quot;checkbox&quot; value=&quot;1&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_check_box_tag_id_sanitized
+    label_elem = root_elem(check_box_tag(&quot;project[2][admin]&quot;))
+    assert_match VALID_HTML_ID, label_elem['id']
+  end
+
+  def test_form_tag
+    actual = form_tag
+    expected = %(&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_form_tag_multipart
+    actual = form_tag({}, { 'multipart' =&gt; true })
+    expected = %(&lt;form action=&quot;http://www.example.com&quot; enctype=&quot;multipart/form-data&quot; method=&quot;post&quot;&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_form_tag_with_method_put
+    actual = form_tag({}, { :method =&gt; :put })
+    expected = %(&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;&lt;div style='margin:0;padding:0;display:inline'&gt;&lt;input type=&quot;hidden&quot; name=&quot;_method&quot; value=&quot;put&quot; /&gt;&lt;/div&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_form_tag_with_method_delete
+    actual = form_tag({}, { :method =&gt; :delete })
+    expected = %(&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;&lt;div style='margin:0;padding:0;display:inline'&gt;&lt;input type=&quot;hidden&quot; name=&quot;_method&quot; value=&quot;delete&quot; /&gt;&lt;/div&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_form_tag_with_block_in_erb
+    __in_erb_template = ''
+    form_tag(&quot;http://example.com&quot;) { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;form action=&quot;http://example.com&quot; method=&quot;post&quot;&gt;Hello world!&lt;/form&gt;)
+    assert_dom_equal expected, output_buffer
+  end
+
+  def test_form_tag_with_block_and_method_in_erb
+    __in_erb_template = ''
+    form_tag(&quot;http://example.com&quot;, :method =&gt; :put) { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;form action=&quot;http://example.com&quot; method=&quot;post&quot;&gt;&lt;div style='margin:0;padding:0;display:inline'&gt;&lt;input type=&quot;hidden&quot; name=&quot;_method&quot; value=&quot;put&quot; /&gt;&lt;/div&gt;Hello world!&lt;/form&gt;)
+    assert_dom_equal expected, output_buffer
+  end
+
+  def test_hidden_field_tag
+    actual = hidden_field_tag &quot;id&quot;, 3
+    expected = %(&lt;input id=&quot;id&quot; name=&quot;id&quot; type=&quot;hidden&quot; value=&quot;3&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_hidden_field_tag_id_sanitized
+    input_elem = root_elem(hidden_field_tag(&quot;item[][title]&quot;))
+    assert_match VALID_HTML_ID, input_elem['id']
+  end
+
+  def test_file_field_tag
+    assert_dom_equal &quot;&lt;input name=\&quot;picsplz\&quot; type=\&quot;file\&quot; id=\&quot;picsplz\&quot; /&gt;&quot;, file_field_tag(&quot;picsplz&quot;)
+  end
+
+  def test_file_field_tag_with_options
+    assert_dom_equal &quot;&lt;input name=\&quot;picsplz\&quot; type=\&quot;file\&quot; id=\&quot;picsplz\&quot; class=\&quot;pix\&quot;/&gt;&quot;, file_field_tag(&quot;picsplz&quot;, :class =&gt; &quot;pix&quot;)
+  end
+
+  def test_password_field_tag
+    actual = password_field_tag
+    expected = %(&lt;input id=&quot;password&quot; name=&quot;password&quot; type=&quot;password&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_radio_button_tag
+    actual = radio_button_tag &quot;people&quot;, &quot;david&quot;
+    expected = %(&lt;input id=&quot;people_david&quot; name=&quot;people&quot; type=&quot;radio&quot; value=&quot;david&quot; /&gt;)
+    assert_dom_equal expected, actual
+
+    actual = radio_button_tag(&quot;num_people&quot;, 5)
+    expected = %(&lt;input id=&quot;num_people_5&quot; name=&quot;num_people&quot; type=&quot;radio&quot; value=&quot;5&quot; /&gt;)
+    assert_dom_equal expected, actual
+
+    actual = radio_button_tag(&quot;gender&quot;, &quot;m&quot;) + radio_button_tag(&quot;gender&quot;, &quot;f&quot;)
+    expected = %(&lt;input id=&quot;gender_m&quot; name=&quot;gender&quot; type=&quot;radio&quot; value=&quot;m&quot; /&gt;&lt;input id=&quot;gender_f&quot; name=&quot;gender&quot; type=&quot;radio&quot; value=&quot;f&quot; /&gt;)
+    assert_dom_equal expected, actual
+
+    actual = radio_button_tag(&quot;opinion&quot;, &quot;-1&quot;) + radio_button_tag(&quot;opinion&quot;, &quot;1&quot;)
+    expected = %(&lt;input id=&quot;opinion_-1&quot; name=&quot;opinion&quot; type=&quot;radio&quot; value=&quot;-1&quot; /&gt;&lt;input id=&quot;opinion_1&quot; name=&quot;opinion&quot; type=&quot;radio&quot; value=&quot;1&quot; /&gt;)
+    assert_dom_equal expected, actual
+
+    actual = radio_button_tag(&quot;person[gender]&quot;, &quot;m&quot;)
+    expected = %(&lt;input id=&quot;person_gender_m&quot; name=&quot;person[gender]&quot; type=&quot;radio&quot; value=&quot;m&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_select_tag
+    actual = select_tag &quot;people&quot;, &quot;&lt;option&gt;david&lt;/option&gt;&quot;
+    expected = %(&lt;select id=&quot;people&quot; name=&quot;people&quot;&gt;&lt;option&gt;david&lt;/option&gt;&lt;/select&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_select_tag_with_multiple
+    actual = select_tag &quot;colors&quot;, &quot;&lt;option&gt;Red&lt;/option&gt;&lt;option&gt;Blue&lt;/option&gt;&lt;option&gt;Green&lt;/option&gt;&quot;, :multiple =&gt; :true
+    expected = %(&lt;select id=&quot;colors&quot; multiple=&quot;multiple&quot; name=&quot;colors&quot;&gt;&lt;option&gt;Red&lt;/option&gt;&lt;option&gt;Blue&lt;/option&gt;&lt;option&gt;Green&lt;/option&gt;&lt;/select&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_select_tag_disabled
+    actual = select_tag &quot;places&quot;, &quot;&lt;option&gt;Home&lt;/option&gt;&lt;option&gt;Work&lt;/option&gt;&lt;option&gt;Pub&lt;/option&gt;&quot;, :disabled =&gt; :true
+    expected = %(&lt;select id=&quot;places&quot; disabled=&quot;disabled&quot; name=&quot;places&quot;&gt;&lt;option&gt;Home&lt;/option&gt;&lt;option&gt;Work&lt;/option&gt;&lt;option&gt;Pub&lt;/option&gt;&lt;/select&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_select_tag_id_sanitized
+    input_elem = root_elem(select_tag(&quot;project[1]people&quot;, &quot;&lt;option&gt;david&lt;/option&gt;&quot;))
+    assert_match VALID_HTML_ID, input_elem['id']
+  end
+
+  def test_text_area_tag_size_string
+    actual = text_area_tag &quot;body&quot;, &quot;hello world&quot;, &quot;size&quot; =&gt; &quot;20x40&quot;
+    expected = %(&lt;textarea cols=&quot;20&quot; id=&quot;body&quot; name=&quot;body&quot; rows=&quot;40&quot;&gt;hello world&lt;/textarea&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_area_tag_size_symbol
+    actual = text_area_tag &quot;body&quot;, &quot;hello world&quot;, :size =&gt; &quot;20x40&quot;
+    expected = %(&lt;textarea cols=&quot;20&quot; id=&quot;body&quot; name=&quot;body&quot; rows=&quot;40&quot;&gt;hello world&lt;/textarea&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_area_tag_should_disregard_size_if_its_given_as_an_integer
+    actual = text_area_tag &quot;body&quot;, &quot;hello world&quot;, :size =&gt; 20
+    expected = %(&lt;textarea id=&quot;body&quot; name=&quot;body&quot;&gt;hello world&lt;/textarea&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_area_tag_id_sanitized
+    input_elem = root_elem(text_area_tag(&quot;item[][description]&quot;))
+    assert_match VALID_HTML_ID, input_elem['id']
+  end
+
+  def test_text_area_tag_escape_content
+    actual = text_area_tag &quot;body&quot;, &quot;&lt;b&gt;hello world&lt;/b&gt;&quot;, :size =&gt; &quot;20x40&quot;
+    expected = %(&lt;textarea cols=&quot;20&quot; id=&quot;body&quot; name=&quot;body&quot; rows=&quot;40&quot;&gt;&amp;lt;b&amp;gt;hello world&amp;lt;/b&amp;gt;&lt;/textarea&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_area_tag_unescaped_content
+    actual = text_area_tag &quot;body&quot;, &quot;&lt;b&gt;hello world&lt;/b&gt;&quot;, :size =&gt; &quot;20x40&quot;, :escape =&gt; false
+    expected = %(&lt;textarea cols=&quot;20&quot; id=&quot;body&quot; name=&quot;body&quot; rows=&quot;40&quot;&gt;&lt;b&gt;hello world&lt;/b&gt;&lt;/textarea&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_class_string
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, &quot;class&quot; =&gt; &quot;admin&quot;
+    expected = %(&lt;input class=&quot;admin&quot; id=&quot;title&quot; name=&quot;title&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_size_symbol
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, :size =&gt; 75
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; size=&quot;75&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_size_string
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, &quot;size&quot; =&gt; &quot;75&quot;
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; size=&quot;75&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_maxlength_symbol
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, :maxlength =&gt; 75
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; maxlength=&quot;75&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_maxlength_string
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, &quot;maxlength&quot; =&gt; &quot;75&quot;
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; maxlength=&quot;75&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_disabled
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, :disabled =&gt; :true
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; disabled=&quot;disabled&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_with_multiple_options
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, :size =&gt; 70, :maxlength =&gt; 80
+    expected = %(&lt;input id=&quot;title&quot; name=&quot;title&quot; size=&quot;70&quot; maxlength=&quot;80&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_text_field_tag_id_sanitized
+    input_elem = root_elem(text_field_tag(&quot;item[][title]&quot;))
+    assert_match VALID_HTML_ID, input_elem['id']
+  end
+
+  def test_label_tag_without_text
+    actual = label_tag &quot;title&quot;
+    expected = %(&lt;label for=&quot;title&quot;&gt;Title&lt;/label&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_label_tag_with_symbol
+    actual = label_tag :title
+    expected = %(&lt;label for=&quot;title&quot;&gt;Title&lt;/label&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_label_tag_with_text
+    actual = label_tag &quot;title&quot;, &quot;My Title&quot;
+    expected = %(&lt;label for=&quot;title&quot;&gt;My Title&lt;/label&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_label_tag_class_string
+    actual = label_tag &quot;title&quot;, &quot;My Title&quot;, &quot;class&quot; =&gt; &quot;small_label&quot;
+    expected = %(&lt;label for=&quot;title&quot; class=&quot;small_label&quot;&gt;My Title&lt;/label&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_label_tag_id_sanitized
+    label_elem = root_elem(label_tag(&quot;item[title]&quot;))
+    assert_match VALID_HTML_ID, label_elem['for']
+  end
+
+  def test_boolean_options
+    assert_dom_equal %(&lt;input checked=&quot;checked&quot; disabled=&quot;disabled&quot; id=&quot;admin&quot; name=&quot;admin&quot; readonly=&quot;readonly&quot; type=&quot;checkbox&quot; value=&quot;1&quot; /&gt;), check_box_tag(&quot;admin&quot;, 1, true, 'disabled' =&gt; true, :readonly =&gt; &quot;yes&quot;)
+    assert_dom_equal %(&lt;input checked=&quot;checked&quot; id=&quot;admin&quot; name=&quot;admin&quot; type=&quot;checkbox&quot; value=&quot;1&quot; /&gt;), check_box_tag(&quot;admin&quot;, 1, true, :disabled =&gt; false, :readonly =&gt; nil)
+    assert_dom_equal %(&lt;input type=&quot;checkbox&quot; /&gt;), tag(:input, :type =&gt; &quot;checkbox&quot;, :checked =&gt; false)
+    assert_dom_equal %(&lt;select id=&quot;people&quot; multiple=&quot;multiple&quot; name=&quot;people[]&quot;&gt;&lt;option&gt;david&lt;/option&gt;&lt;/select&gt;), select_tag(&quot;people&quot;, &quot;&lt;option&gt;david&lt;/option&gt;&quot;, :multiple =&gt; true)
+    assert_dom_equal %(&lt;select id=&quot;people_&quot; multiple=&quot;multiple&quot; name=&quot;people[]&quot;&gt;&lt;option&gt;david&lt;/option&gt;&lt;/select&gt;), select_tag(&quot;people[]&quot;, &quot;&lt;option&gt;david&lt;/option&gt;&quot;, :multiple =&gt; true)
+    assert_dom_equal %(&lt;select id=&quot;people&quot; name=&quot;people&quot;&gt;&lt;option&gt;david&lt;/option&gt;&lt;/select&gt;), select_tag(&quot;people&quot;, &quot;&lt;option&gt;david&lt;/option&gt;&quot;, :multiple =&gt; nil)
+  end
+
+  def test_stringify_symbol_keys
+    actual = text_field_tag &quot;title&quot;, &quot;Hello!&quot;, :id =&gt; &quot;admin&quot;
+    expected = %(&lt;input id=&quot;admin&quot; name=&quot;title&quot; type=&quot;text&quot; value=&quot;Hello!&quot; /&gt;)
+    assert_dom_equal expected, actual
+  end
+
+  def test_submit_tag
+    assert_dom_equal(
+      %(&lt;input name='commit' onclick=&quot;if (window.hiddenCommit) { window.hiddenCommit.setAttribute('value', this.value); }else { hiddenCommit = document.createElement('input');hiddenCommit.type = 'hidden';hiddenCommit.value = this.value;hiddenCommit.name = this.name;this.form.appendChild(hiddenCommit); }this.setAttribute('originalValue', this.value);this.disabled = true;this.value='Saving...';alert('hello!');result = (this.form.onsubmit ? (this.form.onsubmit() ? this.form.submit() : false) : this.form.submit());if (result == false) { this.value = this.getAttribute('originalValue');this.disabled = false; }return result;&quot; type=&quot;submit&quot; value=&quot;Save&quot; /&gt;),
+      submit_tag(&quot;Save&quot;, :disable_with =&gt; &quot;Saving...&quot;, :onclick =&gt; &quot;alert('hello!')&quot;)
+    )
+  end
+
+  def test_submit_tag_with_no_onclick_options
+    assert_dom_equal(
+      %(&lt;input name='commit' onclick=&quot;if (window.hiddenCommit) { window.hiddenCommit.setAttribute('value', this.value); }else { hiddenCommit = document.createElement('input');hiddenCommit.type = 'hidden';hiddenCommit.value = this.value;hiddenCommit.name = this.name;this.form.appendChild(hiddenCommit); }this.setAttribute('originalValue', this.value);this.disabled = true;this.value='Saving...';result = (this.form.onsubmit ? (this.form.onsubmit() ? this.form.submit() : false) : this.form.submit());if (result == false) { this.value = this.getAttribute('originalValue');this.disabled = false; }return result;&quot; type=&quot;submit&quot; value=&quot;Save&quot; /&gt;),
+      submit_tag(&quot;Save&quot;, :disable_with =&gt; &quot;Saving...&quot;)
+    )
+  end
+
+  def test_submit_tag_with_confirmation
+    assert_dom_equal(
+      %(&lt;input name='commit' type='submit' value='Save' onclick=&quot;if (!confirm('Are you sure?')) return false; return true;&quot;/&gt;),
+      submit_tag(&quot;Save&quot;, :confirm =&gt; &quot;Are you sure?&quot;)
+    )
+  end
+
+  def test_submit_tag_with_confirmation_and_with_disable_with
+    assert_dom_equal(
+      %(&lt;input name=&quot;commit&quot; onclick=&quot;if (!confirm('Are you sure?')) return false; if (window.hiddenCommit) { window.hiddenCommit.setAttribute('value', this.value); }else { hiddenCommit = document.createElement('input');hiddenCommit.type = 'hidden';hiddenCommit.value = this.value;hiddenCommit.name = this.name;this.form.appendChild(hiddenCommit); }this.setAttribute('originalValue', this.value);this.disabled = true;this.value='Saving...';result = (this.form.onsubmit ? (this.form.onsubmit() ? this.form.submit() : false) : this.form.submit());if (result == false) { this.value = this.getAttribute('originalValue');this.disabled = false; }return result;&quot; type=&quot;submit&quot; value=&quot;Save&quot; /&gt;),
+      submit_tag(&quot;Save&quot;, :disable_with =&gt; &quot;Saving...&quot;, :confirm =&gt; &quot;Are you sure?&quot;)
+    )
+  end
+
+  def test_image_submit_tag_with_confirmation
+    assert_dom_equal(
+      %(&lt;input type=&quot;image&quot; src=&quot;/images/save.gif&quot; onclick=&quot;return confirm('Are you sure?');&quot;/&gt;),
+      image_submit_tag(&quot;save.gif&quot;, :confirm =&gt; &quot;Are you sure?&quot;)
+    )
+  end
+
+  def test_pass
+    assert_equal 1, 1
+  end
+
+  def test_field_set_tag_in_erb
+    __in_erb_template = ''
+    field_set_tag(&quot;Your details&quot;) { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;fieldset&gt;&lt;legend&gt;Your details&lt;/legend&gt;Hello world!&lt;/fieldset&gt;)
+    assert_dom_equal expected, output_buffer
+
+    self.output_buffer = ''
+    field_set_tag { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;fieldset&gt;Hello world!&lt;/fieldset&gt;)
+    assert_dom_equal expected, output_buffer
+
+    self.output_buffer = ''
+    field_set_tag('') { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;fieldset&gt;Hello world!&lt;/fieldset&gt;)
+    assert_dom_equal expected, output_buffer
+
+    self.output_buffer = ''
+    field_set_tag('', :class =&gt; 'format') { concat &quot;Hello world!&quot; }
+
+    expected = %(&lt;fieldset class=&quot;format&quot;&gt;Hello world!&lt;/fieldset&gt;)
+    assert_dom_equal expected, output_buffer
+  end
+
+  def protect_against_forgery?
+    false
+  end
+
+  private
+
+  def root_elem(rendered_content)
+    HTML::Document.new(rendered_content).root.children[0]
+  end
+end
+</pre>
+    </div>

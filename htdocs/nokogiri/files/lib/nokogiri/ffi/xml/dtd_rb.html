@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,63 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/ffi/xml/dtd.rb-</pre>
+    <pre>module Nokogiri
+  module XML
+    class DTD &lt; Node
+      # :stopdoc:
+      def validate document
+        error_list = []
+        ctxt = LibXML.xmlNewValidCtxt
+
+        LibXML.xmlSetStructuredErrorFunc(nil, SyntaxError.error_array_pusher(error_list))
+        LibXML.xmlValidateDtd ctxt, document.cstruct, cstruct
+
+        LibXML.xmlSetStructuredErrorFunc nil, nil
+
+        LibXML.xmlFreeValidCtxt ctxt
+
+        error_list
+      end
+
+      def elements
+        internal_attributes :elements
+      end
+
+      def entities
+        internal_attributes :entities
+      end
+
+      def notations
+        attr_ptr = cstruct[:notations]
+        return nil if attr_ptr.null?
+
+        ahash = {}
+        proc = lambda do |payload, data, name|
+          notation_cstruct = LibXML::XmlNotation.new(payload)
+          ahash[name] = Notation.new(notation_cstruct[:name], notation_cstruct[:PublicID],
+                                     notation_cstruct[:SystemID])
+        end
+        LibXML.xmlHashScan(attr_ptr, proc, nil)
+        ahash
+      end
+
+      private
+
+      def internal_attributes attr_name
+        attr_ptr = cstruct[attr_name.to_sym]
+        return nil if attr_ptr.null?
+
+        ahash = {}
+        proc = lambda do |payload, data, name|
+          ahash[name] = Node.wrap(payload)
+        end
+        LibXML.xmlHashScan(attr_ptr, proc, nil)
+        ahash
+      end
+
+      # :startdoc:
+    end
+  end
+end
+</pre>
     </div>

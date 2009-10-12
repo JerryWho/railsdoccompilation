@@ -1,0 +1,420 @@
+  <div id="fileHeader">
+    <h1>template_runner.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/rails_generator/generators/applications/app/template_runner.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/scm/scm'
+require File.dirname(__FILE__) + '/scm/git'
+require File.dirname(__FILE__) + '/scm/svn'
+
+require 'open-uri'
+require 'fileutils'
+
+module Rails
+  class TemplateRunner
+    attr_reader :root
+    attr_writer :logger
+
+    def initialize(template, root = '') # :nodoc:
+      @root = File.expand_path(File.directory?(root) ? root : File.join(Dir.pwd, root))
+
+      log 'applying', &quot;template: #{template}&quot;
+
+      load_template(template)
+
+      log 'applied', &quot;#{template}&quot;
+    end
+
+    def load_template(template)
+      begin
+        code = open(template).read
+        in_root { self.instance_eval(code) }
+      rescue LoadError, Errno::ENOENT =&gt; e
+        raise &quot;The template [#{template}] could not be loaded. Error: #{e}&quot;
+      end
+    end
+
+    # Create a new file in the Rails project folder.  Specify the
+    # relative path from RAILS_ROOT.  Data is the return value of a block
+    # or a data string.
+    #
+    # ==== Examples
+    #
+    #   file(&quot;lib/fun_party.rb&quot;) do
+    #     hostname = ask(&quot;What is the virtual hostname I should use?&quot;)
+    #     &quot;vhost.name = #{hostname}&quot;
+    #   end
+    #
+    #   file(&quot;config/apach.conf&quot;, &quot;your apache config&quot;)
+    #
+    def file(filename, data = nil, log_action = true, &amp;block)
+      log 'file', filename if log_action
+      dir, file = [File.dirname(filename), File.basename(filename)]
+
+      inside(dir) do
+        File.open(file, &quot;w&quot;) do |f|
+          if block_given?
+            f.write(block.call)
+          else
+            f.write(data)
+          end
+        end
+      end
+    end
+
+    # Install a plugin.  You must provide either a Subversion url or Git url.
+    # For a Git-hosted plugin, you can specify if it should be added as a submodule instead of cloned.
+    #
+    # ==== Examples
+    #
+    #   plugin 'restful-authentication', :git =&gt; 'git://github.com/technoweenie/restful-authentication.git'
+    #   plugin 'restful-authentication', :git =&gt; 'git://github.com/technoweenie/restful-authentication.git', :submodule =&gt; true
+    #   plugin 'restful-authentication', :svn =&gt; 'svn://svnhub.com/technoweenie/restful-authentication/trunk'
+    #
+    def plugin(name, options)
+      log 'plugin', name
+
+      if options[:git] &amp;&amp; options[:submodule]
+        in_root do
+          Git.run(&quot;submodule add #{options[:git]} vendor/plugins/#{name}&quot;)
+        end
+      elsif options[:git] || options[:svn]
+        in_root do
+          run_ruby_script(&quot;script/plugin install #{options[:svn] || options[:git]}&quot;, false)
+        end
+      else
+        log &quot;! no git or svn provided for #{name}.  skipping...&quot;
+      end
+    end
+
+    # Adds an entry into config/environment.rb for the supplied gem :
+    def gem(name, options = {})
+      log 'gem', name
+      env = options.delete(:env)
+
+      gems_code = &quot;config.gem '#{name}'&quot;
+
+      if options.any?
+        opts = options.inject([]) {|result, h| result &lt;&lt; [&quot;:#{h[0]} =&gt; #{h[1].inspect.gsub('&quot;',&quot;'&quot;)}&quot;] }.sort.join(&quot;, &quot;)
+        gems_code &lt;&lt; &quot;, #{opts}&quot;
+      end
+
+      environment gems_code, :env =&gt; env
+    end
+
+    # Adds a line inside the Initializer block for config/environment.rb. Used by #gem
+    # If options :env is specified, the line is appended to the corresponding
+    # file in config/environments/#{env}.rb
+    def environment(data = nil, options = {}, &amp;block)
+      sentinel = 'Rails::Initializer.run do |config|'
+
+      data = block.call if !data &amp;&amp; block_given?
+
+      in_root do
+        if options[:env].nil?
+          gsub_file 'config/environment.rb', /(#{Regexp.escape(sentinel)})/mi do |match|
+            &quot;#{match}\n  &quot; &lt;&lt; data
+          end
+        else
+          Array.wrap(options[:env]).each do|env|
+            append_file &quot;config/environments/#{env}.rb&quot;, &quot;\n#{data}&quot;
+          end
+        end
+      end
+    end
+
+    # Run a command in git.
+    #
+    # ==== Examples
+    #
+    #   git :init
+    #   git :add =&gt; &quot;this.file that.rb&quot;
+    #   git :add =&gt; &quot;onefile.rb&quot;, :rm =&gt; &quot;badfile.cxx&quot;
+    #
+    def git(command = {})
+      in_root do
+        if command.is_a?(Symbol)
+          log 'running', &quot;git #{command}&quot;
+          Git.run(command.to_s)
+        else
+          command.each do |command, options|
+            log 'running', &quot;git #{command} #{options}&quot;
+            Git.run(&quot;#{command} #{options}&quot;)
+          end
+        end
+      end
+    end
+
+    # Create a new file in the vendor/ directory. Code can be specified
+    # in a block or a data string can be given.
+    #
+    # ==== Examples
+    #
+    #   vendor(&quot;sekrit.rb&quot;) do
+    #     sekrit_salt = &quot;#{Time.now}--#{3.years.ago}--#{rand}--&quot;
+    #     &quot;salt = '#{sekrit_salt}'&quot;
+    #   end
+    #
+    #   vendor(&quot;foreign.rb&quot;, &quot;# Foreign code is fun&quot;)
+    #
+    def vendor(filename, data = nil, &amp;block)
+      log 'vendoring', filename
+      file(&quot;vendor/#{filename}&quot;, data, false, &amp;block)
+    end
+
+    # Create a new file in the lib/ directory. Code can be specified
+    # in a block or a data string can be given.
+    #
+    # ==== Examples
+    #
+    #   lib(&quot;crypto.rb&quot;) do
+    #     &quot;crypted_special_value = '#{rand}--#{Time.now}--#{rand(1337)}--'&quot;
+    #   end
+    #
+    #   lib(&quot;foreign.rb&quot;, &quot;# Foreign code is fun&quot;)
+    #
+    def lib(filename, data = nil, &amp;block)
+      log 'lib', filename
+      file(&quot;lib/#{filename}&quot;, data, false, &amp;block)
+    end
+
+    # Create a new Rakefile with the provided code (either in a block or a string).
+    #
+    # ==== Examples
+    #
+    #   rakefile(&quot;bootstrap.rake&quot;) do
+    #     project = ask(&quot;What is the UNIX name of your project?&quot;)
+    #
+    #     &lt;&lt;-TASK
+    #       namespace :#{project} do
+    #         task :bootstrap do
+    #           puts &quot;i like boots!&quot;
+    #         end
+    #       end
+    #     TASK
+    #   end
+    #
+    #   rakefile(&quot;seed.rake&quot;, &quot;puts 'im plantin ur seedz'&quot;)
+    #
+    def rakefile(filename, data = nil, &amp;block)
+      log 'rakefile', filename
+      file(&quot;lib/tasks/#{filename}&quot;, data, false, &amp;block)
+    end
+
+    # Create a new initializer with the provided code (either in a block or a string).
+    #
+    # ==== Examples
+    #
+    #   initializer(&quot;globals.rb&quot;) do
+    #     data = &quot;&quot;
+    #
+    #     ['MY_WORK', 'ADMINS', 'BEST_COMPANY_EVAR'].each do
+    #       data &lt;&lt; &quot;#{const} = :entp&quot;
+    #     end
+    #
+    #     data
+    #   end
+    #
+    #   initializer(&quot;api.rb&quot;, &quot;API_KEY = '123456'&quot;)
+    #
+    def initializer(filename, data = nil, &amp;block)
+      log 'initializer', filename
+      file(&quot;config/initializers/#{filename}&quot;, data, false, &amp;block)
+    end
+
+    # Generate something using a generator from Rails or a plugin.
+    # The second parameter is the argument string that is passed to
+    # the generator or an Array that is joined.
+    #
+    # ==== Example
+    #
+    #   generate(:authenticated, &quot;user session&quot;)
+    #
+    def generate(what, *args)
+      log 'generating', what
+      argument = args.map(&amp;:to_s).flatten.join(&quot; &quot;)
+
+      in_root { run_ruby_script(&quot;script/generate #{what} #{argument}&quot;, false) }
+    end
+
+    # Executes a command
+    #
+    # ==== Example
+    #
+    #   inside('vendor') do
+    #     run('ln -s ~/edge rails')
+    #   end
+    #
+    def run(command, log_action = true)
+      log 'executing',  &quot;#{command} from #{Dir.pwd}&quot; if log_action
+      `#{command}`
+    end
+
+    # Executes a ruby script (taking into account WIN32 platform quirks)
+    def run_ruby_script(command, log_action = true)
+      ruby_command = RUBY_PLATFORM=~ /win32/ ? 'ruby ' : ''
+      run(&quot;#{ruby_command}#{command}&quot;, log_action)
+    end
+
+    # Runs the supplied rake task
+    #
+    # ==== Example
+    #
+    #   rake(&quot;db:migrate&quot;)
+    #   rake(&quot;db:migrate&quot;, :env =&gt; &quot;production&quot;)
+    #   rake(&quot;gems:install&quot;, :sudo =&gt; true)
+    #
+    def rake(command, options = {})
+      log 'rake', command
+      env = options[:env] || 'development'
+      sudo = options[:sudo] ? 'sudo ' : ''
+      in_root { run(&quot;#{sudo}rake #{command} RAILS_ENV=#{env}&quot;, false) }
+    end
+
+    # Just run the capify command in root
+    #
+    # ==== Example
+    #
+    #   capify!
+    #
+    def capify!
+      log 'capifying'
+      in_root { run('capify .', false) }
+    end
+
+    # Add Rails to /vendor/rails
+    #
+    # ==== Example
+    #
+    #   freeze!
+    #
+    def freeze!(args = {})
+      log 'vendor', 'rails edge'
+      in_root { run('rake rails:freeze:edge', false) }
+    end
+
+    # Make an entry in Rails routing file conifg/routes.rb
+    #
+    # === Example
+    #
+    #   route &quot;map.root :controller =&gt; :welcome&quot;
+    #
+    def route(routing_code)
+      log 'route', routing_code
+      sentinel = 'ActionController::Routing::Routes.draw do |map|'
+
+      in_root do
+        gsub_file 'config/routes.rb', /(#{Regexp.escape(sentinel)})/mi do |match|
+          &quot;#{match}\n  #{routing_code}\n&quot;
+        end
+      end
+    end
+
+    protected
+
+    # Get a user's input
+    #
+    # ==== Example
+    #
+    #   answer = ask(&quot;Should I freeze the latest Rails?&quot;)
+    #   freeze! if ask(&quot;Should I freeze the latest Rails?&quot;) == &quot;yes&quot;
+    #
+    def ask(string)
+      log '', string
+      STDIN.gets.strip
+    end
+
+    # Do something in the root of the Rails application or
+    # a provided subfolder; the full path is yielded to the block you provide.
+    # The path is set back to the previous path when the method exits.
+    def inside(dir = '', &amp;block)
+      folder = File.join(root, dir)
+      FileUtils.mkdir_p(folder) unless File.exist?(folder)
+      FileUtils.cd(folder) { block.arity == 1 ? yield(folder) : yield }
+    end
+
+    def in_root
+      FileUtils.cd(root) { yield }
+    end
+
+    # Helper to test if the user says yes(y)?
+    #
+    # ==== Example
+    #
+    #   freeze! if yes?(&quot;Should I freeze the latest Rails?&quot;)
+    #
+    def yes?(question)
+      answer = ask(question).downcase
+      answer == &quot;y&quot; || answer == &quot;yes&quot;
+    end
+
+    # Helper to test if the user does NOT say yes(y)?
+    #
+    # ==== Example
+    #
+    #   capify! if no?(&quot;Will you be using vlad to deploy your application?&quot;)
+    #
+    def no?(question)
+      !yes?(question)
+    end
+
+    # Run a regular expression replacement on a file
+    #
+    # ==== Example
+    #
+    #   gsub_file 'app/controllers/application_controller.rb', /#\s*(filter_parameter_logging :password)/, '\1'
+    #
+    def gsub_file(relative_destination, regexp, *args, &amp;block)
+      path = destination_path(relative_destination)
+      content = File.read(path).gsub(regexp, *args, &amp;block)
+      File.open(path, 'wb') { |file| file.write(content) }
+    end
+
+    # Append text to a file
+    #
+    # ==== Example
+    #
+    #   append_file 'config/environments/test.rb', 'config.gem &quot;rspec&quot;'
+    #
+    def append_file(relative_destination, data)
+      path = destination_path(relative_destination)
+      File.open(path, 'ab') { |file| file.write(data) }
+    end
+
+    def destination_path(relative_destination)
+      File.join(root, relative_destination)
+    end
+
+    def log(action, message = '')
+      logger.log(action, message)
+    end
+
+    def logger
+      @logger ||= Rails::Generator::Base.logger
+    end
+
+    def logger
+      @logger ||= if defined?(Rails::Generator::Base)
+        Rails::Generator::Base.logger
+      else
+        require 'rails_generator/simple_logger'
+        Rails::Generator::SimpleLogger.new(STDOUT)
+      end
+    end
+
+  end
+end
+</pre>
+    </div>

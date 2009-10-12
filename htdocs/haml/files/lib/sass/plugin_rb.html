@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -18,114 +18,154 @@
     <pre>require 'sass/engine'
 
 module Sass
-  # This module contains methods to aid in using Sass
-  # as a stylesheet-rendering plugin for various systems.
-  # Currently Rails/ActionController and Merb are supported out of the box.
+  # This module handles the compilation of Sass files.
+  # It provides global options and checks whether CSS files
+  # need to be updated.
+  #
+  # This module is used as the primary interface with Sass
+  # when it's used as a plugin for various frameworks.
+  # Currently Rails and Merb are supported out of the box.
   module Plugin
-    class &lt;&lt; self
-      @@options = {
-        :template_location  =&gt; './public/stylesheets/sass',
-        :css_location       =&gt; './public/stylesheets',
-        :always_update      =&gt; false,
-        :always_check       =&gt; true,
-        :full_exception     =&gt; true
-      }
-      @@checked_for_updates = false
+    extend self
 
-      # Whether or not Sass has *ever* checked if the stylesheets need updates
-      # (in this Ruby instance).
-      def checked_for_updates
-        @@checked_for_updates
-      end
+    @options = {
+      :css_location       =&gt; './public/stylesheets',
+      :always_update      =&gt; false,
+      :always_check       =&gt; true,
+      :full_exception     =&gt; true
+    }
+    @checked_for_updates = false
 
-      # Gets various options for Sass. See README.rdoc for details.
-      #--
-      # TODO: *DOCUMENT OPTIONS*
-      #++
-      def options
-        @@options
-      end
+    # Whether or not Sass has **ever** checked if the stylesheets need to be updated
+    # (in this Ruby instance).
+    #
+    # @return [Boolean]
+    attr_reader :checked_for_updates
 
-      # Sets various options for Sass.
-      def options=(value)
-        @@options.merge!(value)
-      end
+    # An options hash.
+    # See {file:SASS_REFERENCE.md#sass_options the Sass options documentation}.
+    #
+    # @return [Hash&lt;Symbol, Object&gt;]
+    attr_reader :options
 
-      # Get the options ready to be passed to the Sass::Engine
-      def engine_options(additional_options = {})
-        opts = options.dup.merge(additional_options)
-        opts[:load_paths] = load_paths(opts)
-        opts
-      end
+    # Sets the options hash.
+    # See {file:SASS_REFERENCE.md#sass_options the Sass options documentation}.
+    #
+    # @param value [Hash&lt;Symbol, Object&gt;] The options hash
+    def options=(value)
+      @options.merge!(value)
+    end
 
-      # Checks each stylesheet in &lt;tt&gt;options[:css_location]&lt;/tt&gt;
-      # to see if it needs updating,
-      # and updates it using the corresponding template
-      # from &lt;tt&gt;options[:templates]&lt;/tt&gt;
-      # if it does.
-      def update_stylesheets
-        return if options[:never_update]
+    # Non-destructively modifies \{#options} so that default values are properly set.
+    #
+    # @param additional_options [Hash&lt;Symbol, Object&gt;] An options hash with which to merge \{#options}
+    # @return [Hash&lt;Symbol, Object&gt;] The modified options hash
+    def engine_options(additional_options = {})
+      opts = options.dup.merge(additional_options)
+      opts[:load_paths] = load_paths(opts)
+      opts
+    end
 
-        @@checked_for_updates = true
-        Dir.glob(File.join(options[:template_location], &quot;**&quot;, &quot;*.sass&quot;)).entries.each do |file|
+    # Updates out-of-date stylesheets.
+    #
+    # Checks each Sass file in {file:SASS_REFERENCE.md#template_location-option `:template_location`}
+    # to see if it's been modified more recently than the corresponding CSS file
+    # in {file:SASS_REFERENCE.md#css_location-option} `:css_location`}.
+    # If it has, it updates the CSS file.
+    def update_stylesheets
+      return if options[:never_update]
 
+      @checked_for_updates = true
+      template_locations.zip(css_locations).each do |template_location, css_location|
+
+        Dir.glob(File.join(template_location, &quot;**&quot;, &quot;*.sass&quot;)).each do |file|
           # Get the relative path to the file with no extension
-          name = file.sub(options[:template_location] + &quot;/&quot;, &quot;&quot;)[0...-5]
+          name = file.sub(template_location + &quot;/&quot;, &quot;&quot;)[0...-5]
 
-          if !forbid_update?(name) &amp;&amp; (options[:always_update] || stylesheet_needs_update?(name))
-            css = css_filename(name)
-            File.delete(css) if File.exists?(css)
-
-            filename = template_filename(name)
-            engine = Engine.new(File.read(filename), engine_options(:filename =&gt; filename))
-            result = begin
-                       engine.render
-                     rescue Exception =&gt; e
-                       exception_string(e)
-                     end
-
-            # Create any directories that might be necessary
-            dirs = [options[:css_location]]
-            name.split(&quot;/&quot;)[0...-1].each { |dir| dirs &lt;&lt; &quot;#{dirs[-1]}/#{dir}&quot; }
-            dirs.each { |dir| Dir.mkdir(dir) unless File.exist?(dir) }
-
-            # Finally, write the file
-            File.open(css, 'w') do |file|
-              file.print(result)
-            end
+          if !forbid_update?(name) &amp;&amp; (options[:always_update] || stylesheet_needs_update?(name, template_location, css_location))
+            update_stylesheet(name, template_location, css_location)
           end
         end
       end
+    end
 
-      private
+    private
 
-      def load_paths(opts = options)
-        (opts[:load_paths] || []) + [options[:template_location]]
+    def update_stylesheet(name, template_location, css_location)
+      css = css_filename(name, css_location)
+      File.delete(css) if File.exists?(css)
+
+      filename = template_filename(name, template_location)
+      result = begin
+                 Sass::Files.tree_for(filename, engine_options(:css_filename =&gt; css, :filename =&gt; filename)).render
+               rescue Exception =&gt; e
+                 exception_string(e)
+               end
+
+      # Create any directories that might be necessary
+      mkpath(css_location, name)
+
+      # Finally, write the file
+      File.open(css, 'w') do |file|
+        file.print(result)
       end
+    end
+    
+    # Create any successive directories required to be able to write a file to: File.join(base,name)
+    def mkpath(base, name)
+      dirs = [base]
+      name.split(File::SEPARATOR)[0...-1].each { |dir| dirs &lt;&lt; File.join(dirs[-1],dir) }
+      dirs.each { |dir| Dir.mkdir(dir) unless File.exist?(dir) }
+    end
 
-      def exception_string(e)
-        if options[:full_exception]
-          e_string = &quot;#{e.class}: #{e.message}&quot;
+    def load_paths(opts = options)
+      (opts[:load_paths] || []) + template_locations
+    end
+    
+    def template_locations
+      location = (options[:template_location] || File.join(options[:css_location],'sass'))
+      if location.is_a?(String)
+        [location]
+      else
+        location.to_a.map { |l| l.first }
+      end
+    end
+    
+    def css_locations
+      if options[:template_location] &amp;&amp; !options[:template_location].is_a?(String)
+        options[:template_location].to_a.map { |l| l.last }
+      else
+        [options[:css_location]]
+      end
+    end
 
-          if e.is_a? Sass::SyntaxError
-            e_string &lt;&lt; &quot;\non line #{e.sass_line}&quot;
+    def exception_string(e)
+      if options[:full_exception]
+        e_string = &quot;#{e.class}: #{e.message}&quot;
 
-            if e.sass_filename
-              e_string &lt;&lt; &quot; of #{e.sass_filename}&quot;
+        if e.is_a? Sass::SyntaxError
+          e_string &lt;&lt; &quot;\non line #{e.sass_line}&quot;
 
-              if File.exists?(e.sass_filename)
-                e_string &lt;&lt; &quot;\n\n&quot;
+          if e.sass_filename
+            e_string &lt;&lt; &quot; of #{e.sass_filename}&quot;
 
-                min = [e.sass_line - 5, 0].max
+            if File.exists?(e.sass_filename)
+              e_string &lt;&lt; &quot;\n\n&quot;
+
+              min = [e.sass_line - 5, 0].max
+              begin
                 File.read(e.sass_filename).rstrip.split(&quot;\n&quot;)[
                   min .. e.sass_line + 5
                 ].each_with_index do |line, i|
                   e_string &lt;&lt; &quot;#{min + i + 1}: #{line}\n&quot;
                 end
+              rescue
+                e_string &lt;&lt; &quot;Couldn't read sass file: #{e.sass_filename}&quot;
               end
             end
           end
-          &lt;&lt;END
+        end
+        &lt;&lt;END
 /*
 #{e_string}
 
@@ -136,48 +176,51 @@ body:before {
   font-family: monospace;
   content: &quot;#{e_string.gsub('&quot;', '\&quot;').gsub(&quot;\n&quot;, '\\A ')}&quot;; }
 END
-          # Fix an emacs syntax-highlighting hiccup: '
-        else
-          &quot;/* Internal stylesheet error */&quot;
+        # Fix an emacs syntax-highlighting hiccup: '
+      else
+        &quot;/* Internal stylesheet error */&quot;
+      end
+    end
+
+    def template_filename(name, path)
+      &quot;#{path}/#{name}.sass&quot;
+    end
+
+    def css_filename(name, path)
+      &quot;#{path}/#{name}.css&quot;
+    end
+
+    def forbid_update?(name)
+      name.sub(/^.*\//, '')[0] == ?_
+    end
+
+    def stylesheet_needs_update?(name, template_path, css_path)
+      css_file = css_filename(name, css_path)
+      template_file = template_filename(name, template_path)
+      exact_stylesheet_needs_update?(css_file, template_file)
+    end
+
+    def exact_stylesheet_needs_update?(css_file, template_file)
+      return true unless File.exists?(css_file)
+
+      css_mtime = File.mtime(css_file)
+      File.mtime(template_file) &gt; css_mtime ||
+        dependencies(template_file).any?(&amp;dependency_updated?(css_mtime))
+    end
+
+    def dependency_updated?(css_mtime)
+      lambda do |dep|
+        File.mtime(dep) &gt; css_mtime ||
+          dependencies(dep).any?(&amp;dependency_updated?(css_mtime))
+      end
+    end
+
+    def dependencies(filename)
+      File.readlines(filename).grep(/^@import /).map do |line|
+        line[8..-1].split(',').map do |inc|
+          Sass::Files.find_file_to_import(inc.strip, [File.dirname(filename)] + load_paths)
         end
-      end
-
-      def template_filename(name)
-        &quot;#{options[:template_location]}/#{name}.sass&quot;
-      end
-
-      def css_filename(name)
-        &quot;#{options[:css_location]}/#{name}.css&quot;
-      end
-
-      def forbid_update?(name)
-        name.sub(/^.*\//, '')[0] == ?_
-      end
-
-      def stylesheet_needs_update?(name)
-        if !File.exists?(css_filename(name))
-          return true
-        else
-          css_mtime = File.mtime(css_filename(name))
-          File.mtime(template_filename(name)) &gt; css_mtime ||
-            dependencies(template_filename(name)).any?(&amp;dependency_updated?(css_mtime))
-        end
-      end
-
-      def dependency_updated?(css_mtime)
-        lambda do |dep|
-          File.mtime(dep) &gt; css_mtime ||
-            dependencies(dep).any?(&amp;dependency_updated?(css_mtime))
-        end
-      end
-
-      def dependencies(filename)
-        File.readlines(filename).grep(/^@import /).map do |line|
-          line[8..-1].split(',').map do |inc|
-            Sass::Engine.find_file_to_import(inc.strip, load_paths)
-          end
-        end.flatten.grep(/\.sass$/)
-      end
+      end.flatten.grep(/\.sass$/)
     end
   end
 end

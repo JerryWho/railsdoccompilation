@@ -1,0 +1,87 @@
+  <div id="fileHeader">
+    <h1>test_helper.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionmailer/lib/action_mailer/test_helper.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:07 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActionMailer
+  module TestHelper
+    # Asserts that the number of emails sent matches the given number.
+    #
+    #   def test_emails
+    #     assert_emails 0
+    #     ContactMailer.deliver_contact
+    #     assert_emails 1
+    #     ContactMailer.deliver_contact
+    #     assert_emails 2
+    #   end
+    #
+    # If a block is passed, that block should cause the specified number of emails to be sent.
+    #
+    #   def test_emails_again
+    #     assert_emails 1 do
+    #       ContactMailer.deliver_contact
+    #     end
+    #
+    #     assert_emails 2 do
+    #       ContactMailer.deliver_contact
+    #       ContactMailer.deliver_contact
+    #     end
+    #   end
+    def assert_emails(number)
+      if block_given?
+        original_count = ActionMailer::Base.deliveries.size
+        yield
+        new_count = ActionMailer::Base.deliveries.size
+        assert_equal original_count + number, new_count, &quot;#{number} emails expected, but #{new_count - original_count} were sent&quot;
+      else
+        assert_equal number, ActionMailer::Base.deliveries.size
+      end
+    end
+
+    # Assert that no emails have been sent.
+    #
+    #   def test_emails
+    #     assert_no_emails
+    #     ContactMailer.deliver_contact
+    #     assert_emails 1
+    #   end
+    #
+    # If a block is passed, that block should not cause any emails to be sent.
+    #
+    #   def test_emails_again
+    #     assert_no_emails do
+    #       # No emails should be sent from this block
+    #     end
+    #   end
+    #
+    # Note: This assertion is simply a shortcut for:
+    #
+    #   assert_emails 0
+    def assert_no_emails(&amp;block)
+      assert_emails 0, &amp;block
+    end
+  end
+end
+
+# TODO: Deprecate this
+module Test
+  module Unit
+    class TestCase
+      include ActionMailer::TestHelper
+    end
+  end
+end
+</pre>
+    </div>

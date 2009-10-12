@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,88 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/ext/nokogiri/nokogiri.c-</pre>
+    <pre>#include &lt;nokogiri.h&gt;
+
+VALUE mNokogiri ;
+VALUE mNokogiriXml ;
+VALUE mNokogiriHtml ;
+VALUE mNokogiriXslt ;
+VALUE mNokogiriXmlSax ;
+VALUE mNokogiriHtmlSax ;
+
+#ifdef USE_INCLUDED_VASPRINTF
+/*
+ * I srsly hate windows.  it doesn't have vasprintf.
+ * Thank you Geoffroy Couprie for this implementation of vasprintf!
+ */
+int vasprintf (char **strp, const char *fmt, va_list ap)
+{
+  int len = vsnprintf (NULL, 0, fmt, ap) + 1;
+  char *res = (char *)malloc((unsigned int)len);
+  if (res == NULL)
+      return -1;
+  *strp = res;
+  return vsnprintf(res, (unsigned int)len, fmt, ap);
+}
+#endif
+
+int is_2_6_16(void)
+{
+  return (strcmp(xmlParserVersion, &quot;20616&quot;) &lt;= 0) ? 1 : 0 ;
+}
+
+void Init_nokogiri()
+{
+  xmlMemSetup(
+      (xmlFreeFunc)ruby_xfree,
+      (xmlMallocFunc)ruby_xmalloc,
+      (xmlReallocFunc)ruby_xrealloc,
+      strdup
+  );
+
+  mNokogiri         = rb_define_module(&quot;Nokogiri&quot;);
+  mNokogiriXml      = rb_define_module_under(mNokogiri, &quot;XML&quot;);
+  mNokogiriHtml     = rb_define_module_under(mNokogiri, &quot;HTML&quot;);
+  mNokogiriXslt     = rb_define_module_under(mNokogiri, &quot;XSLT&quot;);
+  mNokogiriXmlSax   = rb_define_module_under(mNokogiriXml, &quot;SAX&quot;);
+  mNokogiriHtmlSax  = rb_define_module_under(mNokogiriHtml, &quot;SAX&quot;);
+
+  rb_const_set( mNokogiri,
+                rb_intern(&quot;LIBXML_VERSION&quot;),
+                NOKOGIRI_STR_NEW2(LIBXML_DOTTED_VERSION, &quot;UTF-8&quot;)
+              );
+  rb_const_set( mNokogiri,
+                rb_intern(&quot;LIBXML_PARSER_VERSION&quot;),
+                NOKOGIRI_STR_NEW2(xmlParserVersion, &quot;UTF-8&quot;)
+              );
+
+  xmlInitParser();
+
+  init_xml_document();
+  init_html_document();
+  init_xml_node();
+  init_xml_document_fragment();
+  init_xml_text();
+  init_xml_cdata();
+  init_xml_processing_instruction();
+  init_xml_attr();
+  init_xml_entity_reference();
+  init_xml_comment();
+  init_xml_node_set();
+  init_xml_xpath_context();
+  init_xml_xpath();
+  init_xml_sax_parser();
+  init_xml_sax_push_parser();
+  init_xml_reader();
+  init_xml_dtd();
+  init_xml_namespace();
+  init_html_sax_parser();
+  init_xslt_stylesheet();
+  init_xml_syntax_error();
+  init_html_entity_lookup();
+  init_html_element_description();
+  init_xml_schema();
+  init_xml_relax_ng();
+}
+</pre>
     </div>

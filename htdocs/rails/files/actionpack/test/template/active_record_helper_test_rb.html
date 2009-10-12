@@ -1,0 +1,321 @@
+  <div id="fileHeader">
+    <h1>active_record_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/active_record_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class ActiveRecordHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::ActiveRecordHelper
+
+  silence_warnings do
+    Post = Struct.new(&quot;Post&quot;, :title, :author_name, :body, :secret, :written_on)
+    Post.class_eval do
+      alias_method :title_before_type_cast, :title unless respond_to?(:title_before_type_cast)
+      alias_method :body_before_type_cast, :body unless respond_to?(:body_before_type_cast)
+      alias_method :author_name_before_type_cast, :author_name unless respond_to?(:author_name_before_type_cast)
+    end
+
+    User = Struct.new(&quot;User&quot;, :email)
+    User.class_eval do
+      alias_method :email_before_type_cast, :email unless respond_to?(:email_before_type_cast)
+    end
+
+    Column = Struct.new(&quot;Column&quot;, :type, :name, :human_name)
+  end
+
+  class DirtyPost
+    class Errors
+      def empty?
+        false
+      end
+
+      def count
+        1
+      end
+
+      def full_messages
+        [&quot;Author name can't be &lt;em&gt;empty&lt;/em&gt;&quot;]
+      end
+
+      def on(field)
+        &quot;can't be &lt;em&gt;empty&lt;/em&gt;&quot;
+      end
+    end
+
+    def errors
+      Errors.new
+    end
+  end
+
+  def setup_post
+    @post = Post.new
+    def @post.errors
+      Class.new {
+        def on(field)
+          case field.to_s
+          when &quot;author_name&quot;
+            &quot;can't be empty&quot;
+          when &quot;body&quot;
+            true
+          else
+            false
+          end
+        end
+        def empty?() false end
+        def count() 1 end
+        def full_messages() [ &quot;Author name can't be empty&quot; ] end
+      }.new
+    end
+
+    def @post.new_record?() true end
+    def @post.to_param() nil end
+
+    def @post.column_for_attribute(attr_name)
+      Post.content_columns.select { |column| column.name == attr_name }.first
+    end
+
+    silence_warnings do
+      def Post.content_columns() [ Column.new(:string, &quot;title&quot;, &quot;Title&quot;), Column.new(:text, &quot;body&quot;, &quot;Body&quot;) ] end
+    end
+
+    @post.title       = &quot;Hello World&quot;
+    @post.author_name = &quot;&quot;
+    @post.body        = &quot;Back to the hill and over it again!&quot;
+    @post.secret = 1
+    @post.written_on  = Date.new(2004, 6, 15)
+  end
+
+  def setup_user
+    @user = User.new
+    def @user.errors
+      Class.new {
+        def on(field) field == &quot;email&quot; end
+        def empty?() false end
+        def count() 1 end
+        def full_messages() [ &quot;User email can't be empty&quot; ] end
+      }.new
+    end
+
+    def @user.new_record?() true end
+    def @user.to_param() nil end
+
+    def @user.column_for_attribute(attr_name)
+      User.content_columns.select { |column| column.name == attr_name }.first
+    end
+
+    silence_warnings do
+      def User.content_columns() [ Column.new(:string, &quot;email&quot;, &quot;Email&quot;) ] end
+    end
+
+    @user.email = &quot;&quot;
+  end
+
+  def protect_against_forgery?
+    @protect_against_forgery ? true : false
+  end
+  attr_accessor :request_forgery_protection_token, :form_authenticity_token
+
+  def setup
+    setup_post
+    setup_user
+
+    @response = ActionController::TestResponse.new
+
+    @controller = Object.new
+    def @controller.url_for(options)
+      options = options.symbolize_keys
+
+      [options[:action], options[:id].to_param].compact.join('/')
+    end
+  end
+
+  def test_generic_input_tag
+    assert_dom_equal(
+      %(&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;), input(&quot;post&quot;, &quot;title&quot;)
+    )
+  end
+
+  def test_text_area_with_errors
+    assert_dom_equal(
+      %(&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;),
+      text_area(&quot;post&quot;, &quot;body&quot;)
+    )
+  end
+
+  def test_text_field_with_errors
+    assert_dom_equal(
+      %(&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;input id=&quot;post_author_name&quot; name=&quot;post[author_name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;&quot; /&gt;&lt;/div&gt;),
+      text_field(&quot;post&quot;, &quot;author_name&quot;)
+    )
+  end
+
+  def test_form_with_string
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; method=&quot;post&quot;&gt;&lt;p&gt;&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;&lt;br /&gt;&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;&lt;/p&gt;\n&lt;p&gt;&lt;label for=&quot;post_body&quot;&gt;Body&lt;/label&gt;&lt;br /&gt;&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;)
+    )
+
+    silence_warnings do
+      class &lt;&lt; @post
+        def new_record?() false end
+        def to_param() id end
+        def id() 1 end
+      end
+    end
+
+    assert_dom_equal(
+      %(&lt;form action=&quot;update/1&quot; method=&quot;post&quot;&gt;&lt;input id=&quot;post_id&quot; name=&quot;post[id]&quot; type=&quot;hidden&quot; value=&quot;1&quot; /&gt;&lt;p&gt;&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;&lt;br /&gt;&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;&lt;/p&gt;\n&lt;p&gt;&lt;label for=&quot;post_body&quot;&gt;Body&lt;/label&gt;&lt;br /&gt;&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Update&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;)
+    )
+  end
+
+  def test_form_with_protect_against_forgery
+    @protect_against_forgery = true
+    @request_forgery_protection_token = 'authenticity_token'
+    @form_authenticity_token = '123'
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; method=&quot;post&quot;&gt;&lt;div style='margin:0;padding:0;display:inline'&gt;&lt;input type='hidden' name='authenticity_token' value='123' /&gt;&lt;/div&gt;&lt;p&gt;&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;&lt;br /&gt;&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;&lt;/p&gt;\n&lt;p&gt;&lt;label for=&quot;post_body&quot;&gt;Body&lt;/label&gt;&lt;br /&gt;&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;)
+    )
+  end
+
+  def test_form_with_method_option
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; method=&quot;get&quot;&gt;&lt;p&gt;&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;&lt;br /&gt;&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;&lt;/p&gt;\n&lt;p&gt;&lt;label for=&quot;post_body&quot;&gt;Body&lt;/label&gt;&lt;br /&gt;&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;, :method=&gt;'get')
+    )
+  end
+
+  def test_form_with_action_option
+    @response.body = form(&quot;post&quot;, :action =&gt; &quot;sign&quot;)
+    assert_select &quot;form[action=sign]&quot; do |form|
+      assert_select &quot;input[type=submit][value=Sign]&quot;
+    end
+  end
+
+  def test_form_with_date
+    silence_warnings do
+      def Post.content_columns() [ Column.new(:date, &quot;written_on&quot;, &quot;Written on&quot;) ] end
+    end
+
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; method=&quot;post&quot;&gt;&lt;p&gt;&lt;label for=&quot;post_written_on&quot;&gt;Written on&lt;/label&gt;&lt;br /&gt;&lt;select id=&quot;post_written_on_1i&quot; name=&quot;post[written_on(1i)]&quot;&gt;\n&lt;option value=&quot;1999&quot;&gt;1999&lt;/option&gt;\n&lt;option value=&quot;2000&quot;&gt;2000&lt;/option&gt;\n&lt;option value=&quot;2001&quot;&gt;2001&lt;/option&gt;\n&lt;option value=&quot;2002&quot;&gt;2002&lt;/option&gt;\n&lt;option value=&quot;2003&quot;&gt;2003&lt;/option&gt;\n&lt;option value=&quot;2004&quot; selected=&quot;selected&quot;&gt;2004&lt;/option&gt;\n&lt;option value=&quot;2005&quot;&gt;2005&lt;/option&gt;\n&lt;option value=&quot;2006&quot;&gt;2006&lt;/option&gt;\n&lt;option value=&quot;2007&quot;&gt;2007&lt;/option&gt;\n&lt;option value=&quot;2008&quot;&gt;2008&lt;/option&gt;\n&lt;option value=&quot;2009&quot;&gt;2009&lt;/option&gt;\n&lt;/select&gt;\n&lt;select id=&quot;post_written_on_2i&quot; name=&quot;post[written_on(2i)]&quot;&gt;\n&lt;option value=&quot;1&quot;&gt;January&lt;/option&gt;\n&lt;option value=&quot;2&quot;&gt;February&lt;/option&gt;\n&lt;option value=&quot;3&quot;&gt;March&lt;/option&gt;\n&lt;option value=&quot;4&quot;&gt;April&lt;/option&gt;\n&lt;option value=&quot;5&quot;&gt;May&lt;/option&gt;\n&lt;option value=&quot;6&quot; selected=&quot;selected&quot;&gt;June&lt;/option&gt;\n&lt;option value=&quot;7&quot;&gt;July&lt;/option&gt;\n&lt;option value=&quot;8&quot;&gt;August&lt;/option&gt;\n&lt;option value=&quot;9&quot;&gt;September&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;October&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;November&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;December&lt;/option&gt;\n&lt;/select&gt;\n&lt;select id=&quot;post_written_on_3i&quot; name=&quot;post[written_on(3i)]&quot;&gt;\n&lt;option value=&quot;1&quot;&gt;1&lt;/option&gt;\n&lt;option value=&quot;2&quot;&gt;2&lt;/option&gt;\n&lt;option value=&quot;3&quot;&gt;3&lt;/option&gt;\n&lt;option value=&quot;4&quot;&gt;4&lt;/option&gt;\n&lt;option value=&quot;5&quot;&gt;5&lt;/option&gt;\n&lt;option value=&quot;6&quot;&gt;6&lt;/option&gt;\n&lt;option value=&quot;7&quot;&gt;7&lt;/option&gt;\n&lt;option value=&quot;8&quot;&gt;8&lt;/option&gt;\n&lt;option value=&quot;9&quot;&gt;9&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;10&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;11&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;12&lt;/option&gt;\n&lt;option value=&quot;13&quot;&gt;13&lt;/option&gt;\n&lt;option value=&quot;14&quot;&gt;14&lt;/option&gt;\n&lt;option value=&quot;15&quot; selected=&quot;selected&quot;&gt;15&lt;/option&gt;\n&lt;option value=&quot;16&quot;&gt;16&lt;/option&gt;\n&lt;option value=&quot;17&quot;&gt;17&lt;/option&gt;\n&lt;option value=&quot;18&quot;&gt;18&lt;/option&gt;\n&lt;option value=&quot;19&quot;&gt;19&lt;/option&gt;\n&lt;option value=&quot;20&quot;&gt;20&lt;/option&gt;\n&lt;option value=&quot;21&quot;&gt;21&lt;/option&gt;\n&lt;option value=&quot;22&quot;&gt;22&lt;/option&gt;\n&lt;option value=&quot;23&quot;&gt;23&lt;/option&gt;\n&lt;option value=&quot;24&quot;&gt;24&lt;/option&gt;\n&lt;option value=&quot;25&quot;&gt;25&lt;/option&gt;\n&lt;option value=&quot;26&quot;&gt;26&lt;/option&gt;\n&lt;option value=&quot;27&quot;&gt;27&lt;/option&gt;\n&lt;option value=&quot;28&quot;&gt;28&lt;/option&gt;\n&lt;option value=&quot;29&quot;&gt;29&lt;/option&gt;\n&lt;option value=&quot;30&quot;&gt;30&lt;/option&gt;\n&lt;option value=&quot;31&quot;&gt;31&lt;/option&gt;\n&lt;/select&gt;\n&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;)
+    )
+  end
+
+  def test_form_with_datetime
+    silence_warnings do
+      def Post.content_columns() [ Column.new(:datetime, &quot;written_on&quot;, &quot;Written on&quot;) ] end
+    end
+    @post.written_on  = Time.gm(2004, 6, 15, 16, 30)
+
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; method=&quot;post&quot;&gt;&lt;p&gt;&lt;label for=&quot;post_written_on&quot;&gt;Written on&lt;/label&gt;&lt;br /&gt;&lt;select id=&quot;post_written_on_1i&quot; name=&quot;post[written_on(1i)]&quot;&gt;\n&lt;option value=&quot;1999&quot;&gt;1999&lt;/option&gt;\n&lt;option value=&quot;2000&quot;&gt;2000&lt;/option&gt;\n&lt;option value=&quot;2001&quot;&gt;2001&lt;/option&gt;\n&lt;option value=&quot;2002&quot;&gt;2002&lt;/option&gt;\n&lt;option value=&quot;2003&quot;&gt;2003&lt;/option&gt;\n&lt;option value=&quot;2004&quot; selected=&quot;selected&quot;&gt;2004&lt;/option&gt;\n&lt;option value=&quot;2005&quot;&gt;2005&lt;/option&gt;\n&lt;option value=&quot;2006&quot;&gt;2006&lt;/option&gt;\n&lt;option value=&quot;2007&quot;&gt;2007&lt;/option&gt;\n&lt;option value=&quot;2008&quot;&gt;2008&lt;/option&gt;\n&lt;option value=&quot;2009&quot;&gt;2009&lt;/option&gt;\n&lt;/select&gt;\n&lt;select id=&quot;post_written_on_2i&quot; name=&quot;post[written_on(2i)]&quot;&gt;\n&lt;option value=&quot;1&quot;&gt;January&lt;/option&gt;\n&lt;option value=&quot;2&quot;&gt;February&lt;/option&gt;\n&lt;option value=&quot;3&quot;&gt;March&lt;/option&gt;\n&lt;option value=&quot;4&quot;&gt;April&lt;/option&gt;\n&lt;option value=&quot;5&quot;&gt;May&lt;/option&gt;\n&lt;option value=&quot;6&quot; selected=&quot;selected&quot;&gt;June&lt;/option&gt;\n&lt;option value=&quot;7&quot;&gt;July&lt;/option&gt;\n&lt;option value=&quot;8&quot;&gt;August&lt;/option&gt;\n&lt;option value=&quot;9&quot;&gt;September&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;October&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;November&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;December&lt;/option&gt;\n&lt;/select&gt;\n&lt;select id=&quot;post_written_on_3i&quot; name=&quot;post[written_on(3i)]&quot;&gt;\n&lt;option value=&quot;1&quot;&gt;1&lt;/option&gt;\n&lt;option value=&quot;2&quot;&gt;2&lt;/option&gt;\n&lt;option value=&quot;3&quot;&gt;3&lt;/option&gt;\n&lt;option value=&quot;4&quot;&gt;4&lt;/option&gt;\n&lt;option value=&quot;5&quot;&gt;5&lt;/option&gt;\n&lt;option value=&quot;6&quot;&gt;6&lt;/option&gt;\n&lt;option value=&quot;7&quot;&gt;7&lt;/option&gt;\n&lt;option value=&quot;8&quot;&gt;8&lt;/option&gt;\n&lt;option value=&quot;9&quot;&gt;9&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;10&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;11&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;12&lt;/option&gt;\n&lt;option value=&quot;13&quot;&gt;13&lt;/option&gt;\n&lt;option value=&quot;14&quot;&gt;14&lt;/option&gt;\n&lt;option value=&quot;15&quot; selected=&quot;selected&quot;&gt;15&lt;/option&gt;\n&lt;option value=&quot;16&quot;&gt;16&lt;/option&gt;\n&lt;option value=&quot;17&quot;&gt;17&lt;/option&gt;\n&lt;option value=&quot;18&quot;&gt;18&lt;/option&gt;\n&lt;option value=&quot;19&quot;&gt;19&lt;/option&gt;\n&lt;option value=&quot;20&quot;&gt;20&lt;/option&gt;\n&lt;option value=&quot;21&quot;&gt;21&lt;/option&gt;\n&lt;option value=&quot;22&quot;&gt;22&lt;/option&gt;\n&lt;option value=&quot;23&quot;&gt;23&lt;/option&gt;\n&lt;option value=&quot;24&quot;&gt;24&lt;/option&gt;\n&lt;option value=&quot;25&quot;&gt;25&lt;/option&gt;\n&lt;option value=&quot;26&quot;&gt;26&lt;/option&gt;\n&lt;option value=&quot;27&quot;&gt;27&lt;/option&gt;\n&lt;option value=&quot;28&quot;&gt;28&lt;/option&gt;\n&lt;option value=&quot;29&quot;&gt;29&lt;/option&gt;\n&lt;option value=&quot;30&quot;&gt;30&lt;/option&gt;\n&lt;option value=&quot;31&quot;&gt;31&lt;/option&gt;\n&lt;/select&gt;\n &amp;mdash; &lt;select id=&quot;post_written_on_4i&quot; name=&quot;post[written_on(4i)]&quot;&gt;\n&lt;option value=&quot;00&quot;&gt;00&lt;/option&gt;\n&lt;option value=&quot;01&quot;&gt;01&lt;/option&gt;\n&lt;option value=&quot;02&quot;&gt;02&lt;/option&gt;\n&lt;option value=&quot;03&quot;&gt;03&lt;/option&gt;\n&lt;option value=&quot;04&quot;&gt;04&lt;/option&gt;\n&lt;option value=&quot;05&quot;&gt;05&lt;/option&gt;\n&lt;option value=&quot;06&quot;&gt;06&lt;/option&gt;\n&lt;option value=&quot;07&quot;&gt;07&lt;/option&gt;\n&lt;option value=&quot;08&quot;&gt;08&lt;/option&gt;\n&lt;option value=&quot;09&quot;&gt;09&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;10&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;11&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;12&lt;/option&gt;\n&lt;option value=&quot;13&quot;&gt;13&lt;/option&gt;\n&lt;option value=&quot;14&quot;&gt;14&lt;/option&gt;\n&lt;option value=&quot;15&quot;&gt;15&lt;/option&gt;\n&lt;option value=&quot;16&quot; selected=&quot;selected&quot;&gt;16&lt;/option&gt;\n&lt;option value=&quot;17&quot;&gt;17&lt;/option&gt;\n&lt;option value=&quot;18&quot;&gt;18&lt;/option&gt;\n&lt;option value=&quot;19&quot;&gt;19&lt;/option&gt;\n&lt;option value=&quot;20&quot;&gt;20&lt;/option&gt;\n&lt;option value=&quot;21&quot;&gt;21&lt;/option&gt;\n&lt;option value=&quot;22&quot;&gt;22&lt;/option&gt;\n&lt;option value=&quot;23&quot;&gt;23&lt;/option&gt;\n&lt;/select&gt;\n : &lt;select id=&quot;post_written_on_5i&quot; name=&quot;post[written_on(5i)]&quot;&gt;\n&lt;option value=&quot;00&quot;&gt;00&lt;/option&gt;\n&lt;option value=&quot;01&quot;&gt;01&lt;/option&gt;\n&lt;option value=&quot;02&quot;&gt;02&lt;/option&gt;\n&lt;option value=&quot;03&quot;&gt;03&lt;/option&gt;\n&lt;option value=&quot;04&quot;&gt;04&lt;/option&gt;\n&lt;option value=&quot;05&quot;&gt;05&lt;/option&gt;\n&lt;option value=&quot;06&quot;&gt;06&lt;/option&gt;\n&lt;option value=&quot;07&quot;&gt;07&lt;/option&gt;\n&lt;option value=&quot;08&quot;&gt;08&lt;/option&gt;\n&lt;option value=&quot;09&quot;&gt;09&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;10&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;11&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;12&lt;/option&gt;\n&lt;option value=&quot;13&quot;&gt;13&lt;/option&gt;\n&lt;option value=&quot;14&quot;&gt;14&lt;/option&gt;\n&lt;option value=&quot;15&quot;&gt;15&lt;/option&gt;\n&lt;option value=&quot;16&quot;&gt;16&lt;/option&gt;\n&lt;option value=&quot;17&quot;&gt;17&lt;/option&gt;\n&lt;option value=&quot;18&quot;&gt;18&lt;/option&gt;\n&lt;option value=&quot;19&quot;&gt;19&lt;/option&gt;\n&lt;option value=&quot;20&quot;&gt;20&lt;/option&gt;\n&lt;option value=&quot;21&quot;&gt;21&lt;/option&gt;\n&lt;option value=&quot;22&quot;&gt;22&lt;/option&gt;\n&lt;option value=&quot;23&quot;&gt;23&lt;/option&gt;\n&lt;option value=&quot;24&quot;&gt;24&lt;/option&gt;\n&lt;option value=&quot;25&quot;&gt;25&lt;/option&gt;\n&lt;option value=&quot;26&quot;&gt;26&lt;/option&gt;\n&lt;option value=&quot;27&quot;&gt;27&lt;/option&gt;\n&lt;option value=&quot;28&quot;&gt;28&lt;/option&gt;\n&lt;option value=&quot;29&quot;&gt;29&lt;/option&gt;\n&lt;option value=&quot;30&quot; selected=&quot;selected&quot;&gt;30&lt;/option&gt;\n&lt;option value=&quot;31&quot;&gt;31&lt;/option&gt;\n&lt;option value=&quot;32&quot;&gt;32&lt;/option&gt;\n&lt;option value=&quot;33&quot;&gt;33&lt;/option&gt;\n&lt;option value=&quot;34&quot;&gt;34&lt;/option&gt;\n&lt;option value=&quot;35&quot;&gt;35&lt;/option&gt;\n&lt;option value=&quot;36&quot;&gt;36&lt;/option&gt;\n&lt;option value=&quot;37&quot;&gt;37&lt;/option&gt;\n&lt;option value=&quot;38&quot;&gt;38&lt;/option&gt;\n&lt;option value=&quot;39&quot;&gt;39&lt;/option&gt;\n&lt;option value=&quot;40&quot;&gt;40&lt;/option&gt;\n&lt;option value=&quot;41&quot;&gt;41&lt;/option&gt;\n&lt;option value=&quot;42&quot;&gt;42&lt;/option&gt;\n&lt;option value=&quot;43&quot;&gt;43&lt;/option&gt;\n&lt;option value=&quot;44&quot;&gt;44&lt;/option&gt;\n&lt;option value=&quot;45&quot;&gt;45&lt;/option&gt;\n&lt;option value=&quot;46&quot;&gt;46&lt;/option&gt;\n&lt;option value=&quot;47&quot;&gt;47&lt;/option&gt;\n&lt;option value=&quot;48&quot;&gt;48&lt;/option&gt;\n&lt;option value=&quot;49&quot;&gt;49&lt;/option&gt;\n&lt;option value=&quot;50&quot;&gt;50&lt;/option&gt;\n&lt;option value=&quot;51&quot;&gt;51&lt;/option&gt;\n&lt;option value=&quot;52&quot;&gt;52&lt;/option&gt;\n&lt;option value=&quot;53&quot;&gt;53&lt;/option&gt;\n&lt;option value=&quot;54&quot;&gt;54&lt;/option&gt;\n&lt;option value=&quot;55&quot;&gt;55&lt;/option&gt;\n&lt;option value=&quot;56&quot;&gt;56&lt;/option&gt;\n&lt;option value=&quot;57&quot;&gt;57&lt;/option&gt;\n&lt;option value=&quot;58&quot;&gt;58&lt;/option&gt;\n&lt;option value=&quot;59&quot;&gt;59&lt;/option&gt;\n&lt;/select&gt;\n&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;)
+    )
+  end
+
+  def test_error_for_block
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;1 error prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;)
+    assert_equal %(&lt;div class=&quot;errorDeathByClass&quot; id=&quot;errorDeathById&quot;&gt;&lt;h1&gt;1 error prohibited this post from being saved&lt;/h1&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;, :class =&gt; &quot;errorDeathByClass&quot;, :id =&gt; &quot;errorDeathById&quot;, :header_tag =&gt; &quot;h1&quot;)
+    assert_equal %(&lt;div id=&quot;errorDeathById&quot;&gt;&lt;h1&gt;1 error prohibited this post from being saved&lt;/h1&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;, :class =&gt; nil, :id =&gt; &quot;errorDeathById&quot;, :header_tag =&gt; &quot;h1&quot;)
+    assert_equal %(&lt;div class=&quot;errorDeathByClass&quot;&gt;&lt;h1&gt;1 error prohibited this post from being saved&lt;/h1&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;, :class =&gt; &quot;errorDeathByClass&quot;, :id =&gt; nil, :header_tag =&gt; &quot;h1&quot;)
+  end
+
+  def test_error_messages_for_escapes_html
+    @dirty_post = DirtyPost.new
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;1 error prohibited this dirty post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be &amp;lt;em&amp;gt;empty&amp;lt;/em&amp;gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;dirty_post&quot;)
+  end
+
+  def test_error_messages_for_handles_nil
+    assert_equal &quot;&quot;, error_messages_for(&quot;notthere&quot;)
+  end
+
+  def test_error_message_on_escapes_html
+    @dirty_post = DirtyPost.new
+    assert_dom_equal &quot;&lt;div class=\&quot;formError\&quot;&gt;can't be &amp;lt;em&amp;gt;empty&amp;lt;/em&amp;gt;&lt;/div&gt;&quot;, error_message_on(:dirty_post, :author_name)
+  end
+
+  def test_error_message_on_handles_nil
+    assert_equal &quot;&quot;, error_message_on(&quot;notthere&quot;, &quot;notthere&quot;)
+  end
+
+  def test_error_message_on
+    assert_dom_equal &quot;&lt;div class=\&quot;formError\&quot;&gt;can't be empty&lt;/div&gt;&quot;, error_message_on(:post, :author_name)
+  end
+
+  def test_error_message_on_no_instance_variable
+    other_post = @post
+    assert_dom_equal &quot;&lt;div class=\&quot;formError\&quot;&gt;can't be empty&lt;/div&gt;&quot;, error_message_on(other_post, :author_name)
+  end
+
+  def test_error_message_on_with_options_hash
+    assert_dom_equal &quot;&lt;div class=\&quot;differentError\&quot;&gt;beforecan't be emptyafter&lt;/div&gt;&quot;, error_message_on(:post, :author_name, :css_class =&gt; 'differentError', :prepend_text =&gt; 'before', :append_text =&gt; 'after')
+  end
+
+  def test_error_messages_for_many_objects
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;, &quot;user&quot;)
+
+    # reverse the order, error order changes and so does the title
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this user from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;user&quot;, &quot;post&quot;)
+
+    # add the default to put post back in the title
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;user&quot;, &quot;post&quot;, :object_name =&gt; &quot;post&quot;)
+
+    # symbols work as well
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(:user, :post, :object_name =&gt; :post)
+
+    # any default works too
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this monkey from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(:user, :post, :object_name =&gt; &quot;monkey&quot;)
+
+    # should space object name
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this chunky bacon from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(:user, :post, :object_name =&gt; &quot;chunky_bacon&quot;)
+
+    # hide header and explanation messages with nil or empty string
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(:user, :post, :header_message =&gt; nil, :message =&gt; &quot;&quot;)
+
+    # override header and explanation messages
+    header_message = &quot;Yikes! Some errors&quot;
+    message = &quot;Please fix the following fields and resubmit:&quot;
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;#{header_message}&lt;/h2&gt;&lt;p&gt;#{message}&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(:user, :post, :header_message =&gt; header_message, :message =&gt; message)
+  end
+
+  def test_error_messages_for_non_instance_variable
+    actual_user = @user
+    actual_post = @post
+    @user = nil
+    @post = nil
+
+  #explicitly set object
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;1 error prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;post&quot;, :object =&gt; actual_post)
+
+  #multiple objects
+    assert_dom_equal %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;2 errors prohibited this user from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;User email can't be empty&lt;/li&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;), error_messages_for(&quot;user&quot;, &quot;post&quot;, :object =&gt; [actual_user, actual_post])
+
+  #nil object
+    assert_equal '', error_messages_for('user', :object =&gt; nil)
+  end
+
+  def test_form_with_string_multipart
+    assert_dom_equal(
+      %(&lt;form action=&quot;create&quot; enctype=&quot;multipart/form-data&quot; method=&quot;post&quot;&gt;&lt;p&gt;&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;&lt;br /&gt;&lt;input id=&quot;post_title&quot; name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;Hello World&quot; /&gt;&lt;/p&gt;\n&lt;p&gt;&lt;label for=&quot;post_body&quot;&gt;Body&lt;/label&gt;&lt;br /&gt;&lt;div class=&quot;fieldWithErrors&quot;&gt;&lt;textarea cols=&quot;40&quot; id=&quot;post_body&quot; name=&quot;post[body]&quot; rows=&quot;20&quot;&gt;Back to the hill and over it again!&lt;/textarea&gt;&lt;/div&gt;&lt;/p&gt;&lt;input name=&quot;commit&quot; type=&quot;submit&quot; value=&quot;Create&quot; /&gt;&lt;/form&gt;),
+      form(&quot;post&quot;, :multipart =&gt; true)
+    )
+  end
+end
+</pre>
+    </div>

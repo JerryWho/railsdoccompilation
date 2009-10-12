@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,50 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/test_css_cache.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), &quot;helper&quot;))
+
+class TestCssCache &lt; Nokogiri::TestCase
+
+  def setup
+    super
+    @css = &quot;a1 &gt; b2 &gt; c3&quot;
+    @parse_result = Nokogiri::CSS.parse(@css)
+    @to_xpath_result = @parse_result.map {|ast| ast.to_xpath}
+    Nokogiri::CSS::Parser.class_eval do
+      class &lt;&lt; @cache
+        alias :old_bracket :[]
+        attr_reader :count
+        def [](key)
+          @count ||= 0
+          @count += 1
+          old_bracket(key)
+        end
+      end
+    end
+    assert Nokogiri::CSS::Parser.cache_on?
+  end
+
+  def teardown
+    Nokogiri::CSS::Parser.clear_cache
+    Nokogiri::CSS::Parser.set_cache true
+  end
+
+  [ false, true ].each do |cache_setting|
+    define_method &quot;test_css_cache_#{cache_setting ? &quot;true&quot; : &quot;false&quot;}&quot; do
+      times = cache_setting ? 4 : nil
+
+      Nokogiri::CSS::Parser.set_cache cache_setting
+
+      Nokogiri::CSS.xpath_for(@css)
+      Nokogiri::CSS.xpath_for(@css)
+      Nokogiri::CSS::Parser.new.xpath_for(@css)
+      Nokogiri::CSS::Parser.new.xpath_for(@css)
+
+      assert_equal(times, Nokogiri::CSS::Parser.class_eval { @cache.count })
+    end
+  end
+
+
+end
+</pre>
     </div>

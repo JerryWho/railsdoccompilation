@@ -1,0 +1,135 @@
+  <div id="fileHeader">
+    <h1>mail_render_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionmailer/test/mail_render_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:07 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class RenderMailer &lt; ActionMailer::Base
+  def inline_template(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+    body       render(:inline =&gt; &quot;Hello, &lt;%= @world %&gt;&quot;, :body =&gt; { :world =&gt; &quot;Earth&quot; })
+  end
+
+  def file_template(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+    body       render(:file =&gt; &quot;signed_up&quot;, :body =&gt; { :recipient =&gt; recipient })
+  end
+
+  def rxml_template(recipient)
+    recipients recipient
+    subject    &quot;rendering rxml template&quot;
+    from       &quot;tester@example.com&quot;
+  end
+
+  def included_subtemplate(recipient)
+    recipients recipient
+    subject    &quot;Including another template in the one being rendered&quot;
+    from       &quot;tester@example.com&quot;
+  end
+
+  def included_old_subtemplate(recipient)
+    recipients recipient
+    subject    &quot;Including another template in the one being rendered&quot;
+    from       &quot;tester@example.com&quot;
+    body       render(:inline =&gt; &quot;Hello, &lt;%= render \&quot;subtemplate\&quot; %&gt;&quot;, :body =&gt; { :world =&gt; &quot;Earth&quot; })
+  end
+
+  def initialize_defaults(method_name)
+    super
+    mailer_name &quot;test_mailer&quot;
+  end
+end
+
+class FirstMailer &lt; ActionMailer::Base
+  def share(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+  end
+end
+
+class SecondMailer &lt; ActionMailer::Base
+  def share(recipient)
+    recipients recipient
+    subject    &quot;using helpers&quot;
+    from       &quot;tester@example.com&quot;
+  end
+end
+
+class RenderHelperTest &lt; Test::Unit::TestCase
+  def setup
+    set_delivery_method :test
+    ActionMailer::Base.perform_deliveries = true
+    ActionMailer::Base.deliveries = []
+
+    @recipient = 'test@localhost'
+  end
+
+  def teardown
+    restore_delivery_method
+  end
+
+  def test_inline_template
+    mail = RenderMailer.create_inline_template(@recipient)
+    assert_equal &quot;Hello, Earth&quot;, mail.body.strip
+  end
+
+  def test_file_template
+    mail = RenderMailer.create_file_template(@recipient)
+    assert_equal &quot;Hello there, \n\nMr. test@localhost&quot;, mail.body.strip
+  end
+
+  def test_rxml_template
+    mail = RenderMailer.deliver_rxml_template(@recipient)
+    assert_equal &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;UTF-8\&quot;?&gt;\n&lt;test/&gt;&quot;, mail.body.strip
+  end
+
+  def test_included_subtemplate
+    mail = RenderMailer.deliver_included_subtemplate(@recipient)
+    assert_equal &quot;Hey Ho, let's go!&quot;, mail.body.strip
+  end
+end
+
+class FirstSecondHelperTest &lt; Test::Unit::TestCase
+  def setup
+    set_delivery_method :test
+    ActionMailer::Base.perform_deliveries = true
+    ActionMailer::Base.deliveries = []
+
+    @recipient = 'test@localhost'
+  end
+
+  def teardown
+    restore_delivery_method
+  end
+
+  def test_ordering
+    mail = FirstMailer.create_share(@recipient)
+    assert_equal &quot;first mail&quot;, mail.body.strip
+    mail = SecondMailer.create_share(@recipient)
+    assert_equal &quot;second mail&quot;, mail.body.strip
+    mail = FirstMailer.create_share(@recipient)
+    assert_equal &quot;first mail&quot;, mail.body.strip
+    mail = SecondMailer.create_share(@recipient)
+    assert_equal &quot;second mail&quot;, mail.body.strip
+  end
+end
+</pre>
+    </div>

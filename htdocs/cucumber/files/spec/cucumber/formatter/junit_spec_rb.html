@@ -1,0 +1,114 @@
+  <div id="fileHeader">
+    <h1>junit_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/formatter/junit_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require File.dirname(__FILE__) + '/spec_helper'
+
+require 'cucumber/formatter/junit'
+require 'nokogiri'
+
+module Cucumber::Formatter
+  describe Junit do
+    extend SpecHelperDsl
+    include SpecHelper
+    
+    class TestDoubleJunitFormatter &lt; Junit
+      attr_reader :written_files
+      
+      def write_file(feature_filename, data)
+        @written_files ||= {}
+        @written_files[feature_filename] = data
+      end
+    end
+    
+    before(:each) do
+      File.stub!(:directory?).and_return(true)
+      @formatter = TestDoubleJunitFormatter.new(step_mother, '', {})
+    end
+
+    describe &quot;given a single feature&quot; do
+      before(:each) do
+        run_defined_feature
+        @doc = Nokogiri.XML(@formatter.written_files.values.first)
+      end
+      
+      describe &quot;with a single scenario&quot; do
+        define_feature &lt;&lt;-FEATURE
+          Feature: One passing scenario, one failing scenario
+
+            Scenario: Passing
+              Given a passing scenario
+        FEATURE
+        
+        it { @doc.to_s.should =~ /One passing scenario, one failing scenario/ }
+      end
+      
+      describe &quot;with a scenario outline table&quot; do
+        define_steps do
+          Given(/.*/) {  }
+        end
+        
+        define_feature &lt;&lt;-FEATURE
+          Feature: Eat things when hungry
+
+            Scenario Outline: Eat things
+              Given &lt;Things&gt;
+            
+            Examples: Good
+              | Things   |
+              | Cucumber |
+              | Whisky   |
+            Examples: Evil
+              | Things   |
+              | Big Mac  |
+        FEATURE
+        
+        it { @doc.to_s.should =~ /Eat things when hungry/ }
+        it { @doc.to_s.should =~ /Cucumber/ }
+        it { @doc.to_s.should =~ /Whisky/ }
+        it { @doc.to_s.should =~ /Big Mac/ }
+        it { @doc.to_s.should_not =~ /Things/ }
+        it { @doc.to_s.should_not =~ /Good|Evil/ }
+      end
+  
+      describe &quot;with a regular data table scenario&quot; do
+        define_steps do
+          Given(/the following items on a shortlist/) { |table| }  
+          When(/I go.*/) {  }
+          Then(/I should have visited at least/) { |table| } 
+        end
+        
+        define_feature &lt;&lt;-FEATURE
+          Feature: Shortlist
+
+            Scenario: Procure items 
+              Given the following items on a shortlist:
+                | item    |       
+                | milk    |       
+                | cookies |
+              When I get some..
+              Then I'll eat 'em
+           
+        FEATURE
+        # these type of tables shouldn't crash (or generate test cases)
+        it { @doc.to_s.should_not =~ /milk/ }
+        it { @doc.to_s.should_not =~ /cookies/ }
+      end
+    end
+  end
+end</pre>
+    </div>

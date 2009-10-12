@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:18:53 +0100 2009</td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -50,6 +50,10 @@ class DummyController
   end
     
   def self.controller_path
+    ''
+  end
+
+  def controller_path
     ''
   end
 end
@@ -108,7 +112,8 @@ class TemplateTest &lt; Test::Unit::TestCase
   end
 
   def assert_renders_correctly(name, &amp;render_method)
-    if ActionPack::VERSION::MAJOR &lt; 2 || ActionPack::VERSION::MINOR &lt; 2
+    if ActionPack::VERSION::MAJOR &lt; 2 ||
+        (ActionPack::VERSION::MAJOR == 2 &amp;&amp; ActionPack::VERSION::MINOR &lt; 2)
       render_method ||= proc { |name| @base.render(name) }
     else
       render_method ||= proc { |name| @base.render(:file =&gt; name) }
@@ -152,8 +157,16 @@ class TemplateTest &lt; Test::Unit::TestCase
   end
 
   def test_action_view_templates_render_correctly
-    @base.instance_variable_set(&quot;@content_for_layout&quot;, 'Lorem ipsum dolor sit amet')
-    assert_renders_correctly 'content_for_layout'
+    proc = lambda do
+      @base.content_for(:layout) {'Lorem ipsum dolor sit amet'}
+      assert_renders_correctly 'content_for_layout'
+    end
+
+    if @base.respond_to?(:with_output_buffer)
+      @base.with_output_buffer(&quot;&quot;, &amp;proc)
+    else
+      proc.call
+    end
   end
 
   def test_instance_variables_should_work_inside_templates

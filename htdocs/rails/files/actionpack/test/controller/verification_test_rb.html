@@ -1,0 +1,289 @@
+  <div id="fileHeader">
+    <h1>verification_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/verification_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class VerificationTest &lt; ActionController::TestCase
+  class TestController &lt; ActionController::Base
+    verify :only =&gt; :guarded_one, :params =&gt; &quot;one&quot;,
+           :add_flash =&gt; { :error =&gt; 'unguarded' },
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_two, :params =&gt; %w( one two ),
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_with_flash, :params =&gt; &quot;one&quot;,
+           :add_flash =&gt; { :notice =&gt; &quot;prereqs failed&quot; },
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_in_session, :session =&gt; &quot;one&quot;,
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; [:multi_one, :multi_two], :session =&gt; %w( one two ),
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_by_method, :method =&gt; :post,
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_by_xhr, :xhr =&gt; true,
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :guarded_by_not_xhr, :xhr =&gt; false,
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    before_filter :unconditional_redirect, :only =&gt; :two_redirects
+    verify :only =&gt; :two_redirects, :method =&gt; :post,
+           :redirect_to =&gt; { :action =&gt; &quot;unguarded&quot; }
+
+    verify :only =&gt; :must_be_post, :method =&gt; :post, :render =&gt; { :status =&gt; 405, :text =&gt; &quot;Must be post&quot; }, :add_headers =&gt; { &quot;Allow&quot; =&gt; &quot;POST&quot; }
+
+    verify :only =&gt; :guarded_one_for_named_route_test, :params =&gt; &quot;one&quot;,
+           :redirect_to =&gt; :foo_url
+
+    verify :only =&gt; :no_default_action, :params =&gt; &quot;santa&quot;
+
+    verify :only =&gt; :guarded_with_back, :method =&gt; :post,
+           :redirect_to =&gt; :back
+
+    def guarded_one
+      render :text =&gt; &quot;#{params[:one]}&quot;
+    end
+
+    def guarded_one_for_named_route_test
+      render :text =&gt; &quot;#{params[:one]}&quot;
+    end
+
+    def guarded_with_flash
+      render :text =&gt; &quot;#{params[:one]}&quot;
+    end
+
+    def guarded_two
+      render :text =&gt; &quot;#{params[:one]}:#{params[:two]}&quot;
+    end
+
+    def guarded_in_session
+      render :text =&gt; &quot;#{session[&quot;one&quot;]}&quot;
+    end
+
+    def multi_one
+      render :text =&gt; &quot;#{session[&quot;one&quot;]}:#{session[&quot;two&quot;]}&quot;
+    end
+
+    def multi_two
+      render :text =&gt; &quot;#{session[&quot;two&quot;]}:#{session[&quot;one&quot;]}&quot;
+    end
+
+    def guarded_by_method
+      render :text =&gt; &quot;#{request.method}&quot;
+    end
+
+    def guarded_by_xhr
+      render :text =&gt; &quot;#{request.xhr?}&quot;
+    end
+
+    def guarded_by_not_xhr
+      render :text =&gt; &quot;#{request.xhr?}&quot;
+    end
+
+    def unguarded
+      render :text =&gt; &quot;#{params[:one]}&quot;
+    end
+
+    def two_redirects
+      render :nothing =&gt; true
+    end
+
+    def must_be_post
+      render :text =&gt; &quot;Was a post!&quot;
+    end
+
+    def guarded_with_back
+      render :text =&gt; &quot;#{params[:one]}&quot;
+    end
+
+    def no_default_action
+      # Will never run
+    end
+
+    protected
+      def rescue_action(e) raise end
+
+      def unconditional_redirect
+        redirect_to :action =&gt; &quot;unguarded&quot;
+      end
+  end
+
+  def setup
+    @controller = TestController.new
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    ActionController::Routing::Routes.add_named_route :foo, '/foo', :controller =&gt; 'test', :action =&gt; 'foo'
+  end
+
+  def test_using_symbol_back_with_no_referrer
+    assert_raise(ActionController::RedirectBackError) { get :guarded_with_back }
+  end
+
+  def test_using_symbol_back_redirects_to_referrer
+    @request.env[&quot;HTTP_REFERER&quot;] = &quot;/foo&quot;
+    get :guarded_with_back
+    assert_redirected_to '/foo'
+  end
+
+  def test_no_deprecation_warning_for_named_route
+    assert_not_deprecated do
+      get :guarded_one_for_named_route_test, :two =&gt; &quot;not one&quot;
+      assert_redirected_to '/foo'
+    end
+  end
+
+  def test_guarded_one_with_prereqs
+    get :guarded_one, :one =&gt; &quot;here&quot;
+    assert_equal &quot;here&quot;, @response.body
+  end
+
+  def test_guarded_one_without_prereqs
+    get :guarded_one
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+    assert_equal 'unguarded', flash[:error]
+  end
+
+  def test_guarded_with_flash_with_prereqs
+    get :guarded_with_flash, :one =&gt; &quot;here&quot;
+    assert_equal &quot;here&quot;, @response.body
+    assert flash.empty?
+  end
+
+  def test_guarded_with_flash_without_prereqs
+    get :guarded_with_flash
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+    assert_equal &quot;prereqs failed&quot;, flash[:notice]
+  end
+
+  def test_guarded_two_with_prereqs
+    get :guarded_two, :one =&gt; &quot;here&quot;, :two =&gt; &quot;there&quot;
+    assert_equal &quot;here:there&quot;, @response.body
+  end
+
+  def test_guarded_two_without_prereqs_one
+    get :guarded_two, :two =&gt; &quot;there&quot;
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_two_without_prereqs_two
+    get :guarded_two, :one =&gt; &quot;here&quot;
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_two_without_prereqs_both
+    get :guarded_two
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_unguarded_with_params
+    get :unguarded, :one =&gt; &quot;here&quot;
+    assert_equal &quot;here&quot;, @response.body
+  end
+
+  def test_unguarded_without_params
+    get :unguarded
+    assert_equal &quot;&quot;, @response.body
+  end
+
+  def test_guarded_in_session_with_prereqs
+    get :guarded_in_session, {}, &quot;one&quot; =&gt; &quot;here&quot;
+    assert_equal &quot;here&quot;, @response.body
+  end
+
+  def test_guarded_in_session_without_prereqs
+    get :guarded_in_session
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_multi_one_with_prereqs
+    get :multi_one, {}, &quot;one&quot; =&gt; &quot;here&quot;, &quot;two&quot; =&gt; &quot;there&quot;
+    assert_equal &quot;here:there&quot;, @response.body
+  end
+
+  def test_multi_one_without_prereqs
+    get :multi_one
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_multi_two_with_prereqs
+    get :multi_two, {}, &quot;one&quot; =&gt; &quot;here&quot;, &quot;two&quot; =&gt; &quot;there&quot;
+    assert_equal &quot;there:here&quot;, @response.body
+  end
+
+  def test_multi_two_without_prereqs
+    get :multi_two
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_by_method_with_prereqs
+    post :guarded_by_method
+    assert_equal &quot;post&quot;, @response.body
+  end
+
+  def test_guarded_by_method_without_prereqs
+    get :guarded_by_method
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_by_xhr_with_prereqs
+    xhr :post, :guarded_by_xhr
+    assert_equal &quot;true&quot;, @response.body
+  end
+
+  def test_guarded_by_xhr_without_prereqs
+    get :guarded_by_xhr
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_by_not_xhr_with_prereqs
+    get :guarded_by_not_xhr
+    assert_equal &quot;false&quot;, @response.body
+  end
+
+  def test_guarded_by_not_xhr_without_prereqs
+    xhr :post, :guarded_by_not_xhr
+    assert_redirected_to :action =&gt; &quot;unguarded&quot;
+  end
+
+  def test_guarded_post_and_calls_render_succeeds
+    post :must_be_post
+    assert_equal &quot;Was a post!&quot;, @response.body
+  end
+
+  def test_default_failure_should_be_a_bad_request
+    post :no_default_action
+    assert_response :bad_request
+  end
+
+  def test_guarded_post_and_calls_render_fails_and_sets_allow_header
+    get :must_be_post
+    assert_response 405
+    assert_equal &quot;Must be post&quot;, @response.body
+    assert_equal &quot;POST&quot;, @response.headers[&quot;Allow&quot;]
+  end
+
+  def test_second_redirect
+    assert_nothing_raised { get :two_redirects }
+  end
+end
+</pre>
+    </div>

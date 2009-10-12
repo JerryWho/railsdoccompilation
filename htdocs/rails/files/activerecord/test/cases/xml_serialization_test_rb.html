@@ -1,0 +1,259 @@
+  <div id="fileHeader">
+    <h1>xml_serialization_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/xml_serialization_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+require 'models/contact'
+require 'models/post'
+require 'models/author'
+require 'models/tagging'
+require 'models/comment'
+require 'models/company_in_module'
+
+class XmlSerializationTest &lt; ActiveRecord::TestCase
+  def test_should_serialize_default_root
+    @xml = Contact.new.to_xml
+    assert_match %r{^&lt;contact&gt;},  @xml
+    assert_match %r{&lt;/contact&gt;$}, @xml
+  end
+
+  def test_should_serialize_default_root_with_namespace
+    @xml = Contact.new.to_xml :namespace=&gt;&quot;http://xml.rubyonrails.org/contact&quot;
+    assert_match %r{^&lt;contact xmlns=&quot;http://xml.rubyonrails.org/contact&quot;&gt;},  @xml
+    assert_match %r{&lt;/contact&gt;$}, @xml
+  end
+
+  def test_should_serialize_custom_root
+    @xml = Contact.new.to_xml :root =&gt; 'xml_contact'
+    assert_match %r{^&lt;xml-contact&gt;},  @xml
+    assert_match %r{&lt;/xml-contact&gt;$}, @xml
+  end
+
+  def test_should_allow_undasherized_tags
+    @xml = Contact.new.to_xml :root =&gt; 'xml_contact', :dasherize =&gt; false
+    assert_match %r{^&lt;xml_contact&gt;},  @xml
+    assert_match %r{&lt;/xml_contact&gt;$}, @xml
+    assert_match %r{&lt;created_at},     @xml
+  end
+
+  def test_should_allow_camelized_tags
+    @xml = Contact.new.to_xml :root =&gt; 'xml_contact', :camelize =&gt; true
+    assert_match %r{^&lt;XmlContact&gt;},  @xml
+    assert_match %r{&lt;/XmlContact&gt;$}, @xml
+    assert_match %r{&lt;CreatedAt},    @xml
+  end
+
+  def test_should_allow_skipped_types
+    @xml = Contact.new(:age =&gt; 25).to_xml :skip_types =&gt; true
+    assert %r{&lt;age&gt;25&lt;/age&gt;}.match(@xml)
+  end
+
+  def test_should_include_yielded_additions
+    @xml = Contact.new.to_xml do |xml|
+      xml.creator &quot;David&quot;
+    end
+    assert_match %r{&lt;creator&gt;David&lt;/creator&gt;}, @xml
+  end
+end
+
+class DefaultXmlSerializationTest &lt; ActiveRecord::TestCase
+  def setup
+    @xml = Contact.new(:name =&gt; 'aaron stack', :age =&gt; 25, :avatar =&gt; 'binarydata', :created_at =&gt; Time.utc(2006, 8, 1), :awesome =&gt; false, :preferences =&gt; { :gem =&gt; 'ruby' }).to_xml
+  end
+
+  def test_should_serialize_string
+    assert_match %r{&lt;name&gt;aaron stack&lt;/name&gt;},     @xml
+  end
+
+  def test_should_serialize_integer
+    assert_match %r{&lt;age type=&quot;integer&quot;&gt;25&lt;/age&gt;}, @xml
+  end
+
+  def test_should_serialize_binary
+    assert_match %r{YmluYXJ5ZGF0YQ==\n&lt;/avatar&gt;},    @xml
+    assert_match %r{&lt;avatar(.*)(type=&quot;binary&quot;)},     @xml
+    assert_match %r{&lt;avatar(.*)(encoding=&quot;base64&quot;)}, @xml
+  end
+
+  def test_should_serialize_datetime
+    assert_match %r{&lt;created-at type=\&quot;datetime\&quot;&gt;2006-08-01T00:00:00Z&lt;/created-at&gt;}, @xml
+  end
+
+  def test_should_serialize_boolean
+    assert_match %r{&lt;awesome type=\&quot;boolean\&quot;&gt;false&lt;/awesome&gt;}, @xml
+  end
+
+  def test_should_serialize_yaml
+    assert_match %r{&lt;preferences type=\&quot;yaml\&quot;&gt;--- \n:gem: ruby\n&lt;/preferences&gt;}, @xml
+  end
+end
+
+class NilXmlSerializationTest &lt; ActiveRecord::TestCase
+  def setup
+    @xml = Contact.new.to_xml(:root =&gt; 'xml_contact')
+  end
+
+  def test_should_serialize_string
+    assert_match %r{&lt;name nil=&quot;true&quot;&gt;&lt;/name&gt;},     @xml
+  end
+
+  def test_should_serialize_integer
+    assert %r{&lt;age (.*)&gt;&lt;/age&gt;}.match(@xml)
+    attributes = $1
+    assert_match %r{nil=&quot;true&quot;}, attributes
+    assert_match %r{type=&quot;integer&quot;}, attributes
+  end
+
+  def test_should_serialize_binary
+    assert %r{&lt;avatar (.*)&gt;&lt;/avatar&gt;}.match(@xml)
+    attributes = $1
+    assert_match %r{type=&quot;binary&quot;}, attributes
+    assert_match %r{encoding=&quot;base64&quot;}, attributes
+    assert_match %r{nil=&quot;true&quot;}, attributes
+  end
+
+  def test_should_serialize_datetime
+    assert %r{&lt;created-at (.*)&gt;&lt;/created-at&gt;}.match(@xml)
+    attributes = $1
+    assert_match %r{nil=&quot;true&quot;}, attributes
+    assert_match %r{type=&quot;datetime&quot;}, attributes
+  end
+
+  def test_should_serialize_boolean
+    assert %r{&lt;awesome (.*)&gt;&lt;/awesome&gt;}.match(@xml)
+    attributes = $1
+    assert_match %r{type=&quot;boolean&quot;}, attributes
+    assert_match %r{nil=&quot;true&quot;}, attributes
+  end
+
+  def test_should_serialize_yaml
+    assert %r{&lt;preferences(.*)&gt;&lt;/preferences&gt;}.match(@xml)
+    attributes = $1
+    assert_match %r{type=&quot;yaml&quot;}, attributes
+    assert_match %r{nil=&quot;true&quot;}, attributes
+  end
+end
+
+class DatabaseConnectedXmlModuleSerializationTest &lt; ActiveRecord::TestCase
+
+  fixtures :projects, :developers, :developers_projects
+
+  def test_module
+    project = MyApplication::Business::Project.find :first
+    xml = project.to_xml
+    assert_match %r{&lt;my-application-business-project&gt;}, xml
+    assert_match %r{&lt;/my-application-business-project&gt;}, xml
+  end
+
+  def test_module_with_include
+    project = MyApplication::Business::Project.find :first
+    xml = project.to_xml :include =&gt; :developers
+    assert_match %r{&lt;developer type=&quot;MyApplication::Business::Developer&quot;&gt;}, xml
+    assert_match %r{&lt;/developer&gt;}, xml
+  end
+end
+
+class DatabaseConnectedXmlSerializationTest &lt; ActiveRecord::TestCase
+  fixtures :authors, :posts
+  # to_xml used to mess with the hash the user provided which
+  # caused the builder to be reused.  This meant the document kept
+  # getting appended to.
+  def test_passing_hash_shouldnt_reuse_builder
+    options = {:include=&gt;:posts}
+    david = authors(:david)
+    first_xml_size = david.to_xml(options).size
+    second_xml_size = david.to_xml(options).size
+    assert_equal first_xml_size, second_xml_size
+  end
+
+  def test_include_uses_association_name
+    xml = authors(:david).to_xml :include=&gt;:hello_posts, :indent =&gt; 0
+    assert_match %r{&lt;hello-posts type=&quot;array&quot;&gt;}, xml
+    assert_match %r{&lt;hello-post type=&quot;Post&quot;&gt;}, xml
+    assert_match %r{&lt;hello-post type=&quot;StiPost&quot;&gt;}, xml
+  end
+
+  def test_included_associations_should_skip_types
+    xml = authors(:david).to_xml :include=&gt;:hello_posts, :indent =&gt; 0, :skip_types =&gt; true
+    assert_match %r{&lt;hello-posts&gt;}, xml
+    assert_match %r{&lt;hello-post&gt;}, xml
+    assert_match %r{&lt;hello-post&gt;}, xml
+  end
+
+  def test_methods_are_called_on_object
+    xml = authors(:david).to_xml :methods =&gt; :label, :indent =&gt; 0
+    assert_match %r{&lt;label&gt;.*&lt;/label&gt;}, xml
+  end
+
+  def test_should_not_call_methods_on_associations_that_dont_respond
+    xml = authors(:david).to_xml :include=&gt;:hello_posts, :methods =&gt; :label, :indent =&gt; 2
+    assert !authors(:david).hello_posts.first.respond_to?(:label)
+    assert_match %r{^  &lt;label&gt;.*&lt;/label&gt;}, xml
+    assert_no_match %r{^      &lt;label&gt;}, xml
+  end
+
+  def test_procs_are_called_on_object
+    proc = Proc.new { |options| options[:builder].tag!('nationality', 'Danish') }
+    xml = authors(:david).to_xml(:procs =&gt; [ proc ])
+    assert_match %r{&lt;nationality&gt;Danish&lt;/nationality&gt;}, xml
+  end
+
+  def test_top_level_procs_arent_applied_to_associations
+    author_proc = Proc.new { |options| options[:builder].tag!('nationality', 'Danish') }
+    xml = authors(:david).to_xml(:procs =&gt; [ author_proc ], :include =&gt; :posts, :indent =&gt; 2)
+
+    assert_match %r{^  &lt;nationality&gt;Danish&lt;/nationality&gt;}, xml
+    assert_no_match %r{^ {6}&lt;nationality&gt;Danish&lt;/nationality&gt;}, xml
+  end
+
+  def test_procs_on_included_associations_are_called
+    posts_proc = Proc.new { |options| options[:builder].tag!('copyright', 'DHH') }
+    xml = authors(:david).to_xml(
+      :indent =&gt; 2,
+      :include =&gt; {
+        :posts =&gt; { :procs =&gt; [ posts_proc ] }
+      }
+    )
+
+    assert_no_match %r{^  &lt;copyright&gt;DHH&lt;/copyright&gt;}, xml
+    assert_match %r{^ {6}&lt;copyright&gt;DHH&lt;/copyright&gt;}, xml
+  end
+
+  def test_should_include_empty_has_many_as_empty_array
+    authors(:david).posts.delete_all
+    xml = authors(:david).to_xml :include=&gt;:posts, :indent =&gt; 2
+
+    assert_equal [], Hash.from_xml(xml)['author']['posts']
+    assert_match %r{^  &lt;posts type=&quot;array&quot;/&gt;}, xml
+  end
+
+  def test_should_has_many_array_elements_should_include_type_when_different_from_guessed_value
+    xml = authors(:david).to_xml :include=&gt;:posts_with_comments, :indent =&gt; 2
+
+    assert Hash.from_xml(xml)
+    assert_match %r{^  &lt;posts-with-comments type=&quot;array&quot;&gt;}, xml
+    assert_match %r{^    &lt;posts-with-comment type=&quot;Post&quot;&gt;}, xml
+    assert_match %r{^    &lt;posts-with-comment type=&quot;StiPost&quot;&gt;}, xml
+
+    types = Hash.from_xml(xml)['author']['posts_with_comments'].collect {|t| t['type'] }
+    assert types.include?('SpecialPost')
+    assert types.include?('Post')
+    assert types.include?('StiPost')
+  end
+
+end
+</pre>
+    </div>

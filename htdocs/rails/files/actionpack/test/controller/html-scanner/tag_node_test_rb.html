@@ -1,0 +1,257 @@
+  <div id="fileHeader">
+    <h1>tag_node_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/html-scanner/tag_node_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class TagNodeTest &lt; Test::Unit::TestCase
+  def test_open_without_attributes
+    node = tag(&quot;&lt;tag&gt;&quot;)
+    assert_equal &quot;tag&quot;, node.name
+    assert_equal Hash.new, node.attributes
+    assert_nil node.closing
+  end
+  
+  def test_open_with_attributes
+    node = tag(&quot;&lt;TAG1 foo=hey_ho x:bar=\&quot;blah blah\&quot; BAZ='blah blah blah' &gt;&quot;)
+    assert_equal &quot;tag1&quot;, node.name
+    assert_equal &quot;hey_ho&quot;, node[&quot;foo&quot;]
+    assert_equal &quot;blah blah&quot;, node[&quot;x:bar&quot;]
+    assert_equal &quot;blah blah blah&quot;, node[&quot;baz&quot;]
+  end
+  
+  def test_self_closing_without_attributes
+    node = tag(&quot;&lt;tag/&gt;&quot;)
+    assert_equal &quot;tag&quot;, node.name
+    assert_equal Hash.new, node.attributes
+    assert_equal :self, node.closing
+  end
+  
+  def test_self_closing_with_attributes
+    node = tag(&quot;&lt;tag a=b/&gt;&quot;)
+    assert_equal &quot;tag&quot;, node.name
+    assert_equal( { &quot;a&quot; =&gt; &quot;b&quot; }, node.attributes )
+    assert_equal :self, node.closing
+  end
+  
+  def test_closing_without_attributes
+    node = tag(&quot;&lt;/tag&gt;&quot;)
+    assert_equal &quot;tag&quot;, node.name
+    assert_nil node.attributes
+    assert_equal :close, node.closing
+  end
+  
+  def test_bracket_op_when_no_attributes
+    node = tag(&quot;&lt;/tag&gt;&quot;)
+    assert_nil node[&quot;foo&quot;]
+  end
+
+  def test_bracket_op_when_attributes
+    node = tag(&quot;&lt;tag a=b/&gt;&quot;)
+    assert_equal &quot;b&quot;, node[&quot;a&quot;]
+  end
+  
+  def test_attributes_with_escaped_quotes
+    node = tag(&quot;&lt;tag a='b\\'c' b=\&quot;bob \\\&quot;float\\\&quot;\&quot;&gt;&quot;)
+    assert_equal &quot;b\\'c&quot;, node[&quot;a&quot;]
+    assert_equal &quot;bob \\\&quot;float\\\&quot;&quot;, node[&quot;b&quot;]
+  end
+  
+  def test_to_s
+    node = tag(&quot;&lt;a b=c d='f' g=\&quot;h 'i'\&quot; /&gt;&quot;)
+    assert_equal %(&lt;a b='c' d='f' g='h \\'i\\'' /&gt;), node.to_s
+  end
+  
+  def test_tag
+    assert tag(&quot;&lt;tag&gt;&quot;).tag?
+  end
+  
+  def test_match_tag_as_string
+    assert tag(&quot;&lt;tag&gt;&quot;).match(:tag =&gt; &quot;tag&quot;)
+    assert !tag(&quot;&lt;tag&gt;&quot;).match(:tag =&gt; &quot;b&quot;)
+  end
+  
+  def test_match_tag_as_regexp
+    assert tag(&quot;&lt;tag&gt;&quot;).match(:tag =&gt; /t.g/)
+    assert !tag(&quot;&lt;tag&gt;&quot;).match(:tag =&gt; /t[bqs]g/)
+  end
+
+  def test_match_attributes_as_string
+    t = tag(&quot;&lt;tag a=something b=else /&gt;&quot;)
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; &quot;something&quot;})
+    assert t.match(:attributes =&gt; {&quot;b&quot; =&gt; &quot;else&quot;})
+  end
+  
+  def test_match_attributes_as_regexp
+    t = tag(&quot;&lt;tag a=something b=else /&gt;&quot;)
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; /^something$/})
+    assert t.match(:attributes =&gt; {&quot;b&quot; =&gt;  /e.*e/})
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; /me..i/, &quot;b&quot; =&gt; /.ls.$/})
+  end
+  
+  def test_match_attributes_as_number
+    t = tag(&quot;&lt;tag a=15 b=3.1415 /&gt;&quot;)
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; 15})
+    assert t.match(:attributes =&gt; {&quot;b&quot; =&gt; 3.1415})
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; 15, &quot;b&quot; =&gt; 3.1415})
+  end
+  
+  def test_match_attributes_exist
+    t = tag(&quot;&lt;tag a=15 b=3.1415 /&gt;&quot;)
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; true})
+    assert t.match(:attributes =&gt; {&quot;b&quot; =&gt; true})
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; true, &quot;b&quot; =&gt; true})
+  end
+  
+  def test_match_attributes_not_exist
+    t = tag(&quot;&lt;tag a=15 b=3.1415 /&gt;&quot;)
+    assert t.match(:attributes =&gt; {&quot;c&quot; =&gt; false})
+    assert t.match(:attributes =&gt; {&quot;c&quot; =&gt; nil})
+    assert t.match(:attributes =&gt; {&quot;a&quot; =&gt; true, &quot;c&quot; =&gt; false})
+  end
+  
+  def test_match_parent_success
+    t = tag(&quot;&lt;tag a=15 b='hello'&gt;&quot;, tag(&quot;&lt;foo k='value'&gt;&quot;))
+    assert t.match(:parent =&gt; {:tag =&gt; &quot;foo&quot;, :attributes =&gt; {&quot;k&quot; =&gt; /v.l/, &quot;j&quot; =&gt; false}})
+  end
+  
+  def test_match_parent_fail
+    t = tag(&quot;&lt;tag a=15 b='hello'&gt;&quot;, tag(&quot;&lt;foo k='value'&gt;&quot;))
+    assert !t.match(:parent =&gt; {:tag =&gt; /kafka/})
+  end
+  
+  def test_match_child_success
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;&lt;child v=john a=kelly&gt;&quot;, t)
+    tag(&quot;&lt;sib m=vaughn v=james&gt;&quot;, t)
+    assert t.match(:child =&gt; { :tag =&gt; &quot;sib&quot;, :attributes =&gt; {&quot;v&quot; =&gt; /j/}})
+    assert t.match(:child =&gt; { :attributes =&gt; {&quot;a&quot; =&gt; &quot;kelly&quot;}})
+  end
+  
+  def test_match_child_fail
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;&lt;child v=john a=kelly&gt;&quot;, t)
+    tag(&quot;&lt;sib m=vaughn v=james&gt;&quot;, t)
+    assert !t.match(:child =&gt; { :tag =&gt; &quot;sib&quot;, :attributes =&gt; {&quot;v&quot; =&gt; /r/}})
+    assert !t.match(:child =&gt; { :attributes =&gt; {&quot;v&quot; =&gt; false}})
+  end
+  
+  def test_match_ancestor_success
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;, tag(&quot;&lt;parent v=john a=kelly&gt;&quot;, tag(&quot;&lt;grandparent m=vaughn v=james&gt;&quot;)))
+    assert t.match(:ancestor =&gt; {:tag =&gt; &quot;parent&quot;, :attributes =&gt; {&quot;a&quot; =&gt; /ll/}})
+    assert t.match(:ancestor =&gt; {:attributes =&gt; {&quot;m&quot; =&gt; &quot;vaughn&quot;}})
+  end
+  
+  def test_match_ancestor_fail
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;, tag(&quot;&lt;parent v=john a=kelly&gt;&quot;, tag(&quot;&lt;grandparent m=vaughn v=james&gt;&quot;)))
+    assert !t.match(:ancestor =&gt; {:tag =&gt; /^parent/, :attributes =&gt; {&quot;v&quot; =&gt; /m/}})
+    assert !t.match(:ancestor =&gt; {:attributes =&gt; {&quot;v&quot; =&gt; false}})
+  end
+
+  def test_match_descendant_success
+    tag(&quot;&lt;grandchild m=vaughn v=james&gt;&quot;, tag(&quot;&lt;child v=john a=kelly&gt;&quot;, t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)))
+    assert t.match(:descendant =&gt; {:tag =&gt; &quot;child&quot;, :attributes =&gt; {&quot;a&quot; =&gt; /ll/}})
+    assert t.match(:descendant =&gt; {:attributes =&gt; {&quot;m&quot; =&gt; &quot;vaughn&quot;}})
+  end
+  
+  def test_match_descendant_fail
+    tag(&quot;&lt;grandchild m=vaughn v=james&gt;&quot;, tag(&quot;&lt;child v=john a=kelly&gt;&quot;, t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)))
+    assert !t.match(:descendant =&gt; {:tag =&gt; /^child/, :attributes =&gt; {&quot;v&quot; =&gt; /m/}})
+    assert !t.match(:descendant =&gt; {:attributes =&gt; {&quot;v&quot; =&gt; false}})
+  end
+  
+  def test_match_child_count
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;hello&quot;, t)
+    tag(&quot;&lt;child v=john a=kelly&gt;&quot;, t)
+    tag(&quot;&lt;sib m=vaughn v=james&gt;&quot;, t)
+    assert t.match(:children =&gt; { :count =&gt; 2 })
+    assert t.match(:children =&gt; { :count =&gt; 2..4 })
+    assert t.match(:children =&gt; { :less_than =&gt; 4 })
+    assert t.match(:children =&gt; { :greater_than =&gt; 1 })
+    assert !t.match(:children =&gt; { :count =&gt; 3 })
+  end
+
+  def test_conditions_as_strings
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    assert t.match(&quot;tag&quot; =&gt; &quot;tag&quot;)
+    assert t.match(&quot;attributes&quot; =&gt; { &quot;x:k&quot; =&gt; &quot;something&quot; })
+    assert !t.match(&quot;tag&quot; =&gt; &quot;gat&quot;)
+    assert !t.match(&quot;attributes&quot; =&gt; { &quot;x:j&quot; =&gt; &quot;something&quot; })
+  end
+
+  def test_attributes_as_symbols
+    t = tag(&quot;&lt;child v=john a=kelly&gt;&quot;)
+    assert t.match(:attributes =&gt; { :v =&gt; /oh/ })
+    assert t.match(:attributes =&gt; { :a =&gt; /ll/ })
+  end
+
+  def test_match_sibling
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;hello&quot;, t)
+    tag(&quot;&lt;span a=b&gt;&quot;, t)
+    tag(&quot;world&quot;, t)
+    m = tag(&quot;&lt;span k=r&gt;&quot;, t)
+    tag(&quot;&lt;span m=l&gt;&quot;, t)
+
+    assert m.match(:sibling =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:a =&gt; true}})
+    assert m.match(:sibling =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:m =&gt; true}})
+    assert !m.match(:sibling =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:k =&gt; true}})
+  end
+
+  def test_match_sibling_before
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;hello&quot;, t)
+    tag(&quot;&lt;span a=b&gt;&quot;, t)
+    tag(&quot;world&quot;, t)
+    m = tag(&quot;&lt;span k=r&gt;&quot;, t)
+    tag(&quot;&lt;span m=l&gt;&quot;, t)
+
+    assert m.match(:before =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:m =&gt; true}})
+    assert !m.match(:before =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:a =&gt; true}})
+    assert !m.match(:before =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:k =&gt; true}})
+  end
+
+  def test_match_sibling_after
+    t = tag(&quot;&lt;tag x:k='something'&gt;&quot;)
+    tag(&quot;hello&quot;, t)
+    tag(&quot;&lt;span a=b&gt;&quot;, t)
+    tag(&quot;world&quot;, t)
+    m = tag(&quot;&lt;span k=r&gt;&quot;, t)
+    tag(&quot;&lt;span m=l&gt;&quot;, t)
+
+    assert m.match(:after =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:a =&gt; true}})
+    assert !m.match(:after =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:m =&gt; true}})
+    assert !m.match(:after =&gt; {:tag =&gt; &quot;span&quot;, :attributes =&gt; {:k =&gt; true}})
+  end
+
+  def test_to_s
+    t = tag(&quot;&lt;b x='foo'&gt;&quot;)
+    tag(&quot;hello&quot;, t)
+    tag(&quot;&lt;hr /&gt;&quot;, t)
+    assert_equal %(&lt;b x=&quot;foo&quot;&gt;hello&lt;hr /&gt;&lt;/b&gt;), t.to_s
+  end
+
+  private
+  
+    def tag(content, parent=nil)
+      node = HTML::Node.parse(parent,0,0,content)
+      parent.children &lt;&lt; node if parent
+      node
+    end
+end
+</pre>
+    </div>

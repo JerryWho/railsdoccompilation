@@ -1,0 +1,159 @@
+  <div id="fileHeader">
+    <h1>multibyte_utils_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/test/multibyte_utils_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># encoding: utf-8
+
+require 'abstract_unit'
+require 'multibyte_test_helpers'
+
+class MultibyteUtilsTest &lt; ActiveSupport::TestCase
+  include MultibyteTestHelpers
+
+  test &quot;valid_character returns an expression for the current encoding&quot; do
+    with_encoding('None') do
+      assert_nil ActiveSupport::Multibyte.valid_character
+    end
+    with_encoding('UTF8') do
+      assert_equal ActiveSupport::Multibyte::VALID_CHARACTER['UTF-8'], ActiveSupport::Multibyte.valid_character
+    end
+    with_encoding('SJIS') do
+      assert_equal ActiveSupport::Multibyte::VALID_CHARACTER['Shift_JIS'], ActiveSupport::Multibyte.valid_character
+    end
+  end
+
+  test &quot;verify verifies ASCII strings are properly encoded&quot; do
+    with_encoding('None') do
+      examples.each do |example|
+        assert ActiveSupport::Multibyte.verify(example)
+      end
+    end
+  end
+
+  test &quot;verify verifies UTF-8 strings are properly encoded&quot; do
+    with_encoding('UTF8') do
+      assert ActiveSupport::Multibyte.verify(example('valid UTF-8'))
+      assert !ActiveSupport::Multibyte.verify(example('invalid UTF-8'))
+    end
+  end
+
+  test &quot;verify verifies Shift-JIS strings are properly encoded&quot; do
+    with_encoding('SJIS') do
+      assert ActiveSupport::Multibyte.verify(example('valid Shift-JIS'))
+      assert !ActiveSupport::Multibyte.verify(example('invalid Shift-JIS'))
+    end
+  end
+
+  test &quot;verify! raises an exception when it finds an invalid character&quot; do
+    with_encoding('UTF8') do
+      assert_raises(ActiveSupport::Multibyte::EncodingError) do
+        ActiveSupport::Multibyte.verify!(example('invalid UTF-8'))
+      end
+    end
+  end
+
+  test &quot;verify! doesn't raise an exception when the encoding is valid&quot; do
+    with_encoding('UTF8') do
+      assert_nothing_raised do
+        ActiveSupport::Multibyte.verify!(example('valid UTF-8'))
+      end
+    end
+  end
+
+  if RUBY_VERSION &lt; '1.9'
+    test &quot;clean leaves ASCII strings intact&quot; do
+      with_encoding('None') do
+        [
+          'word', &quot;\270\236\010\210\245&quot;
+        ].each do |string|
+          assert_equal string, ActiveSupport::Multibyte.clean(string)
+        end
+      end
+    end
+
+    test &quot;clean cleans invalid characters from UTF-8 encoded strings&quot; do
+      with_encoding('UTF8') do
+        cleaned_utf8 = [8].pack('C*')
+        assert_equal example('valid UTF-8'), ActiveSupport::Multibyte.clean(example('valid UTF-8'))
+        assert_equal cleaned_utf8, ActiveSupport::Multibyte.clean(example('invalid UTF-8'))
+      end
+    end
+
+    test &quot;clean cleans invalid characters from Shift-JIS encoded strings&quot; do
+      with_encoding('SJIS') do
+        cleaned_sjis = [184, 0, 136, 165].pack('C*')
+        assert_equal example('valid Shift-JIS'), ActiveSupport::Multibyte.clean(example('valid Shift-JIS'))
+        assert_equal cleaned_sjis, ActiveSupport::Multibyte.clean(example('invalid Shift-JIS'))
+      end
+    end
+  else
+    test &quot;clean is a no-op&quot; do
+      with_encoding('UTF8') do
+        assert_equal example('invalid Shift-JIS'), ActiveSupport::Multibyte.clean(example('invalid Shift-JIS'))
+      end
+    end
+  end
+
+  private
+
+  STRINGS = {
+    'valid ASCII'       =&gt; [65, 83, 67, 73, 73].pack('C*'),
+    'invalid ASCII'     =&gt; [128].pack('C*'),
+    'valid UTF-8'       =&gt; [227, 129, 147, 227, 129, 171, 227, 129, 161, 227, 130, 143].pack('C*'),
+    'invalid UTF-8'     =&gt; [184, 158, 8, 136, 165].pack('C*'),
+    'valid Shift-JIS'   =&gt; [131, 122, 129, 91, 131, 128].pack('C*'),
+    'invalid Shift-JIS' =&gt; [184, 158, 8, 0, 255, 136, 165].pack('C*')
+  }
+
+  if Kernel.const_defined?(:Encoding)
+    def example(key)
+      STRINGS[key].force_encoding(Encoding.default_internal)
+    end
+
+    def examples
+      STRINGS.values.map { |s| s.force_encoding(Encoding.default_internal) }
+    end
+  else
+    def example(key)
+      STRINGS[key]
+    end
+
+    def examples
+      STRINGS.values
+    end
+  end
+
+  if 'string'.respond_to?(:encoding)
+    def with_encoding(enc)
+      before = Encoding.default_internal
+
+      case enc
+      when 'UTF8'
+        Encoding.default_internal = Encoding::UTF_8
+      when 'SJIS'
+        Encoding.default_internal = Encoding::Shift_JIS
+      else
+        Encoding.default_internal = Encoding::BINARY
+      end
+      yield
+
+      Encoding.default_internal = before
+    end
+  else
+    alias with_encoding with_kcode
+  end
+end</pre>
+    </div>

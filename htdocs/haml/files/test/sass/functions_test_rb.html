@@ -1,0 +1,145 @@
+  <div id="fileHeader">
+    <h1>functions_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/functions_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'test/unit'
+require File.dirname(__FILE__) + '/../../lib/sass'
+require 'sass/script'
+
+class SassFunctionTest &lt; Test::Unit::TestCase
+  def test_hsl
+    # These tests adapted from the w3c browser tests
+    # http://www.w3.org/Style/CSS/Test/CSS3/Color/20070927/html4/t040204-hsl-h-rotating-b.htm
+    red = [255, 0, 0]
+    assert_rgb_hsl(red, ['0', '100%', '50%'])
+    assert_rgb_hsl(red, ['-360', '100%', '50%'])
+    assert_rgb_hsl(red, ['360', '100%', '50%'])
+    assert_rgb_hsl(red, ['6120', '100%', '50%'])
+
+    yellow = [255, 255, 0]
+    assert_rgb_hsl(yellow, ['60', '100%', '50%'])
+    assert_rgb_hsl(yellow, ['-300', '100%', '50%'])
+    assert_rgb_hsl(yellow, ['420', '100%', '50%'])
+    assert_rgb_hsl(yellow, ['-9660', '100%', '50%'])
+
+    green = [0, 255, 0]
+    assert_rgb_hsl(green, ['120', '100%', '50%'])
+    assert_rgb_hsl(green, ['-240', '100%', '50%'])
+    assert_rgb_hsl(green, ['480', '100%', '50%'])
+    assert_rgb_hsl(green, ['99840', '100%', '50%'])
+
+    cyan = [0, 255, 255]
+    assert_rgb_hsl(cyan, ['180', '100%', '50%'])
+    assert_rgb_hsl(cyan, ['-180', '100%', '50%'])
+    assert_rgb_hsl(cyan, ['540', '100%', '50%'])
+    assert_rgb_hsl(cyan, ['-900', '100%', '50%'])
+
+    blue = [0, 0, 255]
+    assert_rgb_hsl(blue, ['240', '100%', '50%'])
+    assert_rgb_hsl(blue, ['-120', '100%', '50%'])
+    assert_rgb_hsl(blue, ['600', '100%', '50%'])
+    assert_rgb_hsl(blue, ['-104880', '100%', '50%'])
+
+    purple = [255, 0, 255]
+    assert_rgb_hsl(purple, ['300', '100%', '50%'])
+    assert_rgb_hsl(purple, ['-60', '100%', '50%'])
+    assert_rgb_hsl(purple, ['660', '100%', '50%'])
+    assert_rgb_hsl(purple, ['2820', '100%', '50%'])
+  end
+
+  def test_hsl_checks_bounds
+    assert_error_message(&quot;Saturation -114 must be between 0% and 100% for `hsl'&quot;, &quot;hsl(10, -114, 12)&quot;);
+    assert_error_message(&quot;Lightness 256 must be between 0% and 100% for `hsl'&quot;, &quot;hsl(10, 10, 256%)&quot;);
+  end
+
+  def test_percentage
+    assert_equal(&quot;50%&quot;,  evaluate(&quot;percentage(.5)&quot;))
+    assert_equal(&quot;100%&quot;, evaluate(&quot;percentage(1)&quot;))
+    assert_equal(&quot;25%&quot;,  evaluate(&quot;percentage(25px / 100px)&quot;))
+    assert_error_message(&quot;25px is not a unitless number for `percentage'&quot;, &quot;percentage(25px)&quot;)
+    assert_error_message(&quot;#cccccc is not a unitless number for `percentage'&quot;, &quot;percentage(#ccc)&quot;)
+    assert_error_message(&quot;string is not a unitless number for `percentage'&quot;, %Q{percentage(&quot;string&quot;)})
+  end
+
+  def test_round
+    assert_equal(&quot;5&quot;,   evaluate(&quot;round(4.8)&quot;))
+    assert_equal(&quot;5px&quot;, evaluate(&quot;round(4.8px)&quot;))
+    assert_equal(&quot;5px&quot;, evaluate(&quot;round(5.49px)&quot;))
+
+    assert_error_message(&quot;#cccccc is not a number for `round'&quot;, &quot;round(#ccc)&quot;)
+  end
+
+  def test_floor
+    assert_equal(&quot;4&quot;,   evaluate(&quot;floor(4.8)&quot;))
+    assert_equal(&quot;4px&quot;, evaluate(&quot;floor(4.8px)&quot;))
+
+    assert_error_message(&quot;foo is not a number for `floor'&quot;, &quot;floor(\&quot;foo\&quot;)&quot;)
+  end
+
+  def test_ceil
+    assert_equal(&quot;5&quot;,   evaluate(&quot;ceil(4.1)&quot;))
+    assert_equal(&quot;5px&quot;, evaluate(&quot;ceil(4.8px)&quot;))
+
+    assert_error_message(&quot;a is not a number for `ceil'&quot;, &quot;ceil(\&quot;a\&quot;)&quot;)
+  end
+
+  def test_abs
+    assert_equal(&quot;5&quot;,   evaluate(&quot;abs(-5)&quot;))
+    assert_equal(&quot;5px&quot;, evaluate(&quot;abs(-5px)&quot;))
+    assert_equal(&quot;5&quot;,   evaluate(&quot;abs(5)&quot;))
+    assert_equal(&quot;5px&quot;, evaluate(&quot;abs(5px)&quot;))
+
+    assert_error_message(&quot;#aaaaaa is not a number for `abs'&quot;, &quot;abs(#aaa)&quot;)
+  end
+
+  def test_rgb
+    assert_equal(&quot;#123456&quot;, evaluate(&quot;rgb(18, 52, 86)&quot;))
+    assert_equal(&quot;#beaded&quot;, evaluate(&quot;rgb(190, 173, 237)&quot;))
+    assert_equal(&quot;#00ff7f&quot;, evaluate(&quot;rgb(0, 255, 127)&quot;))
+
+    assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
+      &quot;rgb(256, 1, 1)&quot;)
+    assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
+      &quot;rgb(1, 256, 1)&quot;)
+    assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
+      &quot;rgb(1, 1, 256)&quot;)
+    assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
+      &quot;rgb(1, 256, 257)&quot;)
+    assert_error_message(&quot;Color value -1 must be between 0 and 255 inclusive for `rgb'&quot;,
+      &quot;rgb(-1, 1, 1)&quot;)
+  end
+
+  private
+
+  def assert_rgb_hsl(rgb, hsl)
+    hsl = hsl.map {|v| Sass::Script::Parser.parse v, 0, 0 }
+    assert_equal(rgb, Sass::Script::Functions::EvaluationContext.new({}).hsl(*hsl).value)
+  end
+
+  def evaluate(value)
+    Sass::Script::Parser.parse(value, 0, 0).perform(Sass::Environment.new).to_s
+  end
+
+  def assert_error_message(message, value)
+    evaluate(value)
+    flunk(&quot;Error message expected but not raised: #{message}&quot;)
+  rescue Sass::SyntaxError =&gt; e
+    assert_equal(message, e.message)
+  end
+
+end
+</pre>
+    </div>

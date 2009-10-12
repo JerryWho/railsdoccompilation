@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Tue Apr 14 08:43:55 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,37 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/ast/examples.rb-</pre>
+    <pre>module Cucumber
+  module Ast
+    class Examples #:nodoc:
+      def initialize(comment, line, keyword, name, outline_table)
+        @comment, @keyword, @name, @outline_table = comment, keyword, name, outline_table
+      end
+
+      def accept(visitor)
+        return if $cucumber_interrupted
+        visitor.visit_comment(@comment) unless @comment.empty?
+        visitor.visit_examples_name(@keyword, @name)
+        visitor.visit_outline_table(@outline_table)
+      end
+
+      def skip_invoke!
+        @outline_table.skip_invoke!
+      end
+
+      def each_example_row(&amp;proc)
+        @outline_table.cells_rows[1..-1].each(&amp;proc)
+      end
+
+      def to_sexp
+        sexp = [:examples, @keyword, @name]
+        comment = @comment.to_sexp
+        sexp += [comment] if comment
+        sexp += [@outline_table.to_sexp]
+        sexp
+      end
+    end
+  end
+end
+</pre>
     </div>

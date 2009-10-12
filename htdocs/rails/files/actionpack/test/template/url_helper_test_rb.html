@@ -1,0 +1,641 @@
+  <div id="fileHeader">
+    <h1>url_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/url_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># encoding: utf-8
+require 'abstract_unit'
+
+RequestMock = Struct.new(&quot;Request&quot;, :request_uri, :protocol, :host_with_port, :env)
+
+class UrlHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::UrlHelper
+
+  def setup
+    @controller = Class.new do
+      attr_accessor :url, :request
+      def url_for(options)
+        url
+      end
+    end
+    @controller = @controller.new
+    @controller.url = &quot;http://www.example.com&quot;
+  end
+
+  def test_url_for_escapes_urls
+    @controller.url = &quot;http://www.example.com?a=b&amp;c=d&quot;
+    assert_equal &quot;http://www.example.com?a=b&amp;amp;c=d&quot;, url_for(:a =&gt; 'b', :c =&gt; 'd')
+    assert_equal &quot;http://www.example.com?a=b&amp;amp;c=d&quot;, url_for(:a =&gt; 'b', :c =&gt; 'd', :escape =&gt; true)
+    assert_equal &quot;http://www.example.com?a=b&amp;c=d&quot;, url_for(:a =&gt; 'b', :c =&gt; 'd', :escape =&gt; false)
+  end
+
+  def test_url_for_escapes_url_once
+    @controller.url = &quot;http://www.example.com?a=b&amp;amp;c=d&quot;
+    assert_equal &quot;http://www.example.com?a=b&amp;amp;c=d&quot;, url_for(&quot;http://www.example.com?a=b&amp;amp;c=d&quot;)
+  end
+
+  def test_url_for_with_back
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {'HTTP_REFERER' =&gt; 'http://www.example.com/referer'})
+    assert_equal 'http://www.example.com/referer', url_for(:back)
+  end
+
+  def test_url_for_with_back_and_no_referer
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {})
+    assert_equal 'javascript:history.back()', url_for(:back)
+  end
+
+  # todo: missing test cases
+  def test_button_to_with_straight_url
+    assert_dom_equal &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;, button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;)
+  end
+
+  def test_button_to_with_query
+    assert_dom_equal &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com/q1=v1&amp;amp;q2=v2\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;, button_to(&quot;Hello&quot;, &quot;http://www.example.com/q1=v1&amp;q2=v2&quot;)
+  end
+
+  def test_button_to_with_escaped_query
+    assert_dom_equal &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com/q1=v1&amp;amp;q2=v2\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;, button_to(&quot;Hello&quot;, &quot;http://www.example.com/q1=v1&amp;amp;q2=v2&quot;)
+  end
+
+  def test_button_to_with_query_and_no_name
+    assert_dom_equal &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com?q1=v1&amp;amp;q2=v2\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;http://www.example.com?q1=v1&amp;amp;q2=v2\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;, button_to(nil, &quot;http://www.example.com?q1=v1&amp;q2=v2&quot;)
+  end
+
+  def test_button_to_with_javascript_confirm
+    assert_dom_equal(
+      &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input onclick=\&quot;return confirm('Are you sure?');\&quot; type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;,
+      button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :confirm =&gt; &quot;Are you sure?&quot;)
+    )
+  end
+
+  def test_button_to_enabled_disabled
+    assert_dom_equal(
+      &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;,
+      button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :disabled =&gt; false)
+    )
+    assert_dom_equal(
+      &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input disabled=\&quot;disabled\&quot; type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;,
+      button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :disabled =&gt; true)
+    )
+  end
+
+  def test_button_to_with_method_delete
+    assert_dom_equal(
+      &quot;&lt;form method=\&quot;post\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;hidden\&quot; name=\&quot;_method\&quot; value=\&quot;delete\&quot; /&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;,
+      button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :method =&gt; :delete)
+    )
+  end
+
+  def test_button_to_with_method_get
+    assert_dom_equal(
+      &quot;&lt;form method=\&quot;get\&quot; action=\&quot;http://www.example.com\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&lt;input type=\&quot;submit\&quot; value=\&quot;Hello\&quot; /&gt;&lt;/div&gt;&lt;/form&gt;&quot;,
+      button_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :method =&gt; :get)
+    )
+  end
+
+  def test_link_tag_with_straight_url
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot;&gt;Hello&lt;/a&gt;&quot;, link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;)
+  end
+
+  def test_link_tag_without_host_option
+    ActionController::Base.class_eval { attr_accessor :url }
+    url = {:controller =&gt; 'weblog', :action =&gt; 'show'}
+    @controller = ActionController::Base.new
+    @controller.request = ActionController::TestRequest.new
+    @controller.url = ActionController::UrlRewriter.new(@controller.request, url)
+    assert_dom_equal(%q{&lt;a href=&quot;/weblog/show&quot;&gt;Test Link&lt;/a&gt;}, link_to('Test Link', url))
+  end
+
+  def test_link_tag_with_host_option
+    ActionController::Base.class_eval { attr_accessor :url }
+    url = {:controller =&gt; 'weblog', :action =&gt; 'show', :host =&gt; 'www.example.com'}
+    @controller = ActionController::Base.new
+    @controller.request = ActionController::TestRequest.new
+    @controller.url = ActionController::UrlRewriter.new(@controller.request, url)
+    assert_dom_equal(%q{&lt;a href=&quot;http://www.example.com/weblog/show&quot;&gt;Test Link&lt;/a&gt;}, link_to('Test Link', url))
+  end
+
+  def test_link_tag_with_query
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com?q1=v1&amp;amp;q2=v2\&quot;&gt;Hello&lt;/a&gt;&quot;, link_to(&quot;Hello&quot;, &quot;http://www.example.com?q1=v1&amp;amp;q2=v2&quot;)
+  end
+
+  def test_link_tag_with_query_and_no_name
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com?q1=v1&amp;amp;q2=v2\&quot;&gt;http://www.example.com?q1=v1&amp;amp;q2=v2&lt;/a&gt;&quot;, link_to(nil, &quot;http://www.example.com?q1=v1&amp;amp;q2=v2&quot;)
+  end
+
+  def test_link_tag_with_back
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {'HTTP_REFERER' =&gt; 'http://www.example.com/referer'})
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com/referer\&quot;&gt;go back&lt;/a&gt;&quot;, link_to('go back', :back)
+  end
+
+  def test_link_tag_with_back_and_no_referer
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {})
+    assert_dom_equal &quot;&lt;a href=\&quot;javascript:history.back()\&quot;&gt;go back&lt;/a&gt;&quot;, link_to('go back', :back)
+  end
+
+  def test_link_tag_with_back
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {'HTTP_REFERER' =&gt; 'http://www.example.com/referer'})
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com/referer\&quot;&gt;go back&lt;/a&gt;&quot;, link_to('go back', :back)
+  end
+
+  def test_link_tag_with_back_and_no_referer
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;, nil, nil, {})
+    assert_dom_equal &quot;&lt;a href=\&quot;javascript:history.back()\&quot;&gt;go back&lt;/a&gt;&quot;, link_to('go back', :back)
+  end
+
+  def test_link_tag_with_img
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot;&gt;&lt;img src='/favicon.jpg' /&gt;&lt;/a&gt;&quot;, link_to(&quot;&lt;img src='/favicon.jpg' /&gt;&quot;, &quot;http://www.example.com&quot;)
+  end
+
+  def test_link_with_nil_html_options
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot;&gt;Hello&lt;/a&gt;&quot;, link_to(&quot;Hello&quot;, {:action =&gt; 'myaction'}, nil)
+  end
+
+  def test_link_tag_with_custom_onclick
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;alert('yay!')\&quot;&gt;Hello&lt;/a&gt;&quot;, link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :onclick =&gt; &quot;alert('yay!')&quot;)
+  end
+
+  def test_link_tag_with_javascript_confirm
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;return confirm('Are you sure?');\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :confirm =&gt; &quot;Are you sure?&quot;)
+    )
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;return confirm('You can\\'t possibly be sure, can you?');\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :confirm =&gt; &quot;You can't possibly be sure, can you?&quot;)
+    )
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;return confirm('You can\\'t possibly be sure,\\n can you?');\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :confirm =&gt; &quot;You can't possibly be sure,\n can you?&quot;)
+    )
+  end
+
+  def test_link_tag_with_popup
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;window.open(this.href);return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :popup =&gt; true)
+    )
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;window.open(this.href);return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :popup =&gt; 'true')
+    )
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;window.open(this.href,'window_name','width=300,height=300');return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :popup =&gt; ['window_name', 'width=300,height=300'])
+    )
+  end
+
+  def test_link_tag_with_popup_and_javascript_confirm
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;if (confirm('Fo\\' sho\\'?')) { window.open(this.href); };return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, { :popup =&gt; true, :confirm =&gt; &quot;Fo' sho'?&quot; })
+    )
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;if (confirm('Are you serious?')) { window.open(this.href,'window_name','width=300,height=300'); };return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, { :popup =&gt; ['window_name', 'width=300,height=300'], :confirm =&gt; &quot;Are you serious?&quot; })
+    )
+  end
+
+  def test_link_tag_using_post_javascript
+    assert_dom_equal(
+      &quot;&lt;a href='http://www.example.com' onclick=\&quot;var f = document.createElement('form'); f.style.display = 'none'; this.parentNode.appendChild(f); f.method = 'POST'; f.action = this.href;f.submit();return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :method =&gt; :post)
+    )
+  end
+
+  def test_link_tag_using_delete_javascript
+    assert_dom_equal(
+      &quot;&lt;a href='http://www.example.com' onclick=\&quot;var f = document.createElement('form'); f.style.display = 'none'; this.parentNode.appendChild(f); f.method = 'POST'; f.action = this.href;var m = document.createElement('input'); m.setAttribute('type', 'hidden'); m.setAttribute('name', '_method'); m.setAttribute('value', 'delete'); f.appendChild(m);f.submit();return false;\&quot;&gt;Destroy&lt;/a&gt;&quot;,
+      link_to(&quot;Destroy&quot;, &quot;http://www.example.com&quot;, :method =&gt; :delete)
+    )
+  end
+
+  def test_link_tag_using_delete_javascript_and_href
+    assert_dom_equal(
+      &quot;&lt;a href='\#' onclick=\&quot;var f = document.createElement('form'); f.style.display = 'none'; this.parentNode.appendChild(f); f.method = 'POST'; f.action = 'http://www.example.com';var m = document.createElement('input'); m.setAttribute('type', 'hidden'); m.setAttribute('name', '_method'); m.setAttribute('value', 'delete'); f.appendChild(m);f.submit();return false;\&quot;&gt;Destroy&lt;/a&gt;&quot;,
+      link_to(&quot;Destroy&quot;, &quot;http://www.example.com&quot;, :method =&gt; :delete, :href =&gt; '#')
+    )
+  end
+
+  def test_link_tag_using_post_javascript_and_confirm
+    assert_dom_equal(
+      &quot;&lt;a href=\&quot;http://www.example.com\&quot; onclick=\&quot;if (confirm('Are you serious?')) { var f = document.createElement('form'); f.style.display = 'none'; this.parentNode.appendChild(f); f.method = 'POST'; f.action = this.href;f.submit(); };return false;\&quot;&gt;Hello&lt;/a&gt;&quot;,
+      link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :method =&gt; :post, :confirm =&gt; &quot;Are you serious?&quot;)
+    )
+  end
+
+  def test_link_tag_using_delete_javascript_and_href_and_confirm
+    assert_dom_equal(
+      &quot;&lt;a href='\#' onclick=\&quot;if (confirm('Are you serious?')) { var f = document.createElement('form'); f.style.display = 'none'; this.parentNode.appendChild(f); f.method = 'POST'; f.action = 'http://www.example.com';var m = document.createElement('input'); m.setAttribute('type', 'hidden'); m.setAttribute('name', '_method'); m.setAttribute('value', 'delete'); f.appendChild(m);f.submit(); };return false;\&quot;&gt;Destroy&lt;/a&gt;&quot;,
+      link_to(&quot;Destroy&quot;, &quot;http://www.example.com&quot;, :method =&gt; :delete, :href =&gt; '#', :confirm =&gt; &quot;Are you serious?&quot;),
+      &quot;When specifying url, form should be generated with it, but not this.href&quot;
+    )
+  end
+
+  def test_link_tag_using_post_javascript_and_popup
+    assert_raise(ActionView::ActionViewError) { link_to(&quot;Hello&quot;, &quot;http://www.example.com&quot;, :popup =&gt; true, :method =&gt; :post, :confirm =&gt; &quot;Are you serious?&quot;) }
+  end
+
+  def test_link_tag_using_block_in_erb
+    __in_erb_template = ''
+
+    link_to(&quot;http://example.com&quot;) { concat(&quot;Example site&quot;) }
+
+    assert_equal '&lt;a href=&quot;http://example.com&quot;&gt;Example site&lt;/a&gt;', output_buffer
+  end
+
+  def test_link_to_unless
+    assert_equal &quot;Showing&quot;, link_to_unless(true, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot;&gt;Listing&lt;/a&gt;&quot;, link_to_unless(false, &quot;Listing&quot;, :action =&gt; &quot;list&quot;, :controller =&gt; &quot;weblog&quot;)
+    assert_equal &quot;Showing&quot;, link_to_unless(true, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :id =&gt; 1)
+    assert_equal &quot;&lt;strong&gt;Showing&lt;/strong&gt;&quot;, link_to_unless(true, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :id =&gt; 1) { |name, options, html_options|
+      &quot;&lt;strong&gt;#{name}&lt;/strong&gt;&quot;
+    }
+    assert_equal &quot;&lt;strong&gt;Showing&lt;/strong&gt;&quot;, link_to_unless(true, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :id =&gt; 1) { |name|
+      &quot;&lt;strong&gt;#{name}&lt;/strong&gt;&quot;
+    }
+    assert_equal &quot;test&quot;, link_to_unless(true, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :id =&gt; 1) {
+      &quot;test&quot;
+    }
+  end
+
+  def test_link_to_if
+    assert_equal &quot;Showing&quot;, link_to_if(false, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;http://www.example.com\&quot;&gt;Listing&lt;/a&gt;&quot;, link_to_if(true, &quot;Listing&quot;, :action =&gt; &quot;list&quot;, :controller =&gt; &quot;weblog&quot;)
+    assert_equal &quot;Showing&quot;, link_to_if(false, &quot;Showing&quot;, :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :id =&gt; 1)
+  end
+
+  def test_current_page_with_simple_url
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show&quot;
+    assert current_page?({ :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert current_page?(&quot;http://www.example.com/weblog/show&quot;)
+  end
+  
+  def test_current_page_ignoring_params
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;
+    assert current_page?({ :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert current_page?(&quot;http://www.example.com/weblog/show&quot;)
+  end
+  
+  def test_current_page_with_params_that_match
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;
+    assert current_page?({ :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :order =&gt; &quot;desc&quot;, :page =&gt; &quot;1&quot; })
+    assert current_page?(&quot;http://www.example.com/weblog/show?order=desc&amp;amp;page=1&quot;)
+  end
+  
+  def test_link_unless_current
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show&quot;
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, { :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show&quot;)
+
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show&quot;
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, { :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show&quot;)
+
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, { :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot;, :order=&gt;'desc', :page=&gt;'1' })
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show?order=desc&amp;amp;page=1&quot;)
+    assert_equal &quot;Showing&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;)
+
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show?order=asc&quot;
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/show?order=asc\&quot;&gt;Showing&lt;/a&gt;&quot;, link_to_unless_current(&quot;Showing&quot;, { :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/show?order=asc\&quot;&gt;Showing&lt;/a&gt;&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show?order=asc&quot;)
+
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show?order=desc&amp;page=1&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/show?order=desc&amp;page=2&quot;
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/show?order=desc&amp;amp;page=2\&quot;&gt;Showing&lt;/a&gt;&quot;, link_to_unless_current(&quot;Showing&quot;, { :action =&gt; &quot;show&quot;, :controller =&gt; &quot;weblog&quot; })
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/show?order=desc&amp;amp;page=2\&quot;&gt;Showing&lt;/a&gt;&quot;, link_to_unless_current(&quot;Showing&quot;, &quot;http://www.example.com/weblog/show?order=desc&amp;page=2&quot;)
+
+
+    @controller.request = RequestMock.new(&quot;http://www.example.com/weblog/show&quot;)
+    @controller.url = &quot;http://www.example.com/weblog/list&quot;
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/list\&quot;&gt;Listing&lt;/a&gt;&quot;,
+      link_to_unless_current(&quot;Listing&quot;, :action =&gt; &quot;list&quot;, :controller =&gt; &quot;weblog&quot;)
+    assert_equal &quot;&lt;a href=\&quot;http://www.example.com/weblog/list\&quot;&gt;Listing&lt;/a&gt;&quot;,
+      link_to_unless_current(&quot;Listing&quot;, &quot;http://www.example.com/weblog/list&quot;)
+  end
+
+  def test_mail_to
+    assert_dom_equal &quot;&lt;a href=\&quot;mailto:david@loudthinking.com\&quot;&gt;david@loudthinking.com&lt;/a&gt;&quot;, mail_to(&quot;david@loudthinking.com&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;mailto:david@loudthinking.com\&quot;&gt;David Heinemeier Hansson&lt;/a&gt;&quot;, mail_to(&quot;david@loudthinking.com&quot;, &quot;David Heinemeier Hansson&quot;)
+    assert_dom_equal(
+      &quot;&lt;a class=\&quot;admin\&quot; href=\&quot;mailto:david@loudthinking.com\&quot;&gt;David Heinemeier Hansson&lt;/a&gt;&quot;,
+      mail_to(&quot;david@loudthinking.com&quot;, &quot;David Heinemeier Hansson&quot;, &quot;class&quot; =&gt; &quot;admin&quot;)
+    )
+    assert_equal mail_to(&quot;david@loudthinking.com&quot;, &quot;David Heinemeier Hansson&quot;, &quot;class&quot; =&gt; &quot;admin&quot;),
+                 mail_to(&quot;david@loudthinking.com&quot;, &quot;David Heinemeier Hansson&quot;, :class =&gt; &quot;admin&quot;)
+  end
+
+  def test_mail_to_with_javascript
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;eval(decodeURIComponent('%64%6f%63%75%6d%65%6e%74%2e%77%72%69%74%65%28%27%3c%61%20%68%72%65%66%3d%22%6d%61%69%6c%74%6f%3a%6d%65%40%64%6f%6d%61%69%6e%2e%63%6f%6d%22%3e%4d%79%20%65%6d%61%69%6c%3c%2f%61%3e%27%29%3b'))&lt;/script&gt;&quot;, mail_to(&quot;me@domain.com&quot;, &quot;My email&quot;, :encode =&gt; &quot;javascript&quot;)
+  end
+
+  def test_mail_to_with_javascript_unicode
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;eval(decodeURIComponent('%64%6f%63%75%6d%65%6e%74%2e%77%72%69%74%65%28%27%3c%61%20%68%72%65%66%3d%22%6d%61%69%6c%74%6f%3a%75%6e%69%63%6f%64%65%40%65%78%61%6d%70%6c%65%2e%63%6f%6d%22%3e%c3%ba%6e%69%63%6f%64%65%3c%2f%61%3e%27%29%3b'))&lt;/script&gt;&quot;, mail_to(&quot;unicode@example.com&quot;, &quot;únicode&quot;, :encode =&gt; &quot;javascript&quot;)
+  end
+
+  def test_mail_with_options
+    assert_dom_equal(
+      %(&lt;a href=&quot;mailto:me@example.com?cc=ccaddress%40example.com&amp;amp;bcc=bccaddress%40example.com&amp;amp;body=This%20is%20the%20body%20of%20the%20message.&amp;amp;subject=This%20is%20an%20example%20email&quot;&gt;My email&lt;/a&gt;),
+      mail_to(&quot;me@example.com&quot;, &quot;My email&quot;, :cc =&gt; &quot;ccaddress@example.com&quot;, :bcc =&gt; &quot;bccaddress@example.com&quot;, :subject =&gt; &quot;This is an example email&quot;, :body =&gt; &quot;This is the body of the message.&quot;)
+    )
+  end
+
+  def test_mail_to_with_img
+    assert_dom_equal %(&lt;a href=&quot;mailto:feedback@example.com&quot;&gt;&lt;img src=&quot;/feedback.png&quot; /&gt;&lt;/a&gt;), mail_to('feedback@example.com', '&lt;img src=&quot;/feedback.png&quot; /&gt;')
+  end
+
+  def test_mail_to_with_hex
+    assert_dom_equal &quot;&lt;a href=\&quot;&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;%6d%65@%64%6f%6d%61%69%6e.%63%6f%6d\&quot;&gt;My email&lt;/a&gt;&quot;, mail_to(&quot;me@domain.com&quot;, &quot;My email&quot;, :encode =&gt; &quot;hex&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;%6d%65@%64%6f%6d%61%69%6e.%63%6f%6d\&quot;&gt;&amp;#109;&amp;#101;&amp;#64;&amp;#100;&amp;#111;&amp;#109;&amp;#97;&amp;#105;&amp;#110;&amp;#46;&amp;#99;&amp;#111;&amp;#109;&lt;/a&gt;&quot;, mail_to(&quot;me@domain.com&quot;, nil, :encode =&gt; &quot;hex&quot;)
+  end
+
+  def test_mail_to_with_replace_options
+    assert_dom_equal &quot;&lt;a href=\&quot;mailto:wolfgang@stufenlos.net\&quot;&gt;wolfgang(at)stufenlos(dot)net&lt;/a&gt;&quot;, mail_to(&quot;wolfgang@stufenlos.net&quot;, nil, :replace_at =&gt; &quot;(at)&quot;, :replace_dot =&gt; &quot;(dot)&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;%6d%65@%64%6f%6d%61%69%6e.%63%6f%6d\&quot;&gt;&amp;#109;&amp;#101;&amp;#40;&amp;#97;&amp;#116;&amp;#41;&amp;#100;&amp;#111;&amp;#109;&amp;#97;&amp;#105;&amp;#110;&amp;#46;&amp;#99;&amp;#111;&amp;#109;&lt;/a&gt;&quot;, mail_to(&quot;me@domain.com&quot;, nil, :encode =&gt; &quot;hex&quot;, :replace_at =&gt; &quot;(at)&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;%6d%65@%64%6f%6d%61%69%6e.%63%6f%6d\&quot;&gt;My email&lt;/a&gt;&quot;, mail_to(&quot;me@domain.com&quot;, &quot;My email&quot;, :encode =&gt; &quot;hex&quot;, :replace_at =&gt; &quot;(at)&quot;)
+    assert_dom_equal &quot;&lt;a href=\&quot;&amp;#109;&amp;#97;&amp;#105;&amp;#108;&amp;#116;&amp;#111;&amp;#58;%6d%65@%64%6f%6d%61%69%6e.%63%6f%6d\&quot;&gt;&amp;#109;&amp;#101;&amp;#40;&amp;#97;&amp;#116;&amp;#41;&amp;#100;&amp;#111;&amp;#109;&amp;#97;&amp;#105;&amp;#110;&amp;#40;&amp;#100;&amp;#111;&amp;#116;&amp;#41;&amp;#99;&amp;#111;&amp;#109;&lt;/a&gt;&quot;, mail_to(&quot;me@domain.com&quot;, nil, :encode =&gt; &quot;hex&quot;, :replace_at =&gt; &quot;(at)&quot;, :replace_dot =&gt; &quot;(dot)&quot;)
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;eval(decodeURIComponent('%64%6f%63%75%6d%65%6e%74%2e%77%72%69%74%65%28%27%3c%61%20%68%72%65%66%3d%22%6d%61%69%6c%74%6f%3a%6d%65%40%64%6f%6d%61%69%6e%2e%63%6f%6d%22%3e%4d%79%20%65%6d%61%69%6c%3c%2f%61%3e%27%29%3b'))&lt;/script&gt;&quot;, mail_to(&quot;me@domain.com&quot;, &quot;My email&quot;, :encode =&gt; &quot;javascript&quot;, :replace_at =&gt; &quot;(at)&quot;, :replace_dot =&gt; &quot;(dot)&quot;)
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;eval(decodeURIComponent('%64%6f%63%75%6d%65%6e%74%2e%77%72%69%74%65%28%27%3c%61%20%68%72%65%66%3d%22%6d%61%69%6c%74%6f%3a%6d%65%40%64%6f%6d%61%69%6e%2e%63%6f%6d%22%3e%6d%65%28%61%74%29%64%6f%6d%61%69%6e%28%64%6f%74%29%63%6f%6d%3c%2f%61%3e%27%29%3b'))&lt;/script&gt;&quot;, mail_to(&quot;me@domain.com&quot;, nil, :encode =&gt; &quot;javascript&quot;, :replace_at =&gt; &quot;(at)&quot;, :replace_dot =&gt; &quot;(dot)&quot;)
+  end
+  
+  def protect_against_forgery?
+    false
+  end
+end
+
+class UrlHelperWithControllerTest &lt; ActionView::TestCase
+  class UrlHelperController &lt; ActionController::Base
+    def self.controller_path; 'url_helper_with_controller' end
+
+    def show_url_for
+      render :inline =&gt; &quot;&lt;%= url_for :controller =&gt; 'url_helper_with_controller', :action =&gt; 'show_url_for' %&gt;&quot;
+    end
+
+    def show_named_route
+      render :inline =&gt; &quot;&lt;%= show_named_route_#{params[:kind]} %&gt;&quot;
+    end
+
+    def nil_url_for
+      render :inline =&gt; '&lt;%= url_for(nil) %&gt;'
+    end
+
+    def rescue_action(e) raise e end
+  end
+
+  tests ActionView::Helpers::UrlHelper
+
+  def setup
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    @controller = UrlHelperController.new
+  end
+
+  def test_url_for_shows_only_path
+    get :show_url_for
+    assert_equal '/url_helper_with_controller/show_url_for', @response.body
+  end
+
+  def test_named_route_url_shows_host_and_path
+    with_url_helper_routing do
+      get :show_named_route, :kind =&gt; 'url'
+      assert_equal 'http://test.host/url_helper_with_controller/show_named_route', @response.body
+    end
+  end
+
+  def test_named_route_path_shows_only_path
+    with_url_helper_routing do
+      get :show_named_route, :kind =&gt; 'path'
+      assert_equal '/url_helper_with_controller/show_named_route', @response.body
+    end
+  end
+
+  def test_url_for_nil_returns_current_path
+    get :nil_url_for
+    assert_equal '/url_helper_with_controller/nil_url_for', @response.body
+  end
+
+  def test_named_route_should_show_host_and_path_using_controller_default_url_options
+    class &lt;&lt; @controller
+      def default_url_options(options = nil)
+        {:host =&gt; 'testtwo.host'}
+      end
+    end
+
+    with_url_helper_routing do
+      get :show_named_route, :kind =&gt; 'url'
+      assert_equal 'http://testtwo.host/url_helper_with_controller/show_named_route', @response.body
+    end
+  end
+
+  protected
+    def with_url_helper_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.show_named_route 'url_helper_with_controller/show_named_route', :controller =&gt; 'url_helper_with_controller', :action =&gt; 'show_named_route'
+        end
+        yield
+      end
+    end
+end
+
+class LinkToUnlessCurrentWithControllerTest &lt; ActionView::TestCase
+  class TasksController &lt; ActionController::Base
+    def self.controller_path; 'tasks' end
+
+    def index
+      render_default
+    end
+
+    def show
+      render_default
+    end
+
+    def rescue_action(e) raise e end
+
+    protected
+      def render_default
+        render :inline =&gt;
+          &quot;&lt;%= link_to_unless_current(\&quot;tasks\&quot;, tasks_path) %&gt;\n&quot; +
+          &quot;&lt;%= link_to_unless_current(\&quot;tasks\&quot;, tasks_url) %&gt;&quot;
+      end
+  end
+
+  tests ActionView::Helpers::UrlHelper
+
+  def setup
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    @controller = TasksController.new
+  end
+
+  def test_link_to_unless_current_to_current
+    with_restful_routing do
+      get :index
+      assert_equal &quot;tasks\ntasks&quot;, @response.body
+    end
+  end
+
+  def test_link_to_unless_current_shows_link
+    with_restful_routing do
+      get :show, :id =&gt; 1
+      assert_equal &quot;&lt;a href=\&quot;/tasks\&quot;&gt;tasks&lt;/a&gt;\n&quot; +
+        &quot;&lt;a href=\&quot;#{@request.protocol}#{@request.host_with_port}/tasks\&quot;&gt;tasks&lt;/a&gt;&quot;,
+        @response.body
+    end
+  end
+
+  protected
+    def with_restful_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.resources :tasks
+        end
+        yield
+      end
+    end
+end
+
+class Workshop
+  attr_accessor :id, :new_record
+
+  def initialize(id, new_record)
+    @id, @new_record = id, new_record
+  end
+
+  def new_record?
+    @new_record
+  end
+
+  def to_s
+    id.to_s
+  end
+end
+
+class Session
+  attr_accessor :id, :workshop_id, :new_record
+
+  def initialize(id, new_record)
+    @id, @new_record = id, new_record
+  end
+
+  def new_record?
+    @new_record
+  end
+
+  def to_s
+    id.to_s
+  end
+end
+
+class PolymorphicControllerTest &lt; ActionView::TestCase
+  class WorkshopsController &lt; ActionController::Base
+    def self.controller_path; 'workshops' end
+
+    def index
+      @workshop = Workshop.new(1, true)
+      render :inline =&gt; &quot;&lt;%= url_for(@workshop) %&gt;\n&lt;%= link_to('Workshop', @workshop) %&gt;&quot;
+    end
+
+    def show
+      @workshop = Workshop.new(params[:id], false)
+      render :inline =&gt; &quot;&lt;%= url_for(@workshop) %&gt;\n&lt;%= link_to('Workshop', @workshop) %&gt;&quot;
+    end
+
+    def rescue_action(e) raise e end
+  end
+
+  class SessionsController &lt; ActionController::Base
+    def self.controller_path; 'sessions' end
+
+    def index
+      @workshop = Workshop.new(params[:workshop_id], false)
+      @session = Session.new(1, true)
+      render :inline =&gt; &quot;&lt;%= url_for([@workshop, @session]) %&gt;\n&lt;%= link_to('Session', [@workshop, @session]) %&gt;&quot;
+    end
+
+    def show
+      @workshop = Workshop.new(params[:workshop_id], false)
+      @session = Session.new(params[:id], false)
+      render :inline =&gt; &quot;&lt;%= url_for([@workshop, @session]) %&gt;\n&lt;%= link_to('Session', [@workshop, @session]) %&gt;&quot;
+    end
+
+    def rescue_action(e) raise e end
+  end
+
+  tests ActionView::Helpers::UrlHelper
+
+  def setup
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+  end
+
+  def test_new_resource
+    @controller = WorkshopsController.new
+
+    with_restful_routing do
+      get :index
+      assert_equal &quot;/workshops\n&lt;a href=\&quot;/workshops\&quot;&gt;Workshop&lt;/a&gt;&quot;, @response.body
+    end
+  end
+
+  def test_existing_resource
+    @controller = WorkshopsController.new
+
+    with_restful_routing do
+      get :show, :id =&gt; 1
+      assert_equal &quot;/workshops/1\n&lt;a href=\&quot;/workshops/1\&quot;&gt;Workshop&lt;/a&gt;&quot;, @response.body
+    end
+  end
+
+  def test_new_nested_resource
+    @controller = SessionsController.new
+
+    with_restful_routing do
+      get :index, :workshop_id =&gt; 1
+      assert_equal &quot;/workshops/1/sessions\n&lt;a href=\&quot;/workshops/1/sessions\&quot;&gt;Session&lt;/a&gt;&quot;, @response.body
+    end
+  end
+
+  def test_existing_nested_resource
+    @controller = SessionsController.new
+
+    with_restful_routing do
+      get :show, :workshop_id =&gt; 1, :id =&gt; 1
+      assert_equal &quot;/workshops/1/sessions/1\n&lt;a href=\&quot;/workshops/1/sessions/1\&quot;&gt;Session&lt;/a&gt;&quot;, @response.body
+    end
+  end
+
+  protected
+    def with_restful_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.resources :workshops do |w|
+            w.resources :sessions
+          end
+        end
+        yield
+      end
+    end
+end
+</pre>
+    </div>

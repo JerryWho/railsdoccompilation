@@ -1,0 +1,414 @@
+  <div id="fileHeader">
+    <h1>options.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/cli/options.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'cucumber/cli/profile_loader'
+module Cucumber
+  module Cli
+
+    class Options
+      BUILTIN_FORMATS = {
+        'html'      =&gt; ['Cucumber::Formatter::Html',     'Generates a nice looking HTML report.'],
+        'pretty'    =&gt; ['Cucumber::Formatter::Pretty',   'Prints the feature as is - in colours.'],
+        'pdf'       =&gt; ['Cucumber::Formatter::Pdf',      &quot;Generates a PDF report. You need to have the\n&quot; + 
+                                                         &quot;#{' ' * 51}prawn gem installed. Will pick up logo from\n&quot; + 
+                                                         &quot;#{' ' * 51}features/support/logo.png or\n&quot; +
+                                                         &quot;#{' ' * 51}features/support/logo.jpg if present.&quot;],
+        'progress'  =&gt; ['Cucumber::Formatter::Progress', 'Prints one character per scenario.'],
+        'rerun'     =&gt; ['Cucumber::Formatter::Rerun',    'Prints failing files with line numbers.'],
+        'usage'     =&gt; ['Cucumber::Formatter::Usage',    &quot;Prints where step definitions are used.\n&quot; +
+                                                         &quot;#{' ' * 51}The slowest step definitions (with duration) are\n&quot; + 
+                                                         &quot;#{' ' * 51}listed first. If --dry-run is used the duration\n&quot; +
+                                                         &quot;#{' ' * 51}is not shown, and step definitions are sorted by\n&quot; +
+                                                         &quot;#{' ' * 51}filename instead.&quot;],
+        'stepdefs'  =&gt; ['Cucumber::Formatter::Stepdefs', &quot;Prints All step definitions with their locations. Same as\n&quot; +
+                                                         &quot;the usage formatter, except that steps are not printed.&quot;],
+        'junit'     =&gt; ['Cucumber::Formatter::Junit',    'Generates a report similar to Ant+JUnit.'],
+        'tag_cloud' =&gt; ['Cucumber::Formatter::TagCloud', 'Prints a tag cloud of tag usage.']
+      }
+      max = BUILTIN_FORMATS.keys.map{|s| s.length}.max
+      FORMAT_HELP = (BUILTIN_FORMATS.keys.sort.map do |key|
+        &quot;  #{key}#{' ' * (max - key.length)} : #{BUILTIN_FORMATS[key][1]}&quot;
+      end) + [&quot;Use --format rerun --out features.txt to write out failing&quot;,
+        &quot;features. You can rerun them with cucumber @features.txt.&quot;,
+        &quot;FORMAT can also be the fully qualified class name of&quot;,
+        &quot;your own custom formatter. If the class isn't loaded,&quot;,
+        &quot;Cucumber will attempt to require a file with a relative&quot;,
+        &quot;file name that is the underscore name of the class name.&quot;,
+        &quot;Example: --format Foo::BarZap -&gt; Cucumber will look for&quot;,
+        &quot;foo/bar_zap.rb. You can place the file with this relative&quot;,
+        &quot;path underneath your features/support directory or anywhere&quot;,
+        &quot;on Ruby's LOAD_PATH, for example in a Ruby gem.&quot;
+      ]
+      DRB_FLAG = '--drb'
+      PROFILE_SHORT_FLAG = '-p'
+      NO_PROFILE_SHORT_FLAG = '-P'
+      PROFILE_LONG_FLAG = '--profile'
+      NO_PROFILE_LONG_FLAG = '--no-profile'
+
+
+      def self.parse(args, out_stream, error_stream, options = {})
+        new(out_stream, error_stream, options).parse!(args)
+      end
+
+      def initialize(out_stream = STDOUT, error_stream = STDERR, options = {})
+        @out_stream   = out_stream
+        @error_stream = error_stream
+
+        @default_profile = options[:default_profile]
+        @skip_profile_information = options[:skip_profile_information]
+        @profiles = []
+        @overridden_paths = []
+        @options        = default_options
+      end
+
+      def [](key)
+        @options[key]
+      end
+
+      def []=(key, value)
+        @options[key] = value
+      end
+
+      def expanded_args_without_drb
+        return @expanded_args_without_drb  if @expanded_args_without_drb
+        @expanded_args_without_drb = (
+          previous_flag_was_profile = false
+          @expanded_args.reject do |arg|
+            if previous_flag_was_profile
+              previous_flag_was_profile = false
+              next true
+            end
+            if [PROFILE_SHORT_FLAG, PROFILE_LONG_FLAG].include?(arg)
+              previous_flag_was_profile = true
+              next true
+            end
+            arg == DRB_FLAG || @overridden_paths.include?(arg)
+          end
+        )
+
+        @expanded_args_without_drb.push(&quot;--no-profile&quot;) unless @expanded_args_without_drb.include?(NO_PROFILE_LONG_FLAG) || @expanded_args_without_drb.include?(NO_PROFILE_SHORT_FLAG)
+        @expanded_args_without_drb
+      end
+
+      def parse!(args)
+        @args = args
+        @expanded_args = @args.dup
+
+        @args.extend(::OptionParser::Arguable)
+
+        @args.options do |opts|
+          opts.banner = [&quot;Usage: cucumber [options] [ [FILE|DIR|URL][:LINE[:LINE]*] ]+&quot;, &quot;&quot;,
+            &quot;Examples:&quot;,
+            &quot;cucumber examples/i18n/en/features&quot;,
+            &quot;cucumber @features.txt (See --format rerun)&quot;,
+            &quot;cucumber --language it examples/i18n/it/features/somma.feature:6:98:113&quot;,
+            &quot;cucumber -s -i http://rubyurl.com/eeCl&quot;, &quot;&quot;, &quot;&quot;,
+          ].join(&quot;\n&quot;)
+          opts.on(&quot;-r LIBRARY|DIR&quot;, &quot;--require LIBRARY|DIR&quot;,
+            &quot;Require files before executing the features. If this&quot;,
+            &quot;option is not specified, all *.rb files that are&quot;,
+            &quot;siblings or below the features will be loaded auto-&quot;,
+            &quot;matically. Automatic loading is disabled when this&quot;,
+            &quot;option is specified, and all loading becomes explicit.&quot;,
+            &quot;Files under directories named \&quot;support\&quot; are always&quot;,
+            &quot;loaded first.&quot;,
+            &quot;This option can be specified multiple times.&quot;) do |v|
+            @options[:require] &lt;&lt; v
+          end
+          opts.on(&quot;-l LANG&quot;, &quot;--language LANG&quot;,
+            &quot;Specify language for features (Default: #{@options[:lang]})&quot;,
+            %{Run with &quot;--language help&quot; to see all languages},
+            %{Run with &quot;--language LANG help&quot; to list keywords for LANG}) do |v|
+            if v == 'help'
+              list_languages_and_exit
+            elsif args==['help'] # I think this conditional is just cruft and can be removed
+              list_keywords_and_exit(v)
+            else
+              @options[:lang] = v
+            end
+          end
+          opts.on(&quot;-f FORMAT&quot;, &quot;--format FORMAT&quot;,
+            &quot;How to format features (Default: pretty). Available formats:&quot;,
+            *FORMAT_HELP) do |v|
+            @options[:formats] &lt;&lt; [v, @out_stream]
+          end
+          opts.on(&quot;-o&quot;, &quot;--out [FILE|DIR]&quot;,
+            &quot;Write output to a file/directory instead of STDOUT. This option&quot;,
+            &quot;applies to the previously specified --format, or the&quot;,
+            &quot;default format if no format is specified. Check the specific&quot;,
+            &quot;formatter's docs to see whether to pass a file or a dir.&quot;) do |v|
+            @options[:formats] &lt;&lt; ['pretty', nil] if @options[:formats].empty?
+            @options[:formats][-1][1] = v
+          end
+          opts.on(&quot;-t TAGS&quot;, &quot;--tags TAGS&quot;,
+            &quot;Only execute the features or scenarios with the specified tags.&quot;,
+            &quot;TAGS must be comma-separated without spaces. Example: --tags @dev\n&quot;,
+            &quot;Negative tags: Prefix tags with ~ to exclude features or scenarios&quot;,
+            &quot;having that tag. Example: --tags ~@slow\n&quot;,
+            &quot;Limit WIP: Positive tags can be given a threshold to limit the&quot;,
+            &quot;number of occurrences. Example: --tags @qa:3 will fail if there&quot;,
+            &quot;are more than 3 occurrences of the @qa tag.&quot;) do |v|
+            tag_names = parse_tags(v)
+            @options[:tag_names].merge!(tag_names)
+          end
+          opts.on(&quot;-n NAME&quot;, &quot;--name NAME&quot;,
+            &quot;Only execute the feature elements which match part of the given name.&quot;,
+            &quot;If this option is given more than once, it will match against all the&quot;,
+            &quot;given names.&quot;) do |v|
+            @options[:name_regexps] &lt;&lt; /#{v}/
+          end
+          opts.on(&quot;-e&quot;, &quot;--exclude PATTERN&quot;, &quot;Don't run feature files or require ruby files matching PATTERN&quot;) do |v|
+            @options[:excludes] &lt;&lt; Regexp.new(v)
+          end
+          opts.on(PROFILE_SHORT_FLAG, &quot;#{PROFILE_LONG_FLAG} PROFILE&quot;, 
+              &quot;Pull commandline arguments from cucumber.yml which can be defined as&quot;,
+              &quot;strings or arrays.  When a 'default' profile is defined and no profile&quot;,
+              &quot;is specified it is always used. (Unless disabled, see -P below.)&quot;,
+              &quot;When feature files are defined in a profile and on the command line&quot;,
+              &quot;then only the ones from the command line are used.&quot;) do |v|
+            @profiles &lt;&lt; v
+          end
+          opts.on(NO_PROFILE_SHORT_FLAG, NO_PROFILE_LONG_FLAG,
+            &quot;Disables all profile laoding to avoid using the 'default' profile.&quot;) do |v|
+            @disable_profile_loading = true
+          end
+          opts.on(&quot;-c&quot;, &quot;--[no-]color&quot;,
+            &quot;Whether or not to use ANSI color in the output. Cucumber decides&quot;,
+            &quot;based on your platform and the output destination if not specified.&quot;) do |v|
+            Term::ANSIColor.coloring = v
+          end
+          opts.on(&quot;-d&quot;, &quot;--dry-run&quot;, &quot;Invokes formatters without executing the steps.&quot;,
+            &quot;This also omits the loading of your support/env.rb file if it exists.&quot;,
+            &quot;Implies --no-snippets.&quot;) do
+            @options[:dry_run] = true
+            @options[:snippets] = false
+          end
+          opts.on(&quot;-a&quot;, &quot;--autoformat DIRECTORY&quot;,
+            &quot;Reformats (pretty prints) feature files and write them to DIRECTORY.&quot;,
+            &quot;Be careful if you choose to overwrite the originals.&quot;,
+            &quot;Implies --dry-run --formatter pretty.&quot;) do |directory|
+            @options[:autoformat] = directory
+            Term::ANSIColor.coloring = false
+            @options[:dry_run] = true
+            @quiet = true
+          end
+
+          opts.on(&quot;-m&quot;, &quot;--no-multiline&quot;,
+            &quot;Don't print multiline strings and tables under steps.&quot;) do
+            @options[:no_multiline] = true
+          end
+          opts.on(&quot;-s&quot;, &quot;--no-source&quot;,
+            &quot;Don't print the file and line of the step definition with the steps.&quot;) do
+            @options[:source] = false
+          end
+          opts.on(&quot;-i&quot;, &quot;--no-snippets&quot;, &quot;Don't print snippets for pending steps.&quot;) do
+            @options[:snippets] = false
+          end
+          opts.on(&quot;-q&quot;, &quot;--quiet&quot;, &quot;Alias for --no-snippets --no-source.&quot;) do
+            @quiet = true
+          end
+          opts.on(&quot;-b&quot;, &quot;--backtrace&quot;, &quot;Show full backtrace for all errors.&quot;) do
+            Cucumber.use_full_backtrace = true
+          end
+          opts.on(&quot;-S&quot;, &quot;--strict&quot;, &quot;Fail if there are any undefined steps.&quot;) do
+            @options[:strict] = true
+          end
+          opts.on(&quot;-w&quot;, &quot;--wip&quot;, &quot;Fail if there are any passing scenarios.&quot;) do
+            @options[:wip] = true
+          end
+          opts.on(&quot;-v&quot;, &quot;--verbose&quot;, &quot;Show the files and features loaded.&quot;) do
+            @options[:verbose] = true
+          end
+          opts.on(&quot;-g&quot;, &quot;--guess&quot;, &quot;Guess best match for Ambiguous steps.&quot;) do
+            @options[:guess] = true
+          end
+          opts.on(&quot;-x&quot;, &quot;--expand&quot;, &quot;Expand Scenario Outline Tables in output.&quot;) do
+            @options[:expand] = true
+          end
+          opts.on(&quot;--no-diff&quot;, &quot;Disable diff output on failing expectations.&quot;) do
+            @options[:diff_enabled] = false
+          end
+          opts.on(DRB_FLAG, &quot;Run features against a DRb server. (i.e. with the spork gem)&quot;) do
+            @options[:drb] = true
+          end
+          opts.on(&quot;--port PORT&quot;, &quot;Specify DRb port.  Ignored without --drb&quot;) do |port|
+            @options[:drb_port] = port
+          end
+          opts.on_tail(&quot;--version&quot;, &quot;Show version.&quot;) do
+            @out_stream.puts VERSION::STRING
+            Kernel.exit
+          end
+          opts.on_tail(&quot;-h&quot;, &quot;--help&quot;, &quot;You're looking at it.&quot;) do
+            @out_stream.puts opts.help
+            Kernel.exit
+          end
+        end.parse!
+ 
+        if @quiet
+          @options[:snippets] = @options[:source] = false
+        else
+          @options[:snippets] = true if @options[:snippets].nil?
+          @options[:source]   = true if @options[:source].nil?
+        end
+
+        extract_environment_variables
+        @options[:paths] = @args.dup #whatver is left over
+
+        merge_profiles
+        print_profile_information
+
+        self
+      end
+
+    protected
+
+      attr_reader :options, :profiles, :expanded_args
+      protected :options, :profiles, :expanded_args
+
+    private
+
+    def non_stdout_formats
+      @options[:formats].select {|format, output| output != @out_stream }
+    end
+
+    def stdout_formats
+      @options[:formats].select {|format, output| output == @out_stream }
+    end
+
+     def extract_environment_variables
+        @args.delete_if do |arg|
+          if arg =~ /^(\w+)=(.*)$/
+            @options[:env_vars][$1] = $2
+            true
+          end
+        end
+      end
+
+      def parse_tags(tag_string)
+        tag_names = tag_string.split(&quot;,&quot;)
+        parse_tag_limits(tag_names)
+      end
+ 
+      def parse_tag_limits(tag_names)
+        tag_names.inject({}) do |dict, tag|
+          tag, limit = tag.split(':')
+          dict[tag] = limit.nil? ? limit : limit.to_i
+          dict
+        end
+      end
+
+      def disable_profile_loading?
+        @disable_profile_loading
+      end
+
+      def merge_profiles
+        if @disable_profile_loading
+          @out_stream.puts &quot;Disabling profiles...&quot;
+          return
+        end
+
+        @profiles &lt;&lt; @default_profile if default_profile_should_be_used?
+
+        @profiles.each do |profile|
+          profile_args = profile_loader.args_from(profile)
+          reverse_merge(
+            Options.parse(profile_args, @out_stream, @error_stream, :skip_profile_information  =&gt; true)
+          )
+        end
+
+      end
+
+      def default_profile_should_be_used?
+        @profiles.empty? &amp;&amp;
+          profile_loader.cucumber_yml_defined? &amp;&amp;
+          profile_loader.has_profile?(@default_profile)
+      end
+
+      def profile_loader
+        @profile_loader ||= ProfileLoader.new
+      end
+
+      def reverse_merge(other_options)
+        @options = other_options.options.merge(@options)
+        @options[:require] += other_options[:require]
+        @options[:excludes] += other_options[:excludes]
+        @options[:name_regexps] += other_options[:name_regexps]
+        @options[:tag_names].merge! other_options[:tag_names]
+        @options[:env_vars] = other_options[:env_vars].merge(@options[:env_vars])
+        if @options[:paths].empty?
+          @options[:paths] = other_options[:paths]
+        else
+          @overridden_paths += (other_options[:paths] - @options[:paths])
+        end
+        @options[:source] &amp;= other_options[:source]
+        @options[:snippets] &amp;= other_options[:snippets]
+
+        @profiles += other_options.profiles
+        @expanded_args += other_options.expanded_args
+
+        if @options[:formats].empty?
+          @options[:formats] = other_options[:formats]
+        else
+          @options[:formats] += other_options[:formats]
+          @options[:formats] = stdout_formats[0..0] + non_stdout_formats
+        end
+
+        self
+      end
+
+      # TODO: Move to Language
+      def list_keywords_and_exit(lang)
+        unless Cucumber::LANGUAGES[lang]
+          raise(&quot;No language with key #{lang}&quot;)
+        end
+        LanguageHelpFormatter.list_keywords(@out_stream, lang)
+        Kernel.exit
+      end
+
+      def list_languages_and_exit
+        LanguageHelpFormatter.list_languages(@out_stream)
+        Kernel.exit
+      end
+
+      def print_profile_information
+        return if @skip_profile_information || @profiles.empty?
+        profiles_sentence = ''
+        profiles_sentence = @profiles.size == 1 ? @profiles.first :
+          &quot;#{@profiles[0...-1].join(', ')} and #{@profiles.last}&quot;
+
+        @out_stream.puts &quot;Using the #{profiles_sentence} profile#{'s' if @profiles.size&gt; 1}...&quot;
+      end
+
+      def default_options
+        {
+          :strict       =&gt; false,
+          :require      =&gt; [],
+          :dry_run      =&gt; false,
+          :formats      =&gt; [],
+          :excludes     =&gt; [],
+          :tag_names    =&gt; {},
+          :name_regexps =&gt; [],
+          :env_vars     =&gt; {},
+          :diff_enabled =&gt; true
+        }
+      end
+    end
+
+  end
+end
+</pre>
+    </div>

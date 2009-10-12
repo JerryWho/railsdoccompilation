@@ -1,0 +1,69 @@
+  <div id="fileHeader">
+    <h1>merb.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/webrat/selenium/application_servers/merb.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:29 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;webrat/selenium/application_servers/base&quot;
+
+module Webrat
+  module Selenium
+    module ApplicationServers
+      class Merb &lt; Webrat::Selenium::ApplicationServers::Base
+
+        def start
+          system start_command
+        end
+
+        def stop
+          silence_stream(STDOUT) do
+            pid = File.read(pid_file)
+            system(&quot;kill -9 #{pid}&quot;)
+            FileUtils.rm_f pid_file
+          end
+        end
+
+        def fail
+          $stderr.puts
+          $stderr.puts
+          $stderr.puts &quot;==&gt; Failed to boot the Merb application server... exiting!&quot;
+          $stderr.puts
+          $stderr.puts &quot;Verify you can start a Merb server on port #{Webrat.configuration.application_port} with the following command:&quot;
+          $stderr.puts
+          $stderr.puts &quot;    #{start_command}&quot;
+          exit
+        end
+
+        def pid_file
+        &quot;log/merb.#{Webrat.configuration.application_port}.pid&quot;
+        end
+
+        def start_command
+        &quot;#{merb_command} -d -p #{Webrat.configuration.application_port} -e #{Webrat.configuration.application_environment}&quot;
+        end
+
+        def merb_command
+          if File.exist?('bin/merb')
+            merb_cmd = 'bin/merb'
+          else
+            merb_cmd = 'merb'
+          end
+        end
+
+      end
+    end
+  end
+end
+</pre>
+    </div>

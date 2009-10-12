@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Apr 11 19:33:44 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,355 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/hpricot/test_parser.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+require File.join(File.dirname(__FILE__),&quot;load_files&quot;)
+
+class TestParser &lt; Nokogiri::TestCase
+  include Nokogiri
+
+  def test_set_attr
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    @basic.search('//p').set('class', 'para')
+    assert_equal 4, @basic.search('//p').length
+    assert_equal 4, @basic.search('//p').find_all { |x| x['class'] == 'para' }.length
+  end
+
+  def test_filter_by_attr
+    @boingboing = Nokogiri.parse(TestFiles::BOINGBOING)
+
+    # this link is escaped in the doc
+    link = 'http://www.youtube.com/watch?v=TvSNXyNw26g&amp;search=chris%20ware'
+    assert_equal link, @boingboing.at(&quot;a[@href='#{link}']&quot;)['href']
+  end
+
+  def test_filter_contains
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal '&lt;title&gt;Sample XHTML&lt;/title&gt;', @basic.search(&quot;title:contains('Sample')&quot;).to_s.chomp
+  end
+
+  def test_get_element_by_id
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal 'link1', @basic.at('#link1')['id']
+    assert_equal 'link1', @basic.at('#body1').at('#link1')['id']
+  end
+
+  def test_get_element_by_tag_name
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal 'link1', @basic.at('a')['id']
+    assert_equal 'link1', @basic.at('body').at('#link1')['id']
+  end
+
+  def test_output_basic
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    @basic2 = Nokogiri.parse(@basic.inner_html)
+    scan_basic @basic2
+  end
+
+  def test_scan_basic
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    scan_basic @basic
+  end
+
+  def scan_basic doc
+    assert_not_equal doc.children.first.to_s, doc.children[1].to_s
+    assert_equal 'link1', doc.at('#link1')['id']
+    assert_equal 'link1', doc.at(&quot;p a&quot;)['id']
+    assert_equal 'link1', (doc/:p/:a).first['id']
+    assert_equal 'link1', doc.search('p').at('a')['id']
+
+    assert_equal 'link2', (doc/'p').css('.ohmy').search('a').first['id']
+    assert_equal((doc/'p')[2], (doc/'p').css('[text()=&quot;The third paragraph&quot;]')[0])
+    assert_equal 3, (doc/'p:not(.ohmy)').length
+
+    assert_equal 'last final', (doc/'p[@class~=&quot;final&quot;]').first.get_attribute('class')
+    assert_equal 2, (doc/'p &gt; a').length
+    assert_equal 1, (doc/'p.ohmy &gt; a').length
+    assert_equal 2, (doc/'p / a').length
+    assert_equal 2, (doc/'link ~ link').length
+    assert_equal 3, (doc/'title ~ link').length
+    assert_equal 5, (doc/&quot;//p/text()&quot;).length
+    assert_equal 6, (doc/&quot;//p[a]//text()&quot;).length
+    assert_equal 2, (doc/&quot;//p/a/text()&quot;).length
+  end
+
+  def test_positional
+    h = Nokogiri( &quot;&lt;div&gt;&lt;br/&gt;&lt;p&gt;one&lt;/p&gt;&lt;p&gt;two&lt;/p&gt;&lt;/div&gt;&quot; )
+    assert_equal &quot;&lt;p&gt;one&lt;/p&gt;&quot;, h.search(&quot;div/p:eq(1)&quot;).to_s.chomp # MODIFIED: eq(0) -&gt; eq(1), and removed initial '//'
+    assert_equal &quot;&lt;p&gt;one&lt;/p&gt;&quot;, h.search(&quot;div/p:first&quot;).to_s.chomp # MODIFIED: removed initial '//'
+    assert_equal &quot;&lt;p&gt;one&lt;/p&gt;&quot;, h.search(&quot;div/p:first()&quot;).to_s.chomp # MODIFIED: removed initial '//'
+  end
+
+  def test_pace
+    doc = Nokogiri(TestFiles::PACE_APPLICATION)
+    assert_equal 'get', doc.at('form[@name=frmSect11]')['method']
+  end
+
+  def test_scan_boingboing
+    @boingboing = Nokogiri.HTML(TestFiles::BOINGBOING)
+    assert_equal 60, (@boingboing/'p.posted').length
+    assert_equal 1, @boingboing.search(&quot;//a[@name='027906']&quot;).length
+    assert_equal 3, @boingboing.search(&quot;a[text()*='Boing']&quot;).length
+    assert_equal 1, @boingboing.search(
+      &quot;//h3[normalize-space(text())='College kids reportedly taking more smart drugs']&quot;
+    ).length
+    assert_equal 0, @boingboing.search(&quot;h3[text()='College']&quot;).length
+    assert_equal 60, @boingboing.search(&quot;h3&quot;).length
+    assert_equal 59, @boingboing.search(&quot;//h3[normalize-space(text())!='College kids reportedly taking more smart drugs']&quot;).length
+    assert_equal 211, @boingboing.search(&quot;p&quot;).length
+  end
+
+  def test_reparent
+    doc = Nokogiri(%{&lt;div id=&quot;blurb_1&quot;&gt;&lt;/div&gt;})
+    div1 = doc.search('#blurb_1')
+    div1.before('&lt;div id=&quot;blurb_0&quot;&gt;&lt;/div&gt;')
+
+    div0 = doc.search('#blurb_0')
+    div0.before('&lt;div id=&quot;blurb_a&quot;&gt;&lt;/div&gt;')
+
+    assert_equal 'div', doc.at('#blurb_1').name
+  end
+
+  def test_siblings
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    t = @basic.at(:title)
+    e = t.next_sibling
+    assert_equal 'test1.css', e['href']
+    assert_equal 'title', e.previous_sibling.name
+  end
+
+  def test_css_negation
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal 3, (@basic/'p:not(.final)').length
+  end
+
+  def test_remove_attribute
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    (@basic/:p).each { |ele| ele.remove_attribute('class') }
+    assert_equal 0, (@basic/'p[@class]').length
+  end
+
+  def test_abs_xpath
+    @boingboing = Nokogiri.parse(TestFiles::BOINGBOING)
+    assert_equal 60, @boingboing.search(&quot;/html/body//p[@class='posted']&quot;).length
+    assert_equal 60, @boingboing.search(&quot;/*/body//p[@class='posted']&quot;).length
+    assert_equal 18, @boingboing.search(&quot;//script&quot;).length
+    divs = @boingboing.search(&quot;//script/../div&quot;)
+    assert_equal 2,  divs.length
+    imgs = @boingboing.search('//div/p/a/img')
+    assert_equal 12, imgs.length
+    assert_equal 16, @boingboing.search('//div').search('p/a/img').length
+    assert imgs.all? { |x| x.name == 'img' }
+  end
+
+  def test_predicates
+    @boingboing = Nokogiri.parse(TestFiles::BOINGBOING)
+    assert_equal 2, @boingboing.search('//link[@rel=&quot;alternate&quot;]').length
+    p_imgs = @boingboing.search('//div/p[/a/img]')
+    #assert_equal 15, p_imgs.length
+    assert p_imgs.all? { |x| x.name == 'p' }
+    p_imgs = @boingboing.search('//div/p[a/img]')
+    assert_equal 12, p_imgs.length
+    assert p_imgs.all? { |x| x.name == 'p' }
+    assert_equal 1, @boingboing.search('//input[@checked]').length
+  end
+
+  def test_tag_case
+    @tenderlove = Nokogiri.parse(TestFiles::TENDERLOVE)
+    assert_equal 2, @tenderlove.search('//a').length
+    assert_equal 3, @tenderlove.search('//area').length
+    assert_equal 2, @tenderlove.search('//meta').length
+  end
+
+  def test_alt_predicates
+    @boingboing = Nokogiri.parse(TestFiles::BOINGBOING)
+    assert_equal 2, @boingboing.search('table/tr:last').length
+
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal &quot;&lt;p&gt;The third paragraph&lt;/p&gt;&quot;,
+        @basic.search('p:eq(3)').to_html.chomp
+        @basic.search('p:last').to_html.gsub(/\s+/,' ').gsub(/&gt;\s*&lt;/, '&gt;&lt;')
+    assert_equal 'last final', @basic.search('p:last-of-type').first.get_attribute('class')
+  end
+
+  def test_insert_after # ticket #63
+    doc = Nokogiri('&lt;html&gt;&lt;body&gt;&lt;div id=&quot;a-div&quot;&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;')
+    (doc/'div').each do |element|
+      element.after('&lt;p&gt;Paragraph 1&lt;/p&gt;&lt;p&gt;Paragraph 2&lt;/p&gt;')
+    end
+    assert_match '&lt;div id=&quot;a-div&quot;&gt;&lt;/div&gt;&lt;p&gt;Paragraph 1&lt;/p&gt;&lt;p&gt;Paragraph 2&lt;/p&gt;',
+      doc.to_html.gsub(/\n/, '').gsub(/&gt;\s*&lt;/, '&gt;&lt;')
+  end
+
+  def test_insert_before # ticket #61
+    doc = Nokogiri.HTML('&lt;html&gt;&lt;body&gt;&lt;div id=&quot;a-div&quot;&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;')
+    (doc/'div').each do |element|
+      element.before('&lt;p&gt;Paragraph 1&lt;/p&gt;&lt;p&gt;Paragraph 2&lt;/p&gt;')
+    end
+    assert_match '&lt;p&gt;Paragraph 1&lt;/p&gt;&lt;p&gt;Paragraph 2&lt;/p&gt;&lt;div id=&quot;a-div&quot;&gt;&lt;/div&gt;',
+      doc.to_html.gsub(/\n/, '').gsub(/&gt;\s*&lt;/, '&gt;&lt;')
+  end
+
+  def test_many_paths
+    @boingboing = Nokogiri.parse(TestFiles::BOINGBOING)
+    assert_equal 62, @boingboing.search('p.posted, link[@rel=&quot;alternate&quot;]').length
+  end
+
+  def test_class_search
+    doc = Nokogiri.HTML(&quot;&lt;div class=xyz '&gt;abc&lt;/div&gt;&quot;)
+    assert_equal 1, doc.search(&quot;.xyz&quot;).length
+
+    doc = Nokogiri.HTML(&quot;&lt;div class=xyz&gt;abc&lt;/div&gt;&lt;div class=abc&gt;xyz&lt;/div&gt;&quot;)
+    assert_equal 1, doc.search(&quot;.xyz&quot;).length
+    assert_equal 4, doc.search(&quot;*&quot;).length
+  end
+
+  def test_kleene_star
+    # bug noticed by raja bhatia
+    doc = Nokogiri.HTML(&quot;&lt;span class='small'&gt;1&lt;/span&gt;&lt;div class='large'&gt;2&lt;/div&gt;&lt;div class='small'&gt;3&lt;/div&gt;&lt;span class='blue large'&gt;4&lt;/span&gt;&quot;)
+    assert_equal 2, doc.search(&quot;*[@class*='small']&quot;).length
+    assert_equal 2, doc.search(&quot;*.small&quot;).length
+    assert_equal 2, doc.search(&quot;.small&quot;).length
+    assert_equal 2, doc.search(&quot;.large&quot;).length
+  end
+
+  def test_empty_comment
+    doc = Nokogiri.HTML(&quot;&lt;p&gt;&lt;!----&gt;&lt;/p&gt;&quot;)
+    doc = doc.search('//body').first
+    assert doc.children[0].children[0].comment?
+
+    doc = Nokogiri.HTML(&quot;&lt;p&gt;&lt;!-- --&gt;&lt;/p&gt;&quot;)
+    doc = doc.search('//body').first
+    assert doc.children[0].children[0].comment?
+  end
+
+  def test_body_newlines
+    @immob = Nokogiri.parse(TestFiles::IMMOB)
+    body = @immob.at(:body)
+    {'background' =&gt; '', 'bgcolor' =&gt; '#ffffff', 'text' =&gt; '#000000', 'marginheight' =&gt; '10',
+     'marginwidth' =&gt; '10', 'leftmargin' =&gt; '10', 'topmargin' =&gt; '10', 'link' =&gt; '#000066',
+     'alink' =&gt; '#ff6600', 'hlink' =&gt; &quot;#ff6600&quot;, 'vlink' =&gt; &quot;#000000&quot;}.each do |k, v|
+        assert_equal v, body[k]
+    end
+  end
+
+  def test_nested_twins
+    @doc = Nokogiri(&quot;&lt;div&gt;Hi&lt;div&gt;there&lt;/div&gt;&lt;/div&gt;&quot;)
+    assert_equal 1, (@doc/&quot;div div&quot;).length
+  end
+
+  def test_wildcard
+    @basic = Nokogiri::HTML.parse(TestFiles::BASIC)
+    assert_equal 3, (@basic/&quot;*[@id]&quot;).length
+    assert_equal 3, (@basic/&quot;//*[@id]&quot;).length
+  end
+
+  def test_javascripts
+    @immob = Nokogiri::HTML.parse(TestFiles::IMMOB)
+    assert_equal 3, (@immob/:script)[0].inner_html.scan(/&lt;LINK/).length
+  end
+
+  ####
+  # Modified.  This test passes with later versions of libxml
+  def test_nested_scripts
+    @week9 = Nokogiri.parse(TestFiles::WEEK9)
+    unless Nokogiri::LIBXML_VERSION == '2.6.16'
+      assert_equal 14, (@week9/&quot;a&quot;).find_all { |x| x.inner_html.include? &quot;GameCenter&quot; }.length
+    end
+  end
+
+  def test_uswebgen
+    @uswebgen = HTML.parse(TestFiles::USWEBGEN)
+    # sent by brent beardsley, nokogiri 0.3 had problems with all the links.
+    assert_equal 67, (@uswebgen/:a).length
+  end
+
+  def test_mangled_tags
+    [%{&lt;html&gt;&lt;form name='loginForm' method='post' action='/units/a/login/1,13088,779-1,00.html'?URL=&gt;&lt;/form&gt;&lt;/html&gt;},
+     %{&lt;html&gt;&lt;form name='loginForm' ?URL= method='post' action='/units/a/login/1,13088,779-1,00.html'&gt;&lt;/form&gt;&lt;/html&gt;},
+     %{&lt;html&gt;&lt;form name='loginForm'?URL= ?URL= method='post' action='/units/a/login/1,13088,779-1,00.html'?URL=&gt;&lt;/form&gt;&lt;/html&gt;},
+     %{&lt;html&gt;&lt;form name='loginForm' method='post' action='/units/a/login/1,13088,779-1,00.html' ?URL=&gt;&lt;/form&gt;&lt;/html&gt;}].
+    each do |str|
+      doc = Nokogiri(str)
+      assert_equal 1, (doc/:form).length
+      assert_equal '/units/a/login/1,13088,779-1,00.html', doc.at(&quot;form&quot;)['action']
+    end
+  end
+
+  ####
+  # Modified.  Added question.  Don't care.
+  def test_procins
+    doc = Nokogiri.HTML(&quot;&lt;?php print('hello') ?&gt;\n&lt;?xml blah='blah'?&gt;&quot;)
+    assert_equal &quot;php&quot;, doc.children[1].name
+    assert_equal &quot;blah='blah'?&quot;, doc.children[2].content #&quot;# quote added so emacs ruby-mode parser doesn't barf
+  end
+
+  ####
+  # Altered...  libxml does not get a buffer error
+  def test_buffer_error
+    assert_nothing_raised {
+      Nokogiri(%{&lt;p&gt;\n\n&lt;input type=&quot;hidden&quot; name=&quot;__VIEWSTATE&quot;  value=&quot;#{((&quot;X&quot; * 2000) + &quot;\n&quot;) * 22}&quot; /&gt;\n\n&lt;/p&gt;})
+    }
+  end
+
+  def test_youtube_attr
+    str = &lt;&lt;-edoc
+    &lt;html&gt;&lt;body&gt;
+    Lorem ipsum. Jolly roger, ding-dong sing-a-long 
+    &lt;object width=&quot;425&quot; height=&quot;350&quot;&gt;
+      &lt;param name=&quot;movie&quot; value=&quot;http://www.youtube.com/v/NbDQ4M_cuwA&quot;&gt;&lt;/param&gt;
+      &lt;param name=&quot;wmode&quot; value=&quot;transparent&quot;&gt;&lt;/param&gt;
+        &lt;embed src=&quot;http://www.youtube.com/v/NbDQ4M_cuwA&quot; 
+          type=&quot;application/x-shockwave-flash&quot; wmode=&quot;transparent&quot; width=&quot;425&quot; height=&quot;350&quot;&gt;
+        &lt;/embed&gt;
+    &lt;/object&gt;
+    Check out my posting, I have bright mice in large clown cars.
+    &lt;object width=&quot;425&quot; height=&quot;350&quot;&gt;
+      &lt;param name=&quot;movie&quot; value=&quot;http://www.youtube.com/v/foobar&quot;&gt;&lt;/param&gt;
+      &lt;param name=&quot;wmode&quot; value=&quot;transparent&quot;&gt;&lt;/param&gt;
+        &lt;embed src=&quot;http://www.youtube.com/v/foobar&quot; 
+          type=&quot;application/x-shockwave-flash&quot; wmode=&quot;transparent&quot; width=&quot;425&quot; height=&quot;350&quot;&gt;
+        &lt;/embed&gt;
+    &lt;/object&gt;
+    &lt;/body&gt;&lt;/html?
+    edoc
+    doc = Nokogiri(str)
+    assert_equal &quot;http://www.youtube.com/v/NbDQ4M_cuwA&quot;,
+      doc.at(&quot;//object/param[@value='http://www.youtube.com/v/NbDQ4M_cuwA']&quot;)['value']
+  end
+
+  # ticket #84 by jamezilla
+  def test_screwed_xmlns
+    doc = Nokogiri(&lt;&lt;-edoc)
+      &lt;?xml:namespace prefix = cwi /&gt;
+      &lt;html&gt;&lt;body&gt;HAI&lt;/body&gt;&lt;/html&gt;
+    edoc
+    assert_equal &quot;HAI&quot;, doc.at(&quot;body&quot;).inner_text
+  end
+
+  def test_filters
+    @basic = Nokogiri.parse(TestFiles::BASIC)
+    assert_equal 1, (@basic/&quot;title:parent&quot;).size
+    assert_equal 4, (@basic/&quot;p:parent&quot;).size
+    assert_equal 0, (@basic/&quot;title:empty&quot;).size
+    assert_equal 3, (@basic/&quot;link:empty&quot;).size
+  end
+
+  def test_keep_cdata
+    str = %{&lt;script&gt; /*&lt;![CDATA[*/
+    /*]]&gt;*/ &lt;/script&gt;}
+    # MODIFIED: if you want the cdata, to_xml it
+    assert_match str, Nokogiri(str).to_xml
+  end
+
+  def test_namespace
+    chunk = &lt;&lt;-END
+    &lt;a xmlns:t=&quot;http://www.nexopia.com/dev/template&quot;&gt;
+      &lt;t:sam&gt;hi &lt;/t:sam&gt;
+    &lt;/a&gt;
+    END
+    doc = Nokogiri::XML(chunk)
+    assert((doc/&quot;//t:sam&quot;).size &gt; 0)
+  end
+end
+</pre>
     </div>

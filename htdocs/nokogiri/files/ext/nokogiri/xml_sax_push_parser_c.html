@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,91 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/ext/nokogiri/xml_sax_push_parser.c-</pre>
+    <pre>#include &lt;xml_sax_push_parser.h&gt;
+
+static void deallocate(xmlParserCtxtPtr ctx)
+{
+  NOKOGIRI_DEBUG_START(ctx);
+  if(ctx != NULL) xmlFreeParserCtxt(ctx);
+  NOKOGIRI_DEBUG_END(ctx);
+}
+
+static VALUE allocate(VALUE klass)
+{
+  return Data_Wrap_Struct(klass, NULL, deallocate, NULL);
+}
+
+/*
+ * call-seq:
+ *  native_write(chunk, last_chunk)
+ *
+ * Write +chunk+ to PushParser. +last_chunk+ triggers the end_document handle
+ */
+static VALUE native_write(VALUE self, VALUE _chunk, VALUE _last_chunk)
+{
+  xmlParserCtxtPtr ctx;
+  Data_Get_Struct(self, xmlParserCtxt, ctx);
+
+  const char * chunk  = NULL;
+  int last_chunk      = 0;
+  int size            = 0;
+
+  if(Qnil != _chunk) {
+    chunk = StringValuePtr(_chunk);
+    size = RSTRING_LEN(_chunk);
+  }
+  if(Qtrue == _last_chunk) last_chunk = 1;
+
+  if(xmlParseChunk(ctx, chunk, size, last_chunk))
+    rb_raise(rb_eRuntimeError, &quot;Couldn't parse chunk&quot;);
+
+  return self;
+}
+
+/*
+ * call-seq:
+ *  initialize_native(xml_sax, filename)
+ *
+ * Initialize the push parser with +xml_sax+ using +filename+
+ */
+static VALUE initialize_native(VALUE self, VALUE _xml_sax, VALUE _filename)
+{
+  xmlSAXHandlerPtr sax;
+
+  Data_Get_Struct(_xml_sax, xmlSAXHandler, sax);
+  
+  const char * filename = NULL;
+
+  if(_filename != Qnil) filename = StringValuePtr(_filename);
+
+  xmlParserCtxtPtr ctx = xmlCreatePushParserCtxt(
+      sax,
+      (void *)self,
+      NULL,
+      0,
+      filename
+  );
+  if(ctx == NULL)
+    rb_raise(rb_eRuntimeError, &quot;Could not create a parser context&quot;);
+
+  ctx-&gt;sax2 = 1;
+  DATA_PTR(self) = ctx;
+  return self;
+}
+
+VALUE cNokogiriXmlSaxPushParser ;
+void init_xml_sax_push_parser()
+{
+  VALUE nokogiri = rb_define_module(&quot;Nokogiri&quot;);
+  VALUE xml = rb_define_module_under(nokogiri, &quot;XML&quot;);
+  VALUE sax = rb_define_module_under(xml, &quot;SAX&quot;);
+  VALUE klass = rb_define_class_under(sax, &quot;PushParser&quot;, rb_cObject);
+
+  cNokogiriXmlSaxPushParser = klass;
+
+  rb_define_alloc_func(klass, allocate);
+  rb_define_private_method(klass, &quot;initialize_native&quot;, initialize_native, 2);
+  rb_define_private_method(klass, &quot;native_write&quot;, native_write, 2);
+}
+</pre>
     </div>

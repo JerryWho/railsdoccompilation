@@ -1,13 +1,11 @@
-  <div id="C00000047">
+  <div id="C00000099">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />DRbClient<br/>
   In:
 <a href="#" onclick="jsHref('files/lib/cucumber/cli/drb_client_rb.html');">lib/cucumber/cli/drb_client.rb</a>
 
 Parent:&nbsp;
-        <a href="#" onclick="jsHref('classes/Object.html');">
 Object
-         </a>
 </div>
  <!-- banner header -->
 
@@ -24,35 +22,50 @@ in mind.
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000123&name=run" >run</a></li>
+  <li><a href="index.html?a=M000276&name=run" >run</a></li>
   </ul>
 
 
 
 
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">DEFAULT_PORT</td>
+    <td>=</td>
+    <td class="attr-value">8990</td>
+  </tr>
+  </table>
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000123" class="method">
-  <div id="M000123_title" class="title">
-    <b>run</b>(args, error_stream, out_stream)
+<div id="M000276" class="method">
+  <div id="M000276_title" class="title">
+    <b>run</b>(args, error_stream, out_stream, port = nil)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000123_source')" id="l_M000123_source">show source</a> ]</p>
-  <div id="M000123_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000276_source')" id="l_M000276_source">show source</a> ]</p>
+  <div id="M000276_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/cucumber/cli/drb_client.rb, line 8</span>
- 8:       <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">run</span>(<span class="ruby-identifier">args</span>, <span class="ruby-identifier">error_stream</span>, <span class="ruby-identifier">out_stream</span>)
- 9:         <span class="ruby-keyword kw">begin</span>
-10:           <span class="ruby-comment cmt"># See http://redmine.ruby-lang.org/issues/show/496 as to why we specify localhost:0</span>
-11:           <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">start_service</span>(<span class="ruby-value str">&quot;druby://localhost:0&quot;</span>)
-12:           <span class="ruby-identifier">feature_server</span> = <span class="ruby-constant">DRbObject</span>.<span class="ruby-identifier">new_with_uri</span>(<span class="ruby-value str">&quot;druby://127.0.0.1:8990&quot;</span>)
-13:           <span class="ruby-identifier">feature_server</span>.<span class="ruby-identifier">run</span>(<span class="ruby-identifier">args</span>, <span class="ruby-identifier">error_stream</span>, <span class="ruby-identifier">out_stream</span>)
-14:           <span class="ruby-keyword kw">true</span>
-15:         <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">DRb</span><span class="ruby-operator">::</span><span class="ruby-constant">DRbConnError</span>
-16:           <span class="ruby-keyword kw">false</span>
-17:         <span class="ruby-keyword kw">end</span>
-18:       <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/cucumber/cli/drb_client.rb, line 12</span>
+12:       <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">run</span>(<span class="ruby-identifier">args</span>, <span class="ruby-identifier">error_stream</span>, <span class="ruby-identifier">out_stream</span>, <span class="ruby-identifier">port</span> = <span class="ruby-keyword kw">nil</span>)
+13:         <span class="ruby-identifier">port</span> <span class="ruby-operator">||=</span> <span class="ruby-constant">ENV</span>[<span class="ruby-value str">&quot;CUCUMBER_DRB&quot;</span>] <span class="ruby-operator">||</span> <span class="ruby-constant">DEFAULT_PORT</span>
+14: 
+15:         <span class="ruby-comment cmt"># See http://redmine.ruby-lang.org/issues/show/496 as to why we specify localhost:0</span>
+16:         <span class="ruby-keyword kw">begin</span>
+17:           <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">start_service</span>(<span class="ruby-value str">&quot;druby://localhost:0&quot;</span>)
+18:         <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">SocketError</span>
+19:         <span class="ruby-comment cmt"># Ruby-1.8.7 on snow leopard doesn't like localhost:0 - but just :0</span>
+20:         <span class="ruby-comment cmt"># seems to work just fine</span>
+21:           <span class="ruby-constant">DRb</span>.<span class="ruby-identifier">start_service</span>(<span class="ruby-value str">&quot;druby://:0&quot;</span>)
+22:         <span class="ruby-keyword kw">end</span>
+23:         <span class="ruby-identifier">feature_server</span> = <span class="ruby-constant">DRbObject</span>.<span class="ruby-identifier">new_with_uri</span>(<span class="ruby-node">&quot;druby://127.0.0.1:#{port}&quot;</span>)
+24:         <span class="ruby-identifier">cloned_args</span> = [] <span class="ruby-comment cmt"># I have no idea why this is needed, but if the regular args are sent then DRb magically transforms it into a DRb object - not an array</span>
+25:         <span class="ruby-identifier">args</span>.<span class="ruby-identifier">each</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">arg</span><span class="ruby-operator">|</span> <span class="ruby-identifier">cloned_args</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">arg</span> }
+26:         <span class="ruby-identifier">feature_server</span>.<span class="ruby-identifier">run</span>(<span class="ruby-identifier">cloned_args</span>, <span class="ruby-identifier">error_stream</span>, <span class="ruby-identifier">out_stream</span>)
+27:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">DRb</span><span class="ruby-operator">::</span><span class="ruby-constant">DRbConnError</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span>
+28:         <span class="ruby-identifier">raise</span> <span class="ruby-constant">DRbClientError</span>, <span class="ruby-value str">&quot;No DRb server is running.&quot;</span>
+29:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>

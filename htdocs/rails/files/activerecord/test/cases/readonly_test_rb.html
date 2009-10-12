@@ -1,0 +1,126 @@
+  <div id="fileHeader">
+    <h1>readonly_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/readonly_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+require 'models/post'
+require 'models/comment'
+require 'models/developer'
+require 'models/project'
+require 'models/reader'
+require 'models/person'
+
+# Dummy class methods to test implicit association scoping.
+def Comment.foo() find :first end
+def Project.foo() find :first end
+
+
+class ReadOnlyTest &lt; ActiveRecord::TestCase
+  fixtures :posts, :comments, :developers, :projects, :developers_projects
+
+  def test_cant_save_readonly_record
+    dev = Developer.find(1)
+    assert !dev.readonly?
+
+    dev.readonly!
+    assert dev.readonly?
+
+    assert_nothing_raised do
+      dev.name = 'Luscious forbidden fruit.'
+      assert !dev.save
+      dev.name = 'Forbidden.'
+    end
+    assert_raise(ActiveRecord::ReadOnlyRecord) { dev.save  }
+    assert_raise(ActiveRecord::ReadOnlyRecord) { dev.save! }
+  end
+
+
+  def test_find_with_readonly_option
+    Developer.find(:all).each { |d| assert !d.readonly? }
+    Developer.find(:all, :readonly =&gt; false).each { |d| assert !d.readonly? }
+    Developer.find(:all, :readonly =&gt; true).each { |d| assert d.readonly? }
+  end
+
+
+  def test_find_with_joins_option_implies_readonly
+    # Blank joins don't count.
+    Developer.find(:all, :joins =&gt; '  ').each { |d| assert !d.readonly? }
+    Developer.find(:all, :joins =&gt; '  ', :readonly =&gt; false).each { |d| assert !d.readonly? }
+
+    # Others do.
+    Developer.find(:all, :joins =&gt; ', projects').each { |d| assert d.readonly? }
+    Developer.find(:all, :joins =&gt; ', projects', :readonly =&gt; false).each { |d| assert !d.readonly? }
+  end
+
+
+  def test_habtm_find_readonly
+    dev = Developer.find(1)
+    assert !dev.projects.empty?
+    assert dev.projects.all?(&amp;:readonly?)
+    assert dev.projects.find(:all).all?(&amp;:readonly?)
+    assert dev.projects.find(:all, :readonly =&gt; true).all?(&amp;:readonly?)
+  end
+
+  def test_has_many_find_readonly
+    post = Post.find(1)
+    assert !post.comments.empty?
+    assert !post.comments.any?(&amp;:readonly?)
+    assert !post.comments.find(:all).any?(&amp;:readonly?)
+    assert post.comments.find(:all, :readonly =&gt; true).all?(&amp;:readonly?)
+  end
+
+  def test_has_many_with_through_is_not_implicitly_marked_readonly
+    assert people = Post.find(1).people
+    assert !people.any?(&amp;:readonly?)
+  end
+
+  def test_readonly_scoping
+    Post.with_scope(:find =&gt; { :conditions =&gt; '1=1' }) do
+      assert !Post.find(1).readonly?
+      assert Post.find(1, :readonly =&gt; true).readonly?
+      assert !Post.find(1, :readonly =&gt; false).readonly?
+    end
+
+    Post.with_scope(:find =&gt; { :joins =&gt; '   ' }) do
+      assert !Post.find(1).readonly?
+      assert Post.find(1, :readonly =&gt; true).readonly?
+      assert !Post.find(1, :readonly =&gt; false).readonly?
+    end
+
+    # Oracle barfs on this because the join includes unqualified and
+    # conflicting column names
+    unless current_adapter?(:OracleAdapter)
+      Post.with_scope(:find =&gt; { :joins =&gt; ', developers' }) do
+        assert Post.find(1).readonly?
+        assert Post.find(1, :readonly =&gt; true).readonly?
+        assert !Post.find(1, :readonly =&gt; false).readonly?
+      end
+    end
+
+    Post.with_scope(:find =&gt; { :readonly =&gt; true }) do
+      assert Post.find(1).readonly?
+      assert Post.find(1, :readonly =&gt; true).readonly?
+      assert !Post.find(1, :readonly =&gt; false).readonly?
+    end
+  end
+
+  def test_association_collection_method_missing_scoping_not_readonly
+    assert !Developer.find(1).projects.foo.readonly?
+    assert !Post.find(1).comments.foo.readonly?
+  end
+end
+</pre>
+    </div>

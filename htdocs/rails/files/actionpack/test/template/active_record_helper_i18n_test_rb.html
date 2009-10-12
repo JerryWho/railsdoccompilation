@@ -1,0 +1,63 @@
+  <div id="fileHeader">
+    <h1>active_record_helper_i18n_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/active_record_helper_i18n_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class ActiveRecordHelperI18nTest &lt; Test::Unit::TestCase
+  include ActionView::Helpers::ActiveRecordHelper
+  
+  attr_reader :request
+  def setup
+    @object = stub :errors =&gt; stub(:count =&gt; 1, :full_messages =&gt; ['full_messages'])
+    @object_name = 'book'
+    stubs(:content_tag).returns 'content_tag'
+
+    I18n.stubs(:t).with(:'header', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; '').returns &quot;1 error prohibited this  from being saved&quot;
+    I18n.stubs(:t).with(:'body', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template]).returns 'There were problems with the following fields:'
+  end
+
+  def test_error_messages_for_given_a_header_option_it_does_not_translate_header_message
+    I18n.expects(:translate).with(:'header', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; '').never
+    error_messages_for(:object =&gt; @object, :header_message =&gt; 'header message', :locale =&gt; 'en')
+  end
+
+  def test_error_messages_for_given_no_header_option_it_translates_header_message
+    I18n.expects(:t).with(:'header', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; '').returns 'header message'
+    I18n.expects(:t).with('', :default =&gt; '', :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns ''
+    error_messages_for(:object =&gt; @object, :locale =&gt; 'en')
+  end
+
+  def test_error_messages_for_given_a_message_option_it_does_not_translate_message
+    I18n.expects(:t).with(:'body', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template]).never
+    I18n.expects(:t).with('', :default =&gt; '', :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns ''
+    error_messages_for(:object =&gt; @object, :message =&gt; 'message', :locale =&gt; 'en')
+  end
+
+  def test_error_messages_for_given_no_message_option_it_translates_message
+    I18n.expects(:t).with(:'body', :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template]).returns 'There were problems with the following fields:'
+    I18n.expects(:t).with('', :default =&gt; '', :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns ''
+    error_messages_for(:object =&gt; @object, :locale =&gt; 'en')
+  end
+  
+  def test_error_messages_for_given_object_name_it_translates_object_name
+    I18n.expects(:t).with(:header, :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; @object_name).returns &quot;1 error prohibited this #{@object_name} from being saved&quot;
+    I18n.expects(:t).with(@object_name, :default =&gt; @object_name, :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns @object_name
+    error_messages_for(:object =&gt; @object, :locale =&gt; 'en', :object_name =&gt; @object_name)
+  end
+end
+</pre>
+    </div>

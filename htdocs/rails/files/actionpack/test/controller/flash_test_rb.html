@@ -1,0 +1,166 @@
+  <div id="fileHeader">
+    <h1>flash_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/flash_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class FlashTest &lt; ActionController::TestCase
+  class TestController &lt; ActionController::Base
+    def set_flash
+      flash[&quot;that&quot;] = &quot;hello&quot;
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def set_flash_now
+      flash.now[&quot;that&quot;] = &quot;hello&quot;
+      flash.now[&quot;foo&quot;] ||= &quot;bar&quot;
+      flash.now[&quot;foo&quot;] ||= &quot;err&quot;
+      @flashy = flash.now[&quot;that&quot;]
+      @flash_copy = {}.update flash
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def attempt_to_use_flash_now
+      @flash_copy = {}.update flash
+      @flashy = flash[&quot;that&quot;]
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def use_flash
+      @flash_copy = {}.update flash
+      @flashy = flash[&quot;that&quot;]
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def use_flash_and_keep_it
+      @flash_copy = {}.update flash
+      @flashy = flash[&quot;that&quot;]
+      flash.keep
+      render :inline =&gt; &quot;hello&quot;
+    end
+    
+    def use_flash_and_update_it
+      flash.update(&quot;this&quot; =&gt; &quot;hello again&quot;)
+      @flash_copy = {}.update flash
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def use_flash_after_reset_session
+      flash[&quot;that&quot;] = &quot;hello&quot;
+      @flashy_that = flash[&quot;that&quot;]
+      reset_session
+      @flashy_that_reset = flash[&quot;that&quot;]
+      flash[&quot;this&quot;] = &quot;good-bye&quot;
+      @flashy_this = flash[&quot;this&quot;]
+      render :inline =&gt; &quot;hello&quot;
+    end
+
+    def rescue_action(e)
+      raise unless ActionView::MissingTemplate === e
+    end
+
+    # methods for test_sweep_after_halted_filter_chain
+    before_filter :halt_and_redir, :only =&gt; &quot;filter_halting_action&quot;
+
+    def std_action
+      @flash_copy = {}.update(flash)
+    end
+
+    def filter_halting_action
+      @flash_copy = {}.update(flash)
+    end
+
+    def halt_and_redir
+      flash[&quot;foo&quot;] = &quot;bar&quot;
+      redirect_to :action =&gt; &quot;std_action&quot;
+      @flash_copy = {}.update(flash)
+    end
+  end
+
+  tests TestController
+
+  def test_flash
+    get :set_flash
+
+    get :use_flash
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;]
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flashy&quot;]
+
+    get :use_flash
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;], &quot;On second flash&quot;
+  end
+
+  def test_keep_flash
+    get :set_flash
+    
+    get :use_flash_and_keep_it
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;]
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flashy&quot;]
+
+    get :use_flash
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;], &quot;On second flash&quot;
+
+    get :use_flash
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;], &quot;On third flash&quot;
+  end
+  
+  def test_flash_now
+    get :set_flash_now
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;]
+    assert_equal &quot;bar&quot;  , @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+    assert_equal &quot;hello&quot;, @response.template.assigns[&quot;flashy&quot;]
+
+    get :attempt_to_use_flash_now
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;]
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+    assert_nil @response.template.assigns[&quot;flashy&quot;]
+  end 
+  
+  def test_update_flash
+    get :set_flash
+    get :use_flash_and_update_it
+    assert_equal &quot;hello&quot;,       @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;]
+    assert_equal &quot;hello again&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;this&quot;]
+    get :use_flash
+    assert_nil                  @response.template.assigns[&quot;flash_copy&quot;][&quot;that&quot;], &quot;On second flash&quot;
+    assert_equal &quot;hello again&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;this&quot;], &quot;On second flash&quot;
+  end
+
+  def test_flash_after_reset_session
+    get :use_flash_after_reset_session
+    assert_equal &quot;hello&quot;,    @response.template.assigns[&quot;flashy_that&quot;]
+    assert_equal &quot;good-bye&quot;, @response.template.assigns[&quot;flashy_this&quot;]
+    assert_nil   @response.template.assigns[&quot;flashy_that_reset&quot;]
+  end 
+
+  def test_sweep_after_halted_filter_chain
+    get :std_action
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+    get :filter_halting_action
+    assert_equal &quot;bar&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+    get :std_action # follow redirection
+    assert_equal &quot;bar&quot;, @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+    get :std_action
+    assert_nil @response.template.assigns[&quot;flash_copy&quot;][&quot;foo&quot;]
+  end
+
+  def test_does_not_set_the_session_if_the_flash_is_empty
+    get :std_action
+    assert_nil session[&quot;flash&quot;]
+  end
+end
+</pre>
+    </div>

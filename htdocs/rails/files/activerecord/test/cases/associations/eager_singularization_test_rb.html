@@ -1,0 +1,164 @@
+  <div id="fileHeader">
+    <h1>eager_singularization_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/cases/associations/eager_singularization_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;cases/helper&quot;
+
+class Virus &lt; ActiveRecord::Base
+  belongs_to :octopus
+end
+class Octopus &lt; ActiveRecord::Base
+  has_one :virus
+end
+class Pass &lt; ActiveRecord::Base
+  belongs_to :bus
+end
+class Bus &lt; ActiveRecord::Base
+  has_many :passes
+end
+class Mess &lt; ActiveRecord::Base
+  has_and_belongs_to_many :crises
+end
+class Crisis &lt; ActiveRecord::Base
+  has_and_belongs_to_many :messes
+  has_many :analyses, :dependent =&gt; :destroy
+  has_many :successes, :through =&gt; :analyses
+  has_many :dresses, :dependent =&gt; :destroy
+  has_many :compresses, :through =&gt; :dresses
+end
+class Analysis &lt; ActiveRecord::Base
+  belongs_to :crisis
+  belongs_to :success
+end
+class Success &lt; ActiveRecord::Base
+  has_many :analyses, :dependent =&gt; :destroy
+  has_many :crises, :through =&gt; :analyses
+end
+class Dress &lt; ActiveRecord::Base
+  belongs_to :crisis
+  has_many :compresses
+end
+class Compress &lt; ActiveRecord::Base
+  belongs_to :dress
+end
+
+
+class EagerSingularizationTest &lt; ActiveRecord::TestCase
+
+  def setup
+    if ActiveRecord::Base.connection.supports_migrations?
+      ActiveRecord::Base.connection.create_table :viri do |t|
+        t.column :octopus_id, :integer
+        t.column :species, :string
+      end
+      ActiveRecord::Base.connection.create_table :octopi do |t|
+        t.column :species, :string
+      end
+      ActiveRecord::Base.connection.create_table :passes do |t|
+        t.column :bus_id, :integer
+        t.column :rides, :integer
+      end
+      ActiveRecord::Base.connection.create_table :buses do |t|
+        t.column :name, :string
+      end
+      ActiveRecord::Base.connection.create_table :crises_messes, :id =&gt; false do |t|
+        t.column :crisis_id, :integer
+        t.column :mess_id, :integer
+      end
+      ActiveRecord::Base.connection.create_table :messes do |t|
+        t.column :name, :string
+      end
+      ActiveRecord::Base.connection.create_table :crises do |t|
+        t.column :name, :string
+      end
+      ActiveRecord::Base.connection.create_table :successes do |t|
+        t.column :name, :string
+      end
+      ActiveRecord::Base.connection.create_table :analyses do |t|
+        t.column :crisis_id, :integer
+        t.column :success_id, :integer
+      end
+      ActiveRecord::Base.connection.create_table :dresses do |t|
+        t.column :crisis_id, :integer
+      end
+      ActiveRecord::Base.connection.create_table :compresses do |t|
+        t.column :dress_id, :integer
+      end
+      @have_tables = true
+    else
+      @have_tables = false
+    end
+  end
+
+  def teardown
+    ActiveRecord::Base.connection.drop_table :viri
+    ActiveRecord::Base.connection.drop_table :octopi
+    ActiveRecord::Base.connection.drop_table :passes
+    ActiveRecord::Base.connection.drop_table :buses
+    ActiveRecord::Base.connection.drop_table :crises_messes
+    ActiveRecord::Base.connection.drop_table :messes
+    ActiveRecord::Base.connection.drop_table :crises
+    ActiveRecord::Base.connection.drop_table :successes
+    ActiveRecord::Base.connection.drop_table :analyses
+    ActiveRecord::Base.connection.drop_table :dresses
+    ActiveRecord::Base.connection.drop_table :compresses
+  end
+
+  def test_eager_no_extra_singularization_belongs_to
+    return unless @have_tables
+    assert_nothing_raised do
+      Virus.find(:all, :include =&gt; :octopus)
+    end
+  end
+
+  def test_eager_no_extra_singularization_has_one
+    return unless @have_tables
+    assert_nothing_raised do
+      Octopus.find(:all, :include =&gt; :virus)
+    end
+  end
+
+  def test_eager_no_extra_singularization_has_many
+    return unless @have_tables
+    assert_nothing_raised do
+      Bus.find(:all, :include =&gt; :passes)
+    end
+  end
+
+  def test_eager_no_extra_singularization_has_and_belongs_to_many
+    return unless @have_tables
+    assert_nothing_raised do
+      Crisis.find(:all, :include =&gt; :messes)
+      Mess.find(:all, :include =&gt; :crises)
+    end
+  end
+
+  def test_eager_no_extra_singularization_has_many_through_belongs_to
+    return unless @have_tables
+    assert_nothing_raised do
+      Crisis.find(:all, :include =&gt; :successes)
+    end
+  end
+
+  def test_eager_no_extra_singularization_has_many_through_has_many
+    return unless @have_tables
+    assert_nothing_raised do
+      Crisis.find(:all, :include =&gt; :compresses)
+    end
+  end
+end
+</pre>
+    </div>

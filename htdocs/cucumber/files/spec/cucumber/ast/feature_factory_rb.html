@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Apr 13 22:34:28 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,66 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/spec/cucumber/ast/feature_factory.rb-</pre>
+    <pre>require 'cucumber/ast'
+require 'cucumber/step_mother'
+
+module Cucumber
+  module Ast
+    module FeatureFactory
+      class MyWorld
+        def flunk
+          raise &quot;I flunked&quot;
+        end
+      end
+      
+      def create_feature(dsl)
+        dsl.Given /^a (.*) step with an inline arg:$/ do |what, table|
+        end
+        dsl.Given /^a (.*) step$/ do |what|
+          flunk if what == 'failing'
+        end
+        dsl.World do
+          MyWorld.new
+        end
+
+        table = Ast::Table.new([
+          %w{1 22 333},
+          %w{4444 55555 666666}
+        ])
+        py_string = Ast::PyString.new(21, 22, %{
+           I like
+          Cucumber sandwich
+        }, 10)
+        
+        background = Ast::Background.new(Ast::Comment.new(&quot;&quot;), 2, &quot;Background:&quot;, &quot;&quot;,
+          [
+            Step.new(3, &quot;Given&quot;, &quot;a passing step&quot;)
+          ]
+        )
+        
+        f = Ast::Feature.new(
+          background,
+          Ast::Comment.new(&quot;# My feature comment\n&quot;),
+          Ast::Tags.new(6, ['one', 'two']),
+          &quot;Pretty printing&quot;,
+          [Ast::Scenario.new(
+            background,
+            Ast::Comment.new(&quot;    # My scenario comment  \n# On two lines \n&quot;),
+            Ast::Tags.new(8, ['three', 'four']),
+            9,
+            &quot;Scenario:&quot;, &quot;A Scenario&quot;,
+            [
+              Step.new(10, &quot;Given&quot;, &quot;a passing step with an inline arg:&quot;, table),
+              Step.new(11, &quot;Given&quot;, &quot;a happy step with an inline arg:&quot;, py_string),
+              Step.new(12, &quot;Given&quot;, &quot;a failing step&quot;)
+            ]
+          )]
+        )
+        f.file = 'features/pretty_printing.feature'
+        f.features = Features.new
+        f
+      end
+    end
+  end
+end</pre>
     </div>

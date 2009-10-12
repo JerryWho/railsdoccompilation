@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 14:56:40 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,35 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/decorators/hpricot/xpath_visitor.rb-</pre>
+    <pre>module Nokogiri
+  module Decorators
+    module Hpricot
+      ####
+      # This mixin does custom adjustments to deal with _whyML
+      module XPathVisitor
+        ###
+        # Visit attribute condition nodes with +node+
+        def visit_attribute_condition node
+          unless (node.value.first.type == :FUNCTION) or (node.value.first.value.first =~ /^@/)
+            node.value.first.value[0] = &quot;child::&quot; +
+              node.value.first.value[0]
+          end
+          super(node).gsub(/child::text\(\)/, 'normalize-space(child::text())')
+        end
+
+        #  take a path like '//t:sam' and convert to xpath &quot;*[name()='t:sam']&quot;
+        def self.xpath_namespace_helper rule
+          rule.split(/\//).collect do |tag|
+            if match = tag.match(/^(\w+:\w+)(.*)/)
+              &quot;*[name()='#{match[1]}']#{match[2]}&quot;
+            else
+              tag
+            end
+          end.join(&quot;/&quot;)
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

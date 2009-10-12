@@ -1,0 +1,51 @@
+  <div id="fileHeader">
+    <h1>deprecated_base_methods_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/deprecation/deprecated_base_methods_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class DeprecatedBaseMethodsTest &lt; ActionController::TestCase
+  class Target &lt; ActionController::Base
+    def home_url(greeting)
+      &quot;http://example.com/#{greeting}&quot;
+    end
+
+    def raises_name_error
+      this_method_doesnt_exist
+    end
+
+    def rescue_action(e) raise e end
+  end
+
+  tests Target
+
+  def test_log_error_silences_deprecation_warnings
+    get :raises_name_error
+  rescue =&gt; e
+    assert_not_deprecated { @controller.send :log_error, e }
+  end
+
+  if defined? Test::Unit::Error
+    def test_assertion_failed_error_silences_deprecation_warnings
+      get :raises_name_error
+    rescue =&gt; e
+      error = Test::Unit::Error.new('testing ur doodz', e)
+      assert_not_deprecated { error.message }
+    end
+  end
+end
+</pre>
+    </div>

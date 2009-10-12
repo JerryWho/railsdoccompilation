@@ -1,0 +1,136 @@
+  <div id="fileHeader">
+    <h1>ci_build.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ci/ci_build.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+require 'fileutils'
+
+include FileUtils
+
+puts &quot;[CruiseControl] Rails build&quot;
+
+build_results = {}
+root_dir = File.expand_path(File.dirname(__FILE__) + &quot;/..&quot;)
+
+# Requires gem home and path to be writeable and/or overridden to be ~/.gem,
+# Will enable when RubyGems supports this properly (in a coming release)
+# build_results[:geminstaller] = system 'geminstaller --exceptions'
+
+# for now, use the no-passwd sudoers approach (documented in ci_setup_notes.txt)
+# A security hole, but there is nothing valuable on rails CI box anyway.
+build_results[:geminstaller] = system &quot;sudo geminstaller --config=#{root_dir}/ci/geminstaller.yml --exceptions&quot;
+
+cd &quot;#{root_dir}/activesupport&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveSupport&quot;
+  puts
+  build_results[:activesupport] = system 'rake'
+end
+
+rm_f &quot;#{root_dir}/activerecord/debug.log&quot;
+cd &quot;#{root_dir}/activerecord&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveRecord with MySQL&quot;
+  puts
+  build_results[:activerecord_mysql] = system 'rake test_mysql'
+end
+
+cd &quot;#{root_dir}/activerecord&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveRecord with PostgreSQL&quot;
+  puts
+  build_results[:activerecord_postgresql8] = system 'rake test_postgresql'
+end
+
+cd &quot;#{root_dir}/activerecord&quot; do
+ puts
+ puts &quot;[CruiseControl] Building ActiveRecord with SQLite 2&quot;
+ puts
+ build_results[:activerecord_sqlite] = system 'rake test_sqlite'
+end
+
+cd &quot;#{root_dir}/activerecord&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveRecord with SQLite 3&quot;
+  puts
+  build_results[:activerecord_sqlite3] = system 'rake test_sqlite3'
+end
+
+cd &quot;#{root_dir}/activemodel&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveModel&quot;
+  puts
+  build_results[:activemodel] = system 'rake'
+end
+
+rm_f &quot;#{root_dir}/activeresource/debug.log&quot;
+cd &quot;#{root_dir}/activeresource&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActiveResource&quot;
+  puts
+  build_results[:activeresource] = system 'rake'
+end
+
+cd &quot;#{root_dir}/actionpack&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActionPack&quot;
+  puts
+  build_results[:actionpack] = system 'rake'
+end
+
+cd &quot;#{root_dir}/actionmailer&quot; do
+  puts
+  puts &quot;[CruiseControl] Building ActionMailer&quot;
+  puts
+  build_results[:actionmailer] = system 'rake'
+end
+
+cd &quot;#{root_dir}/railties&quot; do
+  puts
+  puts &quot;[CruiseControl] Building RailTies&quot;
+  puts
+  build_results[:railties] = system 'rake'
+end
+
+
+puts
+puts &quot;[CruiseControl] Build environment:&quot;
+puts &quot;[CruiseControl]   #{`cat /etc/issue`}&quot;
+puts &quot;[CruiseControl]   #{`uname -a`}&quot;
+puts &quot;[CruiseControl]   #{`ruby -v`}&quot;
+puts &quot;[CruiseControl]   #{`mysql --version`}&quot;
+puts &quot;[CruiseControl]   #{`pg_config --version`}&quot;
+puts &quot;[CruiseControl]   SQLite2: #{`sqlite -version`}&quot;
+puts &quot;[CruiseControl]   SQLite3: #{`sqlite3 -version`}&quot;
+`gem env`.each_line {|line| print &quot;[CruiseControl]   #{line}&quot;}
+puts &quot;[CruiseControl]   Local gems:&quot;
+`gem list`.each_line {|line| print &quot;[CruiseControl]     #{line}&quot;}
+
+failures = build_results.select { |key, value| value == false }
+
+if failures.empty?
+  puts
+  puts &quot;[CruiseControl] Rails build finished sucessfully&quot;
+  exit(0)
+else
+  puts
+  puts &quot;[CruiseControl] Rails build FAILED&quot;
+  puts &quot;[CruiseControl] Failed components: #{failures.map { |component| component.first }.join(', ')}&quot;
+  exit(-1)
+end
+
+</pre>
+    </div>

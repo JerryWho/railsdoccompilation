@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,76 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/cli/language_help_formatter.rb-</pre>
+    <pre>require 'cucumber/formatter/pretty'
+require 'cucumber/parser/natural_language'
+require 'cucumber/formatter/unicode'
+
+module Cucumber
+  module Cli
+    class LanguageHelpFormatter &lt; Formatter::Pretty
+      INCOMPLETE = %{
+The Cucumber grammar has evolved since this translation was written.
+Please help us complete the translation by translating the missing words in
+
+#{Cucumber::LANGUAGE_FILE}
+
+Then contribute back to the Cucumber project. Details here:
+http://wiki.github.com/aslakhellesoy/cucumber/spoken-languages
+}
+      
+      class &lt;&lt; self
+        def list_languages(io)
+          raw = Cucumber::LANGUAGES.keys.sort.map do |lang|
+            [
+              lang, 
+              Cucumber::LANGUAGES[lang]['name'], 
+              Cucumber::LANGUAGES[lang]['native']
+            ]
+          end
+
+          print_table io, raw, :check_lang =&gt; true
+        end
+
+        def list_keywords(io, lang)
+          language = Parser::NaturalLanguage.get(nil, lang)
+          raw = Parser::NaturalLanguage::KEYWORD_KEYS.map do |key|
+            [key, language.keywords(key)]
+          end
+          
+          print_table io, raw, :incomplete =&gt; language.incomplete?
+        end
+      
+        private
+          def print_table(io, raw, options)
+            table = Ast::Table.new(raw)
+            formatter = new(nil, io, options)
+            Ast::TreeWalker.new(nil, [formatter]).visit_multiline_arg(table)
+          end
+      end
+      
+      def before_visit_multiline_arg(table)
+        if @options[:incomplete]
+          @io.puts(format_string(INCOMPLETE, :failed))
+        end
+      end
+
+      def before_visit_table_row(table_row)
+        @col = 1
+      end
+
+      def before_visit_table_cell_value(value, status)
+        if @col == 1
+          if(@options[:check_lang])
+            @incomplete = Parser::NaturalLanguage.get(nil, value).incomplete?
+          end
+          status = :comment 
+        elsif @incomplete
+          status = :undefined
+        end
+        
+        @col += 1
+      end
+    end
+  end
+end</pre>
     </div>

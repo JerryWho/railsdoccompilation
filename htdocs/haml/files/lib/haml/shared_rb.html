@@ -1,0 +1,97 @@
+  <div id="fileHeader">
+    <h1>shared.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/haml/shared.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'strscan'
+
+module Haml
+  # This module contains functionality that's shared between Haml and Sass.
+  module Shared
+    extend self
+
+    # Scans through a string looking for the interoplation-opening `#{`
+    # and, when it's found, yields the scanner to the calling code
+    # so it can handle it properly.
+    #
+    # The scanner will have any backslashes immediately in front of the `#{`
+    # as the second capture group (`scan[2]`),
+    # and the text prior to that as the first (`scan[1]`).
+    #
+    # @yieldparam scan [StringScanner] The scanner scanning through the string
+    # @return [String] The text remaining in the scanner after all `#{`s have been processed
+    def handle_interpolation(str)
+      scan = StringScanner.new(str)
+      yield scan while scan.scan(/(.*?)(\\*)\#\{/)
+      scan.rest
+    end
+
+    # Moves a scanner through a balanced pair of characters.
+    # For example:
+    #
+    #     Foo (Bar (Baz bang) bop) (Bang (bop bip))
+    #     ^                       ^
+    #     from                    to
+    #
+    # @param scanner [StringScanner] The string scanner to move
+    # @param start [Character] The character opening the balanced pair.
+    #   A `Fixnum` in 1.8, a `String` in 1.9
+    # @param finish [Character] The character closing the balanced pair.
+    #   A `Fixnum` in 1.8, a `String` in 1.9
+    # @param count [Fixnum] The number of opening characters matched
+    #   before calling this method
+    # @return [(String, String)] The string matched within the balanced pair
+    #   and the rest of the string.
+    #   `[&quot;Foo (Bar (Baz bang) bop)&quot;, &quot; (Bang (bop bip))&quot;]` in the example above.
+    def balance(scanner, start, finish, count = 0)
+      str = ''
+      scanner = StringScanner.new(scanner) unless scanner.is_a? StringScanner
+      regexp = Regexp.new(&quot;(.*?)[\\#{start.chr}\\#{finish.chr}]&quot;, Regexp::MULTILINE)
+      while scanner.scan(regexp)
+        str &lt;&lt; scanner.matched
+        count += 1 if scanner.matched[-1] == start
+        count -= 1 if scanner.matched[-1] == finish
+        return [str.strip, scanner.rest] if count == 0
+      end
+    end
+
+    # Formats a string for use in error messages about indentation.
+    #
+    # @param indentation [String] The string used for indentation
+    # @param was [Boolean] Whether or not to add `&quot;was&quot;` or `&quot;were&quot;`
+    #   (depending on how many characters were in `indentation`)
+    # @return [String] The name of the indentation (e.g. `&quot;12 spaces&quot;`, `&quot;1 tab&quot;`)
+    def human_indentation(indentation, was = false)
+      if !indentation.include?(?\t)
+        noun = 'space'
+      elsif !indentation.include?(?\s)
+        noun = 'tab'
+      else
+        return indentation.inspect + (was ? ' was' : '')
+      end
+
+      singular = indentation.length == 1
+      if was
+        was = singular ? ' was' : ' were'
+      else
+        was = ''
+      end
+
+      &quot;#{indentation.length} #{noun}#{'s' unless singular}#{was}&quot;
+    end
+  end
+end
+</pre>
+    </div>

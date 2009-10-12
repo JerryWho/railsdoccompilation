@@ -1,4 +1,4 @@
-  <div id="C00000012">
+  <div id="C00000011">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Default<br/>
   In:
@@ -20,10 +20,11 @@ Object
   <div class="sectiontitle">Methods</div>
   <ul>
   <li><a href="index.html?a=M000014&name=context_lines" >context_lines</a></li>
-  <li><a href="index.html?a=M000012&name=diff_as_object" >diff_as_object</a></li>
-  <li><a href="index.html?a=M000011&name=diff_as_string" >diff_as_string</a></li>
+  <li><a href="index.html?a=M000012&name=diff_as_hash" >diff_as_hash</a></li>
+  <li><a href="index.html?a=M000011&name=diff_as_object" >diff_as_object</a></li>
+  <li><a href="index.html?a=M000010&name=diff_as_string" >diff_as_string</a></li>
   <li><a href="index.html?a=M000013&name=format" >format</a></li>
-  <li><a href="index.html?a=M000010&name=new" >new</a></li>
+  <li><a href="index.html?a=M000009&name=new" >new</a></li>
   </ul>
 
 
@@ -32,13 +33,13 @@ Object
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000010" class="method">
-  <div id="M000010_title" class="title">
+<div id="M000009" class="method">
+  <div id="M000009_title" class="title">
     <b>new</b>(options)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000010_source')" id="l_M000010_source">show source</a> ]</p>
-  <div id="M000010_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000009_source')" id="l_M000009_source">show source</a> ]</p>
+  <div id="M000009_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 9</span>
  9:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">options</span>)
@@ -51,11 +52,54 @@ Object
 <div class="sectiontitle">Public Instance methods</div>
 <div id="M000012" class="method">
   <div id="M000012_title" class="title">
-    <b>diff_as_object</b>(target,expected)
+    <b>diff_as_hash</b>(target, expected)
   </div>
 <div class="sourcecode">
   <p class="source-link">[ <a href="javascript:toggleSource('M000012_source')" id="l_M000012_source">show source</a> ]</p>
   <div id="M000012_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 49</span>
+49:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">diff_as_hash</span>(<span class="ruby-identifier">target</span>, <span class="ruby-identifier">expected</span>)
+50:             <span class="ruby-identifier">contains_hash</span> = <span class="ruby-keyword kw">false</span>
+51:             <span class="ruby-identifier">contains_array</span> = <span class="ruby-keyword kw">false</span>
+52:             
+53:             <span class="ruby-identifier">extra_expected_keys</span> = <span class="ruby-identifier">expected</span>.<span class="ruby-identifier">keys</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">target</span>.<span class="ruby-identifier">keys</span>
+54:             <span class="ruby-identifier">extra_target_keys</span> = <span class="ruby-identifier">target</span>.<span class="ruby-identifier">keys</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">expected</span>.<span class="ruby-identifier">keys</span>
+55:             
+56:             <span class="ruby-identifier">o</span> = <span class="ruby-value str">&quot;\n&quot;</span>
+57:             
+58:             <span class="ruby-identifier">o</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;Expected hash contains keys that target hash does not: &quot;</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">extra_expected_keys</span>.<span class="ruby-identifier">inspect</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">extra_expected_keys</span>.<span class="ruby-identifier">empty?</span>
+59:             <span class="ruby-identifier">o</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;Target hash contains keys that expected hash does not: &quot;</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">extra_target_keys</span>.<span class="ruby-identifier">inspect</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-keyword kw">if</span> <span class="ruby-operator">!</span><span class="ruby-identifier">extra_target_keys</span>.<span class="ruby-identifier">empty?</span>
+60:             
+61:             <span class="ruby-identifier">expected</span>.<span class="ruby-identifier">delete_if</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">key</span>, <span class="ruby-identifier">value</span><span class="ruby-operator">|</span>
+62:               <span class="ruby-identifier">contains_hash</span> = <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">value</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Hash</span>)
+63:               <span class="ruby-identifier">contains_array</span> = <span class="ruby-keyword kw">true</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">value</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Array</span>)
+64:               <span class="ruby-identifier">target</span>[<span class="ruby-identifier">key</span>]  <span class="ruby-operator">==</span> <span class="ruby-identifier">value</span>
+65:             <span class="ruby-keyword kw">end</span>
+66:             
+67:             <span class="ruby-identifier">expected</span>.<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">sort</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">a</span>,<span class="ruby-identifier">b</span><span class="ruby-operator">|</span> <span class="ruby-identifier">a</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-operator">&lt;=&gt;</span> <span class="ruby-identifier">b</span>.<span class="ruby-identifier">to_s</span> }.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">key</span><span class="ruby-operator">|</span>
+68:               <span class="ruby-identifier">o</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-node">&quot;Expected the key #{key.inspect} to be #{expected[key].inspect}, but was #{target[key].inspect}\n&quot;</span>
+69:             <span class="ruby-keyword kw">end</span>
+70:             
+71:             <span class="ruby-identifier">o</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-value str">&quot;\n&quot;</span>
+72: 
+73:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">contains_hash</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">contains_array</span>
+74:               <span class="ruby-identifier">o</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">diff_as_object</span>(<span class="ruby-identifier">target</span>, <span class="ruby-identifier">expected</span>)
+75:             <span class="ruby-keyword kw">else</span>
+76:               <span class="ruby-identifier">o</span>
+77:             <span class="ruby-keyword kw">end</span>
+78:           <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000011" class="method">
+  <div id="M000011_title" class="title">
+    <b>diff_as_object</b>(target,expected)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000011_source')" id="l_M000011_source">show source</a> ]</p>
+  <div id="M000011_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 45</span>
 45:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">diff_as_object</span>(<span class="ruby-identifier">target</span>,<span class="ruby-identifier">expected</span>)
@@ -65,8 +109,8 @@ Object
   </div>
 </div>
 </div>
-<div id="M000011" class="method">
-  <div id="M000011_title" class="title">
+<div id="M000010" class="method">
+  <div id="M000010_title" class="title">
     <b>diff_as_string</b>(data_new, data_old)
   </div>
   <div class="description">
@@ -75,8 +119,8 @@ This is snagged from diff/lcs/ldiff.rb (which is a commandline tool)
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000011_source')" id="l_M000011_source">show source</a> ]</p>
-  <div id="M000011_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000010_source')" id="l_M000010_source">show source</a> ]</p>
+  <div id="M000010_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 14</span>
 14:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">diff_as_string</span>(<span class="ruby-identifier">data_new</span>, <span class="ruby-identifier">data_old</span>)
@@ -122,10 +166,10 @@ This is snagged from diff/lcs/ldiff.rb (which is a commandline tool)
   <p class="source-link">[ <a href="javascript:toggleSource('M000014_source')" id="l_M000014_source">show source</a> ]</p>
   <div id="M000014_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 54</span>
-54:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">context_lines</span>
-55:             <span class="ruby-ivar">@options</span>.<span class="ruby-identifier">context_lines</span>
-56:           <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 85</span>
+85:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">context_lines</span>
+86:             <span class="ruby-ivar">@options</span>.<span class="ruby-identifier">context_lines</span>
+87:           <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
@@ -138,10 +182,10 @@ This is snagged from diff/lcs/ldiff.rb (which is a commandline tool)
   <p class="source-link">[ <a href="javascript:toggleSource('M000013_source')" id="l_M000013_source">show source</a> ]</p>
   <div id="M000013_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 50</span>
-50:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">format</span>
-51:             <span class="ruby-ivar">@options</span>.<span class="ruby-identifier">diff_format</span>
-52:           <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/spec/runner/differs/default.rb, line 81</span>
+81:           <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">format</span>
+82:             <span class="ruby-ivar">@options</span>.<span class="ruby-identifier">diff_format</span>
+83:           <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>

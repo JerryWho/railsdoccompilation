@@ -1,0 +1,219 @@
+  <div id="fileHeader">
+    <h1>html_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/formatter/html_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require File.dirname(__FILE__) + '/spec_helper'
+require 'cucumber/formatter/html'
+require 'nokogiri'
+require 'cucumber/rb_support/rb_language'
+
+module Cucumber
+  module Formatter
+
+    describe Html do
+      extend SpecHelperDsl
+      include SpecHelper
+    
+      Spec::Matchers.define :have_css_node do |css, regexp|
+        match do |doc|
+          nodes = doc.css(css)
+          nodes.detect{ |node| node.text =~ regexp }
+        end
+      end
+    
+      before(:each) do
+        @out = StringIO.new
+        @formatter = Html.new(step_mother, @out, {})
+      end
+    
+      it &quot;should not raise an error when visiting a blank feature name&quot; do
+        lambda { @formatter.feature_name(&quot;&quot;) }.should_not raise_error
+      end
+    
+      describe &quot;given a single feature&quot; do
+        before(:each) do
+          run_defined_feature
+          @doc = Nokogiri.HTML(@out.string)
+        end
+      
+        describe &quot;with a comment&quot; do
+          define_feature &lt;&lt;-FEATURE
+            # Healthy
+          FEATURE
+        
+          it { @out.string.should =~ /^\&lt;!DOCTYPE/ }
+          it { @out.string.should =~ /\&lt;\/html\&gt;$/ }
+          it { @doc.should have_css_node('.feature .comment', /Healthy/) }
+        end
+      
+        describe &quot;with a tag&quot; do
+          define_feature &lt;&lt;-FEATURE
+            @foo
+          FEATURE
+
+          it { @doc.should have_css_node('.feature .tag', /foo/) }
+        end
+      
+        describe &quot;with a narrative&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Feature: Bananas
+              In order to find my inner monkey
+              As a human
+              I must eat bananas
+          FEATURE
+
+          it { @doc.should have_css_node('.feature h2', /Bananas/) }
+          it { @doc.should have_css_node('.feature .narrative', /must eat bananas/) }
+        end
+      
+        describe &quot;with a background&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Feature: Bananas
+          
+            Background:
+              Given there are bananas
+          FEATURE
+
+          it { @doc.should have_css_node('.feature .background', /there are bananas/) }
+        end
+      
+        describe &quot;with a scenario&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Scenario: Monkey eats banana
+              Given there are bananas
+          FEATURE
+
+          it { @doc.should have_css_node('.feature h3', /Monkey eats banana/) }
+          it { @doc.should have_css_node('.feature .scenario .step', /there are bananas/) }
+        end
+      
+        describe &quot;with a scenario outline&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Scenario Outline: Monkey eats a balanced diet
+              Given there are &lt;Things&gt;
+          
+              Examples: Fruit
+               | Things  |
+               | apples  |
+               | bananas |
+              Examples: Vegetables
+               | Things   |
+               | broccoli |
+               | carrots  |
+          FEATURE
+        
+          it { @doc.should have_css_node('.feature .scenario.outline h4', /Fruit/) }
+          it { @doc.should have_css_node('.feature .scenario.outline h4', /Vegetables/) }
+          it { @doc.css('.feature .scenario.outline h4').length.should == 2}
+          it { @doc.should have_css_node('.feature .scenario.outline table', //) }
+          it { @doc.should have_css_node('.feature .scenario.outline table td', /carrots/) }
+        end
+      
+        describe &quot;with a step with a py string&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Scenario: Monkey goes to town
+              Given there is a monkey called:
+               &quot;&quot;&quot;
+               foo
+               &quot;&quot;&quot;
+          FEATURE
+        
+          it { @doc.should have_css_node('.feature .scenario .val', /foo/) }
+        end
+
+        describe &quot;with a multiline step arg&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Scenario: Monkey goes to town
+              Given there are monkeys:
+               | name |
+               | foo  |
+               | bar  |
+          FEATURE
+        
+          it { @doc.should have_css_node('.feature .scenario table td', /foo/) }
+        end
+      
+        describe &quot;with a table in the background and the scenario&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Background:
+              Given table:
+                | a | b |
+                | c | d |
+            Scenario:
+              Given another table:
+               | e | f |
+               | g | h |
+          FEATURE
+        
+          it { @doc.css('td').length.should == 8 }
+        end
+      
+        describe &quot;with a py string in the background and the scenario&quot; do
+          define_feature &lt;&lt;-FEATURE
+            Background:
+              Given stuff:
+                &quot;&quot;&quot;
+                foo
+                &quot;&quot;&quot;
+            Scenario:
+              Given more stuff:
+                &quot;&quot;&quot;
+                bar
+                &quot;&quot;&quot;
+          FEATURE
+
+          it { @doc.css('.feature .background pre.val').length.should == 1 }
+          it { @doc.css('.feature .scenario pre.val').length.should == 1 }
+        end
+      
+        describe &quot;with a step that fails in the scenario&quot; do
+          define_steps do
+            Given(/boo/) { raise 'eek' }
+          end
+        
+          define_feature(&lt;&lt;-FEATURE)
+            Scenario: Monkey gets a fright
+              Given boo
+            FEATURE
+      
+          it { @doc.should have_css_node('.feature .scenario .step.failed', /eek/) }
+        end
+      
+        describe &quot;with a step that fails in the backgound&quot; do
+          define_steps do
+            Given(/boo/) { raise 'eek' }
+          end
+        
+          define_feature(&lt;&lt;-FEATURE)
+            Background:
+              Given boo
+            Scenario:
+              Given yay
+            FEATURE
+        
+          it { @doc.should have_css_node('.feature .background .step.failed', /eek/) }
+          it { @doc.should_not have_css_node('.feature .scenario .step.failed', //) }
+          it { @doc.should have_css_node('.feature .scenario .step.undefined', /yay/) }
+        end
+      
+      end
+    end
+  end
+end
+
+</pre>
+    </div>

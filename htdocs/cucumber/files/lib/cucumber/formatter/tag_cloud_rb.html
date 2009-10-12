@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:21:21 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,34 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/formatter/tag_cloud.rb-</pre>
+    <pre>module Cucumber
+  module Formatter
+    # The formatter used for &lt;tt&gt;--format tag_cloud&lt;/tt&gt;
+    # Custom formatter that prints a tag cloud as a table.
+    class TagCloud
+      def initialize(step_mother, io, options)
+        @io = io
+        @options = options
+        @counts = Hash.new{|h,k| h[k] = 0}
+      end
+
+      def after_features(features)
+        print_summary(features)
+      end
+
+      def tag_name(tag_name)
+        @counts[tag_name] += 1
+      end
+      
+      private
+  
+      def print_summary(features)
+        matrix = @counts.to_a.sort{|paira, pairb| paira[0] &lt;=&gt; pairb[0]}.transpose
+        table = Cucumber::Ast::Table.new(matrix)
+        formatter = Cucumber::Formatter::Pretty.new(@step_mother, @io, {})
+        Cucumber::Ast::TreeWalker.new(@step_mother, [formatter], {}).visit_multiline_arg(table)
+      end
+    end
+  end
+end</pre>
     </div>

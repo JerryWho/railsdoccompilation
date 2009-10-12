@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 14:56:40 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,61 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/decorators/hpricot/node.rb-</pre>
+    <pre>module Nokogiri
+  module Decorators
+    module Hpricot
+      module Node # :nodoc:
+        def search *paths
+          ns = paths.last.is_a?(Hash) ? paths.pop : {}
+          converted = paths.map { |path|
+            convert_to_xpath(path)
+          }.flatten.uniq
+
+          super(*converted + [ns])
+        end
+        def /(path); search(path) end
+
+        def xpath *args
+          return super if args.length &gt; 0
+          path
+        end
+
+        def raw_attributes; self end
+
+        def get_element_by_id element_id
+          search(&quot;//*[@id='#{element_id}']&quot;).first
+        end
+
+        def get_elements_by_tag_name tag
+          search(&quot;//#{tag}&quot;)
+        end
+
+        def convert_to_xpath(rule)
+          rule = rule.to_s
+          case rule
+          when %r{^//}
+            [&quot;.#{Hpricot::XPathVisitor.xpath_namespace_helper(rule)}&quot;]
+          when %r{^/}
+            [Hpricot::XPathVisitor.xpath_namespace_helper(rule)]
+          when %r{^.//}
+            [Hpricot::XPathVisitor.xpath_namespace_helper(rule)]
+          else
+            visitor = CSS::XPathVisitor.new
+            visitor.extend(Hpricot::XPathVisitor)
+            CSS.xpath_for(rule, :prefix =&gt; &quot;.//&quot;, :visitor =&gt; visitor)
+          end
+        end
+
+        def target
+          name
+        end
+
+        def to_original_html
+          to_html
+        end
+      end
+    end
+  end
+end
+</pre>
     </div>

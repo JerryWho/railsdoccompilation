@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,65 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/xml/fragment_handler.rb-</pre>
+    <pre>module Nokogiri
+  module XML
+    class FragmentHandler &lt; Nokogiri::XML::SAX::Document # :nodoc:
+      def initialize node, original_html
+        @doc_started    = false
+        @document       = node.document
+        @stack          = [node]
+        @klass          = if node.kind_of?(Nokogiri::HTML::DocumentFragment)
+                            Nokogiri::HTML::DocumentFragment
+                          else
+                            Nokogiri::XML::DocumentFragment
+                          end
+        #
+        # the regexes used in start_element() and characters() anchor at
+        # start-of-line, but we really only want them to anchor at
+        # start-of-doc. so let's only save up to the first newline.
+        #
+        # this implementation choice was the result of some benchmarks, if
+        # you're curious: http://gist.github.com/115936
+        #
+        @original_html = original_html.lstrip
+        newline_index = @original_html.index(&quot;\n&quot;)
+        @original_html = @original_html[0,newline_index] if newline_index
+      end
+
+      def start_element name, attrs = []
+        regex = (@klass == Nokogiri::HTML::DocumentFragment) ? %r{^\s*&lt;#{Regexp.escape(name)}}i \
+                                                             : %r{^\s*&lt;#{Regexp.escape(name)}}
+        @doc_started = true if @original_html =~ regex
+        return unless @doc_started
+
+        node = Element.new(name, @document)
+        attrs &lt;&lt; &quot;&quot; unless (attrs.length % 2) == 0
+        Hash[*attrs].each do |k,v|
+          node[k] = v
+        end
+        @stack.last &lt;&lt; node
+        @stack &lt;&lt; node
+      end
+
+      def characters string
+        @doc_started = true if @original_html.strip =~ %r{^\s*#{Regexp.escape(string.strip)}}
+        @stack.last &lt;&lt; Nokogiri::XML::Text.new(string, @document)
+      end
+
+      def comment string
+        @stack.last &lt;&lt; Nokogiri::XML::Comment.new(@document, string)
+      end
+
+      def cdata_block string
+        @stack.last &lt;&lt; Nokogiri::XML::CDATA.new(@document, string)
+      end
+
+      def end_element name
+        return unless @stack.last.name == name
+        @stack.pop
+      end
+    end
+  end
+end
+</pre>
     </div>

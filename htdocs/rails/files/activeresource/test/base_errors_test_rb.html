@@ -1,0 +1,104 @@
+  <div id="fileHeader">
+    <h1>base_errors_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activeresource/test/base_errors_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require &quot;fixtures/person&quot;
+
+class BaseErrorsTest &lt; Test::Unit::TestCase
+  def setup
+    ActiveResource::HttpMock.respond_to do |mock|
+      mock.post &quot;/people.xml&quot;, {}, %q(&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;errors&gt;&lt;error&gt;Age can't be blank&lt;/error&gt;&lt;error&gt;Name can't be blank&lt;/error&gt;&lt;error&gt;Name must start with a letter&lt;/error&gt;&lt;error&gt;Person quota full for today.&lt;/error&gt;&lt;/errors&gt;), 422, {'Content-Type' =&gt; 'application/xml'}
+      mock.post &quot;/people.json&quot;, {}, %q({&quot;errors&quot;:[&quot;Age can't be blank&quot;,&quot;Name can't be blank&quot;,&quot;Name must start with a letter&quot;,&quot;Person quota full for today.&quot;]}), 422, {'Content-Type' =&gt; 'application/json'}
+    end
+    @person = Person.new(:name =&gt; '', :age =&gt; '')
+    assert_equal @person.save, false
+  end
+
+  def test_should_mark_as_invalid
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        assert !@person.valid?
+      end
+    end
+  end
+
+  def test_should_parse_xml_errors
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        assert_kind_of ActiveResource::Errors, @person.errors
+        assert_equal 4, @person.errors.size
+      end
+    end
+  end
+
+  def test_should_parse_errors_to_individual_attributes
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        assert @person.errors[:name].any?
+        assert_equal &quot;can't be blank&quot;, @person.errors[:age]
+        assert_equal [&quot;can't be blank&quot;, &quot;must start with a letter&quot;], @person.errors[:name]
+        assert_equal &quot;Person quota full for today.&quot;, @person.errors[:base]
+      end
+    end
+  end
+
+  def test_should_iterate_over_errors
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        errors = []
+        @person.errors.each { |attribute, message| errors &lt;&lt; [attribute, message] }
+        assert errors.include?(['name', &quot;can't be blank&quot;])
+      end
+    end
+  end
+
+  def test_should_iterate_over_full_errors
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        errors = []
+        @person.errors.to_a.each { |message| errors &lt;&lt; message }
+        assert errors.include?([&quot;name&quot;, &quot;can't be blank&quot;])
+      end
+    end
+  end
+
+  def test_should_format_full_errors
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        full = @person.errors.full_messages
+        assert full.include?(&quot;Age can't be blank&quot;)
+        assert full.include?(&quot;Name can't be blank&quot;)
+        assert full.include?(&quot;Name must start with a letter&quot;)
+        assert full.include?(&quot;Person quota full for today.&quot;)
+      end
+    end
+  end
+
+  private
+  def invalid_user_using_format(mime_type_reference)
+    previous_format = Person.format
+    Person.format = mime_type_reference
+    @person = Person.new(:name =&gt; '', :age =&gt; '')
+    assert_equal false, @person.save
+
+    yield
+  ensure
+    Person.format = previous_format
+  end
+end
+</pre>
+    </div>

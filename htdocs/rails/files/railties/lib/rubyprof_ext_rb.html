@@ -1,0 +1,54 @@
+  <div id="fileHeader">
+    <h1>rubyprof_ext.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>railties/lib/rubyprof_ext.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'prof'
+
+module Prof #:nodoc:
+  # Adapted from Shugo Maeda's unprof.rb
+  def self.print_profile(results, io = $stderr)
+    total = results.detect { |i|
+      i.method_class.nil? &amp;&amp; i.method_id == :&quot;#toplevel&quot;
+    }.total_time
+    total = 0.001 if total &lt; 0.001
+
+    io.puts &quot;  %%   cumulative   self              self     total&quot;
+    io.puts &quot; time   seconds   seconds    calls  ms/call  ms/call  name&quot;
+
+    sum = 0.0
+    for r in results
+      sum += r.self_time
+
+      name =  if r.method_class.nil?
+                r.method_id.to_s
+              elsif r.method_class.is_a?(Class)
+                &quot;#{r.method_class}##{r.method_id}&quot;
+              else
+                &quot;#{r.method_class}.#{r.method_id}&quot;
+              end
+      io.printf &quot;%6.2f %8.3f  %8.3f %8d %8.2f %8.2f  %s\n&quot;,
+        r.self_time / total * 100,
+        sum,
+        r.self_time,
+        r.count,
+        r.self_time * 1000 / r.count,
+        r.total_time * 1000 / r.count,
+        name
+    end
+  end
+end
+</pre>
+    </div>

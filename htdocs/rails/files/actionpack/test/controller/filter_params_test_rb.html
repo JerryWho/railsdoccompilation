@@ -1,0 +1,70 @@
+  <div id="fileHeader">
+    <h1>filter_params_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/filter_params_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class FilterParamController &lt; ActionController::Base
+end
+
+class FilterParamTest &lt; Test::Unit::TestCase
+  def setup
+    @controller = FilterParamController.new
+  end
+
+  def test_filter_parameters
+    assert FilterParamController.respond_to?(:filter_parameter_logging)
+    assert !@controller.respond_to?(:filter_parameters)
+
+    FilterParamController.filter_parameter_logging
+    assert @controller.respond_to?(:filter_parameters)
+
+    test_hashes = [[{},{},[]],
+    [{'foo'=&gt;nil},{'foo'=&gt;nil},[]],
+    [{'foo'=&gt;'bar'},{'foo'=&gt;'bar'},[]],
+    [{'foo'=&gt;'bar'},{'foo'=&gt;'bar'},%w'food'],
+    [{'foo'=&gt;'bar'},{'foo'=&gt;'[FILTERED]'},%w'foo'],
+    [{'foo'=&gt;'bar', 'bar'=&gt;'foo'},{'foo'=&gt;'[FILTERED]', 'bar'=&gt;'foo'},%w'foo baz'],
+    [{'foo'=&gt;'bar', 'baz'=&gt;'foo'},{'foo'=&gt;'[FILTERED]', 'baz'=&gt;'[FILTERED]'},%w'foo baz'],
+    [{'bar'=&gt;{'foo'=&gt;'bar','bar'=&gt;'foo'}},{'bar'=&gt;{'foo'=&gt;'[FILTERED]','bar'=&gt;'foo'}},%w'fo'],
+    [{'foo'=&gt;{'foo'=&gt;'bar','bar'=&gt;'foo'}},{'foo'=&gt;'[FILTERED]'},%w'f banana'],
+    [{'baz'=&gt;[{'foo'=&gt;'baz'}]}, {'baz'=&gt;[{'foo'=&gt;'[FILTERED]'}]}, %w(foo)],
+    [{'baz'=&gt;[{'foo'=&gt;'baz'}, 1, 2, 3]}, {'baz'=&gt;[{'foo'=&gt;'[FILTERED]'}, 1, 2, 3]}, %w(foo)]]
+
+    test_hashes.each do |before_filter, after_filter, filter_words|
+      FilterParamController.filter_parameter_logging(*filter_words)
+      assert_equal after_filter, @controller.__send__(:filter_parameters, before_filter)
+
+      filter_words.push('blah')
+      FilterParamController.filter_parameter_logging(*filter_words) do |key, value|
+        value.reverse! if key =~ /bargain/
+      end
+
+      before_filter['barg'] = {'bargain'=&gt;'gain', 'blah'=&gt;'bar', 'bar'=&gt;{'bargain'=&gt;{'blah'=&gt;'foo'}}}
+      after_filter['barg'] = {'bargain'=&gt;'niag', 'blah'=&gt;'[FILTERED]', 'bar'=&gt;{'bargain'=&gt;{'blah'=&gt;'[FILTERED]'}}}
+
+      assert_equal after_filter, @controller.__send__(:filter_parameters, before_filter)
+    end
+  end
+
+  def test_filter_parameters_is_protected
+    FilterParamController.filter_parameter_logging(:foo)
+    assert !FilterParamController.action_methods.include?('filter_parameters')
+    assert_raise(NoMethodError) { @controller.filter_parameters([{'password' =&gt; '[FILTERED]'}]) }
+  end
+end
+</pre>
+    </div>

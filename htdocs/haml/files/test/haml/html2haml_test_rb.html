@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -49,6 +49,14 @@ class Html2HamlTest &lt; Test::Unit::TestCase
     assert_equal &quot;/\n  IE sucks&quot;, render('&lt;!-- IE sucks --&gt;')
   end
 
+  def test_interpolation
+    assert_equal('Foo \#{bar} baz', render('Foo #{bar} baz'))
+  end
+
+  def test_interpolation_in_attrs
+    assert_equal('%p{ :foo =&gt; &quot;\#{bar} baz&quot; }', render('&lt;p foo=&quot;#{bar} baz&quot;&gt;&lt;/p&gt;'))
+  end
+
   def test_rhtml
     assert_equal '- foo = bar', render_rhtml('&lt;% foo = bar %&gt;')
     assert_equal '- foo = bar', render_rhtml('&lt;% foo = bar -%&gt;')
@@ -81,6 +89,11 @@ class Html2HamlTest &lt; Test::Unit::TestCase
       render_rhtml(%Q{&lt;div class=&quot;&lt;%= 12 %&gt;!&quot;&gt;Bang!&lt;/div&gt;})
   end
   
+  def test_rhtml_in_html_escaped_attribute
+    assert_equal %(%div{ :class =&gt; &quot;foo&quot; }\n  Bang!),
+      render_rhtml(%Q{&lt;div class=&quot;&lt;%= &quot;foo&quot; %&gt;&quot;&gt;Bang!&lt;/div&gt;})
+  end
+  
   def test_rhtml_in_attribute_to_multiple_interpolations
     assert_equal %(%div{ :class =&gt; &quot;\#{12} + \#{13}&quot; }\n  Math is super),
       render_rhtml(%Q{&lt;div class=&quot;&lt;%= 12 %&gt; + &lt;%= 13 %&gt;&quot;&gt;Math is super&lt;/div&gt;})
@@ -89,6 +102,31 @@ class Html2HamlTest &lt; Test::Unit::TestCase
   def test_whitespace_eating_erb_tags
     assert_equal %(- form_for),
       render_rhtml(%Q{&lt;%- form_for -%&gt;})
+  end
+
+  def test_cdata
+    assert_equal(&lt;&lt;HAML.strip, render(&lt;&lt;HTML))
+%p
+  :cdata
+    &lt;a foo=&quot;bar&quot; baz=&quot;bang&quot;&gt;
+    &lt;div id=&quot;foo&quot;&gt;flop&lt;/div&gt;
+    &lt;/a&gt;
+HAML
+&lt;p&gt;&lt;![CDATA[
+  &lt;a foo=&quot;bar&quot; baz=&quot;bang&quot;&gt;
+    &lt;div id=&quot;foo&quot;&gt;flop&lt;/div&gt;
+  &lt;/a&gt;
+]]&gt;&lt;/p&gt;
+HTML
+  end
+
+  def test_interpolation_in_rhtml
+    assert_equal('= &quot;Foo #{bar} baz&quot;', render_rhtml('&lt;%= &quot;Foo #{bar} baz&quot; %&gt;'))
+  end
+
+  def test_interpolation_in_rhtml_attrs
+    assert_equal('%p{ :foo =&gt; &quot;#{bar} baz&quot; }',
+      render_rhtml('&lt;p foo=&quot;&lt;%= &quot;#{bar} baz&quot; %&gt;&quot;&gt;&lt;/p&gt;'))
   end
 
   protected

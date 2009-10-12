@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 19:03:28 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,139 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/test/test_nokogiri.rb-</pre>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), &quot;helper&quot;))
+
+class TestNokogiri &lt; Nokogiri::TestCase
+  def test_versions
+    version_match = /\d+\.\d+\.\d+/
+    assert_match version_match, Nokogiri::VERSION
+    assert_match version_match, Nokogiri::LIBXML_VERSION
+
+    if defined?(FFI)
+      assert_equal 'ffi', Nokogiri::VERSION_INFO['libxml']['binding']
+      if RUBY_PLATFORM =~ /java/
+        assert_equal 'jruby', Nokogiri::VERSION_INFO['libxml']['platform']
+      else
+        assert_equal 'ruby', Nokogiri::VERSION_INFO['libxml']['platform']
+      end
+      assert Nokogiri.ffi?
+    else
+      assert_equal 'extension', Nokogiri::VERSION_INFO['libxml']['binding']
+
+      assert_match version_match, Nokogiri::VERSION_INFO['libxml']['compiled']
+      assert_equal Nokogiri::LIBXML_VERSION, Nokogiri::VERSION_INFO['libxml']['compiled']
+      assert ! Nokogiri.ffi?
+    end
+
+    assert_match version_match, Nokogiri::VERSION_INFO['libxml']['loaded']
+    Nokogiri::LIBXML_PARSER_VERSION =~ /(\d)(\d{2})(\d{2})/
+    major = $1.to_i
+    minor = $2.to_i
+    bug   = $3.to_i
+    assert_equal &quot;#{major}.#{minor}.#{bug}&quot;, Nokogiri::VERSION_INFO['libxml']['loaded']
+  end
+
+  def test_parse_with_io
+    doc = Nokogiri.parse(
+      StringIO.new(&quot;&lt;html&gt;&lt;head&gt;&lt;title&gt;&lt;/title&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;&quot;)
+    )
+    assert_instance_of Nokogiri::HTML::Document, doc
+  end
+
+  def test_xml?
+    doc = Nokogiri.parse(File.read(XML_FILE))
+    assert doc.xml?
+    assert !doc.html?
+  end
+
+  def test_html?
+    doc = Nokogiri.parse(File.read(HTML_FILE))
+    assert !doc.xml?
+    assert doc.html?
+  end
+
+  def test_nokogiri_method_with_html
+    doc1 = Nokogiri(File.read(HTML_FILE))
+    doc2 = Nokogiri.parse(File.read(HTML_FILE))
+    assert_equal doc1.serialize, doc2.serialize
+  end
+
+  def test_nokogiri_method_with_block
+    doc = Nokogiri { b &quot;bold tag&quot; }
+    assert_equal('&lt;b&gt;bold tag&lt;/b&gt;', doc.to_html.chomp)
+  end
+
+  def test_make_with_html
+    doc = Nokogiri.make(&quot;&lt;b&gt;bold tag&lt;/b&gt;&quot;)
+    assert_equal('&lt;b&gt;bold tag&lt;/b&gt;', doc.to_html.chomp)
+  end
+
+  def test_make_with_block
+    doc = Nokogiri.make { b &quot;bold tag&quot; }
+    assert_equal('&lt;b&gt;bold tag&lt;/b&gt;', doc.to_html.chomp)
+  end
+  
+  SLOP_HTML = &lt;&lt;-END
+  &lt;html&gt;
+    &lt;body&gt;
+      &lt;ul&gt;
+        &lt;li class='red'&gt;one&lt;/li&gt;
+        &lt;li class='blue'&gt;two&lt;/li&gt;
+      &lt;/ul&gt;
+      &lt;div&gt;
+        one
+        &lt;div&gt;div two&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/body&gt;
+  &lt;/html&gt;
+  END
+
+  def test_slop_css
+    doc = Nokogiri::Slop(&lt;&lt;-eohtml)
+    &lt;html&gt;
+      &lt;body&gt;
+        &lt;div&gt;
+          one
+          &lt;div class='foo'&gt;
+            div two
+            &lt;div class='foo'&gt;
+              div three
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+    eohtml
+    assert_equal &quot;div&quot;, doc.html.body.div.div('.foo').name
+  end
+
+  def test_slop
+    doc = Nokogiri::Slop(SLOP_HTML)
+
+    assert_equal &quot;one&quot;, doc.html.body.ul.li.first.text
+    assert_equal &quot;two&quot;, doc.html.body.ul.li(&quot;.blue&quot;).text
+    assert_equal &quot;div two&quot;, doc.html.body.div.div.text
+
+    assert_equal &quot;two&quot;, doc.html.body.ul.li(:css =&gt; &quot;.blue&quot;).text
+
+    assert_equal &quot;two&quot;, doc.html.body.ul.li(:xpath =&gt; &quot;position()=2&quot;).text
+    assert_equal &quot;one&quot;, doc.html.body.ul.li(:xpath =&gt; [&quot;contains(text(),'o')&quot;]).first.text
+    assert_equal &quot;two&quot;, doc.html.body.ul.li(:xpath =&gt; [&quot;contains(text(),'o')&quot;,&quot;contains(text(),'t')&quot;]).text
+
+    assert_raise(NoMethodError) { doc.nonexistent }
+  end
+  
+  def test_slop_decorator
+    doc = Nokogiri(SLOP_HTML)
+    assert !doc.decorators(Nokogiri::XML::Node).include?(Nokogiri::Decorators::Slop)
+
+    doc.slop!
+    assert doc.decorators(Nokogiri::XML::Node).include?(Nokogiri::Decorators::Slop)
+
+    doc.slop!
+    assert_equal 1, doc.decorators(Nokogiri::XML::Node).select { |d| d == Nokogiri::Decorators::Slop }.size
+  end
+
+end
+</pre>
     </div>

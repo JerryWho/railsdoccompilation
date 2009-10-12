@@ -1,0 +1,151 @@
+  <div id="C00000691">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />AssociationsTest<br/>
+  In:
+<a href="#" onclick="jsHref('files/activerecord/test/cases/associations_test_rb.html');">activerecord/test/cases/associations_test.rb</a>
+
+Parent:&nbsp;
+ActiveRecord::TestCase
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M004491&name=test_bad_collection_keys" >test_bad_collection_keys</a></li>
+  <li><a href="index.html?a=M004493&name=test_force_reload" >test_force_reload</a></li>
+  <li><a href="index.html?a=M004490&name=test_include_with_order_works" >test_include_with_order_works</a></li>
+  <li><a href="index.html?a=M004492&name=test_should_construct_new_finder_sql_after_create" >test_should_construct_new_finder_sql_after_create</a></li>
+  <li><a href="index.html?a=M004494&name=test_storing_in_pstore" >test_storing_in_pstore</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M004491" class="method">
+  <div id="M004491_title" class="title">
+    <b>test_bad_collection_keys</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004491_source')" id="l_M004491_source">show source</a> ]</p>
+  <div id="M004491_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activerecord/test/cases/associations_test.rb, line 37</span>
+37:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_bad_collection_keys</span>
+38:     <span class="ruby-identifier">assert_raise</span>(<span class="ruby-constant">ArgumentError</span>, <span class="ruby-value str">'ActiveRecord should have barked on bad collection keys'</span>) <span class="ruby-keyword kw">do</span>
+39:       <span class="ruby-constant">Class</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">Base</span>).<span class="ruby-identifier">has_many</span>(<span class="ruby-identifier">:wheels</span>, <span class="ruby-identifier">:name</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">'wheels'</span>)
+40:     <span class="ruby-keyword kw">end</span>
+41:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004493" class="method">
+  <div id="M004493_title" class="title">
+    <b>test_force_reload</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004493_source')" id="l_M004493_source">show source</a> ]</p>
+  <div id="M004493_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activerecord/test/cases/associations_test.rb, line 51</span>
+51:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_force_reload</span>
+52:     <span class="ruby-identifier">firm</span> = <span class="ruby-constant">Firm</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;name&quot;</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;A New Firm, Inc&quot;</span>)
+53:     <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">save</span>
+54:     <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">each</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">c</span><span class="ruby-operator">|</span>} <span class="ruby-comment cmt"># forcing to load all clients</span>
+55:     <span class="ruby-identifier">assert</span> <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">empty?</span>, <span class="ruby-value str">&quot;New firm shouldn't have client objects&quot;</span>
+56:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-value">0</span>, <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">size</span>, <span class="ruby-value str">&quot;New firm should have 0 clients&quot;</span>
+57: 
+58:     <span class="ruby-identifier">client</span> = <span class="ruby-constant">Client</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;name&quot;</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;TheClient.com&quot;</span>, <span class="ruby-value str">&quot;firm_id&quot;</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">id</span>)
+59:     <span class="ruby-identifier">client</span>.<span class="ruby-identifier">save</span>
+60: 
+61:     <span class="ruby-identifier">assert</span> <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">empty?</span>, <span class="ruby-value str">&quot;New firm should have cached no client objects&quot;</span>
+62:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-value">0</span>, <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">size</span>, <span class="ruby-value str">&quot;New firm should have cached 0 clients count&quot;</span>
+63: 
+64:     <span class="ruby-identifier">assert</span> <span class="ruby-operator">!</span><span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>(<span class="ruby-keyword kw">true</span>).<span class="ruby-identifier">empty?</span>, <span class="ruby-value str">&quot;New firm should have reloaded client objects&quot;</span>
+65:     <span class="ruby-identifier">assert_equal</span> <span class="ruby-value">1</span>, <span class="ruby-identifier">firm</span>.<span class="ruby-identifier">clients</span>(<span class="ruby-keyword kw">true</span>).<span class="ruby-identifier">size</span>, <span class="ruby-value str">&quot;New firm should have reloaded clients count&quot;</span>
+66:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004490" class="method">
+  <div id="M004490_title" class="title">
+    <b>test_include_with_order_works</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004490_source')" id="l_M004490_source">show source</a> ]</p>
+  <div id="M004490_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activerecord/test/cases/associations_test.rb, line 32</span>
+32:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_include_with_order_works</span>
+33:     <span class="ruby-identifier">assert_nothing_raised</span> {<span class="ruby-constant">Account</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:first</span>, <span class="ruby-identifier">:order</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">'id'</span>, <span class="ruby-identifier">:include</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">:firm</span>)}
+34:     <span class="ruby-identifier">assert_nothing_raised</span> {<span class="ruby-constant">Account</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:first</span>, <span class="ruby-identifier">:order</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">:id</span>, <span class="ruby-identifier">:include</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">:firm</span>)}
+35:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004492" class="method">
+  <div id="M004492_title" class="title">
+    <b>test_should_construct_new_finder_sql_after_create</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004492_source')" id="l_M004492_source">show source</a> ]</p>
+  <div id="M004492_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activerecord/test/cases/associations_test.rb, line 43</span>
+43:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_should_construct_new_finder_sql_after_create</span>
+44:     <span class="ruby-identifier">person</span> = <span class="ruby-constant">Person</span>.<span class="ruby-identifier">new</span> <span class="ruby-identifier">:first_name</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">'clark'</span>
+45:     <span class="ruby-identifier">assert_equal</span> [], <span class="ruby-identifier">person</span>.<span class="ruby-identifier">readers</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">:all</span>)
+46:     <span class="ruby-identifier">person</span>.<span class="ruby-identifier">save!</span>
+47:     <span class="ruby-identifier">reader</span> = <span class="ruby-constant">Reader</span>.<span class="ruby-identifier">create!</span> <span class="ruby-identifier">:person</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">person</span>, <span class="ruby-identifier">:post</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-constant">Post</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">:title</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;foo&quot;</span>, <span class="ruby-identifier">:body</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;bar&quot;</span>)
+48:     <span class="ruby-identifier">assert</span> <span class="ruby-identifier">person</span>.<span class="ruby-identifier">readers</span>.<span class="ruby-identifier">find</span>(<span class="ruby-identifier">reader</span>.<span class="ruby-identifier">id</span>)
+49:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M004494" class="method">
+  <div id="M004494_title" class="title">
+    <b>test_storing_in_pstore</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M004494_source')" id="l_M004494_source">show source</a> ]</p>
+  <div id="M004494_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activerecord/test/cases/associations_test.rb, line 68</span>
+68:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_storing_in_pstore</span>
+69:     <span class="ruby-identifier">require</span> <span class="ruby-value str">&quot;tmpdir&quot;</span>
+70:     <span class="ruby-identifier">store_filename</span> = <span class="ruby-constant">File</span>.<span class="ruby-identifier">join</span>(<span class="ruby-constant">Dir</span>.<span class="ruby-identifier">tmpdir</span>, <span class="ruby-value str">&quot;ar-pstore-association-test&quot;</span>)
+71:     <span class="ruby-constant">File</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">store_filename</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-constant">File</span>.<span class="ruby-identifier">exist?</span>(<span class="ruby-identifier">store_filename</span>)
+72:     <span class="ruby-identifier">require</span> <span class="ruby-value str">&quot;pstore&quot;</span>
+73:     <span class="ruby-identifier">apple</span> = <span class="ruby-constant">Firm</span>.<span class="ruby-identifier">create</span>(<span class="ruby-value str">&quot;name&quot;</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;Apple&quot;</span>)
+74:     <span class="ruby-identifier">natural</span> = <span class="ruby-constant">Client</span>.<span class="ruby-identifier">new</span>(<span class="ruby-value str">&quot;name&quot;</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value str">&quot;Natural Company&quot;</span>)
+75:     <span class="ruby-identifier">apple</span>.<span class="ruby-identifier">clients</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">natural</span>
+76: 
+77:     <span class="ruby-identifier">db</span> = <span class="ruby-constant">PStore</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">store_filename</span>)
+78:     <span class="ruby-identifier">db</span>.<span class="ruby-identifier">transaction</span> <span class="ruby-keyword kw">do</span>
+79:       <span class="ruby-identifier">db</span>[<span class="ruby-value str">&quot;apple&quot;</span>] = <span class="ruby-identifier">apple</span>
+80:     <span class="ruby-keyword kw">end</span>
+81: 
+82:     <span class="ruby-identifier">db</span> = <span class="ruby-constant">PStore</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">store_filename</span>)
+83:     <span class="ruby-identifier">db</span>.<span class="ruby-identifier">transaction</span> <span class="ruby-keyword kw">do</span>
+84:       <span class="ruby-identifier">assert_equal</span> <span class="ruby-value str">&quot;Natural Company&quot;</span>, <span class="ruby-identifier">db</span>[<span class="ruby-value str">&quot;apple&quot;</span>].<span class="ruby-identifier">clients</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">name</span>
+85:     <span class="ruby-keyword kw">end</span>
+86:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

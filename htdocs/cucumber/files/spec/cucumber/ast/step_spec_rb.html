@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:11:24 +0100 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,71 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/spec/cucumber/ast/step_spec.rb-</pre>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+require 'cucumber/step_mother'
+require 'cucumber/ast'
+require 'cucumber/core_ext/string'
+
+module Cucumber
+  module Ast
+    describe Step do
+      it &quot;should replace arguments in name&quot; do
+        step = Step.new(1, 'Given', 'a &lt;color&gt; cucumber')
+
+        invocation_table = Table.new([
+          %w{color taste},
+          %w{green juicy}
+        ])
+        cells = invocation_table.cells_rows[1]
+        step_invocation = step.step_invocation_from_cells(cells)
+        
+        step_invocation.name.should == 'a green cucumber'
+      end
+
+      it &quot;should use empty string for the replacement of arguments in name when replace value is nil&quot; do
+        step = Step.new(1, 'Given', 'a &lt;color&gt;cucumber')
+
+        invocation_table = Table.new([
+          ['color'],
+          [nil]
+        ])
+        cells = invocation_table.cells_rows[1]
+        step_invocation = step.step_invocation_from_cells(cells)
+        
+        step_invocation.name.should == 'a cucumber'
+      end
+
+      it &quot;should replace arguments in table arg&quot; do
+        arg_table = Table.new([%w{taste_&lt;taste&gt; color_&lt;color&gt;}])
+
+        step = Step.new(1, 'Given', 'a &lt;color&gt; cucumber', arg_table)
+
+        invocation_table = Table.new([
+          %w{color taste},
+          %w{green juicy}
+        ])
+        cells = invocation_table.cells_rows[1]
+        step_invocation = step.step_invocation_from_cells(cells)
+        
+        step_invocation.instance_variable_get('@multiline_arg').raw.should == [%w{taste_juicy color_green}]
+      end
+
+      it &quot;should replace arguments in py string arg&quot; do
+        py_string = PyString.new(1, 2, 'taste_&lt;taste&gt; color_&lt;color&gt;', 0)
+
+        step = Step.new(1, 'Given', 'a &lt;color&gt; cucumber', py_string)
+
+        invocation_table = Table.new([
+          %w{color taste},
+          %w{green juicy}
+        ])
+        cells = invocation_table.cells_rows[1]
+        step_invocation = step.step_invocation_from_cells(cells)
+        
+        step_invocation.instance_variable_get('@multiline_arg').to_s.should == 'taste_juicy color_green'
+      end
+    end
+  end
+end
+</pre>
     </div>

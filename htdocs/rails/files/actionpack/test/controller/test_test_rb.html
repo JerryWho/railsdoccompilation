@@ -1,0 +1,719 @@
+  <div id="fileHeader">
+    <h1>test_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/controller/test_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require 'controller/fake_controllers'
+
+class TestTest &lt; ActionController::TestCase
+  class TestController &lt; ActionController::Base
+    def no_op
+      render :text =&gt; 'dummy'
+    end
+
+    def set_flash
+      flash[&quot;test&quot;] = &quot;&gt;#{flash[&quot;test&quot;]}&lt;&quot;
+      render :text =&gt; 'ignore me'
+    end
+
+    def set_flash_now
+      flash.now[&quot;test_now&quot;] = &quot;&gt;#{flash[&quot;test_now&quot;]}&lt;&quot;
+      render :text =&gt; 'ignore me'
+    end
+
+    def set_session
+      session['string'] = 'A wonder'
+      session[:symbol] = 'it works'
+      render :text =&gt; 'Success'
+    end
+
+    def reset_the_session
+      reset_session
+      render :text =&gt; 'ignore me'
+    end
+
+    def render_raw_post
+      raise ActiveSupport::TestCase::Assertion, &quot;#raw_post is blank&quot; if request.raw_post.blank?
+      render :text =&gt; request.raw_post
+    end
+
+    def render_body
+      render :text =&gt; request.body.read
+    end
+
+    def test_params
+      render :text =&gt; params.inspect
+    end
+
+    def test_uri
+      render :text =&gt; request.request_uri
+    end
+
+    def test_query_string
+      render :text =&gt; request.query_string
+    end
+
+    def test_html_output
+      render :text =&gt; &lt;&lt;HTML
+&lt;html&gt;
+  &lt;body&gt;
+    &lt;a href=&quot;/&quot;&gt;&lt;img src=&quot;/images/button.png&quot; /&gt;&lt;/a&gt;
+    &lt;div id=&quot;foo&quot;&gt;
+      &lt;ul&gt;
+        &lt;li class=&quot;item&quot;&gt;hello&lt;/li&gt;
+        &lt;li class=&quot;item&quot;&gt;goodbye&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/div&gt;
+    &lt;div id=&quot;bar&quot;&gt;
+      &lt;form action=&quot;/somewhere&quot;&gt;
+        Name: &lt;input type=&quot;text&quot; name=&quot;person[name]&quot; id=&quot;person_name&quot; /&gt;
+      &lt;/form&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+HTML
+    end
+
+    def test_xml_output
+      response.content_type = &quot;application/xml&quot;
+      render :text =&gt; &lt;&lt;XML
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;root&gt;
+  &lt;area&gt;area is an empty tag in HTML, raising an error if not in xml mode&lt;/area&gt;
+&lt;/root&gt;
+XML
+    end
+
+    def test_only_one_param
+      render :text =&gt; (params[:left] &amp;&amp; params[:right]) ? &quot;EEP, Both here!&quot; : &quot;OK&quot;
+    end
+
+    def test_remote_addr
+      render :text =&gt; (request.remote_addr || &quot;not specified&quot;)
+    end
+
+    def test_file_upload
+      render :text =&gt; params[:file].size
+    end
+
+    def test_send_file
+      send_file(File.expand_path(__FILE__))
+    end
+
+    def redirect_to_same_controller
+      redirect_to :controller =&gt; 'test', :action =&gt; 'test_uri', :id =&gt; 5
+    end
+
+    def redirect_to_different_controller
+      redirect_to :controller =&gt; 'fail', :id =&gt; 5
+    end
+
+    def create
+      head :created, :location =&gt; 'created resource'
+    end
+
+    private
+      def rescue_action(e)
+        raise e
+      end
+
+      def generate_url(opts)
+        url_for(opts.merge(:action =&gt; &quot;test_uri&quot;))
+      end
+  end
+
+  def setup
+    @controller = TestController.new
+    @request    = ActionController::TestRequest.new
+    @response   = ActionController::TestResponse.new
+    ActionController::Routing.use_controllers! %w(content admin/user test_test/test)
+    ActionController::Routing::Routes.load_routes!
+  end
+
+  def teardown
+    ActionController::Routing::Routes.reload
+  end
+
+  def test_raw_post_handling
+    params = {:page =&gt; {:name =&gt; 'page name'}, 'some key' =&gt; 123}
+    post :render_raw_post, params.dup
+
+    assert_equal params.to_query, @response.body
+  end
+
+  def test_body_stream
+    params = { :page =&gt; { :name =&gt; 'page name' }, 'some key' =&gt; 123 }
+
+    post :render_body, params.dup
+
+    assert_equal params.to_query, @response.body
+  end
+
+  def test_process_without_flash
+    process :set_flash
+    assert_equal '&gt;&lt;', flash['test']
+  end
+
+  def test_process_with_flash
+    process :set_flash, nil, nil, { &quot;test&quot; =&gt; &quot;value&quot; }
+    assert_equal '&gt;value&lt;', flash['test']
+  end
+
+  def test_process_with_flash_now
+    process :set_flash_now, nil, nil, { &quot;test_now&quot; =&gt; &quot;value_now&quot; }
+    assert_equal '&gt;value_now&lt;', flash['test_now']
+  end
+
+  def test_process_with_session
+    process :set_session
+    assert_equal 'A wonder', session['string'], &quot;A value stored in the session should be available by string key&quot;
+    assert_equal 'A wonder', session[:string], &quot;Test session hash should allow indifferent access&quot;
+    assert_equal 'it works', session['symbol'], &quot;Test session hash should allow indifferent access&quot;
+    assert_equal 'it works', session[:symbol], &quot;Test session hash should allow indifferent access&quot;
+  end
+
+  def test_process_with_session_arg
+    process :no_op, nil, { 'string' =&gt; 'value1', :symbol =&gt; 'value2' }
+    assert_equal 'value1', session['string']
+    assert_equal 'value1', session[:string]
+    assert_equal 'value2', session['symbol']
+    assert_equal 'value2', session[:symbol]
+  end
+
+  def test_session_is_cleared_from_controller_after_reset_session
+    process :set_session
+    process :reset_the_session
+    assert_equal Hash.new, @controller.session.to_hash
+  end
+
+  def test_session_is_cleared_from_response_after_reset_session
+    process :set_session
+    process :reset_the_session
+    assert_equal Hash.new, @response.session.to_hash
+  end
+
+  def test_session_is_cleared_from_request_after_reset_session
+    process :set_session
+    process :reset_the_session
+    assert_equal Hash.new, @request.session.to_hash
+  end
+
+  def test_process_with_request_uri_with_no_params
+    process :test_uri
+    assert_equal &quot;/test_test/test/test_uri&quot;, @response.body
+  end
+
+  def test_process_with_request_uri_with_params
+    process :test_uri, :id =&gt; 7
+    assert_equal &quot;/test_test/test/test_uri/7&quot;, @response.body
+  end
+
+  def test_process_with_request_uri_with_params_with_explicit_uri
+    @request.set_REQUEST_URI &quot;/explicit/uri&quot;
+    process :test_uri, :id =&gt; 7
+    assert_equal &quot;/explicit/uri&quot;, @response.body
+  end
+
+  def test_process_with_query_string
+    process :test_query_string, :q =&gt; 'test'
+    assert_equal &quot;q=test&quot;, @response.body
+  end
+
+  def test_process_with_query_string_with_explicit_uri
+    @request.set_REQUEST_URI &quot;/explicit/uri?q=test?extra=question&quot;
+    process :test_query_string
+    assert_equal &quot;q=test?extra=question&quot;, @response.body
+  end
+
+  def test_multiple_calls
+    process :test_only_one_param, :left =&gt; true
+    assert_equal &quot;OK&quot;, @response.body
+    process :test_only_one_param, :right =&gt; true
+    assert_equal &quot;OK&quot;, @response.body
+  end
+
+  def test_assert_tag_tag
+    process :test_html_output
+
+    # there is a 'form' tag
+    assert_tag :tag =&gt; 'form'
+    # there is not an 'hr' tag
+    assert_no_tag :tag =&gt; 'hr'
+  end
+
+  def test_assert_tag_attributes
+    process :test_html_output
+
+    # there is a tag with an 'id' of 'bar'
+    assert_tag :attributes =&gt; { :id =&gt; &quot;bar&quot; }
+    # there is no tag with a 'name' of 'baz'
+    assert_no_tag :attributes =&gt; { :name =&gt; &quot;baz&quot; }
+  end
+
+  def test_assert_tag_parent
+    process :test_html_output
+
+    # there is a tag with a parent 'form' tag
+    assert_tag :parent =&gt; { :tag =&gt; &quot;form&quot; }
+    # there is no tag with a parent of 'input'
+    assert_no_tag :parent =&gt; { :tag =&gt; &quot;input&quot; }
+  end
+
+  def test_assert_tag_child
+    process :test_html_output
+
+    # there is a tag with a child 'input' tag
+    assert_tag :child =&gt; { :tag =&gt; &quot;input&quot; }
+    # there is no tag with a child 'strong' tag
+    assert_no_tag :child =&gt; { :tag =&gt; &quot;strong&quot; }
+  end
+
+  def test_assert_tag_ancestor
+    process :test_html_output
+
+    # there is a 'li' tag with an ancestor having an id of 'foo'
+    assert_tag :ancestor =&gt; { :attributes =&gt; { :id =&gt; &quot;foo&quot; } }, :tag =&gt; &quot;li&quot;
+    # there is no tag of any kind with an ancestor having an href matching 'foo'
+    assert_no_tag :ancestor =&gt; { :attributes =&gt; { :href =&gt; /foo/ } }
+  end
+
+  def test_assert_tag_descendant
+    process :test_html_output
+
+    # there is a tag with a descendant 'li' tag
+    assert_tag :descendant =&gt; { :tag =&gt; &quot;li&quot; }
+    # there is no tag with a descendant 'html' tag
+    assert_no_tag :descendant =&gt; { :tag =&gt; &quot;html&quot; }
+  end
+
+  def test_assert_tag_sibling
+    process :test_html_output
+
+    # there is a tag with a sibling of class 'item'
+    assert_tag :sibling =&gt; { :attributes =&gt; { :class =&gt; &quot;item&quot; } }
+    # there is no tag with a sibling 'ul' tag
+    assert_no_tag :sibling =&gt; { :tag =&gt; &quot;ul&quot; }
+  end
+
+  def test_assert_tag_after
+    process :test_html_output
+
+    # there is a tag following a sibling 'div' tag
+    assert_tag :after =&gt; { :tag =&gt; &quot;div&quot; }
+    # there is no tag following a sibling tag with id 'bar'
+    assert_no_tag :after =&gt; { :attributes =&gt; { :id =&gt; &quot;bar&quot; } }
+  end
+
+  def test_assert_tag_before
+    process :test_html_output
+
+    # there is a tag preceding a tag with id 'bar'
+    assert_tag :before =&gt; { :attributes =&gt; { :id =&gt; &quot;bar&quot; } }
+    # there is no tag preceding a 'form' tag
+    assert_no_tag :before =&gt; { :tag =&gt; &quot;form&quot; }
+  end
+
+  def test_assert_tag_children_count
+    process :test_html_output
+
+    # there is a tag with 2 children
+    assert_tag :children =&gt; { :count =&gt; 2 }
+    # in particular, there is a &lt;ul&gt; tag with two children (a nameless pair of &lt;li&gt;s)
+    assert_tag :tag =&gt; 'ul', :children =&gt; { :count =&gt; 2 }
+    # there is no tag with 4 children
+    assert_no_tag :children =&gt; { :count =&gt; 4 }
+  end
+
+  def test_assert_tag_children_less_than
+    process :test_html_output
+
+    # there is a tag with less than 5 children
+    assert_tag :children =&gt; { :less_than =&gt; 5 }
+    # there is no 'ul' tag with less than 2 children
+    assert_no_tag :children =&gt; { :less_than =&gt; 2 }, :tag =&gt; &quot;ul&quot;
+  end
+
+  def test_assert_tag_children_greater_than
+    process :test_html_output
+
+    # there is a 'body' tag with more than 1 children
+    assert_tag :children =&gt; { :greater_than =&gt; 1 }, :tag =&gt; &quot;body&quot;
+    # there is no tag with more than 10 children
+    assert_no_tag :children =&gt; { :greater_than =&gt; 10 }
+  end
+
+  def test_assert_tag_children_only
+    process :test_html_output
+
+    # there is a tag containing only one child with an id of 'foo'
+    assert_tag :children =&gt; { :count =&gt; 1,
+                              :only =&gt; { :attributes =&gt; { :id =&gt; &quot;foo&quot; } } }
+    # there is no tag containing only one 'li' child
+    assert_no_tag :children =&gt; { :count =&gt; 1, :only =&gt; { :tag =&gt; &quot;li&quot; } }
+  end
+
+  def test_assert_tag_content
+    process :test_html_output
+
+    # the output contains the string &quot;Name&quot;
+    assert_tag :content =&gt; /Name/
+    # the output does not contain the string &quot;test&quot;
+    assert_no_tag :content =&gt; /test/
+  end
+
+  def test_assert_tag_multiple
+    process :test_html_output
+
+    # there is a 'div', id='bar', with an immediate child whose 'action'
+    # attribute matches the regexp /somewhere/.
+    assert_tag :tag =&gt; &quot;div&quot;, :attributes =&gt; { :id =&gt; &quot;bar&quot; },
+               :child =&gt; { :attributes =&gt; { :action =&gt; /somewhere/ } }
+
+    # there is no 'div', id='foo', with a 'ul' child with more than
+    # 2 &quot;li&quot; children.
+    assert_no_tag :tag =&gt; &quot;div&quot;, :attributes =&gt; { :id =&gt; &quot;foo&quot; },
+                  :child =&gt; {
+                    :tag =&gt; &quot;ul&quot;,
+                    :children =&gt; { :greater_than =&gt; 2,
+                                   :only =&gt; { :tag =&gt; &quot;li&quot; } } }
+  end
+
+  def test_assert_tag_children_without_content
+    process :test_html_output
+
+    # there is a form tag with an 'input' child which is a self closing tag
+    assert_tag :tag =&gt; &quot;form&quot;,
+      :children =&gt; { :count =&gt; 1,
+        :only =&gt; { :tag =&gt; &quot;input&quot; } }
+
+    # the body tag has an 'a' child which in turn has an 'img' child
+    assert_tag :tag =&gt; &quot;body&quot;,
+      :children =&gt; { :count =&gt; 1,
+        :only =&gt; { :tag =&gt; &quot;a&quot;,
+          :children =&gt; { :count =&gt; 1,
+            :only =&gt; { :tag =&gt; &quot;img&quot; } } } }
+  end
+
+  def test_should_not_impose_childless_html_tags_in_xml
+    process :test_xml_output
+
+    begin
+      $stderr = StringIO.new
+      assert_select 'area' #This will cause a warning if content is processed as HTML
+      $stderr.rewind &amp;&amp; err = $stderr.read
+    ensure
+      $stderr = STDERR
+    end
+
+    assert err.empty?
+  end
+
+  def test_assert_tag_attribute_matching
+    @response.body = '&lt;input type=&quot;text&quot; name=&quot;my_name&quot;&gt;'
+    assert_tag :tag =&gt; 'input',
+                 :attributes =&gt; { :name =&gt; /my/, :type =&gt; 'text' }
+    assert_no_tag :tag =&gt; 'input',
+                 :attributes =&gt; { :name =&gt; 'my', :type =&gt; 'text' }
+    assert_no_tag :tag =&gt; 'input',
+                 :attributes =&gt; { :name =&gt; /^my$/, :type =&gt; 'text' }
+  end
+
+  def test_assert_tag_content_matching
+    @response.body = &quot;&lt;p&gt;hello world&lt;/p&gt;&quot;
+    assert_tag :tag =&gt; &quot;p&quot;, :content =&gt; &quot;hello world&quot;
+    assert_tag :tag =&gt; &quot;p&quot;, :content =&gt; /hello/
+    assert_no_tag :tag =&gt; &quot;p&quot;, :content =&gt; &quot;hello&quot;
+  end
+
+  def test_assert_generates
+    assert_generates 'controller/action/5', :controller =&gt; 'controller', :action =&gt; 'action', :id =&gt; '5'
+    assert_generates 'controller/action/7', {:id =&gt; &quot;7&quot;}, {:controller =&gt; &quot;controller&quot;, :action =&gt; &quot;action&quot;}
+    assert_generates 'controller/action/5', {:controller =&gt; &quot;controller&quot;, :action =&gt; &quot;action&quot;, :id =&gt; &quot;5&quot;, :name =&gt; &quot;bob&quot;}, {}, {:name =&gt; &quot;bob&quot;}
+    assert_generates 'controller/action/7', {:id =&gt; &quot;7&quot;, :name =&gt; &quot;bob&quot;}, {:controller =&gt; &quot;controller&quot;, :action =&gt; &quot;action&quot;}, {:name =&gt; &quot;bob&quot;}
+    assert_generates 'controller/action/7', {:id =&gt; &quot;7&quot;}, {:controller =&gt; &quot;controller&quot;, :action =&gt; &quot;action&quot;, :name =&gt; &quot;bob&quot;}, {}
+  end
+
+  def test_assert_routing
+    assert_routing 'content', :controller =&gt; 'content', :action =&gt; 'index'
+  end
+
+  def test_assert_routing_with_method
+    with_routing do |set|
+      set.draw { |map| map.resources(:content) }
+      assert_routing({ :method =&gt; 'post', :path =&gt; 'content' }, { :controller =&gt; 'content', :action =&gt; 'create' })
+    end
+  end
+
+  def test_assert_routing_in_module
+    assert_routing 'admin/user', :controller =&gt; 'admin/user', :action =&gt; 'index'
+  end
+
+  def test_params_passing
+    get :test_params, :page =&gt; {:name =&gt; &quot;Page name&quot;, :month =&gt; '4', :year =&gt; '2004', :day =&gt; '6'}
+    parsed_params = eval(@response.body)
+    assert_equal(
+      {'controller' =&gt; 'test_test/test', 'action' =&gt; 'test_params',
+       'page' =&gt; {'name' =&gt; &quot;Page name&quot;, 'month' =&gt; '4', 'year' =&gt; '2004', 'day' =&gt; '6'}},
+      parsed_params
+    )
+  end
+
+  def test_id_converted_to_string
+    get :test_params, :id =&gt; 20, :foo =&gt; Object.new
+    assert_kind_of String, @request.path_parameters['id']
+  end
+
+  def test_array_path_parameter_handled_properly
+    with_routing do |set|
+      set.draw do |map|
+        map.connect 'file/*path', :controller =&gt; 'test_test/test', :action =&gt; 'test_params'
+        map.connect ':controller/:action/:id'
+      end
+
+      get :test_params, :path =&gt; ['hello', 'world']
+      assert_equal ['hello', 'world'], @request.path_parameters['path']
+      assert_equal 'hello/world', @request.path_parameters['path'].to_s
+    end
+  end
+
+  def test_assert_realistic_path_parameters
+    get :test_params, :id =&gt; 20, :foo =&gt; Object.new
+
+    # All elements of path_parameters should use string keys
+    @request.path_parameters.keys.each do |key|
+      assert_kind_of String, key
+    end
+  end
+
+  def test_with_routing_places_routes_back
+    assert ActionController::Routing::Routes
+    routes_id = ActionController::Routing::Routes.object_id
+
+    begin
+      with_routing { raise 'fail' }
+      fail 'Should not be here.'
+    rescue RuntimeError
+    end
+
+    assert ActionController::Routing::Routes
+    assert_equal routes_id, ActionController::Routing::Routes.object_id
+  end
+
+  def test_remote_addr
+    get :test_remote_addr
+    assert_equal &quot;0.0.0.0&quot;, @response.body
+
+    @request.remote_addr = &quot;192.0.0.1&quot;
+    get :test_remote_addr
+    assert_equal &quot;192.0.0.1&quot;, @response.body
+  end
+
+  def test_header_properly_reset_after_remote_http_request
+    xhr :get, :test_params
+    assert_nil @request.env['HTTP_X_REQUESTED_WITH']
+  end
+
+  def test_header_properly_reset_after_get_request
+    get :test_params
+    @request.recycle!
+    assert_nil @request.instance_variable_get(&quot;@request_method&quot;)
+  end
+
+  def test_params_reset_after_post_request
+    post :no_op, :foo =&gt; &quot;bar&quot;
+    assert_equal &quot;bar&quot;, @request.params[:foo]
+    @request.recycle!
+    post :no_op
+    assert @request.params[:foo].blank?
+  end
+
+  %w(controller response request).each do |variable|
+    %w(get post put delete head process).each do |method|
+      define_method(&quot;test_#{variable}_missing_for_#{method}_raises_error&quot;) do
+        remove_instance_variable &quot;@#{variable}&quot;
+        begin
+          send(method, :test_remote_addr)
+          assert false, &quot;expected RuntimeError, got nothing&quot;
+        rescue RuntimeError =&gt; error
+          assert true
+          assert_match %r{@#{variable} is nil}, error.message
+        rescue =&gt; error
+          assert false, &quot;expected RuntimeError, got #{error.class}&quot;
+        end
+      end
+    end
+  end
+
+  FILES_DIR = File.dirname(__FILE__) + '/../fixtures/multipart'
+
+  if RUBY_VERSION &lt; '1.9'
+    READ_BINARY = 'rb'
+    READ_PLAIN = 'r'
+  else
+    READ_BINARY = 'rb:binary'
+    READ_PLAIN = 'r:binary'
+  end
+
+  def test_test_uploaded_file
+    filename = 'mona_lisa.jpg'
+    path = &quot;#{FILES_DIR}/#{filename}&quot;
+    content_type = 'image/png'
+    expected = File.read(path)
+    expected.force_encoding(Encoding::BINARY) if expected.respond_to?(:force_encoding)
+
+    file = ActionController::TestUploadedFile.new(path, content_type)
+    assert_equal filename, file.original_filename
+    assert_equal content_type, file.content_type
+    assert_equal file.path, file.local_path
+    assert_equal expected, file.read
+
+    new_content_type = &quot;new content_type&quot;
+    file.content_type = new_content_type
+    assert_equal new_content_type, file.content_type
+
+  end
+
+  def test_test_uploaded_file_with_binary
+    filename = 'mona_lisa.jpg'
+    path = &quot;#{FILES_DIR}/#{filename}&quot;
+    content_type = 'image/png'
+
+    binary_uploaded_file = ActionController::TestUploadedFile.new(path, content_type, :binary)
+    assert_equal File.open(path, READ_BINARY).read, binary_uploaded_file.read
+
+    plain_uploaded_file = ActionController::TestUploadedFile.new(path, content_type)
+    assert_equal File.open(path, READ_PLAIN).read, plain_uploaded_file.read
+  end
+
+  def test_fixture_file_upload_with_binary
+    filename = 'mona_lisa.jpg'
+    path = &quot;#{FILES_DIR}/#{filename}&quot;
+    content_type = 'image/jpg'
+
+    binary_file_upload = fixture_file_upload(path, content_type, :binary)
+    assert_equal File.open(path, READ_BINARY).read, binary_file_upload.read
+
+    plain_file_upload = fixture_file_upload(path, content_type)
+    assert_equal File.open(path, READ_PLAIN).read, plain_file_upload.read
+  end
+
+  def test_fixture_file_upload
+    post :test_file_upload, :file =&gt; fixture_file_upload(FILES_DIR + &quot;/mona_lisa.jpg&quot;, &quot;image/jpg&quot;)
+    assert_equal '159528', @response.body
+  end
+
+  def test_test_uploaded_file_exception_when_file_doesnt_exist
+    assert_raise(RuntimeError) { ActionController::TestUploadedFile.new('non_existent_file') }
+  end
+
+  def test_redirect_url_only_cares_about_location_header
+    get :create
+    assert_response :created
+
+    # Redirect url doesn't care that it wasn't a :redirect response.
+    assert_equal 'created resource', @response.redirect_url
+    assert_equal @response.redirect_url, redirect_to_url
+
+    # Must be a :redirect response.
+    assert_raise(ActiveSupport::TestCase::Assertion) do
+      assert_redirected_to 'created resource'
+    end
+  end
+
+  def test_binary_content_works_with_send_file
+    get :test_send_file
+    assert_nothing_raised(NoMethodError) { @response.binary_content }
+  end
+
+  protected
+    def with_foo_routing
+      with_routing do |set|
+        set.draw do |map|
+          map.generate_url 'foo', :controller =&gt; 'test'
+          map.connect      ':controller/:action/:id'
+        end
+        yield set
+      end
+    end
+end
+
+class CleanBacktraceTest &lt; ActionController::TestCase
+  def test_should_reraise_the_same_object
+    exception = ActiveSupport::TestCase::Assertion.new('message')
+    clean_backtrace { raise exception }
+  rescue Exception =&gt; caught
+    assert_equal exception.object_id, caught.object_id
+    assert_equal exception.message, caught.message
+  end
+
+  def test_should_clean_assertion_lines_from_backtrace
+    path = File.expand_path(&quot;#{File.dirname(__FILE__)}/../../lib/action_controller&quot;)
+    exception = ActiveSupport::TestCase::Assertion.new('message')
+    exception.set_backtrace [&quot;#{path}/abc&quot;, &quot;#{path}/assertions/def&quot;]
+    clean_backtrace { raise exception }
+  rescue Exception =&gt; caught
+    assert_equal [&quot;#{path}/abc&quot;], caught.backtrace
+  end
+
+  def test_should_only_clean_assertion_failure_errors
+    clean_backtrace do
+      raise &quot;can't touch this&quot;, [File.expand_path(&quot;#{File.dirname(__FILE__)}/../../lib/action_controller/assertions/abc&quot;)]
+    end
+  rescue =&gt; caught
+    assert !caught.backtrace.empty?
+  end
+end
+
+class InferringClassNameTest &lt; ActionController::TestCase
+  def test_determine_controller_class
+    assert_equal ContentController, determine_class(&quot;ContentControllerTest&quot;)
+  end
+
+  def test_determine_controller_class_with_nonsense_name
+    assert_nil determine_class(&quot;HelloGoodBye&quot;)
+  end
+
+  def test_determine_controller_class_with_sensible_name_where_no_controller_exists
+    assert_nil determine_class(&quot;NoControllerWithThisNameTest&quot;)
+  end
+
+  private
+    def determine_class(name)
+      ActionController::TestCase.determine_default_controller_class(name)
+    end
+end
+
+class CrazyNameTest &lt; ActionController::TestCase
+  tests ContentController
+
+  def test_controller_class_can_be_set_manually_not_just_inferred
+    assert_equal ContentController, self.class.controller_class
+  end
+end
+
+class NamedRoutesControllerTest &lt; ActionController::TestCase
+  tests ContentController
+
+  def test_should_be_able_to_use_named_routes_before_a_request_is_done
+    with_routing do |set|
+      set.draw { |map| map.resources :contents }
+      assert_equal 'http://test.host/contents/new', new_content_url
+      assert_equal 'http://test.host/contents/1', content_url(:id =&gt; 1)
+    end
+  end
+end
+</pre>
+    </div>

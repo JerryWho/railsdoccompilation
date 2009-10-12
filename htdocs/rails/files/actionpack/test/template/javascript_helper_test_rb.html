@@ -1,0 +1,125 @@
+  <div id="fileHeader">
+    <h1>javascript_helper_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>actionpack/test/template/javascript_helper_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+
+class JavaScriptHelperTest &lt; ActionView::TestCase
+  tests ActionView::Helpers::JavaScriptHelper
+
+  attr_accessor :template_format, :output_buffer
+
+  def setup
+    @template = self
+  end
+
+  def test_escape_javascript
+    assert_equal '', escape_javascript(nil)
+    assert_equal %(This \\&quot;thing\\&quot; is really\\n netos\\'), escape_javascript(%(This &quot;thing&quot; is really\n netos'))
+    assert_equal %(backslash\\\\test), escape_javascript( %(backslash\\test) )
+    assert_equal %(dont &lt;\\/close&gt; tags), escape_javascript(%(dont &lt;/close&gt; tags))
+  end
+
+  def test_link_to_function
+    assert_dom_equal %(&lt;a href=&quot;#&quot; onclick=&quot;alert('Hello world!'); return false;&quot;&gt;Greeting&lt;/a&gt;),
+      link_to_function(&quot;Greeting&quot;, &quot;alert('Hello world!')&quot;)
+  end
+
+  def test_link_to_function_with_existing_onclick
+    assert_dom_equal %(&lt;a href=&quot;#&quot; onclick=&quot;confirm('Sanity!'); alert('Hello world!'); return false;&quot;&gt;Greeting&lt;/a&gt;),
+      link_to_function(&quot;Greeting&quot;, &quot;alert('Hello world!')&quot;, :onclick =&gt; &quot;confirm('Sanity!')&quot;)
+  end
+
+  def test_link_to_function_with_rjs_block
+    html = link_to_function( &quot;Greet me!&quot; ) do |page|
+      page.replace_html 'header', &quot;&lt;h1&gt;Greetings&lt;/h1&gt;&quot;
+    end
+    assert_dom_equal %(&lt;a href=&quot;#&quot; onclick=&quot;Element.update(&amp;quot;header&amp;quot;, &amp;quot;\\u003Ch1\\u003EGreetings\\u003C/h1\\u003E&amp;quot;);; return false;&quot;&gt;Greet me!&lt;/a&gt;), html
+  end
+
+  def test_link_to_function_with_rjs_block_and_options
+    html = link_to_function( &quot;Greet me!&quot;, :class =&gt; &quot;updater&quot; ) do |page|
+      page.replace_html 'header', &quot;&lt;h1&gt;Greetings&lt;/h1&gt;&quot;
+    end
+    assert_dom_equal %(&lt;a href=&quot;#&quot; class=&quot;updater&quot; onclick=&quot;Element.update(&amp;quot;header&amp;quot;, &amp;quot;\\u003Ch1\\u003EGreetings\\u003C/h1\\u003E&amp;quot;);; return false;&quot;&gt;Greet me!&lt;/a&gt;), html
+  end
+
+  def test_link_to_function_with_href
+    assert_dom_equal %(&lt;a href=&quot;http://example.com/&quot; onclick=&quot;alert('Hello world!'); return false;&quot;&gt;Greeting&lt;/a&gt;),
+      link_to_function(&quot;Greeting&quot;, &quot;alert('Hello world!')&quot;, :href =&gt; 'http://example.com/')
+  end
+
+  def test_button_to_function
+    assert_dom_equal %(&lt;input type=&quot;button&quot; onclick=&quot;alert('Hello world!');&quot; value=&quot;Greeting&quot; /&gt;),
+      button_to_function(&quot;Greeting&quot;, &quot;alert('Hello world!')&quot;)
+  end
+
+  def test_button_to_function_with_rjs_block
+    html = button_to_function( &quot;Greet me!&quot; ) do |page|
+      page.replace_html 'header', &quot;&lt;h1&gt;Greetings&lt;/h1&gt;&quot;
+    end
+    assert_dom_equal %(&lt;input type=&quot;button&quot; onclick=&quot;Element.update(&amp;quot;header&amp;quot;, &amp;quot;\\u003Ch1\\u003EGreetings\\u003C/h1\\u003E&amp;quot;);;&quot; value=&quot;Greet me!&quot; /&gt;), html
+  end
+
+  def test_button_to_function_with_rjs_block_and_options
+    html = button_to_function( &quot;Greet me!&quot;, :class =&gt; &quot;greeter&quot; ) do |page|
+      page.replace_html 'header', &quot;&lt;h1&gt;Greetings&lt;/h1&gt;&quot;
+    end
+    assert_dom_equal %(&lt;input type=&quot;button&quot; class=&quot;greeter&quot; onclick=&quot;Element.update(&amp;quot;header&amp;quot;, &amp;quot;\\u003Ch1\\u003EGreetings\\u003C\/h1\\u003E&amp;quot;);;&quot; value=&quot;Greet me!&quot; /&gt;), html
+  end
+
+  def test_button_to_function_with_onclick
+    assert_dom_equal &quot;&lt;input onclick=\&quot;alert('Goodbye World :('); alert('Hello world!');\&quot; type=\&quot;button\&quot; value=\&quot;Greeting\&quot; /&gt;&quot;,
+      button_to_function(&quot;Greeting&quot;, &quot;alert('Hello world!')&quot;, :onclick =&gt; &quot;alert('Goodbye World :(')&quot;)
+  end
+
+  def test_button_to_function_without_function
+    assert_dom_equal &quot;&lt;input onclick=\&quot;;\&quot; type=\&quot;button\&quot; value=\&quot;Greeting\&quot; /&gt;&quot;,
+      button_to_function(&quot;Greeting&quot;)
+  end
+
+  def test_javascript_tag
+    self.output_buffer = 'foo'
+
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nalert('hello')\n//]]&gt;\n&lt;/script&gt;&quot;,
+      javascript_tag(&quot;alert('hello')&quot;)
+
+    assert_equal 'foo', output_buffer, 'javascript_tag without a block should not concat to output_buffer'
+  end
+
+  def test_javascript_tag_with_options
+    assert_dom_equal &quot;&lt;script id=\&quot;the_js_tag\&quot; type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nalert('hello')\n//]]&gt;\n&lt;/script&gt;&quot;,
+      javascript_tag(&quot;alert('hello')&quot;, :id =&gt; &quot;the_js_tag&quot;)
+  end
+
+  def test_javascript_tag_with_block_in_erb
+    __in_erb_template = ''
+    javascript_tag { concat &quot;alert('hello')&quot; }
+    assert_dom_equal &quot;&lt;script type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nalert('hello')\n//]]&gt;\n&lt;/script&gt;&quot;, output_buffer
+  end
+
+  def test_javascript_tag_with_block_and_options_in_erb
+    __in_erb_template = ''
+    javascript_tag(:id =&gt; &quot;the_js_tag&quot;) { concat &quot;alert('hello')&quot; }
+    assert_dom_equal &quot;&lt;script id=\&quot;the_js_tag\&quot; type=\&quot;text/javascript\&quot;&gt;\n//&lt;![CDATA[\nalert('hello')\n//]]&gt;\n&lt;/script&gt;&quot;, output_buffer
+  end
+
+  def test_javascript_cdata_section
+    assert_dom_equal &quot;\n//&lt;![CDATA[\nalert('hello')\n//]]&gt;\n&quot;, javascript_cdata_section(&quot;alert('hello')&quot;)
+  end
+end
+</pre>
+    </div>

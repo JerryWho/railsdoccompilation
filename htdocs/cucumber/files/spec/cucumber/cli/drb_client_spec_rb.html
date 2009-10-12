@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:22:03 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,82 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/spec/cucumber/cli/drb_client_spec.rb-</pre>
+    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+
+
+module Cucumber
+  module Cli
+    describe DRbClient do
+      before(:each) do
+        @args = ['features']
+        @error_stream = StringIO.new
+        @out_stream = StringIO.new
+
+        @drb_object = mock('DRbObject', :run =&gt; true)
+        DRbObject.stub!(:new_with_uri).and_return(@drb_object)
+      end
+
+      it &quot;starts up a druby service&quot; do
+        DRb.should_receive(:start_service).with(&quot;druby://localhost:0&quot;)
+        DRbClient.run(@args, @error_stream, @out_stream)
+      end
+
+      it &quot;connects to the DRb server&quot; do
+        DRbObject.should_receive(:new_with_uri).with(&quot;druby://127.0.0.1:8990&quot;)
+        DRbClient.run(@args, @error_stream, @out_stream)
+      end
+
+      it &quot;runs the features on the DRb server&quot; do
+        @drb_object.should_receive(:run).with(@args, @error_stream, @out_stream)
+        DRbClient.run(@args, @error_stream, @out_stream)
+      end
+
+      it &quot;returns raises an error when it can't connect to the server&quot; do
+        DRbObject.stub!(:new_with_uri).and_raise(DRb::DRbConnError)
+        running { DRbClient.run(@args, @error_stream, @out_stream) }.should raise_error(DRbClientError, &quot;No DRb server is running.&quot;)
+      end
+
+      it &quot;returns the result from the DRb server call&quot; do
+        @drb_object.should_receive(:run).and_return('foo')
+        DRbClient.run(@args, @error_stream, @out_stream).should == 'foo'
+      end
+
+      context &quot;with $CUCUMBER_DRB set&quot; do
+        before do 
+          @original_env = ENV['CUCUMBER_DRB']
+          ENV['CUCUMBER_DRB'] = '90000'
+        end
+        after do
+          ENV['CUCUMBER_DRB'] = @original_env
+        end
+        it &quot;connects to specified DRb server&quot; do
+          DRbObject.should_receive(:new_with_uri).with(&quot;druby://127.0.0.1:90000&quot;)
+          DRbClient.run(@args, @error_stream, @out_stream)
+        end
+      end
+
+      context &quot;with provided drb_port&quot; do
+        before do
+          @args = @args + ['--port', '8000']
+        end
+        it &quot;connects to specified drb port&quot; do
+          DRbObject.should_receive(:new_with_uri).with(&quot;druby://127.0.0.1:8000&quot;)
+          DRbClient.run(@args, @error_stream, @out_stream, 8000)
+        end
+        it &quot;prefers configuration to environment&quot;  do
+          original = ENV['CUCUMBER_DRB'] = original
+          begin
+            ENV['CUCUMBER_DRB'] = &quot;4000&quot;
+            DRbObject.should_receive(:new_with_uri).with(&quot;druby://127.0.0.1:8000&quot;)
+            DRbClient.run(@args, @error_stream, @out_stream, 8000)
+          ensure
+            ENV['CUCUMBER_DRB'] = original
+          end
+        end
+      end
+
+    end
+  end
+end
+</pre>
     </div>

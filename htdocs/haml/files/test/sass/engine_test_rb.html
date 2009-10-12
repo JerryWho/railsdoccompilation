@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Mar 28 20:21:07 +0100 2009</td>
+      <td>Mon Oct 12 19:41:22 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -18,6 +18,7 @@
     <pre>#!/usr/bin/env ruby
 require File.dirname(__FILE__) + '/../test_helper'
 require 'sass/engine'
+require 'stringio'
 
 class SassEngineTest &lt; Test::Unit::TestCase
   # A map of erroneous Sass documents to the error messages they should produce.
@@ -25,65 +26,102 @@ class SassEngineTest &lt; Test::Unit::TestCase
   # if so, the second element should be the line number that should be reported for the error.
   # If this isn't provided, the tests will assume the line number should be the last line of the document.
   EXCEPTION_MAP = {
-    &quot;!a = 1 + &quot; =&gt; 'Constant arithmetic error: &quot;1 +&quot;.',
-    &quot;!a = 1 + 2 +&quot; =&gt; 'Constant arithmetic error: &quot;1 + 2 +&quot;.',
-    &quot;!a = \&quot;b&quot; =&gt; 'Unterminated string: &quot;\\&quot;b&quot;.',
-    &quot;!a = #aaa - a&quot; =&gt; 'Undefined operation: &quot;#aaaaaa minus a&quot;.',
-    &quot;!a = #aaa / a&quot; =&gt; 'Undefined operation: &quot;#aaaaaa div a&quot;.',
-    &quot;!a = #aaa * a&quot; =&gt; 'Undefined operation: &quot;#aaaaaa times a&quot;.',
-    &quot;!a = #aaa % a&quot; =&gt; 'Undefined operation: &quot;#aaaaaa mod a&quot;.',
-    &quot;!a = 1 - a&quot; =&gt; 'Undefined operation: &quot;1 minus a&quot;.',
-    &quot;!a = 1 * a&quot; =&gt; 'Undefined operation: &quot;1 times a&quot;.',
-    &quot;!a = 1 / a&quot; =&gt; 'Undefined operation: &quot;1 div a&quot;.',
-    &quot;!a = 1 % a&quot; =&gt; 'Undefined operation: &quot;1 mod a&quot;.',
-    &quot;:&quot; =&gt; 'Invalid attribute: &quot;:&quot;.',
-    &quot;: a&quot; =&gt; 'Invalid attribute: &quot;: a&quot;.',
-    &quot;:= a&quot; =&gt; 'Invalid attribute: &quot;:= a&quot;.',
-    &quot;a\n  :b&quot; =&gt; 'Invalid attribute: &quot;:b &quot;.',
-    &quot;a\n  :b: c&quot; =&gt; 'Invalid attribute: &quot;:b: c&quot;.',
-    &quot;a\n  :b:c d&quot; =&gt; 'Invalid attribute: &quot;:b:c d&quot;.',
-    &quot;a\n  :b=c d&quot; =&gt; 'Invalid attribute: &quot;:b=c d&quot;.',
-    &quot;a\n  :b c;&quot; =&gt; 'Invalid attribute: &quot;:b c;&quot; (This isn\'t CSS!).',
-    &quot;a\n  b : c&quot; =&gt; 'Invalid attribute: &quot;b : c&quot;.',
-    &quot;a\n  b=c: d&quot; =&gt; 'Invalid attribute: &quot;b=c: d&quot;.',
-    &quot;:a&quot; =&gt; 'Attributes aren\'t allowed at the root of a document.',
-    &quot;!&quot; =&gt; 'Invalid constant: &quot;!&quot;.',
-    &quot;!a&quot; =&gt; 'Invalid constant: &quot;!a&quot;.',
-    &quot;! a&quot; =&gt; 'Invalid constant: &quot;! a&quot;.',
-    &quot;!a b&quot; =&gt; 'Invalid constant: &quot;!a b&quot;.',
-    &quot;a\n\t:b c&quot; =&gt; &lt;&lt;END.strip,
-A tab character was used for indentation. Sass must be indented using two spaces.
-Are you sure you have soft tabs enabled in your editor?
-END
-    &quot;a\n :b c&quot; =&gt; &quot;1 space was used for indentation. Sass must be indented using two spaces.&quot;,
-    &quot;a\n    :b c&quot; =&gt; &quot;4 spaces were used for indentation. Sass must be indented using two spaces.&quot;,
-    &quot;a\n  :b c\n  !d = 3&quot; =&gt; &quot;Constants may only be declared at the root of a document.&quot;,
-    &quot;!a = 1b + 2c&quot; =&gt; &quot;Incompatible units: b and c.&quot;,
+    &quot;!a = 1 + &quot; =&gt; 'Expected expression, was end of text.',
+    &quot;!a = 1 + 2 +&quot; =&gt; 'Expected expression, was end of text.',
+    &quot;!a = 1 + 2 + %&quot; =&gt; 'Expected expression, was mod token.',
+    &quot;!a = foo(\&quot;bar\&quot;&quot; =&gt; 'Expected rparen token, was end of text.',
+    &quot;!a = 1 }&quot; =&gt; 'Unexpected end_interpolation token.',
+    &quot;!a = 1 }foo\&quot;&quot; =&gt; 'Unexpected end_interpolation token.',
+    &quot;:&quot; =&gt; 'Invalid property: &quot;:&quot;.',
+    &quot;: a&quot; =&gt; 'Invalid property: &quot;: a&quot;.',
+    &quot;:= a&quot; =&gt; 'Invalid property: &quot;:= a&quot;.',
+    &quot;a\n  :b&quot; =&gt; 'Invalid property: &quot;:b &quot; (no value).',
+    &quot;a\n  b:&quot; =&gt; 'Invalid property: &quot;b: &quot; (no value).',
+    &quot;a\n  :b: c&quot; =&gt; 'Invalid property: &quot;:b: c&quot;.',
+    &quot;a\n  :b:c d&quot; =&gt; 'Invalid property: &quot;:b:c d&quot;.',
+    &quot;a\n  :b=c d&quot; =&gt; 'Invalid property: &quot;:b=c d&quot;.',
+    &quot;a\n  :b c;&quot; =&gt; 'Invalid property: &quot;:b c;&quot; (no &quot;;&quot; required at end-of-line).',
+    &quot;a\n  b: c;&quot; =&gt; 'Invalid property: &quot;b: c;&quot; (no &quot;;&quot; required at end-of-line).',
+    &quot;a\n  b : c&quot; =&gt; 'Invalid property: &quot;b : c&quot;.',
+    &quot;a\n  b=c: d&quot; =&gt; 'Invalid property: &quot;b=c: d&quot;.',
+    &quot;:a&quot; =&gt; 'Properties aren\'t allowed at the root of a document.',
+    &quot;!&quot; =&gt; 'Invalid variable: &quot;!&quot;.',
+    &quot;!a&quot; =&gt; 'Invalid variable: &quot;!a&quot;.',
+    &quot;! a&quot; =&gt; 'Invalid variable: &quot;! a&quot;.',
+    &quot;!a b&quot; =&gt; 'Invalid variable: &quot;!a b&quot;.',
+    &quot;!a = 1b + 2c&quot; =&gt; &quot;Incompatible units: 'c' and 'b'.&quot;,
+    &quot;!a = 1b &lt; 2c&quot; =&gt; &quot;Incompatible units: 'c' and 'b'.&quot;,
+    &quot;!a = 1b &gt; 2c&quot; =&gt; &quot;Incompatible units: 'c' and 'b'.&quot;,
+    &quot;!a = 1b &lt;= 2c&quot; =&gt; &quot;Incompatible units: 'c' and 'b'.&quot;,
+    &quot;!a = 1b &gt;= 2c&quot; =&gt; &quot;Incompatible units: 'c' and 'b'.&quot;,
+    &quot;a\n  :b= 1b * 2c&quot; =&gt; &quot;2b*c isn't a valid CSS value.&quot;,
+    &quot;a\n  :b= 1b % 2c&quot; =&gt; &quot;Cannot modulo by a number with units: 2c.&quot;,
+    &quot;!a = 2px + #ccc&quot; =&gt; &quot;Cannot add a number with units (2px) to a color (#cccccc).&quot;,
+    &quot;!a = #ccc + 2px&quot; =&gt; &quot;Cannot add a number with units (2px) to a color (#cccccc).&quot;,
     &quot;&amp; a\n  :b c&quot; =&gt; [&quot;Base-level rules cannot contain the parent-selector-referencing character '&amp;'.&quot;, 1],
-    &quot;a\n  :b\n    c&quot; =&gt; &quot;Illegal nesting: Only attributes may be nested beneath attributes.&quot;,
-    &quot;a,\n  :b c&quot; =&gt; &quot;Rules can\'t end in commas.&quot;,
+    &quot;a\n  :b\n    c&quot; =&gt; &quot;Illegal nesting: Only properties may be nested beneath properties.&quot;,
+    &quot;a,\n  :b c&quot; =&gt; [&quot;Rules can\'t end in commas.&quot;, 1],
     &quot;a,&quot; =&gt; &quot;Rules can\'t end in commas.&quot;,
-    &quot;a,\n!b = c&quot; =&gt; &quot;Rules can\'t end in commas.&quot;,
-    &quot;!a = b\n  :c d\n&quot; =&gt; &quot;Illegal nesting: Nothing may be nested beneath constants.&quot;,
+    &quot;a,\n!b = 1&quot; =&gt; [&quot;Rules can\'t end in commas.&quot;, 1],
+    &quot;!a = b\n  :c d\n&quot; =&gt; &quot;Illegal nesting: Nothing may be nested beneath variable declarations.&quot;,
     &quot;@import foo.sass&quot; =&gt; &quot;File to import not found or unreadable: foo.sass.&quot;,
     &quot;@import templates/basic\n  foo&quot; =&gt; &quot;Illegal nesting: Nothing may be nested beneath import directives.&quot;,
     &quot;foo\n  @import templates/basic&quot; =&gt; &quot;Import directives may only be used at the root of a document.&quot;,
-    &quot;!foo = bar baz !&quot; =&gt; &quot;Unterminated constant.&quot;,
-    &quot;!foo = !(foo)&quot; =&gt; &quot;Invalid constant.&quot;,
+    &quot;foo\n  @import #{File.dirname(__FILE__)}/templates/basic&quot; =&gt; &quot;Import directives may only be used at the root of a document.&quot;,
+    %Q{!foo = &quot;bar&quot; &quot;baz&quot; !} =&gt; %Q{Syntax error in '&quot;bar&quot; &quot;baz&quot; !' at character 20.},
     &quot;=foo\n  :color red\n.bar\n  +bang&quot; =&gt; &quot;Undefined mixin 'bang'.&quot;,
-    &quot;.bar\n  =foo\n    :color red\n&quot; =&gt; &quot;Mixins may only be defined at the root of a document.&quot;,
+    &quot;.bar\n  =foo\n    :color red\n&quot; =&gt; [&quot;Mixins may only be defined at the root of a document.&quot;, 2],
     &quot;=foo\n  :color red\n.bar\n  +foo\n    :color red&quot; =&gt; &quot;Illegal nesting: Nothing may be nested beneath mixin directives.&quot;,
     &quot;    a\n  b: c&quot; =&gt; [&quot;Indenting at the beginning of the document is illegal.&quot;, 1],
     &quot; \n   \n\t\n  a\n  b: c&quot; =&gt; [&quot;Indenting at the beginning of the document is illegal.&quot;, 4],
+    &quot;a\n  b: c\n b: c&quot; =&gt; [&quot;Inconsistent indentation: 1 space was used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 3],
+    &quot;a\n  b: c\na\n b: c&quot; =&gt; [&quot;Inconsistent indentation: 1 space was used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 4],
+    &quot;a\n\t\tb: c\n\tb: c&quot; =&gt; [&quot;Inconsistent indentation: 1 tab was used for indentation, but the rest of the document was indented using 2 tabs.&quot;, 3],
+    &quot;a\n  b: c\n   b: c&quot; =&gt; [&quot;Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 3],
+    &quot;a\n  b: c\n  a\n   d: e&quot; =&gt; [&quot;Inconsistent indentation: 3 spaces were used for indentation, but the rest of the document was indented using 2 spaces.&quot;, 4],
+    &quot;a\n  b: c\na\n    d: e&quot; =&gt; [&quot;The line was indented 2 levels deeper than the previous line.&quot;, 4],
+    &quot;a\n  b: c\n  a\n        d: e&quot; =&gt; [&quot;The line was indented 3 levels deeper than the previous line.&quot;, 4],
+    &quot;a\n \tb: c&quot; =&gt; [&quot;Indentation can't use both tabs and spaces.&quot;, 2],
+    &quot;=a(&quot; =&gt; 'Expected rparen token, was end of text.',
+    &quot;=a(b)&quot; =&gt; 'Expected rparen token, was ident token.',
+    &quot;=a(,)&quot; =&gt; &quot;Expected rparen token, was comma token.&quot;,
+    &quot;=a(!)&quot; =&gt; &quot;Syntax error in '(!)' at character 4.&quot;,
+    &quot;=a(!foo bar)&quot; =&gt; &quot;Expected rparen token, was ident token.&quot;,
+    &quot;=foo\n  bar: baz\n+foo&quot; =&gt; [&quot;Properties aren't allowed at the root of a document.&quot;, 2],
+    &quot;a-\#{!b\n  c: d&quot; =&gt; [&quot;Expected end_interpolation token, was end of text.&quot;, 1],
+    &quot;=a(!b = 1, !c)&quot; =&gt; &quot;Required argument !c must come before any optional arguments.&quot;,
+    &quot;=a(!b = 1)\n  :a= !b\ndiv\n  +a(1,2)&quot; =&gt; &quot;Mixin a takes 1 argument but 2 were passed.&quot;,
+    &quot;=a(!b)\n  :a= !b\ndiv\n  +a&quot; =&gt; &quot;Mixin a is missing parameter !b.&quot;,
+    &quot;@else\n  a\n    b: c&quot; =&gt; [&quot;@else must come after @if.&quot;, 1],
+    &quot;@if false\n@else foo&quot; =&gt; &quot;Invalid else directive '@else foo': expected 'if &lt;expr&gt;'.&quot;,
+    &quot;@if false\n@else if &quot; =&gt; &quot;Invalid else directive '@else if': expected 'if &lt;expr&gt;'.&quot;,
+    &quot;a\n  !b = 12\nc\n  d = !b&quot; =&gt; 'Undefined variable: &quot;!b&quot;.',
+    &quot;=foo\n  !b = 12\nc\n  +foo\n  d = !b&quot; =&gt; 'Undefined variable: &quot;!b&quot;.',
+    '@for !a from &quot;foo&quot; to 1' =&gt; '&quot;foo&quot; is not an integer.',
+    '@for !a from 1 to &quot;2&quot;' =&gt; '&quot;2&quot; is not an integer.',
+    '@for !a from 1 to &quot;foo&quot;' =&gt; '&quot;foo&quot; is not an integer.',
+    '@for !a from 1 to 1.232323' =&gt; '1.232 is not an integer.',
+    '@for !a from 1px to 3em' =&gt; &quot;Incompatible units: 'em' and 'px'.&quot;,
+    '@if' =&gt; &quot;Invalid if directive '@if': expected expression.&quot;,
+    '@while' =&gt; &quot;Invalid while directive '@while': expected expression.&quot;,
+    '@debug' =&gt; &quot;Invalid debug directive '@debug': expected expression.&quot;,
 
     # Regression tests
-    &quot;a\n  b:\n    c\n    d&quot; =&gt; [&quot;Illegal nesting: Only attributes may be nested beneath attributes.&quot;, 3],
+    &quot;a\n  b:\n    c\n    d&quot; =&gt; [&quot;Illegal nesting: Only properties may be nested beneath properties.&quot;, 3],
     &quot;&amp; foo\n  bar: baz\n  blat: bang&quot; =&gt; [&quot;Base-level rules cannot contain the parent-selector-referencing character '&amp;'.&quot;, 1],
     &quot;a\n  b: c\n&amp; foo\n  bar: baz\n  blat: bang&quot; =&gt; [&quot;Base-level rules cannot contain the parent-selector-referencing character '&amp;'.&quot;, 3],
   }
-  
+
+  def teardown
+    clean_up_sassc
+  end
+
   def test_basic_render
     renders_correctly &quot;basic&quot;, { :style =&gt; :compact }
+  end
+
+  def test_empty_render
+    assert_equal &quot;&quot;, render(&quot;&quot;)
   end
 
   def test_multiple_calls_to_render
@@ -98,16 +136,25 @@ END
     renders_correctly &quot;compressed&quot;, { :style =&gt; :compressed }
   end
   
-  def test_exceptions
-    EXCEPTION_MAP.each do |key, value|
+  def test_flexible_tabulation
+    assert_equal(&quot;p {\n  a: b; }\n  p q {\n    c: d; }\n&quot;,
+                 render(&quot;p\n a: b\n q\n  c: d\n&quot;))
+    assert_equal(&quot;p {\n  a: b; }\n  p q {\n    c: d; }\n&quot;,
+                 render(&quot;p\n\ta: b\n\tq\n\t\tc: d\n&quot;))
+  end
+  
+  EXCEPTION_MAP.each do |key, value|
+    define_method(&quot;test_exception (#{key.inspect})&quot;) do
+      line = 10
       begin
-        Sass::Engine.new(key).render
+        silence_warnings {Sass::Engine.new(key, :filename =&gt; __FILE__, :line =&gt; line).render}
       rescue Sass::SyntaxError =&gt; err
         value = [value] unless value.is_a?(Array)
 
         assert_equal(value.first, err.message, &quot;Line: #{key}&quot;)
-        assert_equal(value[1] || key.split(&quot;\n&quot;).length, err.sass_line, &quot;Line: #{key}&quot;)
-        assert_match(/\(sass\):[0-9]+/, err.backtrace[0], &quot;Line: #{key}&quot;)
+        assert_equal(__FILE__, err.sass_filename)
+        assert_equal((value[1] || key.split(&quot;\n&quot;).length) + line - 1, err.sass_line, &quot;Line: #{key}&quot;)
+        assert_match(/#{Regexp.escape(__FILE__)}:[0-9]+/, err.backtrace[0], &quot;Line: #{key}&quot;)
       else
         assert(false, &quot;Exception not raised for\n#{key}&quot;)
       end
@@ -115,7 +162,13 @@ END
   end
 
   def test_exception_line
-    to_render = &quot;rule\n  :attr val\n// comment!\n\n  :broken\n&quot;
+    to_render = &lt;&lt;SASS
+rule
+  :prop val
+  // comment!
+
+  :broken
+SASS
     begin
       Sass::Engine.new(to_render).render
     rescue Sass::SyntaxError =&gt; err
@@ -125,9 +178,26 @@ END
     end
   end
 
+  def test_exception_location
+    to_render = &lt;&lt;SASS
+rule
+  :prop val
+  // comment!
+
+  :broken
+SASS
+    begin
+      Sass::Engine.new(to_render, :filename =&gt; __FILE__, :line =&gt; (__LINE__-7)).render
+    rescue Sass::SyntaxError =&gt; err
+      assert_equal(__FILE__, err.sass_filename)
+      assert_equal((__LINE__-6), err.sass_line)
+    else
+      assert(false, &quot;Exception not raised for '#{to_render}'!&quot;)
+    end
+  end
+
   def test_imported_exception
-    [1, 2].each do |i|
-      i = nil if i == 1
+    [nil, 2].each do |i|
       begin
         Sass::Engine.new(&quot;@import bork#{i}&quot;, :load_paths =&gt; [File.dirname(__FILE__) + '/templates/']).render
       rescue Sass::SyntaxError =&gt; err
@@ -140,17 +210,42 @@ END
   end
 
   def test_css_import
-    assert_equal(&quot;@import url(./fonts.css) screen;&quot;, render(&quot;@import url(./fonts.css) screen&quot;))
-    assert_equal(&quot;@import \&quot;./fonts.css\&quot; screen;&quot;, render(&quot;@import \&quot;./fonts.css\&quot; screen&quot;))
+    assert_equal(&quot;@import url(./fonts.css) screen;\n&quot;, render(&quot;@import url(./fonts.css) screen&quot;))
+    assert_equal(&quot;@import \&quot;./fonts.css\&quot; screen;\n&quot;, render(&quot;@import \&quot;./fonts.css\&quot; screen&quot;))
   end
 
   def test_sass_import
+    assert !File.exists?(sassc_path(&quot;importee&quot;))
     renders_correctly &quot;import&quot;, { :style =&gt; :compact, :load_paths =&gt; [File.dirname(__FILE__) + &quot;/templates&quot;] }
+    assert File.exists?(sassc_path(&quot;importee&quot;))
+  end
+
+  def test_no_cache
+    assert !File.exists?(sassc_path(&quot;importee&quot;))
+    renders_correctly(&quot;import&quot;, {
+        :style =&gt; :compact, :cache =&gt; false,
+        :load_paths =&gt; [File.dirname(__FILE__) + &quot;/templates&quot;],
+      })
+    assert !File.exists?(sassc_path(&quot;importee&quot;))
+  end
+
+  def test_units
+    renders_correctly &quot;units&quot;
   end
 
   def test_default_function
-    assert_equal(&quot;foo {\n  bar: url(foo.png); }\n&quot;, render(&quot;foo\n  bar = url(foo.png)\n&quot;));
+    assert_equal(&quot;foo {\n  bar: url(foo.png); }\n&quot;, render(%Q{foo\n  bar = url(&quot;foo.png&quot;)\n}));
     assert_equal(&quot;foo {\n  bar: url(); }\n&quot;, render(&quot;foo\n  bar = url()\n&quot;));
+  end
+
+  def test_string_minus
+    assert_equal(&quot;foo {\n  bar: baz-boom-bat; }\n&quot;, render(%Q{foo\n  bar = &quot;baz&quot;-&quot;boom&quot;-&quot;bat&quot;}))
+    assert_equal(&quot;foo {\n  bar: -baz-boom; }\n&quot;, render(%Q{foo\n  bar = -&quot;baz&quot;-&quot;boom&quot;}))
+  end
+
+  def test_string_div
+    assert_equal(&quot;foo {\n  bar: baz/boom/bat; }\n&quot;, render(%Q{foo\n  bar = &quot;baz&quot;/&quot;boom&quot;/&quot;bat&quot;}))
+    assert_equal(&quot;foo {\n  bar: /baz/boom; }\n&quot;, render(%Q{foo\n  bar = /&quot;baz&quot;/&quot;boom&quot;}))
   end
 
   def test_basic_multiline_selector
@@ -173,21 +268,23 @@ END
 
   def test_colon_only
     begin
-      render(&quot;a\n  b: c&quot;, :attribute_syntax =&gt; :normal)
+      render(&quot;a\n  b: c&quot;, :property_syntax =&gt; :old)
     rescue Sass::SyntaxError =&gt; e
-      assert_equal(&quot;Illegal attribute syntax: can't use alternate syntax when :attribute_syntax =&gt; :normal is set.&quot;,
+      assert_equal(&quot;Illegal property syntax: can't use new syntax when :property_syntax =&gt; :old is set.&quot;,
                    e.message)
+      assert_equal(2, e.sass_line)
     else
-      assert(false, &quot;SyntaxError not raised for :attribute_syntax =&gt; :normal&quot;)
+      assert(false, &quot;SyntaxError not raised for :property_syntax =&gt; :old&quot;)
     end
 
     begin
-      render(&quot;a\n  :b c&quot;, :attribute_syntax =&gt; :alternate)
+      render(&quot;a\n  :b c&quot;, :property_syntax =&gt; :new)
+      assert_equal(2, e.sass_line)
     rescue Sass::SyntaxError =&gt; e
-      assert_equal(&quot;Illegal attribute syntax: can't use normal syntax when :attribute_syntax =&gt; :alternate is set.&quot;,
+      assert_equal(&quot;Illegal property syntax: can't use old syntax when :property_syntax =&gt; :new is set.&quot;,
                    e.message)
     else
-      assert(false, &quot;SyntaxError not raised for :attribute_syntax =&gt; :alternate&quot;)
+      assert(false, &quot;SyntaxError not raised for :property_syntax =&gt; :new&quot;)
     end
   end
 
@@ -202,7 +299,7 @@ SASS
   end
 
   def test_directive
-    assert_equal(&quot;@a b;&quot;, render(&quot;@a b&quot;))
+    assert_equal(&quot;@a b;\n&quot;, render(&quot;@a b&quot;))
 
     assert_equal(&quot;@a {\n  b: c; }\n&quot;, render(&quot;@a\n  :b c&quot;))
     assert_equal(&quot;@a { b: c; }\n&quot;, render(&quot;@a\n  :b c&quot;, :style =&gt; :compact))
@@ -262,6 +359,54 @@ END
     assert_equal(&quot;@a{b:c;#d{e:f}g:h}\n&quot;, render(to_render, :style =&gt; :compressed))
   end
 
+  def test_line_annotations
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS, :line_comments =&gt; true, :style =&gt; :compact))
+/* line 2, test_line_annotations_inline.sass */
+foo bar { foo: bar; }
+/* line 5, test_line_annotations_inline.sass */
+foo baz { blip: blop; }
+
+/* line 9, test_line_annotations_inline.sass */
+floodle { flop: blop; }
+
+/* line 18, test_line_annotations_inline.sass */
+bup { mix: on; }
+/* line 15, test_line_annotations_inline.sass */
+bup mixin { moop: mup; }
+
+/* line 22, test_line_annotations_inline.sass */
+bip hop, skip hop { a: b; }
+CSS
+foo
+  bar
+    foo: bar
+
+  baz
+    blip: blop
+
+
+floodle
+
+  flop: blop
+
+=mxn
+  mix: on
+  mixin
+    moop: mup
+
+bup
+  +mxn
+
+bip, skip
+  hop
+    a: b
+SASS
+  end
+
+  def test_line_annotations_with_filename
+    renders_correctly &quot;line_numbers&quot;, :line_comments =&gt; true, :load_paths =&gt; [File.dirname(__FILE__) + &quot;/templates&quot;]
+  end
+
   def test_empty_first_line
     assert_equal(&quot;#a {\n  b: c; }\n&quot;, render(&quot;#a\n\n  b: c&quot;))
   end
@@ -276,8 +421,8 @@ END
   end
 
   def test_or_eq
-    assert_equal(&quot;foo {\n  a: b; }\n&quot;, render(&quot;!foo = b\n!foo ||= c\nfoo\n  a = !foo&quot;))
-    assert_equal(&quot;foo {\n  a: b; }\n&quot;, render(&quot;!foo ||= b\nfoo\n  a = !foo&quot;))
+    assert_equal(&quot;foo {\n  a: b; }\n&quot;, render(%Q{!foo = &quot;b&quot;\n!foo ||= &quot;c&quot;\nfoo\n  a = !foo}))
+    assert_equal(&quot;foo {\n  a: b; }\n&quot;, render(%Q{!foo ||= &quot;b&quot;\nfoo\n  a = !foo}))
   end
   
   def test_mixins
@@ -285,28 +430,463 @@ END
   end
 
   def test_mixins_dont_interfere_with_sibling_combinator
-    assert_equal(&quot;foo + bar {\n  a: b; }\n&quot;, render(&quot;foo\n  + bar\n    a: b&quot;))
     assert_equal(&quot;foo + bar {\n  a: b; }\nfoo + baz {\n  c: d; }\n&quot;,
                  render(&quot;foo\n  +\n    bar\n      a: b\n    baz\n      c: d&quot;))
   end
 
-  private
+  def test_mixin_args
+    assert_equal(&quot;blat {\n  baz: hi; }\n&quot;, render(&lt;&lt;SASS))
+=foo(!bar)
+  baz = !bar
+blat
+  +foo(\&quot;hi\&quot;)
+SASS
+    assert_equal(&quot;blat {\n  baz: 3; }\n&quot;, render(&lt;&lt;SASS))
+=foo(!a, !b)
+  baz = !a + !b
+blat
+  +foo(1, 2)
+SASS
+    assert_equal(&quot;blat {\n  baz: 4;\n  baz: 3;\n  baz: 5;\n  bang: 3; }\n&quot;, render(&lt;&lt;SASS))
+=foo(!c = (6 + 4) / 2)
+  baz = !c
+!c = 3
+blat
+  +foo(!c + 1)
+  +foo((!c + 3)/2)
+  +foo
+  bang = !c
+SASS
+  end
 
+  def test_default_values_for_mixin_arguments
+    assert_equal(&quot;white {\n  color: white; }\n\nblack {\n  color: black; }\n&quot;, render(&lt;&lt;SASS))
+=foo(!a = #FFF)
+  :color= !a
+white
+  +foo
+black
+  +foo(#000)
+SASS
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+one {
+  color: white;
+  padding: 1px;
+  margin: 4px; }
+
+two {
+  color: white;
+  padding: 2px;
+  margin: 5px; }
+
+three {
+  color: white;
+  padding: 2px;
+  margin: 3px; }
+CSS
+!a = 5px
+=foo(!a, !b = 1px, !c = 3px + !b)
+  :color= !a
+  :padding= !b
+  :margin= !c
+one
+  +foo(#fff)
+two
+  +foo(#fff, 2px)
+three
+  +foo(#fff, 2px, 3px)
+SASS
+  end
+
+  def test_interpolation
+    assert_equal(&quot;a-1 {\n  b-2-3: c-3; }\n&quot;, render(&lt;&lt;SASS))
+!a = 1
+!b = 2
+!c = 3
+a-\#{!a}
+  b-\#{!b}-\#{!c}: c-\#{!a + !b}
+SASS
+  end
+
+  def test_if_directive
+    assert_equal(&quot;a {\n  b: 1; }\n&quot;, render(&lt;&lt;SASS))
+!var = true
+a
+  @if !var
+    b: 1
+  @if not !var
+    b: 2
+SASS
+  end
+
+  def test_for
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a-0 {
+  2i: 0; }
+
+a-1 {
+  2i: 2; }
+
+a-2 {
+  2i: 4; }
+
+a-3 {
+  2i: 6; }
+
+b-1 {
+  j-1: 0; }
+
+b-2 {
+  j-1: 1; }
+
+b-3 {
+  j-1: 2; }
+
+b-4 {
+  j-1: 3; }
+CSS
+!a = 3
+@for !i from 0 to !a + 1
+  a-\#{!i}
+    2i = 2 * !i
+
+@for !j from 1 through 4
+  b-\#{!j}
+    j-1 = !j - 1
+SASS
+  end
+
+  def test_while
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a-5 {
+  blooble: gloop; }
+
+a-4 {
+  blooble: gloop; }
+
+a-3 {
+  blooble: gloop; }
+
+a-2 {
+  blooble: gloop; }
+
+a-1 {
+  blooble: gloop; }
+CSS
+!a = 5
+@while !a != 0
+  a-\#{!a}
+    blooble: gloop
+  !a = !a - 1
+SASS
+  end
+
+  def test_else
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a {
+  t1: t;
+  t2: t;
+  t3: t;
+  t4: t; }
+CSS
+a
+  @if true
+    t1: t
+  @else
+    f1: f
+
+  @if false
+    f2: f
+  @else
+    t2: t
+
+  @if false
+    f3: f1
+  @else if 1 + 1 == 3
+    f3: f2
+  @else
+    t3: t
+
+  @if false
+    f4: f1
+  @else if 1 + 1 == 2
+    t4: t
+  @else
+    f4: f2
+
+  @if false
+    f5: f1
+  @else if false
+    f5: f2
+SASS
+  end
+
+  def test_variable_reassignment
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a {
+  b: 1;
+  c: 2; }
+CSS
+!a = 1
+a
+  b = !a
+  !a = 2
+  c = !a
+SASS
+  end
+
+  def test_variable_scope
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a {
+  b-1: c;
+  b-2: c;
+  d: 12; }
+
+b {
+  d: 17; }
+CSS
+!i = 12
+a
+  @for !i from 1 through 2
+    b-\#{!i}: c
+  d = !i
+
+=foo
+  !i = 17
+
+b
+  +foo
+  d = !i
+SASS
+  end
+
+  def test_argument_error
+    assert_raise(Sass::SyntaxError) { render(&quot;a\n  b = hsl(1)&quot;) }
+  end
+
+  def test_comments_at_the_top_of_a_document
+    render(&lt;&lt;SASS)
+//
+  This is a comment that
+  continues to the second line.
+foo
+  bar: baz
+SASS
+  end
+
+  def test_loud_comments_containing_a_comment_close
+    actual_css = render(&lt;&lt;SASS)
+/*
+  This is a comment that
+  continues to the second line. */
+foo
+  bar: baz
+SASS
+assert_equal(&lt;&lt;CSS, actual_css)
+/* This is a comment that
+ * continues to the second line. */
+foo {
+  bar: baz; }
+CSS
+  end
+
+  def test_quoted_colon
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a b[foo=&quot;bar: baz&quot;] {
+  c: d; }
+CSS
+a
+  b[foo=&quot;bar: baz&quot;]
+    c: d
+SASS
+  end
+
+  def test_quoted_comma
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a b[foo=&quot;bar, baz&quot;] {
+  c: d; }
+CSS
+a
+  b[foo=&quot;bar, baz&quot;]
+    c: d
+SASS
+  end
+
+  def test_quoted_ampersand
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a b[foo=&quot;bar &amp; baz&quot;] {
+  c: d; }
+CSS
+a
+  b[foo=&quot;bar &amp; baz&quot;]
+    c: d
+SASS
+  end
+
+  def test_empty_selector_warning
+    assert_warning(&lt;&lt;END) {render(&quot;foo bar&quot;)}
+WARNING on line 1:
+Selector &quot;foo bar&quot; doesn't have any properties and will not be rendered.
+END
+
+    assert_warning(&lt;&lt;END) {render(&lt;&lt;SASS)}
+WARNING on line 3:
+Selector
+  foo, bar, baz,
+  bang, bip, bop
+doesn't have any properties and will not be rendered.
+END
+
+
+foo, bar, baz,
+bang, bip, bop
+SASS
+  end
+
+  # Regression tests
+
+  def test_parens_in_mixins
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+.foo {
+  color: #01ff7f;
+  background-color: #000102; }
+CSS
+=foo(!c1, !c2 = rgb(0, 1, 2))
+  color = !c1
+  background-color = !c2
+
+.foo
+  +foo(rgb(1,255,127))
+SASS
+  end
+
+  def test_comment_beneath_prop
+    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE))
+.box {
+  border-style: solid; }
+RESULT
+.box
+  :border
+    //:color black
+    :style solid
+SOURCE
+
+    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE))
+.box {
+  /* :color black */
+  border-style: solid; }
+RESULT
+.box
+  :border
+    /*:color black
+    :style solid
+SOURCE
+
+    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE, :style =&gt; :compressed))
+.box{border-style:solid}
+RESULT
+.box
+  :border
+    /*:color black
+    :style solid
+SOURCE
+  end
+
+  def test_compressed_comment_beneath_directive
+    assert_equal(&lt;&lt;RESULT, render(&lt;&lt;SOURCE, :style =&gt; :compressed))
+@foo{a:b}
+RESULT
+@foo
+  a: b
+  /*b: c
+SOURCE
+  end
+
+  def test_comment_with_crazy_indentation
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+/* This is a loud comment:
+ *          Where the indentation is wonky. */
+.comment {
+  width: 1px; }
+CSS
+/*
+  This is a loud comment:
+           Where the indentation is wonky.
+//
+  This is a silent comment:
+           Where the indentation is wonky.
+.comment
+  width: 1px
+SASS
+  end
+
+  def test_plus_with_space
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a + b {
+  color: green; }
+CSS
+a
+  + b
+    color: green
+SASS
+  end
+
+  def test_empty_line_comment
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+/* Foo
+ *
+ * Bar */
+CSS
+/*
+  Foo
+
+  Bar
+SASS
+  end
+
+  def test_empty_comment
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+/* */
+a {
+  /* */
+  b: c; }
+CSS
+/*
+a
+  /*
+  b: c
+SASS
+  end
+
+  private
+  
   def render(sass, options = {})
+    munge_filename options
     Sass::Engine.new(sass, options).render
   end
 
   def renders_correctly(name, options={})
     sass_file  = load_file(name, &quot;sass&quot;)
     css_file   = load_file(name, &quot;css&quot;)
+    options[:filename] ||= filename(name, &quot;sass&quot;)
+    options[:css_filename] ||= filename(name, &quot;css&quot;)
     css_result = Sass::Engine.new(sass_file, options).render
     assert_equal css_file, css_result
   end
 
   def load_file(name, type = &quot;sass&quot;)
     @result = ''
-    File.new(File.dirname(__FILE__) + &quot;/#{type == 'sass' ? 'templates' : 'results'}/#{name}.#{type}&quot;).each_line { |l| @result += l }
+    File.new(filename(name, type)).each_line { |l| @result += l }
     @result
+  end
+
+  def filename(name, type)
+    File.dirname(__FILE__) + &quot;/#{type == 'sass' ? 'templates' : 'results'}/#{name}.#{type}&quot;
+  end
+
+  def sassc_path(template)
+    sassc_path = File.join(File.dirname(__FILE__) + &quot;/templates/#{template}.sass&quot;)
+    Sass::Files.send(:sassc_filename, sassc_path, Sass::Engine::DEFAULT_OPTIONS)
   end
 end
 </pre>

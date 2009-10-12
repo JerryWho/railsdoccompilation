@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:21:21 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,50 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/formatter/rerun.rb-</pre>
+    <pre>module Cucumber
+  module Formatter
+    # The formatter used for &lt;tt&gt;--format rerun&lt;/tt&gt;
+    #
+    # This formatter keeps track of all failing features and print out their location.
+    # Example:
+    #
+    #   features/foo.feature:34 features/bar.feature:11:76:81
+    #
+    # This formatter is used by AutoTest - it will use the output to decide what
+    # to run the next time, simply passing the output string on the command line.
+    #
+    class Rerun
+      def initialize(step_mother, io, options)
+        @io = io
+        @options = options
+        @file_names = []
+        @file_colon_lines = Hash.new{|h,k| h[k] = []}
+      end
+
+      def features(features)
+        super
+        files = @file_names.uniq.map do |file|
+          lines = @file_colon_lines[file]
+          &quot;#{file}:#{lines.join(':')}&quot;
+        end
+        @io.puts files.join(' ')
+      end
+
+      def feature_element(feature_element)
+        @rerun = false
+        super
+        if @rerun
+          file, line = *feature_element.file_colon_line.split(':')
+          @file_colon_lines[file] &lt;&lt; line
+          @file_names &lt;&lt; file
+        end
+      end
+
+      def step_name(keyword, step_match, status, source_indent, background)
+        @rerun = true if [:failed].index(status)
+      end
+    end
+  end
+end
+</pre>
     </div>

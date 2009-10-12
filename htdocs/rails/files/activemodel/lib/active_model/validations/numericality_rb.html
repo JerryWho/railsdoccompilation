@@ -1,0 +1,98 @@
+  <div id="fileHeader">
+    <h1>numericality.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activemodel/lib/active_model/validations/numericality.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveModel
+  module Validations
+    module ClassMethods
+      ALL_NUMERICALITY_CHECKS = { :greater_than =&gt; '&gt;', :greater_than_or_equal_to =&gt; '&gt;=',
+                                  :equal_to =&gt; '==', :less_than =&gt; '&lt;', :less_than_or_equal_to =&gt; '&lt;=',
+                                  :odd =&gt; 'odd?', :even =&gt; 'even?' }.freeze
+
+
+      # Validates whether the value of the specified attribute is numeric by trying to convert it to
+      # a float with Kernel.Float (if &lt;tt&gt;integer&lt;/tt&gt; is false) or applying it to the regular expression
+      # &lt;tt&gt;/\A[\+\-]?\d+\Z/&lt;/tt&gt; (if &lt;tt&gt;integer&lt;/tt&gt; is true).
+      #
+      #   class Person &lt; ActiveRecord::Base
+      #     validates_numericality_of :value, :on =&gt; :create
+      #   end
+      #
+      # Configuration options:
+      # * &lt;tt&gt;:message&lt;/tt&gt; - A custom error message (default is: &quot;is not a number&quot;).
+      # * &lt;tt&gt;:on&lt;/tt&gt; - Specifies when this validation is active (default is &lt;tt&gt;:save&lt;/tt&gt;, other options &lt;tt&gt;:create&lt;/tt&gt;, &lt;tt&gt;:update&lt;/tt&gt;).
+      # * &lt;tt&gt;:only_integer&lt;/tt&gt; - Specifies whether the value has to be an integer, e.g. an integral value (default is +false+).
+      # * &lt;tt&gt;:allow_nil&lt;/tt&gt; - Skip validation if attribute is +nil+ (default is +false+). Notice that for fixnum and float columns empty strings are converted to +nil+.
+      # * &lt;tt&gt;:greater_than&lt;/tt&gt; - Specifies the value must be greater than the supplied value.
+      # * &lt;tt&gt;:greater_than_or_equal_to&lt;/tt&gt; - Specifies the value must be greater than or equal the supplied value.
+      # * &lt;tt&gt;:equal_to&lt;/tt&gt; - Specifies the value must be equal to the supplied value.
+      # * &lt;tt&gt;:less_than&lt;/tt&gt; - Specifies the value must be less than the supplied value.
+      # * &lt;tt&gt;:less_than_or_equal_to&lt;/tt&gt; - Specifies the value must be less than or equal the supplied value.
+      # * &lt;tt&gt;:odd&lt;/tt&gt; - Specifies the value must be an odd number.
+      # * &lt;tt&gt;:even&lt;/tt&gt; - Specifies the value must be an even number.
+      # * &lt;tt&gt;:if&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   occur (e.g. &lt;tt&gt;:if =&gt; :allow_validation&lt;/tt&gt;, or &lt;tt&gt;:if =&gt; Proc.new { |user| user.signup_step &gt; 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      # * &lt;tt&gt;:unless&lt;/tt&gt; - Specifies a method, proc or string to call to determine if the validation should
+      #   not occur (e.g. &lt;tt&gt;:unless =&gt; :skip_validation&lt;/tt&gt;, or &lt;tt&gt;:unless =&gt; Proc.new { |user| user.signup_step &lt;= 2 }&lt;/tt&gt;).  The
+      #   method, proc or string should return or evaluate to a true or false value.
+      def validates_numericality_of(*attr_names)
+        configuration = { :on =&gt; :save, :only_integer =&gt; false, :allow_nil =&gt; false }
+        configuration.update(attr_names.extract_options!)
+
+
+        numericality_options = ALL_NUMERICALITY_CHECKS.keys &amp; configuration.keys
+
+        (numericality_options - [ :odd, :even ]).each do |option|
+          raise ArgumentError, &quot;:#{option} must be a number&quot; unless configuration[option].is_a?(Numeric)
+        end
+
+        validates_each(attr_names,configuration) do |record, attr_name, value|
+          raw_value = record.send(&quot;#{attr_name}_before_type_cast&quot;) || value
+
+          next if configuration[:allow_nil] and raw_value.nil?
+
+          if configuration[:only_integer]
+            unless raw_value.to_s =~ /\A[+-]?\d+\Z/
+              record.errors.add(attr_name, configuration[:message] || ActiveRecord::Errors.default_error_messages[:not_a_number])
+              next
+            end
+            raw_value = raw_value.to_i
+          else
+           begin
+              raw_value = Kernel.Float(raw_value.to_s)
+            rescue ArgumentError, TypeError
+              record.errors.add(attr_name, configuration[:message] || ActiveRecord::Errors.default_error_messages[:not_a_number])
+              next
+            end
+          end
+
+          numericality_options.each do |option|
+            case option
+              when :odd, :even
+                record.errors.add(attr_name, configuration[:message] || ActiveRecord::Errors.default_error_messages[option]) unless raw_value.to_i.method(ALL_NUMERICALITY_CHECKS[option])[]
+              else
+                message = configuration[:message] || ActiveRecord::Errors.default_error_messages[option]
+                message = message % configuration[option] if configuration[option]
+                record.errors.add(attr_name, message) unless raw_value.method(ALL_NUMERICALITY_CHECKS[option])[configuration[option]]
+            end
+          end
+        end
+      end
+    end
+  end
+end</pre>
+    </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:34:50 +0200 2009</td>
+      <td>Mon Oct 12 14:56:40 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,42 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/nokogiri/newdoc/lib/nokogiri/ffi/html/document.rb-</pre>
+    <pre>module Nokogiri
+  module HTML
+    class Document &lt; XML::Document
+
+      attr_accessor :cstruct # :nodoc:
+
+      def self.new(*args) # :nodoc:
+        uri         = args[0]
+        external_id = args[1]
+        doc = wrap(LibXML.htmlNewDoc(uri, external_id))
+        doc.send :initialize, *args
+        doc
+      end
+
+      def self.read_io(io, url, encoding, options) # :nodoc:
+        wrap_with_error_handling do
+          LibXML.htmlReadIO(IoCallbacks.reader(io), nil, nil, url, encoding, options)
+        end
+      end
+
+      def self.read_memory(string, url, encoding, options) # :nodoc:
+        wrap_with_error_handling do
+          LibXML.htmlReadMemory(string, string.length, url, encoding, options)
+        end
+      end
+
+      def meta_encoding=(encoding) # :nodoc:
+        LibXML.htmlSetMetaEncoding(cstruct, encoding)
+        encoding
+      end
+
+      def meta_encoding # :nodoc:
+        LibXML.htmlGetMetaEncoding(cstruct)
+      end
+    end
+  end
+end
+</pre>
     </div>

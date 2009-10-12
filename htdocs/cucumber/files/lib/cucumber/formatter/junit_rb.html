@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:27:06 +0200 2009</td>
+      <td>Mon Oct 12 14:58:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,137 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/formatter/junit.rb-</pre>
+    <pre>require 'cucumber/formatter/ordered_xml_markup'
+
+module Cucumber
+  module Formatter
+    # The formatter used for &lt;tt&gt;--format junit&lt;/tt&gt;
+    class Junit
+      def initialize(step_mother, io, options)
+        raise &quot;You *must* specify --out DIR for the junit formatter&quot; unless String === io &amp;&amp; File.directory?(io)
+        @reportdir = io
+        @options = options
+      end
+
+      def before_feature(feature)
+        @failures = @errors = @tests = 0
+        @builder = OrderedXmlMarkup.new( :indent =&gt; 2 )
+        @time = 0
+      end
+      
+      def after_feature(feature)
+        @testsuite = OrderedXmlMarkup.new( :indent =&gt; 2 )
+        @testsuite.instruct!
+        @testsuite.testsuite(
+          :failures =&gt; @failures,
+          :errors =&gt; @errors,
+          :tests =&gt; @tests,
+          :time =&gt; &quot;%.6f&quot; % @time,
+          :name =&gt; @feature_name ) do
+          @testsuite &lt;&lt; @builder.target!
+        end
+
+        write_file(feature_result_filename(feature.file), @testsuite.target!)
+      end
+
+      def before_background(*args)
+        @in_background = true
+      end
+      
+      def after_background(*args)
+        @in_background = false
+      end
+
+      def feature_name(name)
+        lines = name.split(/\r?\n/)
+        @feature_name = lines[0].sub(/Feature\:/, '').strip
+      end
+
+      def scenario_name(keyword, name, file_colon_line, source_indent)
+        scenario_name = name.strip.delete(&quot;.\r\n&quot;)
+        scenario_name = &quot;Unnamed scenario&quot; if name.blank?
+        @scenario = scenario_name
+        @outline = keyword.include?('Scenario Outline')
+        @output = &quot;Scenario#{ &quot; outline&quot; if @outline}: #{@scenario}\n\n&quot;
+      end
+
+      def before_steps(steps)
+        @steps_start = Time.now
+      end
+      
+      def after_steps(steps)
+        return if @in_background || @outline
+        
+        duration = Time.now - @steps_start
+        if steps.failed?
+          steps.each { |step| @output += &quot;#{step.keyword} #{step.name}\n&quot; }
+          @output += &quot;\nMessage:\n&quot;
+        end
+        build_testcase(duration, steps.status, steps.exception)
+      end
+      
+      def before_examples(*args)
+        @header_row = true
+      end
+
+      def before_table_row(table_row)
+        return unless @outline
+
+        @table_start = Time.now
+      end
+
+      def after_table_row(table_row)
+        return unless @outline
+        duration = Time.now - @table_start
+        unless @header_row
+          name_suffix = &quot; (outline example : #{table_row.name})&quot;
+          if table_row.failed?
+            @output += &quot;Example row: #{table_row.name}\n&quot;
+            @output += &quot;\nMessage:\n&quot;
+          end
+          build_testcase(duration, table_row.status, table_row.exception, name_suffix)
+        end
+        
+        @header_row = false if @header_row
+      end
+
+      private
+
+      def build_testcase(duration, status, exception = nil, suffix = &quot;&quot;)
+        @time += duration
+        classname = &quot;#{@feature_name}.#{@scenario}&quot;
+        name = &quot;#{@scenario}#{suffix}&quot;
+        failed = (status == :failed || (status == :pending &amp;&amp; @options[:strict]))
+        #puts &quot;FAILED:!!#{failed}&quot;
+        if status == :passed || failed
+          @builder.testcase(:classname =&gt; classname, :name =&gt; name, :time =&gt; &quot;%.6f&quot; % duration) do
+            if failed
+              @builder.failure(:message =&gt; &quot;#{status.to_s} #{name}&quot;, :type =&gt; status.to_s) do
+                @builder.text! @output
+                @builder.text!(format_exception(exception)) if exception
+              end
+              @failures += 1
+            end
+          end
+          @tests += 1
+        end
+      end
+
+      def format_exception(exception)
+        ([&quot;#{exception.message} (#{exception.class})&quot;] + exception.backtrace).join(&quot;\n&quot;)
+      end
+      
+      def feature_result_filename(feature_file)
+        ext_length = File.extname(feature_file).length
+        basename = File.basename(feature_file)[0...-ext_length]
+        File.join(@reportdir, &quot;TEST-#{basename}.xml&quot;)
+      end
+      
+      def write_file(feature_filename, data)
+        File.open(feature_filename, 'w') { |file| file.write(data) }
+      end
+    end
+  end
+end
+</pre>
     </div>

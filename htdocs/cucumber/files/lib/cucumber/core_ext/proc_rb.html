@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Sat Jul 04 17:21:21 +0200 2009</td>
+      <td>Mon Oct 12 19:47:38 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,5 +15,34 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>file not found -/home/mst/src/rails-extern/cucumber/newdoc/lib/cucumber/core_ext/proc.rb-</pre>
+    <pre># Proc extension to get more location info out of a proc
+class Proc #:nodoc:
+  PROC_PATTERN = /[\d\w]+@(.*):(.*)&gt;/
+  
+  def to_comment_line
+    &quot;# #{file_colon_line}&quot;
+  end
+
+  def backtrace_line(name)
+    &quot;#{file_colon_line}:in `#{name}'&quot;
+  end
+
+  if Proc.new{}.to_s =~ PROC_PATTERN
+    def file_colon_line
+      path, line = *to_s.match(PROC_PATTERN)[1..2]
+      path = File.expand_path(path)
+      pwd = Dir.pwd
+      path = path[pwd.length+1..-1]
+      &quot;#{path}:#{line}&quot;
+    end
+  else
+    # This Ruby implementation doesn't implement Proc#to_s correctly
+    STDERR.puts &quot;*** THIS RUBY IMPLEMENTATION DOESN'T REPORT FILE AND LINE FOR PROCS ***&quot;
+    
+    def file_colon_line
+      &quot;UNKNOWN:-1&quot;
+    end
+  end
+end 
+</pre>
     </div>

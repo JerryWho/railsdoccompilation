@@ -1,0 +1,64 @@
+  <div id="fileHeader">
+    <h1>reply.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activerecord/test/models/reply.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'models/topic'
+
+class Reply &lt; Topic
+  named_scope :base
+
+  belongs_to :topic, :foreign_key =&gt; &quot;parent_id&quot;, :counter_cache =&gt; true
+  belongs_to :topic_with_primary_key, :class_name =&gt; &quot;Topic&quot;, :primary_key =&gt; &quot;title&quot;, :foreign_key =&gt; &quot;parent_title&quot;, :counter_cache =&gt; &quot;replies_count&quot;
+  has_many :replies, :class_name =&gt; &quot;SillyReply&quot;, :dependent =&gt; :destroy, :foreign_key =&gt; &quot;parent_id&quot;
+
+  validate :errors_on_empty_content
+  validate_on_create :title_is_wrong_create
+
+  attr_accessible :title, :author_name, :author_email_address, :written_on, :content, :last_read, :parent_title
+
+  def validate
+    errors.add(&quot;title&quot;, &quot;Empty&quot;)   unless attribute_present? &quot;title&quot;
+  end
+
+  def errors_on_empty_content
+    errors.add(&quot;content&quot;, &quot;Empty&quot;) unless attribute_present? &quot;content&quot;
+  end
+
+  def validate_on_create
+    if attribute_present?(&quot;title&quot;) &amp;&amp; attribute_present?(&quot;content&quot;) &amp;&amp; content == &quot;Mismatch&quot;
+      errors.add(&quot;title&quot;, &quot;is Content Mismatch&quot;)
+    end
+  end
+
+  def title_is_wrong_create
+    errors.add(&quot;title&quot;, &quot;is Wrong Create&quot;) if attribute_present?(&quot;title&quot;) &amp;&amp; title == &quot;Wrong Create&quot;
+  end
+
+  def validate_on_update
+    errors.add(&quot;title&quot;, &quot;is Wrong Update&quot;) if attribute_present?(&quot;title&quot;) &amp;&amp; title == &quot;Wrong Update&quot;
+  end
+end
+
+class SillyReply &lt; Reply
+  belongs_to :reply, :foreign_key =&gt; &quot;parent_id&quot;, :counter_cache =&gt; :replies_count
+end
+
+module Web
+  class Reply &lt; Web::Topic
+    belongs_to :topic, :foreign_key =&gt; &quot;parent_id&quot;, :counter_cache =&gt; true, :class_name =&gt; 'Web::Topic'
+  end
+end</pre>
+    </div>
