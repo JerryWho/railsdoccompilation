@@ -1,0 +1,113 @@
+  <div id="fileHeader">
+    <h1>xss_mods.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/haml/helpers/xss_mods.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Oct 29 21:23:42 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Haml
+  module Helpers
+    # This module overrides Haml helpers to work properly
+    # in the context of ActionView.
+    # Currently it's only used for modifying the helpers
+    # to work with Rails' XSS protection methods.
+    module XssMods
+      def self.included(base)
+        %w[html_escape find_and_preserve preserve list_of surround
+           precede succeed capture_haml haml_concat haml_indent
+           haml_tag escape_once].each do |name|
+          base.send(:alias_method, &quot;#{name}_without_haml_xss&quot;, name)
+          base.send(:alias_method, name, &quot;#{name}_with_haml_xss&quot;)
+        end
+      end
+
+      # Don't escape text that's already safe,
+      # output is always HTML safe
+      def html_escape_with_haml_xss(text)
+        return text if text.html_safe?
+        html_escape_without_haml_xss(text).html_safe!
+      end
+
+      # Output is always HTML safe
+      def find_and_preserve_with_haml_xss(*args, &amp;block)
+        find_and_preserve_without_haml_xss(*args, &amp;block).html_safe!
+      end
+
+      # Output is always HTML safe
+      def preserve_with_haml_xss(*args, &amp;block)
+        preserve_without_haml_xss(*args, &amp;block).html_safe!
+      end
+
+      # Output is always HTML safe
+      def list_of_with_haml_xss(*args, &amp;block)
+        list_of_without_haml_xss(*args, &amp;block).html_safe!
+      end
+
+      # Input is escaped, output is always HTML safe
+      def surround_with_haml_xss(front, back = front, &amp;block)
+        surround_without_haml_xss(
+          haml_xss_html_escape(front),
+          haml_xss_html_escape(back),
+          &amp;block).html_safe!
+      end
+
+      # Input is escaped, output is always HTML safe
+      def precede_with_haml_xss(str, &amp;block)
+        precede_without_haml_xss(haml_xss_html_escape(str), &amp;block).html_safe!
+      end
+
+      # Input is escaped, output is always HTML safe
+      def succeed_with_haml_xss(str, &amp;block)
+        succeed_without_haml_xss(haml_xss_html_escape(str), &amp;block).html_safe!
+      end
+
+      # Output is always HTML safe
+      def capture_haml_with_haml_xss(*args, &amp;block)
+        capture_haml_without_haml_xss(*args, &amp;block).html_safe!
+      end
+
+      # Input is escaped
+      def haml_concat_with_haml_xss(text = &quot;&quot;)
+        haml_concat_without_haml_xss(@_haml_concat_raw ? text : haml_xss_html_escape(text))
+      end
+
+      # Output is always HTML safe
+      def haml_indent_with_haml_xss
+        haml_indent_without_haml_xss.html_safe!
+      end
+
+      # Input is escaped, haml_concat'ed output is always HTML safe
+      def haml_tag_with_haml_xss(name, *rest, &amp;block)
+        name = haml_xss_html_escape(name.to_s)
+        rest.unshift(haml_xss_html_escape(rest.shift.to_s)) unless [Symbol, Hash, NilClass].any? {|t| rest.first.is_a? t}
+        with_raw_haml_concat {haml_tag_without_haml_xss(name, *rest, &amp;block)}
+      end
+
+      # Output is always HTML safe
+      def escape_once_with_haml_xss(*args)
+        escape_once_without_haml_xss(*args).html_safe!
+      end
+
+      private
+
+      # Escapes the HTML in the text if and only if
+      # Rails XSS protection is enabled *and* the `:escape_html` option is set.
+      def haml_xss_html_escape(text)
+        return text unless Haml::Util.rails_xss_safe? &amp;&amp; haml_buffer.options[:escape_html]
+        html_escape(text)
+      end
+    end
+  end
+end
+</pre>
+    </div>

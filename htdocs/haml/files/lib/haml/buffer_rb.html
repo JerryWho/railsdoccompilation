@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:41:22 +0200 2009</td>
+      <td>Thu Oct 29 21:24:01 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -147,6 +147,8 @@
     Haml::Util.def_static_method(self, :format_script, [:result],
                                  :preserve_script, :in_tag, :preserve_tag, :escape_html,
                                  :nuke_inner_whitespace, :interpolated, :ugly, &lt;&lt;RUBY)
+      &lt;% # Escape HTML here so that the safety of the string is preserved in Rails
+         result_name = escape_html ? &quot;html_escape(result.to_s)&quot; : &quot;result.to_s&quot; %&gt;
       &lt;% unless ugly %&gt;
         # If we're interpolated,
         # then the custom tabulation is handled in #push_text.
@@ -157,12 +159,10 @@
         &lt;% end %&gt;
 
         tabulation = @real_tabs
-        result = result.to_s.&lt;% if nuke_inner_whitespace %&gt;strip&lt;% else %&gt;rstrip&lt;% end %&gt;
+        result = &lt;%= result_name %&gt;.&lt;% if nuke_inner_whitespace %&gt;strip&lt;% else %&gt;rstrip&lt;% end %&gt;
       &lt;% else %&gt;
-        result = result.to_s&lt;% if nuke_inner_whitespace %&gt;.strip&lt;% end %&gt;
+        result = &lt;%= result_name %&gt;&lt;% if nuke_inner_whitespace %&gt;.strip&lt;% end %&gt;
       &lt;% end %&gt;
-
-      &lt;% if escape_html %&gt; result = html_escape(result) &lt;% end %&gt;
 
       &lt;% if preserve_tag %&gt;
         result = Haml::Helpers.preserve(result)

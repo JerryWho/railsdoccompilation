@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:41:22 +0200 2009</td>
+      <td>Thu Oct 29 21:24:01 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -178,6 +178,10 @@ class EngineTest &lt; Test::Unit::TestCase
   def test_interpolation_at_the_beginning_of_a_line
     assert_equal(&quot;&lt;p&gt;2&lt;/p&gt;\n&quot;, render('%p #{1 + 1}'))
     assert_equal(&quot;&lt;p&gt;\n  2\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  \#{1 + 1}&quot;))
+  end
+
+  def test_escaped_interpolation
+    assert_equal(&quot;&lt;p&gt;Foo &amp;amp; Bar &amp; Baz&lt;/p&gt;\n&quot;, render('%p&amp; Foo #{&quot;&amp;&quot;} Bar &amp; Baz'))
   end
 
   def test_nil_tag_value_should_render_as_empty
@@ -615,53 +619,53 @@ HAML
   end
 
   def test_string_double_equals_should_be_esaped
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_escaped_inline_string_double_equals
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p&amp;== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_unescaped_inline_string_double_equals
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p!== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_escaped_string_double_equals
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&amp;lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&amp;lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp;== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_unescaped_string_double_equals
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  !== \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_string_interpolation_should_be_esaped
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_escaped_inline_string_interpolation
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;amp;3&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&amp;lt;&lt;/p&gt;\n&quot;, render(&quot;%p&amp; \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_unescaped_inline_string_interpolation
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;4&amp;3&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;4&amp;&lt;&lt;/p&gt;\n&quot;, render(&quot;%p! \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_escaped_string_interpolation
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&amp;lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&amp;lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  &amp; \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_unescaped_string_interpolation
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; true))
-    assert_equal(&quot;&lt;p&gt;\n  4&amp;3\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{2+1}&quot;, :escape_html =&gt; false))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; true))
+    assert_equal(&quot;&lt;p&gt;\n  4&amp;&lt;\n&lt;/p&gt;\n&quot;, render(&quot;%p\n  ! \#{2+2}&amp;\#{'&lt;'}&quot;, :escape_html =&gt; false))
   end
 
   def test_scripts_should_respect_escape_html_option

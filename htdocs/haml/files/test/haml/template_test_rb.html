@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Thu Oct 29 21:23:42 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -101,8 +101,9 @@ class TemplateTest &lt; Test::Unit::TestCase
     base
   end
 
-  def render(text)
-    Haml::Engine.new(text).to_html(@base)
+  def render(text, opts = {})
+    return @base.render(:inline =&gt; text, :type =&gt; :haml) if opts == :action_view
+    Haml::Engine.new(text, opts).to_html(@base)
   end
 
   def load_result(name)
@@ -112,6 +113,8 @@ class TemplateTest &lt; Test::Unit::TestCase
   end
 
   def assert_renders_correctly(name, &amp;render_method)
+    old_options = Haml::Template.options.dup
+    Haml::Template.options[:escape_html] = false
     if ActionPack::VERSION::MAJOR &lt; 2 ||
         (ActionPack::VERSION::MAJOR == 2 &amp;&amp; ActionPack::VERSION::MINOR &lt; 2)
       render_method ||= proc { |name| @base.render(name) }
@@ -129,6 +132,8 @@ class TemplateTest &lt; Test::Unit::TestCase
     else
       raise e
     end
+  ensure
+    Haml::Template.options = old_options
   end
 
   def test_empty_render_should_remain_empty
@@ -193,12 +198,31 @@ class TemplateTest &lt; Test::Unit::TestCase
   end
 
   def test_haml_options
-    Haml::Template.options = { :suppress_eval =&gt; true }
-    assert_equal({ :suppress_eval =&gt; true }, Haml::Template.options)
+    old_options = Haml::Template.options.dup
+    Haml::Template.options[:suppress_eval] = true
     old_base, @base = @base, create_base
     assert_renders_correctly(&quot;eval_suppressed&quot;)
+  ensure
     @base = old_base
-    Haml::Template.options = {}
+    Haml::Template.options = old_options
+  end
+
+  def test_with_output_buffer_with_ugly
+    return unless Haml::Util.has?(:instance_method, ActionView::Base, :with_output_buffer)
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML, :ugly =&gt; true))
+&lt;p&gt;
+foo
+baz
+&lt;/p&gt;
+HTML
+%p
+  foo
+  - with_output_buffer do
+    bar
+    = &quot;foo&quot;.gsub(/./) do |s|
+      - s.ord
+  baz
+HAML
   end
 
   def test_exceptions_should_work_correctly
@@ -230,7 +254,43 @@ END
     else
       assert false
     end
-  end  
+  end
+
+  ## XSS Protection Tests
+
+  if Haml::Util.rails_xss_safe?
+    def test_escape_html_option_set
+      assert Haml::Template.options[:escape_html]
+    end
+
+    def test_xss_protection
+      assert_equal(&quot;Foo &amp;amp; Bar\n&quot;, render('= &quot;Foo &amp; Bar&quot;', :action_view))
+    end
+
+    def test_xss_protection_with_safe_strings
+      assert_equal(&quot;Foo &amp; Bar\n&quot;, render('= &quot;Foo &amp; Bar&quot;.html_safe!', :action_view))
+    end
+
+    def test_xss_protection_with_bang
+      assert_equal(&quot;Foo &amp; Bar\n&quot;, render('!= &quot;Foo &amp; Bar&quot;', :action_view))
+    end
+
+    def test_xss_protection_in_interpolation
+      assert_equal(&quot;Foo &amp;amp; Bar\n&quot;, render('Foo #{&quot;&amp;&quot;} Bar', :action_view))
+    end
+
+    def test_xss_protection_with_bang_in_interpolation
+      assert_equal(&quot;Foo &amp; Bar\n&quot;, render('! Foo #{&quot;&amp;&quot;} Bar', :action_view))
+    end
+
+    def test_xss_protection_with_safe_strings_in_interpolation
+      assert_equal(&quot;Foo &amp; Bar\n&quot;, render('Foo #{&quot;&amp;&quot;.html_safe!} Bar', :action_view))
+    end
+
+    def test_xss_protection_with_mixed_strings_in_interpolation
+      assert_equal(&quot;Foo &amp; Bar &amp;amp; Baz\n&quot;, render('Foo #{&quot;&amp;&quot;.html_safe!} Bar #{&quot;&amp;&quot;} Baz', :action_view))
+    end
+  end
 end
 </pre>
     </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Thu Oct 29 21:23:42 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -42,6 +42,21 @@ if defined?(ActionView::TemplateHandler)
   require 'haml/template/plugin'
 else
   require 'haml/template/patch'
+end
+
+if ActionView::Base.respond_to?(:xss_safe?) &amp;&amp; ActionView::Base.xss_safe?
+  Haml::Template.options[:escape_html] = true
+
+  module Haml::Util
+    def rails_xss_safe?
+      true
+    end
+  end
+
+  require 'haml/helpers/xss_mods'
+  module Haml::Helpers
+    include XssMods
+  end
 end
 
 if defined?(RAILS_ROOT)
