@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -102,7 +102,7 @@ module Cli
           after_parsing('-o file.txt') { options[:formats].should == [['pretty', 'file.txt']] }
         end
         it &quot;sets the output for the formatter defined immediatly before it&quot; do
-          after_parsing('-f profile --out file.txt -f pretty -o file2.txt') do 
+          after_parsing('-f profile --out file.txt -f pretty -o file2.txt') do
             options[:formats].should == [['profile', 'file.txt'], ['pretty', 'file2.txt']]
           end
         end
@@ -110,7 +110,11 @@ module Cli
 
       context '-t TAGS --tags TAGS' do
         it &quot;designates tags prefixed with ~ as tags to be excluded&quot; do
-          after_parsing('--tags ~@foo,@bar') { options[:tag_names].should == {'~@foo' =&gt; nil, '@bar' =&gt; nil} }
+          after_parsing('--tags ~@foo,@bar') { options[:tag_names].should == [{'~@foo' =&gt; nil, '@bar' =&gt; nil}] }
+        end
+
+        it &quot;stores tags passed with different --tags seperately&quot; do
+          after_parsing('--tags @foo --tags @bar') { options[:tag_names].should == [{'@foo' =&gt; nil}, {'@bar' =&gt; nil}] }
         end
       end
 
@@ -177,7 +181,7 @@ module Cli
         it &quot;combines the tag names of both&quot; do
           given_cucumber_yml_defined_as('baz' =&gt; %w[-t @bar])
           options.parse!(%w[--tags @foo -p baz])
-          options[:tag_names].should == {'@foo' =&gt; nil, '@bar' =&gt; nil}
+          options[:tag_names].should == [{'@foo' =&gt; nil}, {'@bar' =&gt; nil}]
         end
 
         it &quot;only takes the paths from the original options, and disgregards the profiles&quot; do
@@ -272,7 +276,7 @@ module Cli
       context '--version' do
         it &quot;displays Cucumber's version&quot; do
           after_parsing('--version') do
-            output_stream.string.should =~ /#{VERSION::STRING}/
+            output_stream.string.should =~ /#{Cucumber::VERSION}/
           end
         end
         it &quot;exits the program&quot; do
@@ -303,7 +307,7 @@ module Cli
 
     describe '#expanded_args_without_drb' do
       it &quot;returns the orginal args in additon to the args from any profiles&quot; do
-        given_cucumber_yml_defined_as('foo' =&gt; '-v', 
+        given_cucumber_yml_defined_as('foo' =&gt; '-v',
                                       'bar' =&gt; '--wip -p baz',
                                       'baz' =&gt; '-r some_file.rb')
         options.parse!(%w[features -p foo --profile bar])

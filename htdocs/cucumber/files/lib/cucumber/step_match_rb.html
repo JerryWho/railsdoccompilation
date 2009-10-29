@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -19,8 +19,12 @@
   class StepMatch #:nodoc:
     attr_reader :step_definition
 
-    def initialize(step_definition, step_name, formatted_step_name, step_arguments)
-      @step_definition, @step_name, @formatted_step_name, @step_arguments = step_definition, step_name, formatted_step_name, step_arguments
+    # Creates a new StepMatch. The +name_to_report+ argument is what's reported, unless it's is,
+    # in which case +name_to_report+ is used instead.
+    # 
+    def initialize(step_definition, name_to_match, name_to_report, step_arguments)
+      raise &quot;name_to_match can't be nil&quot; if name_to_match.nil?
+      @step_definition, @name_to_match, @name_to_report, @step_arguments = step_definition, name_to_match, name_to_report, step_arguments
     end
 
     def args
@@ -28,7 +32,7 @@
     end
 
     def name
-      @formatted_step_name
+      @name_to_report
     end
 
     def invoke(multiline_arg)
@@ -53,19 +57,19 @@
     #   lambda { |param| &quot;[#{param}]&quot; }
     #
     def format_args(format = lambda{|a| a}, &amp;proc)
-      @formatted_step_name || replace_arguments(@step_name, @step_arguments, format, &amp;proc)
+      @name_to_report || replace_arguments(@name_to_match, @step_arguments, format, &amp;proc)
     end
-    
+
     def file_colon_line
       @step_definition.file_colon_line
     end
 
     def backtrace_line
-      @step_definition.backtrace_line
+      &quot;#{file_colon_line}:in `#{@step_definition.regexp_source}'&quot;
     end
 
     def text_length
-      @step_definition.text_length
+      @step_definition.regexp_source.jlength
     end
 
     def replace_arguments(string, step_arguments, format, &amp;proc)
@@ -81,8 +85,8 @@
           format % step_argument.val
         end
 
-        s[step_argument.pos + offset, step_argument.val.jlength] = replacement
-        offset += replacement.length - step_argument.val.jlength
+        s[step_argument.pos + offset, step_argument.val.length] = replacement
+        offset += replacement.jlength - step_argument.val.jlength
       end
       s
     end

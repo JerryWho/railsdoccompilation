@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -23,7 +23,7 @@ require 'forwardable'
 begin
   require 'spork'
 rescue Gem::LoadError =&gt; ex
-  gem 'spork', '&gt;= 0.5.9' # Ensure correct spork version number to avoid false-negatives.
+  gem 'spork', '&gt;= 0.7.3' # Ensure correct spork version number to avoid false-negatives.
 end
 
 class CucumberWorld
@@ -56,11 +56,15 @@ class CucumberWorld
 
   # The last standard out, with the duration line taken out (unpredictable)
   def last_stdout
-    strip_duration(@last_stdout)
+    strip_1_9_paths(strip_duration(@last_stdout))
   end
 
   def strip_duration(s)
     s.gsub(/^\d+m\d+\.\d+s\n/m, &quot;&quot;)
+  end
+
+  def strip_1_9_paths(s)
+    s.gsub(/#{Dir.pwd}\/examples\/self_test\/tmp/m, &quot;.&quot;).gsub(/#{Dir.pwd}\/examples\/self_test/m, &quot;.&quot;)
   end
 
   def replace_duration(s, replacement)

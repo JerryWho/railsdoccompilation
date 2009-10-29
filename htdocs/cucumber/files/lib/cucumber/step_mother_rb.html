@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -19,7 +19,6 @@
 require 'cucumber/core_ext/instance_exec'
 require 'cucumber/parser/natural_language'
 require 'cucumber/language_support/language_methods'
-require 'cucumber/language_support/step_definition_methods'
 require 'cucumber/formatter/duration'
 
 module Cucumber
@@ -148,6 +147,10 @@ module Cucumber
       @visitor.announce(msg)
     end
 
+    def embed(file, mime_type)
+      @visitor.embed(file, mime_type)
+    end
+
     def scenarios(status = nil) #:nodoc:
       @scenarios ||= []
       if(status)
@@ -157,9 +160,13 @@ module Cucumber
       end
     end
 
-    def step_match(step_name, formatted_step_name=nil) #:nodoc:
+    def invoke(step_name, multiline_argument=nil)
+      step_match(step_name).invoke(multiline_argument)
+    end
+
+    def step_match(step_name, name_to_report=nil) #:nodoc:
       matches = @programming_languages.map do |programming_language| 
-        programming_language.step_matches(step_name, formatted_step_name)
+        programming_language.step_matches(step_name, name_to_report)
       end.flatten
       raise Undefined.new(step_name) if matches.empty?
       matches = best_matches(step_name, matches) if matches.size &gt; 1 &amp;&amp; options[:guess]
@@ -252,7 +259,8 @@ module Cucumber
         return nil if @unsupported_programming_languages.index(ext)
         begin
           load_programming_language(ext)
-        rescue LoadError
+        rescue LoadError =&gt; e
+          log.debug(&quot;Failed to load '#{ext}' programming language for file #{step_def_file}: #{e.message}\n&quot;)
           @unsupported_programming_languages &lt;&lt; ext
           nil
         end

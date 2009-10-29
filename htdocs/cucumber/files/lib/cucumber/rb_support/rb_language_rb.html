@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -20,7 +20,6 @@ require 'cucumber/rb_support/rb_world'
 require 'cucumber/rb_support/rb_step_definition'
 require 'cucumber/rb_support/rb_hook'
 require 'cucumber/rb_support/rb_transform'
-require 'cucumber/rb_support/regexp_argument_matcher'
 
 module Cucumber
   module RbSupport
@@ -55,6 +54,9 @@ module Cucumber
         RbDsl.rb_language = self
       end
 
+      # Tell the language about other i18n translations so that
+      # they can alias Given, When Then etc. Only useful if the language
+      # has a mechanism for this - typically a dynamic language.
       def alias_adverbs(adverbs)
         adverbs.each do |adverb|
           RbDsl.alias_adverb(adverb)
@@ -62,9 +64,11 @@ module Cucumber
         end
       end
 
-      def step_definitions_for(code_file)
+      # Gets called for each file under features (or whatever is overridden
+      # with --require).
+      def step_definitions_for(rb_file)
         begin
-          load_code_file(code_file)
+          require rb_file # This will cause self.add_step_definition and self.add_hook to be called from RbDsl
           step_definitions
         rescue LoadError =&gt; e
           e.message &lt;&lt; &quot;\nFailed to load #{code_file}&quot;
@@ -74,14 +78,14 @@ module Cucumber
         end
       end
 
-      def step_matches(step_name, formatted_step_name)
+      def step_matches(name_to_match, name_to_format)
         @step_definitions.map do |step_definition|
-          step_definition.step_match(step_name, formatted_step_name)
+          if(arguments = step_definition.arguments_from(name_to_match))
+            StepMatch.new(step_definition, name_to_match, name_to_format, arguments)
+          else
+            nil
+          end
         end.compact
-      end
-
-      def arguments_from(regexp, step_name)
-        @regexp_argument_matcher.arguments_from(regexp, step_name)
       end
 
       def snippet_text(step_keyword, step_name, multiline_arg_class)

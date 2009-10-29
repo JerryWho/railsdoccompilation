@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:47:38 +0200 2009</td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -38,6 +38,7 @@ module Cucumber
         @exceptions = []
         @indent = 0
         @prefixes = options[:prefixes] || {}
+        @delayed_announcements = []
       end
 
       def after_features(features)
@@ -165,8 +166,9 @@ module Cucumber
       def step_name(keyword, step_match, status, source_indent, background)
         return if @hide_this_step
         source_indent = nil unless @options[:source]
-        formatted_step_name = format_step(keyword, step_match, status, source_indent)
-        @io.puts(formatted_step_name.indent(@scenario_indent + 2))
+        name_to_report = format_step(keyword, step_match, status, source_indent)
+        @io.puts(name_to_report.indent(@scenario_indent + 2))
+        print_announcements
       end
 
       def py_string(string)
@@ -200,6 +202,7 @@ module Cucumber
 
       def after_table_row(table_row)
         return unless @table
+        print_table_row_announcements
         @io.puts
         if table_row.exception &amp;&amp; !@exceptions.include?(table_row.exception)
           print_exception(table_row.exception, :failed, @indent)
