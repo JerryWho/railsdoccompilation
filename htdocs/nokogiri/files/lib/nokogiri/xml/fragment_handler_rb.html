@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -18,16 +18,14 @@
     <pre>module Nokogiri
   module XML
     class FragmentHandler &lt; Nokogiri::XML::SAX::Document # :nodoc:
+      QNAME_REGEX = /(.*):(.*)/
+
       def initialize node, original_html
         @doc_started    = false
         @document       = node.document
         @stack          = [node]
-        @klass          = if node.kind_of?(Nokogiri::HTML::DocumentFragment)
-                            Nokogiri::HTML::DocumentFragment
-                          else
-                            Nokogiri::XML::DocumentFragment
-                          end
-        #
+        @html_eh        = node.kind_of? HTML::DocumentFragment
+
         # the regexes used in start_element() and characters() anchor at
         # start-of-line, but we really only want them to anchor at
         # start-of-doc. so let's only save up to the first newline.
@@ -41,31 +39,44 @@
       end
 
       def start_element name, attrs = []
-        regex = (@klass == Nokogiri::HTML::DocumentFragment) ? %r{^\s*&lt;#{Regexp.escape(name)}}i \
-                                                             : %r{^\s*&lt;#{Regexp.escape(name)}}
+        regex = @html_eh ? %r{^\s*&lt;#{Regexp.escape(name)}}i :
+                           %r{^\s*&lt;#{Regexp.escape(name)}}
+
         @doc_started = true if @original_html =~ regex
         return unless @doc_started
+
+        if match = name.match(QNAME_REGEX)
+          prefix, name = match[1], match[2]
+          ns = @document.root.namespace_definitions.detect { |x|
+            x.prefix == prefix
+          }
+        else
+          ns = nil
+        end
 
         node = Element.new(name, @document)
         attrs &lt;&lt; &quot;&quot; unless (attrs.length % 2) == 0
         Hash[*attrs].each do |k,v|
           node[k] = v
         end
+
+        node.namespace = ns if ns
+
         @stack.last &lt;&lt; node
         @stack &lt;&lt; node
       end
 
       def characters string
         @doc_started = true if @original_html.strip =~ %r{^\s*#{Regexp.escape(string.strip)}}
-        @stack.last &lt;&lt; Nokogiri::XML::Text.new(string, @document)
+        @stack.last &lt;&lt; Text.new(string, @document)
       end
 
       def comment string
-        @stack.last &lt;&lt; Nokogiri::XML::Comment.new(@document, string)
+        @stack.last &lt;&lt; Comment.new(@document, string)
       end
 
       def cdata_block string
-        @stack.last &lt;&lt; Nokogiri::XML::CDATA.new(@document, string)
+        @stack.last &lt;&lt; CDATA.new(@document, string)
       end
 
       def end_element name

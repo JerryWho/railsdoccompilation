@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Mon Oct 12 19:40:25 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -84,7 +84,7 @@
         attr_accessor :encoding
 
         # Create a new Parser with +doc+ and +encoding+
-        def initialize(doc = Nokogiri::XML::SAX::Document.new, encoding = 'ASCII')
+        def initialize doc = Nokogiri::XML::SAX::Document.new, encoding = 'UTF-8'
           @encoding = encoding
           @document = doc
           @warned   = false
@@ -93,11 +93,11 @@
         ###
         # Parse given +thing+ which may be a string containing xml, or an
         # IO object.
-        def parse thing
+        def parse thing, &amp;block
           if thing.respond_to?(:read) &amp;&amp; thing.respond_to?(:close)
-            parse_io(thing)
+            parse_io(thing, &amp;block)
           else
-            parse_memory(thing)
+            parse_memory(thing, &amp;block)
           end
         end
 
@@ -105,7 +105,9 @@
         # Parse given +io+
         def parse_io io, encoding = 'ASCII'
           @encoding = encoding
-          native_parse_io io, ENCODINGS[@encoding] || ENCODINGS['ASCII']
+          ctx = ParserContext.io(io, ENCODINGS[encoding])
+          yield ctx if block_given?
+          ctx.parse_with self
         end
 
         ###
@@ -114,11 +116,16 @@
           raise ArgumentError unless filename
           raise Errno::ENOENT unless File.exists?(filename)
           raise Errno::EISDIR if File.directory?(filename)
-          native_parse_file filename
+          ctx = ParserContext.file filename
+          yield ctx if block_given?
+          ctx.parse_with self
         end
 
-        private
-        include Nokogiri::XML::SAX::LegacyHandlers
+        def parse_memory data
+          ctx = ParserContext.memory data
+          yield ctx if block_given?
+          ctx.parse_with self
+        end
       end
     end
   end

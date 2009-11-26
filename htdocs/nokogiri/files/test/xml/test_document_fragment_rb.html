@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+    <pre>require &quot;helper&quot;
 
 module Nokogiri
   module XML
@@ -66,21 +66,20 @@ module Nokogiri
       end
 
       def test_xml_fragment_has_multiple_toplevel_children
-        # TODO: this is lame. xml fragment() should support multiple top-level children
         doc = &quot;&lt;div&gt;b&lt;/div&gt;&lt;div&gt;e&lt;/div&gt;&quot;
         fragment = Nokogiri::XML::Document.new.fragment(doc)
-        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&lt;div&gt;e&lt;/div&gt;&quot;, fragment.to_s
       end
 
       def test_xml_fragment_has_outer_text
         # this test is descriptive, not prescriptive.
         doc = &quot;a&lt;div&gt;b&lt;/div&gt;&quot;
         fragment = Nokogiri::XML::Document.new.fragment(doc)
-        assert_equal &quot;&quot;, fragment.to_s
+        assert_equal &quot;a&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
 
         doc = &quot;&lt;div&gt;b&lt;/div&gt;c&quot;
         fragment = Nokogiri::XML::Document.new.fragment(doc)
-        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;c&quot;, fragment.to_s
       end
 
       def test_xml_fragment_case_sensitivity
@@ -99,6 +98,57 @@ module Nokogiri
         doc = &quot;     \n&lt;div&gt;b&lt;/div&gt;  &quot;
         fragment = Nokogiri::XML::Document.new.fragment(doc)
         assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
+      end
+
+      def test_fragment_children_search
+        fragment = Nokogiri::XML::Document.new.fragment(
+          '&lt;div&gt;&lt;p id=&quot;content&quot;&gt;hi&lt;/p&gt;&lt;/div&gt;'
+        )
+        css     = fragment.children.css('p')
+        xpath   = fragment.children.xpath('.//p')
+        assert_equal css, xpath
+      end
+
+      def test_fragment_search
+        frag = Nokogiri::XML::Document.new.fragment '&lt;p id=&quot;content&quot;&gt;hi&lt;/p&gt;'
+
+        p_tag = frag.css('#content').first
+        assert_equal 'p', p_tag.name
+
+        assert_equal p_tag, frag.xpath('./*[@id = \'content\']').first
+      end
+
+      def test_fragment_without_a_namespace_does_not_get_a_namespace
+        doc = Nokogiri::XML &lt;&lt;-EOX
+          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;http://flavorjon.es/&quot; xmlns:bar=&quot;http://google.com/&quot;&gt;
+            &lt;foo:existing&gt;&lt;/foo:existing&gt;
+          &lt;/root&gt;
+        EOX
+        frag = doc.fragment &quot;&lt;newnode&gt;&lt;/newnode&gt;&quot;
+        assert_nil frag.namespace
+      end
+
+      def test_fragment_namespace_resolves_against_document_root
+        doc = Nokogiri::XML &lt;&lt;-EOX
+          &lt;root xmlns:foo=&quot;http://flavorjon.es/&quot; xmlns:bar=&quot;http://google.com/&quot;&gt;
+            &lt;foo:existing&gt;&lt;/foo:existing&gt;
+          &lt;/root&gt;
+        EOX
+        ns = doc.root.namespace_definitions.detect { |x| x.prefix == &quot;bar&quot; }
+
+        frag = doc.fragment &quot;&lt;bar:newnode&gt;&lt;/bar:newnode&gt;&quot;
+        assert frag.children.first.namespace
+        assert_equal ns, frag.children.first.namespace
+      end
+
+      def test_fragment_invalid_namespace_is_silently_ignored
+        doc = Nokogiri::XML &lt;&lt;-EOX
+          &lt;root xmlns:foo=&quot;http://flavorjon.es/&quot; xmlns:bar=&quot;http://google.com/&quot;&gt;
+            &lt;foo:existing&gt;&lt;/foo:existing&gt;
+          &lt;/root&gt;
+        EOX
+        frag = doc.fragment &quot;&lt;baz:newnode&gt;&lt;/baz:newnode&gt;&quot;
+        assert_nil frag.children.first.namespace
       end
     end
   end

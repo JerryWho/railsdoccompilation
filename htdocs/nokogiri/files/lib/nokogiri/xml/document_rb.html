@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -25,11 +25,46 @@
     # For searching a Document, see Nokogiri::XML::Node#css and
     # Nokogiri::XML::Node#xpath
     class Document &lt; Node
+      ###
+      # Parse an XML file.  +thing+ may be a String, or any object that
+      # responds to _read_ and _close_ such as an IO, or StringIO.
+      # +url+ is resource where this document is located.  +encoding+ is the
+      # encoding that should be used when processing the document. +options+
+      # is a number that sets options in the parser, such as
+      # Nokogiri::XML::ParseOptions::RECOVER.  See the constants in
+      # Nokogiri::XML::ParseOptions.
+      def self.parse string_or_io, url = nil, encoding = nil, options = ParseOptions::DEFAULT_XML, &amp;block
+
+        options = Nokogiri::XML::ParseOptions.new(options) if Fixnum === options
+        # Give the options to the user
+        yield options if block_given?
+
+        if string_or_io.respond_to?(:read)
+          url ||= string_or_io.respond_to?(:path) ? string_or_io.path : nil
+          return read_io(string_or_io, url, encoding, options.to_i)
+        end
+
+        # read_memory pukes on empty docs
+        return new if string_or_io.nil? or string_or_io.empty?
+
+        read_memory(string_or_io, url, encoding, options.to_i)
+      end
+
       # A list of Nokogiri::XML::SyntaxError found when parsing a document
       attr_accessor :errors
 
       def initialize *args
         @decorators = nil
+      end
+
+      # Create an element with +name+
+      def create_element name, &amp;block
+        Nokogiri::XML::Element.new(name, self, &amp;block)
+      end
+
+      # Create a text node with +text+
+      def create_text_node text, &amp;block
+        Nokogiri::XML::Text.new(text.to_s, self, &amp;block)
       end
 
       # The name of this document.  Always returns &quot;document&quot;
@@ -82,17 +117,19 @@
 
       # Get the hash of namespaces on the root Nokogiri::XML::Node
       def namespaces
-        root ? root.collect_namespaces : {}
+        root ? root.namespaces : {}
       end
 
       ####
       # Create a Nokogiri::XML::DocumentFragment from +tags+
-      def fragment tags
+      # Returns an empty fragment if +tags+ is nil.
+      def fragment tags = nil
         DocumentFragment.new(self, tags)
       end
 
       undef_method :swap, :parent, :namespace, :default_namespace=
-      undef_method :add_namespace_definition
+      undef_method :add_namespace_definition, :attributes
+      undef_method :namespace_definitions, :line
 
       def add_child child
         if [Node::ELEMENT_NODE, Node::DOCUMENT_FRAG_NODE].include? child.type
@@ -102,33 +139,10 @@
       end
       alias :&lt;&lt; :add_child
 
-      class &lt;&lt; self
-        ###
-        # Parse an XML file.  +thing+ may be a String, or any object that
-        # responds to _read_ and _close_ such as an IO, or StringIO.
-        # +url+ is resource where this document is located.  +encoding+ is the
-        # encoding that should be used when processing the document. +options+
-        # is a number that sets options in the parser, such as
-        # Nokogiri::XML::ParseOptions::RECOVER.  See the constants in
-        # Nokogiri::XML::ParseOptions.
-        def parse string_or_io, url = nil, encoding = nil, options = ParseOptions::DEFAULT_XML, &amp;block
-
-          options = Nokogiri::XML::ParseOptions.new(options) if Fixnum === options
-          # Give the options to the user
-          yield options if block_given?
-
-          if string_or_io.respond_to?(:read)
-            url ||= string_or_io.respond_to?(:path) ? string_or_io.path : nil
-            return self.read_io(string_or_io, url, encoding, options.to_i)
-          end
-
-          # read_memory pukes on empty docs
-          return self.new if string_or_io.nil? or string_or_io.empty?
-
-          self.read_memory(string_or_io, url, encoding, options.to_i)
-        end
+      private
+      def inspect_attributes
+        [:name, :children]
       end
-
     end
   end
 end

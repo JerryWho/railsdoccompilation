@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:53:40 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,9 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', &quot;helper&quot;))
+    <pre># -*- coding: utf-8 -*-
+
+require &quot;helper&quot;
 
 module Nokogiri
   module XML
@@ -24,6 +26,61 @@ module Nokogiri
         def setup
           super
           @parser = XML::SAX::Parser.new(Doc.new)
+        end
+
+        def test_parser_context_yielded_io
+          doc = Doc.new
+          parser = XML::SAX::Parser.new doc
+          xml = &quot;&lt;foo a='&amp;amp;b'/&gt;&quot;
+
+          block_called = false
+          parser.parse(StringIO.new(xml)) { |ctx|
+            block_called = true
+            ctx.replace_entities = true
+          }
+
+          assert block_called
+
+          assert_equal ['a', '&amp;b'], doc.start_elements.first.last
+        end
+
+        def test_parser_context_yielded_in_memory
+          doc = Doc.new
+          parser = XML::SAX::Parser.new doc
+          xml = &quot;&lt;foo a='&amp;amp;b'/&gt;&quot;
+
+          block_called = false
+          parser.parse(xml) { |ctx|
+            block_called = true
+            ctx.replace_entities = true
+          }
+
+          assert block_called
+
+          assert_equal ['a', '&amp;b'], doc.start_elements.first.last
+        end
+
+        def test_xml_decl
+          {
+            ''          =&gt; nil,
+            '&lt;?xml version=&quot;1.0&quot; ?&gt;'                  =&gt; ['1.0'],
+            '&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;' =&gt; ['1.0', 'UTF-8'],
+            '&lt;?xml version=&quot;1.0&quot; standalone=&quot;yes&quot;?&gt;'  =&gt; ['1.0', 'yes'],
+            '&lt;?xml version=&quot;1.0&quot; standalone=&quot;no&quot;?&gt;'   =&gt; ['1.0', 'no'],
+          }.each do |decl,value|
+            parser = XML::SAX::Parser.new(Doc.new)
+
+            xml = &quot;#{decl}\n&lt;root /&gt;&quot;
+            parser.parse xml
+            assert parser.document.start_document_called, xml
+            assert_equal value, parser.document.xmldecls, xml
+          end
+        end
+
+        def test_parse_empty
+          assert_raises RuntimeError do
+            @parser.parse('')
+          end
         end
 
         def test_namespace_declaration_order_is_saved
@@ -131,11 +188,15 @@ module Nokogiri
           assert_equal doc.errors.length, @parser.document.errors.length
         end
 
-        def test_parse
+        def test_parse_with_memory_argument
+          @parser.parse(File.read(XML_FILE))
+          assert(@parser.document.cdata_blocks.length &gt; 0)
+        end
+
+        def test_parse_with_io_argument
           File.open(XML_FILE, 'rb') { |f|
             @parser.parse(f)
           }
-          @parser.parse(File.read(XML_FILE))
           assert(@parser.document.cdata_blocks.length &gt; 0)
         end
 

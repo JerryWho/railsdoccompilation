@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Mon Oct 12 19:40:25 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -63,12 +63,6 @@
           '[preceding-sibling::' +
           node.value.first.accept(self) +
           ']'
-      end
-
-      def visit_direct_adjacent_selector node
-        node.value.first.accept(self) +
-          &quot;/following-sibling::*[1]/self::&quot; +
-           node.value.last.accept(self)
       end
 
       def visit_id node
@@ -139,26 +133,22 @@
         &quot;contains(concat(' ', @class, ' '), ' #{node.value.first} ')&quot;
       end
 
-      def visit_combinator node
-        node.value.first.accept(self) + ' and ' +
-        node.value.last.accept(self)
+      {
+        'combinator'                =&gt; ' and ',
+        'direct_adjacent_selector'  =&gt; &quot;/following-sibling::*[1]/self::&quot;,
+        'descendant_selector'       =&gt; '//',
+        'child_selector'            =&gt; '/',
+      }.each do |k,v|
+        class_eval %{
+          def visit_#{k} node
+            &quot;\#{node.value.first.accept(self)}#{v}\#{node.value.last.accept(self)}&quot;
+          end
+        }
       end
 
       def visit_conditional_selector node
         node.value.first.accept(self) + '[' +
         node.value.last.accept(self) + ']'
-      end
-
-      def visit_descendant_selector node
-        node.value.first.accept(self) +
-        '//' +
-        node.value.last.accept(self)
-      end
-
-      def visit_child_selector node
-        node.value.first.accept(self) +
-        '/' +
-        node.value.last.accept(self)
       end
 
       def visit_element_name node

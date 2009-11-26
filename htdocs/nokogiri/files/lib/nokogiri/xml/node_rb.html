@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -51,6 +51,8 @@ module Nokogiri
     #
     # You may search this node's subtree using Node#xpath and Node#css
     class Node
+      include Nokogiri::XML::PP::Node
+
       # Element node type, see Nokogiri::XML::Node#element?
       ELEMENT_NODE =       1
       # Attribute node type
@@ -214,6 +216,24 @@ module Nokogiri
         search(path, ns).first
       end
       alias :% :at
+
+      ##
+      # Search this node for the first occurrence of XPath +paths+.
+      # Equivalent to &lt;tt&gt;xpath(paths).first&lt;/tt&gt;
+      # See Node#xpath for more information.
+      #
+      def at_xpath *paths
+        xpath(*paths).first
+      end
+
+      ##
+      # Search this node for the first occurrence of CSS +rules+.
+      # Equivalent to &lt;tt&gt;css(rules).first&lt;/tt&gt;
+      # See Node#css for more information.
+      #
+      def at_css *rules
+        css(*rules).first
+      end
 
       ###
       # Get the attribute value for the attribute +name+
@@ -405,8 +425,8 @@ module Nokogiri
       end
 
       # Get the inner_html for this node's Node#children
-      def inner_html
-        children.map { |x| x.to_html }.join
+      def inner_html *args
+        children.map { |x| x.to_html(*args) }.join
       end
 
       # Get the path to this node as a CSS expression
@@ -414,14 +434,6 @@ module Nokogiri
         path.split(/\//).map { |part|
           part.length == 0 ? nil : part.gsub(/\[(\d+)\]/, ':nth-of-type(\1)')
         }.compact.join(' &gt; ')
-      end
-
-      #  recursively get all namespaces from this node and its subtree
-      def collect_namespaces
-        # TODO: print warning message if a prefix refers to more than one URI in the document?
-        ns = {}
-        traverse {|j| ns.merge!(j.namespaces)}
-        ns
       end
 
       ###
@@ -478,7 +490,8 @@ module Nokogiri
       end
 
       ####
-      #  replace this Node with the +new_node+ in the Document.
+      # +replace+ this Node with the +new_node+ in the Document.  The new node
+      # must be a Nokogiri::XML::Node or a non-empty String
       def replace new_node
         if new_node.is_a?(Document) || !new_node.is_a?(XML::Node)
           raise ArgumentError, &lt;&lt;-EOERR
@@ -517,9 +530,11 @@ Node.replace requires a Node argument, and cannot accept a Document.
           :save_with  =&gt; args[1] || SaveOptions::FORMAT
         }
 
+        encoding = options[:encoding] || document.encoding
+
         outstring = &quot;&quot;
-        if document.encoding &amp;&amp; outstring.respond_to?(:force_encoding)
-          outstring.force_encoding(Encoding.find(document.encoding))
+        if encoding &amp;&amp; outstring.respond_to?(:force_encoding)
+          outstring.force_encoding(Encoding.find(encoding))
         end
         io = StringIO.new(outstring)
         write_to io, options, &amp;block
@@ -657,10 +672,13 @@ Node.replace requires a Node argument, and cannot accept a Document.
         return nil unless document == other.document
         compare other
       end
+
+      private
+      def inspect_attributes
+        [:name, :namespace, :attribute_nodes, :children]
+      end
     end
   end
 end
-
-class Nokogiri::XML::Element &lt; Nokogiri::XML::Node ; end
 </pre>
     </div>

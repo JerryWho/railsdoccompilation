@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -19,38 +19,23 @@
   module XML
     module SAX
       class Parser
+        # :stopdoc:
 
-        attr_accessor :cstruct # :nodoc:
+        attr_accessor :cstruct
 
-        def parse_memory(data) # :nodoc:
-          raise(ArgumentError, 'data cannot be nil') if data.nil?
-          LibXML.xmlSAXUserParseMemory(cstruct, nil, data, data.length)
-          data
-        end
-
-        def native_parse_io(io, encoding) # :nodoc:
-          sax_ctx = LibXML.xmlCreateIOParserCtxt(cstruct, nil, IoCallbacks.reader(io), nil, nil, encoding)
-          LibXML.xmlParseDocument(sax_ctx)
-          LibXML.xmlFreeParserCtxt(sax_ctx)
-          io
-        end
-
-        def native_parse_file(data) # :nodoc:
-          LibXML.xmlSAXUserParseFile(cstruct, nil, data)
-        end
-
-        def self.new(doc = XML::SAX::Document.new, encoding = 'ASCII') # :nodoc:
+        def self.new(doc = XML::SAX::Document.new, encoding = 'UTF-8')
           parser = allocate
           parser.document = doc
           parser.encoding = encoding
           parser.cstruct = LibXML::XmlSaxHandler.allocate
           parser.send(:setup_lambdas)
+          parser.instance_variable_set(:@ctxt, nil)
           parser
         end
 
-      private
+        private
 
-        def setup_lambdas # :nodoc:
+        def setup_lambdas
           @closures = {} # we need to keep references to the closures to avoid GC
 
           [ :startDocument, :endDocument, :startElement, :endElement, :characters,
@@ -63,15 +48,23 @@
           cstruct[:initialized] = Nokogiri::LibXML::XmlSaxHandler::XML_SAX2_MAGIC
         end
 
-        def __internal__startDocument(_) # :nodoc:
+        def __internal__startDocument(_)
+          if @ctxt &amp;&amp; @ctxt[:html] == 0 &amp;&amp; @ctxt[:standalone] != -1
+            standalone = {
+              0 =&gt; 'no',
+              1 =&gt; 'yes',
+            }[@ctxt[:standalone]]
+
+            @document.xmldecl @ctxt[:version], @ctxt[:encoding], standalone
+          end
           @document.start_document
         end
 
-        def __internal__endDocument(_) # :nodoc:
+        def __internal__endDocument(_)
           @document.end_document
         end
 
-        def __internal__startElement(_, name, attributes) # :nodoc:
+        def __internal__startElement(_, name, attributes)
           attrs = []
           unless attributes.null?
             j = 0
@@ -83,33 +76,33 @@
           @document.start_element name, attrs
         end
 
-        def __internal__endElement(_, name) # :nodoc:
+        def __internal__endElement(_, name)
           @document.end_element name
         end
 
-        def __internal__characters(_, data, data_length) # :nodoc:
+        def __internal__characters(_, data, data_length)
           @document.characters data.slice(0, data_length)
         end
 
-        def __internal__comment(_, data) # :nodoc:
+        def __internal__comment(_, data)
           @document.comment data
         end
 
-        def __internal__warning(_, msg) # :nodoc:
+        def __internal__warning(_, msg)
           # TODO: vasprintf here
           @document.warning(msg)
         end
 
-        def __internal__error(_, msg) # :nodoc:
+        def __internal__error(_, msg)
           # TODO: vasprintf here
           @document.error(msg)
         end
 
-        def __internal__cdataBlock(_, data, data_length) # :nodoc:
+        def __internal__cdataBlock(_, data, data_length)
           @document.cdata_block data.slice(0, data_length)
         end
 
-        def __internal__startElementNs(_, localname, prefix, uri, nb_namespaces, namespaces, nb_attributes, nb_defaulted, attributes) # :nodoc:
+        def __internal__startElementNs(_, localname, prefix, uri, nb_namespaces, namespaces, nb_attributes, nb_defaulted, attributes)
           localname = localname.null? ? nil : localname.read_string
           prefix    = prefix   .null? ? nil : prefix   .read_string
           uri       = uri      .null? ? nil : uri      .read_string
@@ -149,17 +142,17 @@
             uri,
             ns_list
           )
-          start_element_namespace(localname, attr_list, prefix, uri, ns_list)
         end
 
-        def __internal__endElementNs(_, localname, prefix, uri) # :nodoc:
+        def __internal__endElementNs(_, localname, prefix, uri)
           localname = localname.null? ? nil : localname.read_string
           prefix    = prefix   .null? ? nil : prefix   .read_string
           uri       = uri      .null? ? nil : uri      .read_string
 
           @document.end_element_namespace(localname, prefix, uri)
-          end_element_namespace(localname, prefix, uri)
         end
+
+        # :startdoc:
       end
     end
   end

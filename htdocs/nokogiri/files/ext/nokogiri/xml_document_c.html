@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -51,6 +51,16 @@ static void dealloc(xmlDocPtr doc)
   NOKOGIRI_DEBUG_END(doc);
 }
 
+static void recursively_remove_namespaces_from_node(xmlNodePtr node)
+{
+  xmlNodePtr child ;
+
+  xmlSetNs(node, NULL);
+
+  for (child = node-&gt;children ; child ; child = child-&gt;next)
+    recursively_remove_namespaces_from_node(child);
+}
+
 /*
  * call-seq:
  *  url
@@ -62,8 +72,7 @@ static VALUE url(VALUE self)
   xmlDocPtr doc;
   Data_Get_Struct(self, xmlDoc, doc);
 
-  if(doc-&gt;URL)
-    return NOKOGIRI_STR_NEW2(doc-&gt;URL, doc-&gt;encoding);
+  if(doc-&gt;URL) return NOKOGIRI_STR_NEW2(doc-&gt;URL);
 
   return Qnil;
 }
@@ -143,7 +152,22 @@ static VALUE encoding(VALUE self)
   Data_Get_Struct(self, xmlDoc, doc);
 
   if(!doc-&gt;encoding) return Qnil;
-  return NOKOGIRI_STR_NEW2(doc-&gt;encoding, doc-&gt;encoding);
+  return NOKOGIRI_STR_NEW2(doc-&gt;encoding);
+}
+
+/*
+ * call-seq:
+ *  version
+ *
+ * Get the XML version for this Document
+ */
+static VALUE version(VALUE self)
+{
+  xmlDocPtr doc;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  if(!doc-&gt;version) return Qnil;
+  return NOKOGIRI_STR_NEW2(doc-&gt;version);
 }
 
 /*
@@ -158,8 +182,8 @@ static VALUE read_io( VALUE klass,
                       VALUE encoding,
                       VALUE options )
 {
-  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
-  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  const char * c_url    = NIL_P(url)      ? NULL : StringValuePtr(url);
+  const char * c_enc    = NIL_P(encoding) ? NULL : StringValuePtr(encoding);
   VALUE error_list      = rb_ary_new();
 
   xmlResetLastError();
@@ -171,7 +195,7 @@ static VALUE read_io( VALUE klass,
       (void *)io,
       c_url,
       c_enc,
-      NUM2INT(options)
+      (int)NUM2INT(options)
   );
   xmlSetStructuredErrorFunc(NULL, NULL);
 
@@ -180,9 +204,7 @@ static VALUE read_io( VALUE klass,
 
     xmlErrorPtr error = xmlGetLastError();
     if(error)
-      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
-          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
-      );
+      rb_exc_raise(Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error));
     else
       rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
 
@@ -190,7 +212,7 @@ static VALUE read_io( VALUE klass,
   }
 
   VALUE document = Nokogiri_wrap_xml_document(klass, doc);
-  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  rb_iv_set(document, &quot;@errors&quot;, error_list);
   return document;
 }
 
@@ -207,14 +229,14 @@ static VALUE read_memory( VALUE klass,
                           VALUE options )
 {
   const char * c_buffer = StringValuePtr(string);
-  const char * c_url    = (url == Qnil) ? NULL : StringValuePtr(url);
-  const char * c_enc    = (encoding == Qnil) ? NULL : StringValuePtr(encoding);
+  const char * c_url    = NIL_P(url)      ? NULL : StringValuePtr(url);
+  const char * c_enc    = NIL_P(encoding) ? NULL : StringValuePtr(encoding);
   int len               = RSTRING_LEN(string);
   VALUE error_list      = rb_ary_new();
 
   xmlResetLastError();
   xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
-  xmlDocPtr doc = xmlReadMemory(c_buffer, len, c_url, c_enc, NUM2INT(options));
+  xmlDocPtr doc = xmlReadMemory(c_buffer, len, c_url, c_enc, (int)NUM2INT(options));
   xmlSetStructuredErrorFunc(NULL, NULL);
 
   if(doc == NULL) {
@@ -222,9 +244,7 @@ static VALUE read_memory( VALUE klass,
 
     xmlErrorPtr error = xmlGetLastError();
     if(error)
-      rb_funcall(rb_mKernel, rb_intern(&quot;raise&quot;), 1,
-          Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error)
-      );
+      rb_exc_raise(Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error));
     else
       rb_raise(rb_eRuntimeError, &quot;Could not parse document&quot;);
 
@@ -232,7 +252,7 @@ static VALUE read_memory( VALUE klass,
   }
 
   VALUE document = Nokogiri_wrap_xml_document(klass, doc);
-  rb_funcall(document, rb_intern(&quot;errors=&quot;), 1, error_list);
+  rb_iv_set(document, &quot;@errors&quot;, error_list);
   return document;
 }
 
@@ -248,12 +268,12 @@ static VALUE duplicate_node(int argc, VALUE *argv, VALUE self)
   VALUE level;
 
   if(rb_scan_args(argc, argv, &quot;01&quot;, &amp;level) == 0)
-    level = INT2NUM(1);
+    level = INT2NUM((long)1);
 
   xmlDocPtr doc, dup;
   Data_Get_Struct(self, xmlDoc, doc);
 
-  dup = xmlCopyDoc(doc, NUM2INT(level));
+  dup = xmlCopyDoc(doc, (int)NUM2INT(level));
   if(dup == NULL) return Qnil;
 
   dup-&gt;type = doc-&gt;type;
@@ -271,16 +291,63 @@ static VALUE new(int argc, VALUE *argv, VALUE klass)
   VALUE version, rest, rb_doc ;
 
   rb_scan_args(argc, argv, &quot;0*&quot;, &amp;rest);
-  version = rb_ary_entry(rest, 0);
-  if (version == Qnil) {
+  version = rb_ary_entry(rest, (long)0);
+  if (NIL_P(Qnil)) {
     version = rb_str_new2(&quot;1.0&quot;);
   }
 
   xmlDocPtr doc = xmlNewDoc((xmlChar *)StringValuePtr(version));
   rb_doc = Nokogiri_wrap_xml_document(klass, doc);
-  rb_funcall2(rb_doc, rb_intern(&quot;initialize&quot;), argc, argv);
+  rb_obj_call_init(rb_doc, argc, argv);
   return rb_doc ;
 }
+
+/*
+ *  call-seq:
+ *    remove_namespaces!
+ *
+ *  Remove all namespaces from all nodes in the document.
+ *
+ *  This could be useful for developers who either don't understand namespaces
+ *  or don't care about them.
+ *
+ *  The following example shows a use case, and you can decide for yourself
+ *  whether this is a good thing or not:
+ *
+ *    doc = Nokogiri::XML &lt;&lt;-EOXML
+ *       &lt;root&gt;
+ *         &lt;car xmlns:part=&quot;http://general-motors.com/&quot;&gt;
+ *           &lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;
+ *         &lt;/car&gt;
+ *         &lt;bicycle xmlns:part=&quot;http://schwinn.com/&quot;&gt;
+ *           &lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;
+ *         &lt;/bicycle&gt;
+ *       &lt;/root&gt;
+ *       EOXML
+ *    
+ *    doc.xpath(&quot;//tire&quot;).to_s # =&gt; &quot;&quot;
+ *    doc.xpath(&quot;//part:tire&quot;, &quot;part&quot; =&gt; &quot;http://general-motors.com/&quot;).to_s # =&gt; &quot;&lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;&quot;
+ *    doc.xpath(&quot;//part:tire&quot;, &quot;part&quot; =&gt; &quot;http://schwinn.com/&quot;).to_s # =&gt; &quot;&lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;&quot;
+ *    
+ *    doc.remove_namespaces!
+ *    
+ *    doc.xpath(&quot;//tire&quot;).to_s # =&gt; &quot;&lt;tire&gt;Michelin Model XGV&lt;/tire&gt;&lt;tire&gt;I'm a bicycle tire!&lt;/tire&gt;&quot;
+ *    doc.xpath(&quot;//part:tire&quot;, &quot;part&quot; =&gt; &quot;http://general-motors.com/&quot;).to_s # =&gt; &quot;&quot;
+ *    doc.xpath(&quot;//part:tire&quot;, &quot;part&quot; =&gt; &quot;http://schwinn.com/&quot;).to_s # =&gt; &quot;&quot;
+ *
+ *  For more information on why this probably is *not* a good thing in general,
+ *  please direct your browser to
+ *  http://tenderlovemaking.com/2009/04/23/namespaces-in-xml/
+ */
+VALUE remove_namespaces_bang(VALUE self)
+{
+  xmlDocPtr doc ;
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  recursively_remove_namespaces_from_node(doc);
+  return self;
+}
+
 
 VALUE cNokogiriXmlDocument ;
 void init_xml_document()
@@ -304,8 +371,10 @@ void init_xml_document()
   rb_define_method(klass, &quot;root=&quot;, set_root, 1);
   rb_define_method(klass, &quot;encoding&quot;, encoding, 0);
   rb_define_method(klass, &quot;encoding=&quot;, set_encoding, 1);
+  rb_define_method(klass, &quot;version&quot;, version, 0);
   rb_define_method(klass, &quot;dup&quot;, duplicate_node, -1);
   rb_define_method(klass, &quot;url&quot;, url, 0);
+  rb_define_method(klass, &quot;remove_namespaces!&quot;, remove_namespaces_bang, 0);
 }
 
 
@@ -324,12 +393,13 @@ VALUE Nokogiri_wrap_xml_document(VALUE klass, xmlDocPtr doc)
   VALUE cache = rb_ary_new();
   rb_iv_set(rb_doc, &quot;@decorators&quot;, Qnil);
   rb_iv_set(rb_doc, &quot;@node_cache&quot;, cache);
-  rb_funcall(rb_doc, rb_intern(&quot;initialize&quot;), 0);
 
   tuple-&gt;doc = (void *)rb_doc;
   tuple-&gt;unlinkedNodes = st_init_numtable_with_size(128);
   tuple-&gt;node_cache = cache;
   doc-&gt;_private = tuple ;
+
+  rb_obj_call_init(rb_doc, 0, NULL);
 
   return rb_doc ;
 }

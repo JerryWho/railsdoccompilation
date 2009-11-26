@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+    <pre>require &quot;helper&quot;
 
 require 'nkf'
 
@@ -32,6 +32,43 @@ module Nokogiri
           &lt;/body&gt;
         &lt;/html&gt;
         eohtml
+      end
+
+      def test_get_attribute
+        element = @html.at('div')
+        assert_equal 'baz', element.get_attribute('class')
+        assert_equal 'baz', element['class']
+        element['href'] = &quot;javascript:alert(\&quot;AGGA-KA-BOO!\&quot;)&quot;
+        assert_match(/%22AGGA-KA-BOO!%22/, element.to_html)
+      end
+
+      def test_css_path_round_trip
+        doc = Nokogiri::HTML(File.read(HTML_FILE))
+        %w{ #header small div[2] div.post body }.each do |css_sel|
+          ele = doc.at css_sel
+          assert_equal ele, doc.at(ele.css_path), ele.css_path
+        end
+      end
+
+      def test_path_round_trip
+        doc = Nokogiri::HTML(File.read(HTML_FILE))
+        %w{ #header small div[2] div.post body }.each do |css_sel|
+          ele = doc.at css_sel
+          assert_equal ele, doc.at(ele.path), ele.path
+        end
+      end
+
+      def test_append_with_document
+        assert_raises(ArgumentError) do
+          @html.root &lt;&lt; Nokogiri::HTML::Document.new
+        end
+      end
+
+      ###
+      # Make sure a document that doesn't declare a meta encoding returns
+      # nil.
+      def test_meta_encoding
+        assert_nil @html.meta_encoding
       end
 
       def test_description
@@ -68,6 +105,19 @@ module Nokogiri
         assert node.matches?('//a')
       end
 
+      def test_unlink_then_swap
+        node = @html.at('a')
+        node.unlink
+
+        another_node = @html.at('div')
+        assert another_node, 'should have a node'
+
+        # This used to segv
+        assert_nothing_raised do
+          node.add_previous_sibling another_node
+        end
+      end
+
       def test_swap
         @html.at('div').swap('&lt;a href=&quot;foo&quot;&gt;bar&lt;/a&gt;')
         a_tag = @html.css('a').first
@@ -94,6 +144,11 @@ module Nokogiri
         assert node = @html.at('//body').children.first
         node.before &quot;some text&quot;
         assert_equal 'some text', @html.at('//body').children[0].content.strip
+      end
+
+      def test_before
+        @html.at('//div').before('&lt;a href=&quot;awesome&quot;&gt;town&lt;/a&gt;')
+        assert_equal 'awesome', @html.at('//div').previous['href']
       end
 
       def test_fragment_handler_does_not_regurge_on_invalid_attributes
@@ -143,6 +198,11 @@ module Nokogiri
         assert node = @html.at('//body/div')
         node.after &quot;some text&quot;
         assert_equal 'some text', node.next.text.strip
+      end
+
+      def test_after
+        @html.at('//div').after('&lt;a href=&quot;awesome&quot;&gt;town&lt;/a&gt;')
+        assert_equal 'awesome', @html.at('//div').next['href']
       end
 
       def test_replace

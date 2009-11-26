@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Mon Oct 12 19:40:25 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -16,12 +16,26 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre># -*- coding: utf-8 -*-
-require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+require &quot;helper&quot;
 
 module Nokogiri
   module HTML
     if RUBY_VERSION =~ /^1\.9/
       class TestDocumentEncoding &lt; Nokogiri::TestCase
+        def test_encoding
+          doc = Nokogiri::HTML File.open(SHIFT_JIS_HTML, 'rb')
+
+          hello = &quot;こんにちは&quot;
+
+          assert_match doc.encoding, doc.to_html
+          assert_match hello.encode('Shift_JIS'), doc.to_html
+          assert_equal 'Shift_JIS', doc.to_html.encoding.name
+
+          assert_match hello, doc.to_html(:encoding =&gt; 'UTF-8')
+          assert_match 'UTF-8', doc.to_html(:encoding =&gt; 'UTF-8')
+          assert_match 'UTF-8', doc.to_html(:encoding =&gt; 'UTF-8').encoding.name
+        end
+
         def test_default_to_encoding_from_string
           bad_charset = &lt;&lt;-eohtml
 &lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot;   &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&gt;

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Mon Oct 12 19:40:25 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -24,12 +24,14 @@ static void notation_copier(void *payload, void *data, xmlChar *name)
 
   xmlNotationPtr c_notation = (xmlNotationPtr)payload;
 
-  VALUE notation = rb_funcall(klass, rb_intern(&quot;new&quot;), 3,
-      c_notation-&gt;name ? NOKOGIRI_STR_NEW2(c_notation-&gt;name, &quot;UTF-8&quot;) : Qnil,
-      c_notation-&gt;PublicID ? NOKOGIRI_STR_NEW2(c_notation-&gt;PublicID, &quot;UTF-8&quot;) : Qnil,
-      c_notation-&gt;SystemID ? NOKOGIRI_STR_NEW2(c_notation-&gt;SystemID, &quot;UTF-8&quot;) : Qnil);
+  VALUE argv[3];
+  argv[0] = (c_notation-&gt;name ? NOKOGIRI_STR_NEW2(c_notation-&gt;name) : Qnil);
+  argv[1] = (c_notation-&gt;PublicID ? NOKOGIRI_STR_NEW2(c_notation-&gt;PublicID) : Qnil);
+  argv[2] = (c_notation-&gt;SystemID ? NOKOGIRI_STR_NEW2(c_notation-&gt;SystemID) : Qnil);
 
-  rb_hash_aset(hash, NOKOGIRI_STR_NEW2(name, &quot;UTF-8&quot;),notation);
+  VALUE notation = rb_class_new_instance(3, argv, klass);
+
+  rb_hash_aset(hash, NOKOGIRI_STR_NEW2(name),notation);
 }
 
 static void element_copier(void *_payload, void *data, xmlChar *name)
@@ -39,7 +41,7 @@ static void element_copier(void *_payload, void *data, xmlChar *name)
 
   VALUE element = Nokogiri_wrap_xml_node(Qnil, payload);
 
-  rb_hash_aset(hash, NOKOGIRI_STR_NEW2(name, payload-&gt;doc-&gt;encoding), element);
+  rb_hash_aset(hash, NOKOGIRI_STR_NEW2(name), element);
 }
 
 /*
@@ -78,6 +80,26 @@ static VALUE notations(VALUE self)
   VALUE hash = rb_hash_new();
 
   xmlHashScan((xmlHashTablePtr)dtd-&gt;notations, notation_copier, (void *)hash);
+
+  return hash;
+}
+
+/*
+ * call-seq:
+ *   attributes
+ *
+ * Get a hash of the attributes for this DTD.
+ */
+static VALUE attributes(VALUE self)
+{
+  xmlDtdPtr dtd;
+  Data_Get_Struct(self, xmlDtd, dtd);
+
+  if(!dtd-&gt;attributes) return Qnil;
+
+  VALUE hash = rb_hash_new();
+
+  xmlHashScan((xmlHashTablePtr)dtd-&gt;attributes, element_copier, (void *)hash);
 
   return hash;
 }
@@ -130,6 +152,38 @@ static VALUE validate(VALUE self, VALUE document)
   return error_list;
 }
 
+/*
+ * call-seq:
+ *   system_id
+ *
+ * Get the System ID for this DTD
+ */
+static VALUE system_id(VALUE self)
+{
+  xmlDtdPtr dtd;
+  Data_Get_Struct(self, xmlDtd, dtd);
+
+  if(!dtd-&gt;SystemID) return Qnil;
+
+  return NOKOGIRI_STR_NEW2(dtd-&gt;SystemID);
+}
+
+/*
+ * call-seq:
+ *   external_id
+ *
+ * Get the External ID for this DTD
+ */
+static VALUE external_id(VALUE self)
+{
+  xmlDtdPtr dtd;
+  Data_Get_Struct(self, xmlDtd, dtd);
+
+  if(!dtd-&gt;ExternalID) return Qnil;
+
+  return NOKOGIRI_STR_NEW2(dtd-&gt;ExternalID);
+}
+
 VALUE cNokogiriXmlDtd;
 
 void init_xml_dtd()
@@ -149,6 +203,9 @@ void init_xml_dtd()
   rb_define_method(klass, &quot;elements&quot;, elements, 0);
   rb_define_method(klass, &quot;entities&quot;, entities, 0);
   rb_define_method(klass, &quot;validate&quot;, validate, 1);
+  rb_define_method(klass, &quot;attributes&quot;, attributes, 0);
+  rb_define_method(klass, &quot;system_id&quot;, system_id, 0);
+  rb_define_method(klass, &quot;external_id&quot;, external_id, 0);
 }
 </pre>
     </div>

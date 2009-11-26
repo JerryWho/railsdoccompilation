@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:53:40 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -17,11 +17,13 @@
     <h2>Source Code</h2>
     <pre>#include &lt;xml_io.h&gt;
 
+static ID id_read, id_write;
+
 int io_read_callback(void * ctx, char * buffer, int len) {
   VALUE io = (VALUE)ctx;
-  VALUE string = rb_funcall(io, rb_intern(&quot;read&quot;), 1, INT2NUM(len));
+  VALUE string = rb_funcall(io, id_read, 1, INT2NUM(len));
 
-  if(Qnil == string) return 0;
+  if(NIL_P(string)) return 0;
 
   memcpy(buffer, StringValuePtr(string), (unsigned int)RSTRING_LEN(string));
 
@@ -32,12 +34,17 @@ int io_write_callback(void * ctx, char * buffer, int len) {
   VALUE io = (VALUE)ctx;
   VALUE string = rb_str_new(buffer, len);
 
-  rb_funcall(io, rb_intern(&quot;write&quot;), 1, string);
+  rb_funcall(io, id_write, 1, string);
   return len;
 }
 
 int io_close_callback(void * ctx) {
   return 0;
+}
+
+void init_nokogiri_io() {
+  id_read = rb_intern(&quot;read&quot;);
+  id_write = rb_intern(&quot;write&quot;);
 }
 </pre>
     </div>

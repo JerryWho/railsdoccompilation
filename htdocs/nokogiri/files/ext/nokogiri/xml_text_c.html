@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:53:40 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -35,10 +35,10 @@ static VALUE new(int argc, VALUE *argv, VALUE klass)
   Data_Get_Struct(document, xmlDoc, doc);
 
   xmlNodePtr node = xmlNewText((xmlChar *)StringValuePtr(string));
-  node-&gt;doc = doc;
+  node-&gt;doc = doc-&gt;doc;
 
   VALUE rb_node = Nokogiri_wrap_xml_node(klass, node) ;
-  rb_funcall2(rb_node, rb_intern(&quot;initialize&quot;), argc, argv);
+  rb_obj_call_init(rb_node, argc, argv);
 
   if(rb_block_given_p()) rb_yield(rb_node);
 
@@ -52,11 +52,12 @@ void init_xml_text()
   VALUE xml = rb_define_module_under(nokogiri, &quot;XML&quot;);
   /* */
   VALUE node = rb_define_class_under(xml, &quot;Node&quot;, rb_cObject);
+  VALUE char_data = rb_define_class_under(xml, &quot;CharacterData&quot;, node);
 
   /*
    * Wraps Text nodes.
    */
-  VALUE klass = rb_define_class_under(xml, &quot;Text&quot;, node);
+  VALUE klass = rb_define_class_under(xml, &quot;Text&quot;, char_data);
 
   cNokogiriXmlText = klass;
 

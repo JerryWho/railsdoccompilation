@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+    <pre>require &quot;helper&quot;
 
 require 'stringio'
 
@@ -25,6 +25,44 @@ module Nokogiri
       def setup
         super
         @xml = Nokogiri::XML(File.read(XML_FILE), XML_FILE)
+      end
+
+      def test_element?
+        assert @xml.root.element?, 'is an element'
+      end
+
+      def test_slash_search
+        assert_equal 'EMP0001', (@xml/:staff/:employee/:employeeId).first.text
+      end
+
+      def test_append_with_document
+        assert_raises(ArgumentError) do
+          @xml.root &lt;&lt; Nokogiri::XML::Document.new
+        end
+      end
+
+      def test_inspect_ns
+        xml = Nokogiri::XML(&lt;&lt;-eoxml) { |c| c.noblanks }
+          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;bar&quot;&gt;
+            &lt;awesome/&gt;
+          &lt;/root&gt;
+        eoxml
+        ins = xml.inspect
+
+        xml.traverse do |node|
+          assert_match node.class.name, ins
+          if node.respond_to? :attributes
+            node.attributes.each do |k,v|
+              assert_match k, ins
+              assert_match v, ins
+            end
+          end
+
+          if node.respond_to?(:namespace) &amp;&amp; node.namespace
+            assert_match node.namespace.class.name, ins
+            assert_match node.namespace.href, ins
+          end
+        end
       end
 
       def test_namespace_nodes
@@ -261,6 +299,20 @@ module Nokogiri
         assert_equal node, @xml.xpath('//address').first
       end
 
+      def test_at_xpath
+        node = @xml.at_xpath('//address')
+        nodes = @xml.xpath('//address')
+        assert_equal 5, nodes.size
+        assert_equal node, nodes.first
+      end
+
+      def test_at_css
+        node = @xml.at_css('address')
+        nodes = @xml.css('address')
+        assert_equal 5, nodes.size
+        assert_equal node, nodes.first
+      end
+
       def test_percent
         node = @xml % ('address')
         assert_equal node, @xml.xpath('//address').first
@@ -308,6 +360,23 @@ module Nokogiri
         child = Nokogiri::XML::Node.new('second', doc)
         node.add_child(child)
         assert doc.at('//xmlns:second')
+      end
+
+      def test_add_child_should_not_inherit_namespace_if_it_has_one
+        doc = Nokogiri::XML(&lt;&lt;-eoxml)
+          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;http://flavorjon.es/&quot;&gt;
+            &lt;first&gt;
+            &lt;/first&gt;
+          &lt;/root&gt;
+        eoxml
+        assert node = doc.at('//xmlns:first')
+        child = Nokogiri::XML::Node.new('second', doc)
+
+        ns = doc.root.namespace_definitions.detect { |x| x.prefix == &quot;foo&quot; }
+        child.namespace = ns
+
+        node.add_child(child)
+        assert doc.at('//foo:second', &quot;foo&quot; =&gt; &quot;http://flavorjon.es/&quot;)
       end
 
       def test_write_to
@@ -754,12 +823,9 @@ EOF
         assert_equal 'http://foo.com/', namespaces['xmlns:a']
         assert namespaces.key?('xmlns:b')
         assert_equal 'http://bar.com/', namespaces['xmlns:b']
-        assert namespaces.key?('xmlns:c')
-        assert_equal 'http://bazz.com/', namespaces['xmlns:c']
 
         assert_equal &quot;hello a&quot;, xml.search(&quot;//a:div&quot;, xml.namespaces).first.inner_text
         assert_equal &quot;hello b&quot;, xml.search(&quot;//b:div&quot;, xml.namespaces).first.inner_text
-        assert_equal &quot;hello c&quot;, xml.search(&quot;//c:div&quot;, xml.namespaces).first.inner_text
       end
 
       def test_namespace

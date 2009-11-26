@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:53:40 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', &quot;helper&quot;))
+    <pre>require &quot;helper&quot;
 
 module Nokogiri
   module HTML
@@ -23,6 +23,11 @@ module Nokogiri
       def setup
         super
         @html = Nokogiri::HTML.parse(File.read(HTML_FILE))
+      end
+
+      def test_fragment
+        fragment = @html.fragment
+        assert_equal 0, fragment.children.length
       end
 
       def test_document_takes_config_block
@@ -83,8 +88,12 @@ module Nokogiri
         assert_equal @html.to_s, html.to_s
       end
 
+      ###
+      # Nokogiri::HTML returns an empty Document when given a blank string GH#11
       def test_empty_string_returns_empty_doc
         doc = Nokogiri::HTML('')
+        assert_instance_of Nokogiri::HTML::Document, doc
+        assert_nil doc.root
       end
 
       unless %w[2 6] === LIBXML_VERSION.split('.')[0..1]
@@ -124,6 +133,14 @@ module Nokogiri
       def test_meta_encoding=
         @html.meta_encoding = 'EUC-JP'
         assert_equal 'EUC-JP', @html.meta_encoding
+      end
+
+      def test_meta_encoding_without_head
+        html = Nokogiri::HTML('&lt;html&gt;&lt;body&gt;foo&lt;/body&gt;&lt;/html&gt;')
+        assert_nil html.meta_encoding
+
+        html.meta_encoding = 'EUC-JP'
+        assert_nil html.meta_encoding
       end
 
       def test_root_node_parent_is_document
@@ -310,6 +327,11 @@ module Nokogiri
         eohtml
         node = html.xpath('//div').first
         assert_equal('&lt;p&gt;Helloworld!&lt;/p&gt;', node.inner_html.gsub(/\s/, ''))
+      end
+
+      def test_round_trip
+        doc = Nokogiri::HTML(@html.inner_html)
+        assert_equal @html.root.to_html, doc.root.to_html
       end
 
       def test_fragment_contains_text_node

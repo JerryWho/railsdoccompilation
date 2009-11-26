@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -20,8 +20,8 @@
 
 #include &lt;stdlib.h&gt;
 #include &lt;assert.h&gt;
-#include &lt;ruby.h&gt;
 #include &lt;libxml/parser.h&gt;
+#include &lt;libxml/parserInternals.h&gt;
 #include &lt;libxml/xpath.h&gt;
 #include &lt;libxml/xpathInternals.h&gt;
 #include &lt;libxml/xmlreader.h&gt;
@@ -30,6 +30,7 @@
 #include &lt;libxml/HTMLparser.h&gt;
 #include &lt;libxml/HTMLtree.h&gt;
 #include &lt;libxml/relaxng.h&gt;
+#include &lt;ruby.h&gt;
 
 #ifdef USE_INCLUDED_VASPRINTF
 int vasprintf (char **strp, const char *fmt, va_list ap);
@@ -59,38 +60,28 @@ int is_2_6_16(void) ;
 
 #include &lt;ruby/encoding.h&gt;
 
-#define NOKOGIRI_STR_NEW2(str, encoding) \
+#define NOKOGIRI_STR_NEW2(str) \
   ({ \
     VALUE _string = rb_str_new2((const char *)str); \
-    if(NULL != encoding) { \
-      int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
-      if(_enc == -1) \
-        rb_enc_associate_index(_string, rb_enc_find_index(&quot;ASCII&quot;)); \
-      else \
-        rb_enc_associate_index(_string, _enc); \
-    } \
+    int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
+    rb_enc_associate_index(_string, _enc); \
     _string; \
   })
 
-#define NOKOGIRI_STR_NEW(str, len, encoding) \
+#define NOKOGIRI_STR_NEW(str, len) \
   ({ \
     VALUE _string = rb_str_new((const char *)str, (long)len); \
-    if(NULL != encoding) { \
-      int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
-      if(_enc == -1) \
-        rb_enc_associate_index(_string, rb_enc_find_index(&quot;ASCII&quot;)); \
-      else \
-        rb_enc_associate_index(_string, _enc); \
-    } \
+    int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
+    rb_enc_associate_index(_string, _enc); \
     _string; \
   })
 
 #else
 
-#define NOKOGIRI_STR_NEW2(str, doc) \
+#define NOKOGIRI_STR_NEW2(str) \
   rb_str_new2((const char *)str)
 
-#define NOKOGIRI_STR_NEW(str, len, doc) \
+#define NOKOGIRI_STR_NEW(str, len) \
   rb_str_new((const char *)str, (long)len)
 #endif
 
@@ -109,11 +100,16 @@ int is_2_6_16(void) ;
 #include &lt;xml_node_set.h&gt;
 #include &lt;xml_xpath.h&gt;
 #include &lt;xml_dtd.h&gt;
+#include &lt;xml_attribute_decl.h&gt;
+#include &lt;xml_element_decl.h&gt;
+#include &lt;xml_entity_decl.h&gt;
 #include &lt;xml_xpath_context.h&gt;
+#include &lt;xml_element_content.h&gt;
+#include &lt;xml_sax_parser_context.h&gt;
 #include &lt;xml_sax_parser.h&gt;
 #include &lt;xml_sax_push_parser.h&gt;
 #include &lt;xml_reader.h&gt;
-#include &lt;html_sax_parser.h&gt;
+#include &lt;html_sax_parser_context.h&gt;
 #include &lt;xslt_stylesheet.h&gt;
 #include &lt;xml_syntax_error.h&gt;
 #include &lt;xml_schema.h&gt;

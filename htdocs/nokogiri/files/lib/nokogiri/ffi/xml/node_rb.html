@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:03:28 +0200 2009</td>
+      <td>Thu Nov 26 17:54:09 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -35,11 +35,39 @@
       end
 
       def internal_subset
-        return nil if cstruct[:doc].null?
         doc = cstruct.document
         dtd = LibXML.xmlGetIntSubset(doc)
         return nil if dtd.null?
         Node.wrap(dtd)
+      end
+
+      def external_subset
+        doc = cstruct.document
+        return nil if doc[:extSubset].null?
+
+        Node.wrap(doc[:extSubset])
+      end
+
+      def create_internal_subset name, external_id, system_id
+        raise(&quot;Document already has an internal subset&quot;) if internal_subset
+
+        doc = cstruct.document
+        dtd_ptr = LibXML.xmlCreateIntSubset doc, name, external_id, system_id
+
+        return nil if dtd_ptr.null?
+
+        Node.wrap dtd_ptr
+      end
+
+      def create_external_subset name, external_id, system_id
+        raise(&quot;Document already has an external subset&quot;) if external_subset
+
+        doc = cstruct.document
+        dtd_ptr = LibXML.xmlNewDtd doc, name, external_id, system_id
+
+        return nil if dtd_ptr.null?
+
+        Node.wrap dtd_ptr
       end
 
       def dup(deep = 1)
@@ -78,7 +106,7 @@
 
         set = NodeSet.new child.document
         set_ptr = LibXML.xmlXPathNodeSetCreate(child.cstruct)
-        
+
         set.cstruct = LibXML::XmlNodeSet.new(set_ptr)
         return set unless child
 
@@ -126,7 +154,7 @@
       end
 
       def attribute(name)
-        raise &quot;Node#attribute not implemented yet&quot;
+        attribute_nodes.find { |x| x.name == name }
       end
 
       def attribute_with_ns(name, namespace)
@@ -283,11 +311,13 @@
                   when ELEMENT_NODE then [XML::Element]
                   when TEXT_NODE then [XML::Text]
                   when ENTITY_REF_NODE then [XML::EntityReference]
+                  when ATTRIBUTE_DECL then [XML::AttributeDecl, LibXML::XmlAttribute]
+                  when ELEMENT_DECL then [XML::ElementDecl, LibXML::XmlElement]
                   when COMMENT_NODE then [XML::Comment]
                   when DOCUMENT_FRAG_NODE then [XML::DocumentFragment]
                   when PI_NODE then [XML::ProcessingInstruction]
                   when ATTRIBUTE_NODE then [XML::Attr]
-                  when ENTITY_DECL then [XML::EntityDeclaration]
+                  when ENTITY_DECL then [XML::EntityDecl, LibXML::XmlEntity]
                   when CDATA_SECTION_NODE then [XML::CDATA]
                   when DTD_NODE then [XML::DTD, LibXML::XmlDtd]
                   else [XML::Node]
@@ -333,6 +363,7 @@
 
       def self.reparent_node_with(node, other, &amp;block)
         raise(ArgumentError, &quot;node must be a Nokogiri::XML::Node&quot;) unless node.is_a?(Nokogiri::XML::Node)
+        raise(ArgumentError, &quot;cannot reparent a document node&quot;) if node.node_type == DOCUMENT_NODE || node.node_type == HTML_DOCUMENT_NODE
 
         # If a document fragment is added, we need to reparent all of it's
         # children
@@ -341,6 +372,11 @@
             reparent_node_with(child, other, &amp;block)
           end
           return node
+        end
+
+        if node.type == TEXT_NODE
+          node.cstruct.keep_reference_from_document!
+          node.cstruct = LibXML::XmlNode.new(LibXML.xmlDocCopyNode(node.cstruct, other.cstruct.document, 1))
         end
 
         if node.cstruct[:doc] == other.cstruct[:doc]
@@ -375,8 +411,10 @@
       end
 
       def self.relink_namespace(reparented_struct)
+        return if reparented_struct[:parent].null?
+
         # Make sure that our reparented node has the correct namespaces
-        if reparented_struct[:doc] != reparented_struct[:parent]
+        if reparented_struct[:ns].null? &amp;&amp; reparented_struct[:doc] != reparented_struct[:parent]
           LibXML.xmlSetNs(reparented_struct, LibXML::XmlNode.new(reparented_struct[:parent])[:ns])
         end
 
@@ -419,5 +457,7 @@
     end
   end
 end
+class Nokogiri::XML::Element &lt; Nokogiri::XML::Node; end
+class Nokogiri::XML::CharacterData &lt; Nokogiri::XML::Node; end
 </pre>
     </div>
