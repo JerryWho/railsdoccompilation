@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:24:01 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -99,26 +99,35 @@ module Haml
     MID_BLOCK_KEYWORD_REGEX = /^-\s*(#{%w[else elsif rescue ensure when end].join('|')})\b/
 
     # The Regex that matches a Doctype command.
-    DOCTYPE_REGEX = /(\d\.\d)?[\s]*([a-z]*)/i
+    DOCTYPE_REGEX = /(\d(?:\.\d)?)?[\s]*([a-z]*)/i
 
     # The Regex that matches a literal string or symbol value
-    LITERAL_VALUE_REGEX = /:(\w*)|([&quot;'])([^\\#'&quot;]|\\.)*\2/
+    LITERAL_VALUE_REGEX = /:(\w*)|([&quot;'])((?![\\#]|\2).|\\.)*\2/
 
     private
 
     # Returns the precompiled string with the preamble and postamble
     def precompiled_with_ambles(local_names)
       preamble = &lt;&lt;END.gsub(&quot;\n&quot;, &quot;;&quot;)
+begin
 extend Haml::Helpers
 _hamlout = @haml_buffer = Haml::Buffer.new(@haml_buffer, #{options_for_buffer.inspect})
 _erbout = _hamlout.buffer
 __in_erb_template = true
 END
       postamble = &lt;&lt;END.gsub(&quot;\n&quot;, &quot;;&quot;)
+#{precompiled_method_return_value}
+ensure
 @haml_buffer = @haml_buffer.upper
-_erbout
+end
 END
       preamble + locals_code(local_names) + precompiled + postamble
+    end
+
+    # Returns the string used as the return value of the precompiled method.
+    # This method exists so it can be monkeypatched to return modified values.
+    def precompiled_method_return_value
+      &quot;_erbout&quot;
     end
 
     def locals_code(names)
@@ -744,6 +753,7 @@ END
       raise SyntaxError.new(&quot;Self-closing tags can't have content.&quot;, last_line - 1) if self_closing &amp;&amp; !value.empty?
 
       self_closing ||= !!( !block_opened? &amp;&amp; value.empty? &amp;&amp; @options[:autoclose].include?(tag_name) )
+      value = nil if value.empty? &amp;&amp; (block_opened? || self_closing)
 
       dont_indent_next_line =
         (nuke_outer_whitespace &amp;&amp; !block_opened?) ||
@@ -768,7 +778,7 @@ END
         return if tag_closed
       else
         flush_merged_text
-        content = value.empty? || parse ? 'nil' : value.dump
+        content = parse ? 'nil' : value.inspect
         if attributes_hashes.empty?
           attributes_hashes = ''
         elsif attributes_hashes.size == 1
@@ -786,7 +796,7 @@ END
 
       return if self_closing
 
-      if value.empty?
+      if value.nil?
         push_and_tabulate([:element, [tag_name, nuke_outer_whitespace, nuke_inner_whitespace]])
         @output_tabs += 1 unless nuke_inner_whitespace
         return
@@ -855,6 +865,8 @@ END
         if xhtml?
           if version == &quot;1.1&quot;
             '&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.1//EN&quot; &quot;http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd&quot;&gt;'
+          elsif version == &quot;5&quot;
+            '&lt;!DOCTYPE html&gt;'
           else
             case type
             when &quot;strict&quot;;   '&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;'
@@ -1009,29 +1021,31 @@ END
 
     def resolve_newlines
       return unless @newlines &gt; 0
+      flush_merged_text unless @to_merge.all? {|type, *_| type == :text}
       @precompiled &lt;&lt; &quot;\n&quot; * @newlines
       @newlines = 0
     end
 
     # Get rid of and whitespace at the end of the buffer
     # or the merged text
-    def rstrip_buffer!
-      if @to_merge.empty?
+    def rstrip_buffer!(index = -1)
+      last = @to_merge[index]
+      if last.nil?
         push_silent(&quot;_hamlout.rstrip!&quot;, false)
         @dont_tab_up_next_text = true
         return
       end
 
-      last = @to_merge.last
       case last.first
       when :text
         last[1].rstrip!
         if last[1].empty?
-          @to_merge.pop
-          rstrip_buffer!
+          @to_merge.slice! index
+          rstrip_buffer! index
         end
       when :script
         last[1].gsub!(/\(haml_temp, (.*?)\);$/, '(haml_temp.rstrip, \1);')
+        rstrip_buffer! index - 1
       else
         raise SyntaxError.new(&quot;[HAML BUG] Undefined entry in Haml::Precompiler@to_merge.&quot;)
       end

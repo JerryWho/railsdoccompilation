@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:24:01 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -71,7 +71,9 @@
       real_name = &quot;#{parent_name}-#{real_name}&quot; if parent_name
       
       if value.empty? &amp;&amp; children.empty?
-        raise Sass::SyntaxError.new(&quot;Invalid property: #{declaration.dump} (no value).&quot;, @line)
+        message = &quot;Invalid property: #{declaration.dump} (no value).&quot; +
+          pseudo_class_selector_message
+        raise Sass::SyntaxError.new(message, @line)
       end
       
       join_string = case style
@@ -91,6 +93,16 @@
       end
       
       (style == :compressed &amp;&amp; parent_name) ? to_return : to_return[0...-1]
+    end
+
+    # Returns a appropriate message indicating how to escape pseudo-class selectors.
+    # This only applies for old-style properties with no value,
+    # so returns the empty string if this is new-style.
+    #
+    # @return [String] The message
+    def pseudo_class_selector_message
+      return &quot;&quot; if @prop_syntax == :new || !value.empty?
+      &quot;\nIf #{declaration.dump} should be a selector, use \&quot;\\#{declaration}\&quot; instead.&quot;
     end
 
     protected
@@ -120,7 +132,7 @@
     private
 
     def declaration
-      @prop_syntax == :new ? &quot;#{name}: #{value}&quot; : &quot;:#{name} #{value}&quot;
+      (@prop_syntax == :new ? &quot;#{name}: #{value}&quot; : &quot;:#{name} #{value}&quot;).strip
     end
   end
 end

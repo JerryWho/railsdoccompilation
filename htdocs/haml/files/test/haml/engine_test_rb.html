@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:24:01 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -89,6 +89,7 @@ class EngineTest &lt; Test::Unit::TestCase
     &quot;/ foo\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within a tag that already has content is illegal.&quot;, 3],
     &quot;!!!\n\n  bar&quot; =&gt; [&quot;Illegal nesting: nesting within a header command is illegal.&quot;, 3],
     &quot;foo\n:ruby\n  1\n  2\n  3\n- raise 'foo'&quot; =&gt; [&quot;foo&quot;, 6],
+    &quot;= raise 'foo'\nfoo\nbar\nbaz\nbang&quot; =&gt; [&quot;foo&quot;, 1],
   }
 
   User = Struct.new('User', :id)
@@ -138,6 +139,17 @@ class EngineTest &lt; Test::Unit::TestCase
   def test_ruby_code_should_work_inside_attributes
     author = 'hcatlin'
     assert_equal(&quot;&lt;p class='3'&gt;foo&lt;/p&gt;&quot;, render(&quot;%p{:class =&gt; 1+2} foo&quot;).chomp)
+  end
+
+  def test_dynamic_attributes_with_no_content
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;
+  &lt;a href='http://haml-lang.com'&gt;&lt;/a&gt;
+&lt;/p&gt;
+HTML
+%p
+  %a{:href =&gt; &quot;http://&quot; + &quot;haml-lang.com&quot;}
+HAML
   end
 
   def test_nil_should_render_empty_tag
@@ -324,6 +336,18 @@ HTML
       = &quot;foo&quot;
     - else
       foo
+HAML
+  end
+
+  def test_outer_whitespace_nuke_with_empty_script
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;
+  foo&lt;a&gt;&lt;/a&gt;&lt;/p&gt;
+HTML
+%p
+  foo
+  = &quot;  &quot;
+  %a&gt;
 HAML
   end
 
@@ -722,6 +746,7 @@ HAML
   def test_doctypes
     assert_equal('&lt;!DOCTYPE html&gt;',
       render('!!!', :format =&gt; :html5).strip)
+    assert_equal('&lt;!DOCTYPE html&gt;', render('!!! 5').strip)
     assert_equal('&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;',
       render('!!! strict').strip)
     assert_equal('&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Frameset//EN&quot; &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd&quot;&gt;',
@@ -825,12 +850,18 @@ HAML
         line_no ||= key.split(&quot;\n&quot;).length
 
         if expected_message == :compile
-          assert_match(/^compile error\n/, err.message, &quot;Line: #{key}&quot;)
+          if Haml::Util.ruby1_8?
+            assert_match(/^compile error\n/, err.message, &quot;Line: #{key}&quot;)
+          else
+            assert_match(/^#{Regexp.quote __FILE__}:#{line_no}: syntax error,/, err.message, &quot;Line: #{key}&quot;)
+          end
         else
           assert_equal(expected_message, err.message, &quot;Line: #{key}&quot;)
         end
 
-        assert_match(/^#{Regexp.escape(__FILE__)}:#{line_no}/, err.backtrace[0], &quot;Line: #{key}&quot;)
+        if Haml::Util.ruby1_8?
+          assert_match(/^#{Regexp.escape(__FILE__)}:#{line_no}/, err.backtrace[0], &quot;Line: #{key}&quot;)
+        end
       else
         assert(false, &quot;Exception not raised for\n#{key}&quot;)
       end
@@ -956,6 +987,32 @@ END
     assert_equal(&quot;FOO\n&quot;, engine(&quot;= upcase&quot;).render_proc(&quot;foo&quot;.instance_eval{binding}).call)
   end
 
+  def test_haml_buffer_gets_reset_even_with_exception
+    scope = Object.new
+    render(&quot;- raise Haml::Error&quot;, :scope =&gt; scope)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Exception
+    assert_nil(scope.send(:haml_buffer))
+  end
+
+  def test_def_method_haml_buffer_gets_reset_even_with_exception
+    scope = Object.new
+    engine(&quot;- raise Haml::Error&quot;).def_method(scope, :render)
+    scope.render
+    assert(false, &quot;Expected exception&quot;)
+  rescue Exception
+    assert_nil(scope.send(:haml_buffer))
+  end
+
+  def test_render_proc_haml_buffer_gets_reset_even_with_exception
+    scope = Object.new
+    proc = engine(&quot;- raise Haml::Error&quot;).render_proc(scope)
+    proc.call
+    assert(false, &quot;Expected exception&quot;)
+  rescue Exception
+    assert_nil(scope.send(:haml_buffer))
+  end
+
   def test_ugly_true
     assert_equal(&quot;&lt;div id='outer'&gt;\n&lt;div id='inner'&gt;\n&lt;p&gt;hello world&lt;/p&gt;\n&lt;/div&gt;\n&lt;/div&gt;\n&quot;,
                  render(&quot;#outer\n  #inner\n    %p hello world&quot;, :ugly =&gt; true))
@@ -992,6 +1049,11 @@ END
 
   def test_dynamic_hashes_with_suppress_eval
     assert_equal(&quot;&lt;a&gt;&lt;/a&gt;\n&quot;, render('%a{:b =&gt; &quot;a #{1 + 1} b&quot;, :c =&gt; &quot;d&quot;}', :suppress_eval =&gt; true))
+  end
+
+  def test_utf8_attrs
+    assert_equal(&quot;&lt;a href='héllo'&gt;&lt;/a&gt;\n&quot;, render(&quot;%a{:href =&gt; 'héllo'}&quot;))
+    assert_equal(&quot;&lt;a href='héllo'&gt;&lt;/a&gt;\n&quot;, render(&quot;%a(href='héllo')&quot;))
   end
 
   # HTML 4.0
@@ -1142,6 +1204,16 @@ HAML
 
     def test_convert_template_render
       assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML.encode(&quot;iso-8859-1&quot;), :encoding =&gt; &quot;utf-8&quot;))
+&lt;p&gt;bâr&lt;/p&gt;
+&lt;p&gt;föö&lt;/p&gt;
+HTML
+%p bâr
+%p föö
+HAML
+    end
+
+    def test_fake_ascii_encoding
+      assert_equal(&lt;&lt;HTML.force_encoding(&quot;ascii-8bit&quot;), render(&lt;&lt;HAML, :encoding =&gt; &quot;ascii-8bit&quot;))
 &lt;p&gt;bâr&lt;/p&gt;
 &lt;p&gt;föö&lt;/p&gt;
 HTML

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:24:01 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -35,8 +35,11 @@ class SassEngineTest &lt; Test::Unit::TestCase
     &quot;:&quot; =&gt; 'Invalid property: &quot;:&quot;.',
     &quot;: a&quot; =&gt; 'Invalid property: &quot;: a&quot;.',
     &quot;:= a&quot; =&gt; 'Invalid property: &quot;:= a&quot;.',
-    &quot;a\n  :b&quot; =&gt; 'Invalid property: &quot;:b &quot; (no value).',
-    &quot;a\n  b:&quot; =&gt; 'Invalid property: &quot;b: &quot; (no value).',
+    &quot;a\n  :b&quot; =&gt; &lt;&lt;MSG,
+Invalid property: &quot;:b&quot; (no value).
+If &quot;:b&quot; should be a selector, use &quot;\\:b&quot; instead.
+MSG
+    &quot;a\n  b:&quot; =&gt; 'Invalid property: &quot;b:&quot; (no value).',
     &quot;a\n  :b: c&quot; =&gt; 'Invalid property: &quot;:b: c&quot;.',
     &quot;a\n  :b:c d&quot; =&gt; 'Invalid property: &quot;:b:c d&quot;.',
     &quot;a\n  :b=c d&quot; =&gt; 'Invalid property: &quot;:b=c d&quot;.',
@@ -44,7 +47,12 @@ class SassEngineTest &lt; Test::Unit::TestCase
     &quot;a\n  b: c;&quot; =&gt; 'Invalid property: &quot;b: c;&quot; (no &quot;;&quot; required at end-of-line).',
     &quot;a\n  b : c&quot; =&gt; 'Invalid property: &quot;b : c&quot;.',
     &quot;a\n  b=c: d&quot; =&gt; 'Invalid property: &quot;b=c: d&quot;.',
-    &quot;:a&quot; =&gt; 'Properties aren\'t allowed at the root of a document.',
+    &quot;:a b&quot; =&gt; 'Properties aren\'t allowed at the root of a document.',
+    &quot;a:&quot; =&gt; 'Properties aren\'t allowed at the root of a document.',
+    &quot;:a&quot; =&gt; &lt;&lt;MSG,
+Properties aren't allowed at the root of a document.
+If &quot;:a&quot; should be a selector, use &quot;\\:a&quot; instead.
+MSG
     &quot;!&quot; =&gt; 'Invalid variable: &quot;!&quot;.',
     &quot;!a&quot; =&gt; 'Invalid variable: &quot;!a&quot;.',
     &quot;! a&quot; =&gt; 'Invalid variable: &quot;! a&quot;.',
@@ -151,7 +159,7 @@ class SassEngineTest &lt; Test::Unit::TestCase
       rescue Sass::SyntaxError =&gt; err
         value = [value] unless value.is_a?(Array)
 
-        assert_equal(value.first, err.message, &quot;Line: #{key}&quot;)
+        assert_equal(value.first.rstrip, err.message, &quot;Line: #{key}&quot;)
         assert_equal(__FILE__, err.sass_filename)
         assert_equal((value[1] || key.split(&quot;\n&quot;).length) + line - 1, err.sass_line, &quot;Line: #{key}&quot;)
         assert_match(/#{Regexp.escape(__FILE__)}:[0-9]+/, err.backtrace[0], &quot;Line: #{key}&quot;)
@@ -690,6 +698,17 @@ foo {
 CSS
   end
 
+  def test_attribute_selector_with_spaces
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
+a b[foo = bar] {
+  c: d; }
+CSS
+a
+  b[foo = bar]
+    c: d
+SASS
+  end
+
   def test_quoted_colon
     assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
 a b[foo=&quot;bar: baz&quot;] {
@@ -740,6 +759,27 @@ END
 
 foo, bar, baz,
 bang, bip, bop
+SASS
+  end
+
+  def test_root_level_pseudo_class_with_new_properties
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS, :property_syntax =&gt; :new))
+:focus {
+  outline: 0; }
+CSS
+:focus
+  outline: 0
+SASS
+  end
+
+  def test_pseudo_class_with_new_properties
+    assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS, :property_syntax =&gt; :new))
+p :focus {
+  outline: 0; }
+CSS
+p
+  :focus
+    outline: 0
 SASS
   end
 

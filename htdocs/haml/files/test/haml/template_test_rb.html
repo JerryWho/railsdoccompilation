@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:23:42 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -161,16 +161,20 @@ class TemplateTest &lt; Test::Unit::TestCase
     end
   end
 
-  def test_action_view_templates_render_correctly
-    proc = lambda do
-      @base.content_for(:layout) {'Lorem ipsum dolor sit amet'}
-      assert_renders_correctly 'content_for_layout'
-    end
+  if ActionPack::VERSION::MAJOR &lt; 3
+    # Rails 3.0.0 deprecates the use of yield with a layout
+    # for calls to render :file
+    def test_action_view_templates_render_correctly
+      proc = lambda do
+        @base.content_for(:layout) {'Lorem ipsum dolor sit amet'}
+        assert_renders_correctly 'content_for_layout'
+      end
 
-    if @base.respond_to?(:with_output_buffer)
-      @base.with_output_buffer(&quot;&quot;, &amp;proc)
-    else
-      proc.call
+      if @base.respond_to?(:with_output_buffer)
+        @base.with_output_buffer(&quot;&quot;, &amp;proc)
+      else
+        proc.call
+      end
     end
   end
 
@@ -220,7 +224,7 @@ HTML
   - with_output_buffer do
     bar
     = &quot;foo&quot;.gsub(/./) do |s|
-      - s.ord
+      - &quot;flup&quot;
   baz
 HAML
   end
@@ -258,6 +262,9 @@ END
 
   ## XSS Protection Tests
 
+  # In order to enable these, either test against Rails 3.0
+  # or test against Rails 2.2.5+ with the rails_xss plugin
+  # (http://github.com/NZKoz/rails_xss) in test/plugins.
   if Haml::Util.rails_xss_safe?
     def test_escape_html_option_set
       assert Haml::Template.options[:escape_html]
@@ -289,6 +296,18 @@ END
 
     def test_xss_protection_with_mixed_strings_in_interpolation
       assert_equal(&quot;Foo &amp; Bar &amp;amp; Baz\n&quot;, render('Foo #{&quot;&amp;&quot;.html_safe!} Bar #{&quot;&amp;&quot;} Baz', :action_view))
+    end
+
+    def test_rendered_string_is_html_safe
+      assert(render(&quot;Foo&quot;).html_safe?)
+    end
+
+    def test_rendered_string_is_html_safe_with_action_view
+      assert(render(&quot;Foo&quot;, :action_view).html_safe?)
+    end
+
+    def test_xss_html_escaping_with_non_strings
+      assert_equal(&quot;4\n&quot;, render(&quot;= html_escape(4)&quot;))
     end
   end
 end

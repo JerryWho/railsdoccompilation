@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -51,6 +51,25 @@ module Sass::Script
       rgb = rgb.map {|c| c.to_i}
       raise Sass::SyntaxError.new(&quot;Color values must be between 0 and 255&quot;) if rgb.any? {|c| c &lt; 0 || c &gt; 255}
       super(rgb)
+    end
+
+    # @deprecated This will be removed in version 2.6.
+    # @see #rgb
+    def value
+      warn &lt;&lt;END
+DEPRECATION WARNING:
+The Sass::Script::Color #value attribute is deprecated and will be
+removed in version 2.6. Use the #rgb attribute instead.
+END
+      rgb
+    end
+
+    # Returns the red, green, and blue components of the color.
+    #
+    # @return [Array&lt;Fixnum&gt;] A three-element array of the red, green, and blue
+    #   values (respectively) of the color
+    def rgb
+      @value
     end
 
     # The SassScript `+` operation.
@@ -174,8 +193,8 @@ module Sass::Script
     #
     # @return [String] The string representation
     def to_s
-      return HTML4_COLORS_REVERSE[@value] if HTML4_COLORS_REVERSE[@value]
-      red, green, blue = @value.map { |num| num.to_s(16).rjust(2, '0') }
+      return HTML4_COLORS_REVERSE[rgb] if HTML4_COLORS_REVERSE[rgb]
+      red, green, blue = rgb.map { |num| num.to_s(16).rjust(2, '0') }
       &quot;##{red}#{green}#{blue}&quot;
     end
     alias_method :inspect, :to_s
@@ -184,17 +203,16 @@ module Sass::Script
 
     def piecewise(other, operation)
       other_num = other.is_a? Number
-      other_val = other.value
       if other_num &amp;&amp; !other.unitless?
         raise Sass::SyntaxError.new(&quot;Cannot add a number with units (#{other}) to a color (#{self}).&quot;) 
       end
 
-      rgb = []
+      result = []
       for i in (0...3)
-        res = @value[i].send(operation, other_num ? other_val : other_val[i])
-        rgb[i] = [ [res, 255].min, 0 ].max
+        res = rgb[i].send(operation, other_num ? other.value : other.rgb[i])
+        result[i] = [ [res, 255].min, 0 ].max
       end
-      Color.new(rgb)
+      Color.new(result)
     end
   end
 end

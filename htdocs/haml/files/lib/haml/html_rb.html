@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:24:01 +0100 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -38,6 +38,10 @@ module Haml
 
       def tabulate(tabs)
         '  ' * tabs
+      end
+
+      def attr_hash
+        attributes.to_hash
       end
 
       def parse_text(text, tabs)
@@ -76,7 +80,7 @@ require 'hpricot'
 
 module Haml
   # Converts HTML documents into Haml templates.
-  # Depends on [Hpricot](http://code.whytheluckystiff.net/hpricot/) for HTML parsing.
+  # Depends on [Hpricot](http://github.com/whymirror/hpricot) for HTML parsing.
   #
   # Example usage:
   #
@@ -165,10 +169,7 @@ module Haml
         end
 
         version = &quot; #{version}&quot; if version
-        if strictness
-          strictness[0] = strictness[0] - 32
-          strictness = &quot; #{strictness}&quot;
-        end
+        strictness = &quot; #{strictness.capitalize}&quot; if strictness
 
         &quot;#{tabulate(tabs)}!!!#{version}#{strictness}\n&quot;
       end
@@ -194,16 +195,16 @@ module Haml
         output += &quot;%#{name}&quot; unless name == 'div' &amp;&amp;
           (static_id?(options) || static_classname?(options))
 
-        if attributes
+        if attr_hash
           if static_id?(options)
-            output += &quot;##{attributes['id']}&quot;
+            output += &quot;##{attr_hash['id']}&quot;
             remove_attribute('id')
           end
           if static_classname?(options)
-            attributes['class'].split(' ').each { |c| output += &quot;.#{c}&quot; }
+            attr_hash['class'].split(' ').each { |c| output += &quot;.#{c}&quot; }
             remove_attribute('class')
           end
-          output += haml_attributes(options) if attributes.length &gt; 0
+          output += haml_attributes(options) if attr_hash.length &gt; 0
         end
 
         (self.children || []).inject(output + &quot;\n&quot;) do |output, child|
@@ -215,7 +216,7 @@ module Haml
       
       def dynamic_attributes
         @dynamic_attributes ||= begin
-          Haml::Util.map_hash(attributes) do |name, value|
+          Haml::Util.map_hash(attr_hash) do |name, value|
             next if value.empty?
             full_match = nil
             ruby_value = value.gsub(%r{&lt;haml:loud&gt;\s*(.+?)\s*&lt;/haml:loud&gt;}) do
@@ -237,7 +238,7 @@ module Haml
       end
 
       def static_attribute?(name, options)
-        attributes[name] and !dynamic_attribute?(name, options)
+        attr_hash[name] and !dynamic_attribute?(name, options)
       end
       
       def dynamic_attribute?(name, options)
@@ -255,7 +256,7 @@ module Haml
       # Returns a string representation of an attributes hash
       # that's prettier than that produced by Hash#inspect
       def haml_attributes(options)
-        attrs = attributes.map do |name, value|
+        attrs = attr_hash.map do |name, value|
           value = dynamic_attribute?(name, options) ? dynamic_attributes[name] : value.inspect
           name = name.index(/\W/) ? name.inspect : &quot;:#{name}&quot;
           &quot;#{name} =&gt; #{value}&quot;

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Thu Nov 26 17:51:54 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -65,13 +65,22 @@ class SassFunctionTest &lt; Test::Unit::TestCase
     assert_error_message(&quot;Lightness 256 must be between 0% and 100% for `hsl'&quot;, &quot;hsl(10, 10, 256%)&quot;);
   end
 
+  def test_hsl_checks_types
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `hsl'&quot;, &quot;hsl(\&quot;foo\&quot;, 10, 12)&quot;);
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `hsl'&quot;, &quot;hsl(10, \&quot;foo\&quot;, 12)&quot;);
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `hsl'&quot;, &quot;hsl(10, 10, \&quot;foo\&quot;)&quot;);
+  end
+
   def test_percentage
     assert_equal(&quot;50%&quot;,  evaluate(&quot;percentage(.5)&quot;))
     assert_equal(&quot;100%&quot;, evaluate(&quot;percentage(1)&quot;))
     assert_equal(&quot;25%&quot;,  evaluate(&quot;percentage(25px / 100px)&quot;))
+  end
+
+  def test_percentage_checks_types
     assert_error_message(&quot;25px is not a unitless number for `percentage'&quot;, &quot;percentage(25px)&quot;)
     assert_error_message(&quot;#cccccc is not a unitless number for `percentage'&quot;, &quot;percentage(#ccc)&quot;)
-    assert_error_message(&quot;string is not a unitless number for `percentage'&quot;, %Q{percentage(&quot;string&quot;)})
+    assert_error_message(&quot;\&quot;string\&quot; is not a unitless number for `percentage'&quot;, %Q{percentage(&quot;string&quot;)})
   end
 
   def test_round
@@ -86,14 +95,14 @@ class SassFunctionTest &lt; Test::Unit::TestCase
     assert_equal(&quot;4&quot;,   evaluate(&quot;floor(4.8)&quot;))
     assert_equal(&quot;4px&quot;, evaluate(&quot;floor(4.8px)&quot;))
 
-    assert_error_message(&quot;foo is not a number for `floor'&quot;, &quot;floor(\&quot;foo\&quot;)&quot;)
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `floor'&quot;, &quot;floor(\&quot;foo\&quot;)&quot;)
   end
 
   def test_ceil
     assert_equal(&quot;5&quot;,   evaluate(&quot;ceil(4.1)&quot;))
     assert_equal(&quot;5px&quot;, evaluate(&quot;ceil(4.8px)&quot;))
 
-    assert_error_message(&quot;a is not a number for `ceil'&quot;, &quot;ceil(\&quot;a\&quot;)&quot;)
+    assert_error_message(&quot;\&quot;a\&quot; is not a number for `ceil'&quot;, &quot;ceil(\&quot;a\&quot;)&quot;)
   end
 
   def test_abs
@@ -109,7 +118,16 @@ class SassFunctionTest &lt; Test::Unit::TestCase
     assert_equal(&quot;#123456&quot;, evaluate(&quot;rgb(18, 52, 86)&quot;))
     assert_equal(&quot;#beaded&quot;, evaluate(&quot;rgb(190, 173, 237)&quot;))
     assert_equal(&quot;#00ff7f&quot;, evaluate(&quot;rgb(0, 255, 127)&quot;))
+  end
 
+  def test_rgb_percent
+    assert_equal(&quot;#123456&quot;, evaluate(&quot;rgb(7.1%, 20.4%, 34%)&quot;))
+    assert_equal(&quot;#beaded&quot;, evaluate(&quot;rgb(74.7%, 173, 93%)&quot;))
+    assert_equal(&quot;#beaded&quot;, evaluate(&quot;rgb(190, 68%, 237)&quot;))
+    assert_equal(&quot;#00ff7f&quot;, evaluate(&quot;rgb(0%, 100%, 50%)&quot;))
+  end
+
+  def test_rgb_tests_bounds
     assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
       &quot;rgb(256, 1, 1)&quot;)
     assert_error_message(&quot;Color value 256 must be between 0 and 255 inclusive for `rgb'&quot;,
@@ -122,11 +140,26 @@ class SassFunctionTest &lt; Test::Unit::TestCase
       &quot;rgb(-1, 1, 1)&quot;)
   end
 
+  def test_rgb_test_percent_bounds
+    assert_error_message(&quot;Color value 100.1% must be between 0% and 100% inclusive for `rgb'&quot;,
+      &quot;rgb(100.1%, 0, 0)&quot;)
+    assert_error_message(&quot;Color value -0.1% must be between 0% and 100% inclusive for `rgb'&quot;,
+      &quot;rgb(0, -0.1%, 0)&quot;)
+    assert_error_message(&quot;Color value 101% must be between 0% and 100% inclusive for `rgb'&quot;,
+      &quot;rgb(0, 0, 101%)&quot;)
+  end
+
+  def test_rgb_tests_types
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(\&quot;foo\&quot;, 10, 12)&quot;);
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(10, \&quot;foo\&quot;, 12)&quot;);
+    assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(10, 10, \&quot;foo\&quot;)&quot;);
+  end
+
   private
 
   def assert_rgb_hsl(rgb, hsl)
     hsl = hsl.map {|v| Sass::Script::Parser.parse v, 0, 0 }
-    assert_equal(rgb, Sass::Script::Functions::EvaluationContext.new({}).hsl(*hsl).value)
+    assert_equal(rgb, Sass::Script::Functions::EvaluationContext.new({}).hsl(*hsl).rgb)
   end
 
   def evaluate(value)
