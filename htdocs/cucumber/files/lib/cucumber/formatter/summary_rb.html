@@ -1,0 +1,54 @@
+  <div id="fileHeader">
+    <h1>summary.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/formatter/summary.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Cucumber
+  module Formatter
+    module Summary
+
+      def scenario_summary(step_mother, &amp;block)
+        scenarios_proc = lambda{|status| step_mother.scenarios(status)}
+        dump_count(step_mother.scenarios.length, &quot;scenario&quot;) + dump_status_counts(scenarios_proc, &amp;block)
+      end
+
+      def step_summary(step_mother, &amp;block)
+        steps_proc = lambda{|status| step_mother.steps(status)}
+        dump_count(step_mother.steps.length, &quot;step&quot;) + dump_status_counts(steps_proc, &amp;block)
+      end
+
+      private
+
+      def dump_status_counts(find_elements_proc)
+        counts = [:failed, :skipped, :undefined, :pending, :passed].map do |status|
+          elements = find_elements_proc.call(status)
+          elements.any? ? yield(&quot;#{elements.length} #{status.to_s}&quot;, status) : nil
+        end.compact
+        if counts.any?
+          &quot; (#{counts.join(', ')})&quot;
+        else
+          &quot;&quot;
+        end
+      end
+
+      def dump_count(count, what, state=nil)
+        [count, state, &quot;#{what}#{count == 1 ? '' : 's'}&quot;].compact.join(&quot; &quot;)
+      end
+
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,53 @@
+  <div id="fileHeader">
+    <h1>wire_packet.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/wire_support/wire_packet.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Cucumber
+  module WireSupport
+    # Represents the packet of data sent over the wire as JSON data, containing
+    # a message and a hash of arguments
+    class WirePacket
+      class &lt;&lt; self
+        def parse(raw)
+          attributes = JSON.parse(raw.strip)
+          message = attributes[0]
+          params  = attributes[1]
+          new(message, params)
+        end
+      end
+      
+      attr_reader :message, :params
+      
+      def initialize(message, params)
+        @message, @params = message, params
+      end
+      
+      def to_json
+        [@message, @params].to_json
+      end
+      
+      def raise_if_bad
+        raise WireException.new(@params) if @message == 'fail' || @message == 'step_failed'
+      end
+      
+      def handle_with(handler)
+        handler.send(&quot;handle_#{@message}&quot;, @params)
+      end
+    end
+  end
+end
+</pre>
+    </div>

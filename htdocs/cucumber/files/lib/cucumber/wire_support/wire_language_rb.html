@@ -1,0 +1,71 @@
+  <div id="fileHeader">
+    <h1>wire_language.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/wire_support/wire_language.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'socket'
+require 'json'
+require 'cucumber/wire_support/connection'
+require 'cucumber/wire_support/wire_packet'
+require 'cucumber/wire_support/wire_exception'
+require 'cucumber/wire_support/wire_step_definition'
+
+module Cucumber
+  module WireSupport
+    
+    # The wire-protocol (lanugage independent) implementation of the programming language API.
+    class WireLanguage
+      include LanguageSupport::LanguageMethods
+      
+      def load_code_file(wire_file)
+        config = YAML.load_file(wire_file)
+        @connections &lt;&lt; Connection.new(config)
+      end
+      
+      def step_matches(step_name, formatted_step_name)
+        @connections.map{ |remote| remote.step_matches(step_name, formatted_step_name)}.flatten
+      end
+      
+      def initialize(step_mother)
+        @connections = []
+      end
+      
+      def alias_adverbs(adverbs)
+      end
+
+      def snippet_text(step_keyword, step_name, multiline_arg_class)
+        &quot;Snippets are not implemented for the wire yet&quot;
+      end
+      
+      protected
+      
+      def begin_scenario(scenario)
+        @connections.each { |remote| remote.begin_scenario(scenario) }
+      end
+      
+      def end_scenario
+        @connections.each { |remote| remote.end_scenario }
+      end
+      
+      private
+      
+      def step_definitions
+        @step_definitions ||= {}
+      end
+    end
+  end
+end
+</pre>
+    </div>
