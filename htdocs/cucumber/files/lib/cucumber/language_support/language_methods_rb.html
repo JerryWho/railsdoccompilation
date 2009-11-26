@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:54:52 +0200 2009</td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -24,9 +24,9 @@ module Cucumber
       def create_step_match(step_definition, step_name, name_to_report, step_arguments)
         StepMatch.new(step_definition, step_name, name_to_report, step_arguments)
       end
-      
+
       def before(scenario)
-        begin_scenario
+        begin_scenario(scenario)
         execute_before(scenario)
       end
 
@@ -34,7 +34,7 @@ module Cucumber
         execute_after(scenario)
         end_scenario
       end
-      
+
       def after_configuration(configuration)
         hooks[:after_configuration].each do |hook|
           hook.invoke('AfterConfiguration', configuration)
@@ -55,6 +55,7 @@ module Cucumber
       end
 
       def add_hook(phase, hook)
+        hook.tag_name_lists = hook.tag_names.map {|tag_string| Ast::Tags.parse_tags(tag_string)}
         hooks[phase.to_sym] &lt;&lt; hook
         hook
       end

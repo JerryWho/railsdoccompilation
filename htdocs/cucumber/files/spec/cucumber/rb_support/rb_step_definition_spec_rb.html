@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -30,7 +30,7 @@ module Cucumber
         @rb = @step_mother.load_programming_language('rb')
         @dsl = Object.new 
         @dsl.extend RbSupport::RbDsl
-        @step_mother.before(nil)
+        @step_mother.before(mock('scenario', :null_object =&gt; true))
 
         $inside = nil
       end
@@ -79,6 +79,15 @@ module Cucumber
         end.should raise_error(Pending, &quot;Do me!&quot;)
       end
 
+      it &quot;should raise ArityMismatchError when the number of capture groups differs from the number of step arguments&quot; do
+        @dsl.Given /No group: \w+/ do |arg|
+        end
+
+        lambda do
+          @step_mother.step_match(&quot;No group: arg&quot;).invoke(nil)
+        end.should raise_error(ArityMismatchError)
+      end
+
       it &quot;should allow announce&quot; do
         v = mock('visitor')
         v.should_receive(:announce).with('wasup')
@@ -106,7 +115,7 @@ module Cucumber
       it &quot;should recognise quotes in name and make according regexp&quot; do
         @rb.snippet_text('Given', 'A &quot;first&quot; arg', nil).should == unindented(%{
           Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1|
-            pending
+            pending # express the regexp above with the code you wish you had
           end
         })
       end
@@ -114,7 +123,7 @@ module Cucumber
       it &quot;should recognise several quoted words in name and make according regexp and args&quot; do
         @rb.snippet_text('Given', 'A &quot;first&quot; and &quot;second&quot; arg', nil).should == unindented(%{
           Given /^A &quot;([^\\&quot;]*)&quot; and &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, arg2|
-            pending
+            pending # express the regexp above with the code you wish you had
           end
         })
       end
@@ -122,7 +131,7 @@ module Cucumber
       it &quot;should not use quote group when there are no quotes&quot; do
         @rb.snippet_text('Given', 'A first arg', nil).should == unindented(%{
           Given /^A first arg$/ do
-            pending
+            pending # express the regexp above with the code you wish you had
           end
         })
       end
@@ -131,7 +140,7 @@ module Cucumber
         @rb.snippet_text('Given', 'A &quot;first&quot; arg', Cucumber::Ast::Table).should == unindented(%{
           Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, table|
             # table is a Cucumber::Ast::Table
-            pending
+            pending # express the regexp above with the code you wish you had
           end
         })
       end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -26,7 +26,7 @@
       end
 
       def accept(visitor)
-        return if $cucumber_interrupted
+        return if Cucumber.wants_to_quit
         cells_rows.each_with_index do |row, n|
           if(visitor.options[:expand])
             row.accept(visitor)
@@ -61,7 +61,11 @@
         @scenario_outline.visit_scenario_name(visitor, row)
       end
 
-      class ExampleRow &lt; Cells #:nodoc:
+      def language
+        @scenario_outline.language
+      end
+
+      class ExampleRow &lt; Cells #:nodoc:        
         class InvalidForHeaderRowError &lt; NoMethodError
           def initialize(*args)
             super 'This is a header row and cannot pass or fail'
@@ -69,6 +73,11 @@
         end
         
         attr_reader :scenario_outline # https://rspec.lighthouseapp.com/projects/16211/tickets/342
+
+        def initialize(table, cells)
+          super
+          @scenario_exception = nil
+        end
 
         def create_step_invocations!(scenario_outline)
           @scenario_outline = scenario_outline
@@ -82,7 +91,7 @@
         end
 
         def accept(visitor)
-          return if $cucumber_interrupted
+          return if Cucumber.wants_to_quit
           visitor.options[:expand] ? accept_expand(visitor) : accept_plain(visitor)
         end
 
@@ -158,7 +167,11 @@
         def name
           &quot;| #{@cells.collect{|c| c.value }.join(' | ')} |&quot;
         end
-        
+
+        def language
+          @table.language
+        end
+
         private
 
         def header?

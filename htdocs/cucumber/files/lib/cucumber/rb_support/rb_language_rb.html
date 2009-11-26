@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -52,6 +52,7 @@ module Cucumber
         @step_mother = step_mother
         @step_definitions = []
         RbDsl.rb_language = self
+        @world_proc = @world_modules = nil
       end
 
       # Tell the language about other i18n translations so that
@@ -104,13 +105,13 @@ module Cucumber
           multiline_class_comment = &quot;# #{multiline_arg_class.default_arg_name} is a #{multiline_arg_class.to_s}\n  &quot;
         end
 
-        &quot;#{step_keyword} /^#{escaped}$/ do#{block_arg_string}\n  #{multiline_class_comment}pending\nend&quot;
+        &quot;#{step_keyword} /^#{escaped}$/ do#{block_arg_string}\n  #{multiline_class_comment}pending # express the regexp above with the code you wish you had\nend&quot;
       end
 
-      def begin_rb_scenario
+      def begin_rb_scenario(scenario)
         create_world
         extend_world
-        connect_world
+        connect_world(scenario)
       end
 
       def register_rb_hook(phase, tag_names, proc)
@@ -142,8 +143,8 @@ module Cucumber
 
       protected
 
-      def begin_scenario
-        begin_rb_scenario
+      def begin_scenario(scenario)
+        begin_rb_scenario(scenario)
       end
       
       def end_scenario
@@ -172,8 +173,9 @@ module Cucumber
         end
       end
 
-      def connect_world
+      def connect_world(scenario)
         @current_world.__cucumber_step_mother = @step_mother
+        @current_world.__natural_language = scenario.language
       end
 
       def check_nil(o, proc)

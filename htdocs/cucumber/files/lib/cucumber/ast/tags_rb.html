@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Thu Nov 26 17:02:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -27,9 +27,12 @@ module Cucumber
     # This gets stored internally as &lt;tt&gt;[&quot;invoice&quot;, &quot;release_2&quot;]&lt;/tt&gt;
     #
     class Tags #:nodoc:
-
       class And #:nodoc:
         def initialize(tag_names)
+          if String === tag_names # They still come in as single strings on cuke4duke some times. Not sure why...
+            raise &quot;Commas in tags??? #{tag_names.inspect}&quot; if tag_names =~ /,/ # just in case...
+            tag_names = [tag_names] 
+          end
           @negative_tags, @positive_tags = tag_names.partition{|tag_name| Tags.exclude_tag?(tag_name)}
           @negative_tags = Tags.strip_negative_char(@negative_tags)
         end
@@ -64,9 +67,9 @@ module Cucumber
       class &lt;&lt; self
         EXCLUDE_PATTERN = /^~/
 
-        def matches?(source_tag_names, tag_names)
-          validate_tags(tag_names)
-          tag_names.empty? ? true : check_if_tags_match(source_tag_names, tag_names)
+        def matches?(source_tag_names, tag_name_lists)
+          validate_tags(tag_name_lists)
+          tag_name_lists.empty? ? true : check_if_tags_match(source_tag_names, tag_name_lists)
         end
 
         def exclude_tag?(tag_name)
@@ -77,22 +80,26 @@ module Cucumber
           tag_names.map{|name| name[1..-1]}
         end
 
+        def parse_tags(tags_string)
+          tags_string.split(',')
+        end
+
         private
 
-        def validate_tags(tag_name_list)
-          all_tag_names = tag_name_list.flatten
+        def validate_tags(tag_name_lists)
+          all_tag_names = tag_name_lists.flatten
           exclude_tag_names, include_tag_names = all_tag_names.partition{|tag_name| exclude_tag?(tag_name)}
           exclude_tag_names = strip_negative_char(exclude_tag_names)
           check_at_sign_prefix(exclude_tag_names + include_tag_names)
         end
 
-        def check_if_tags_match(source_tag_names, tag_names)
-          tag_exp = Or.new(tag_names.map{|tag_name_list| And.new(tag_name_list) })
+        def check_if_tags_match(source_tag_names, tag_name_lists)
+          tag_exp = Or.new(tag_name_lists.map{|tag_name_list| And.new(tag_name_list) })
           tag_exp.matches?(source_tag_names)
         end
 
         def check_at_sign_prefix(tag_names)
-          tag_names.each{|tag_name| raise &quot;Tag names must start with an @ sign. The following tag name didn't: #{tag_name}&quot; unless tag_name[0..0] == '@'}
+          tag_names.each{|tag_name| raise &quot;Tag names must start with an @ sign. The following tag name didn't: #{tag_name.inspect}&quot; unless tag_name[0..0] == '@'}
         end
 
       end
@@ -104,14 +111,14 @@ module Cucumber
       end
 
       def accept(visitor)
-        return if $cucumber_interrupted
+        return if Cucumber.wants_to_quit
         @tag_names.each do |tag_name|
           visitor.visit_tag_name(tag_name)
         end
       end
 
       def accept_hook?(hook)
-        self.class.matches?(@tag_names, hook.tag_names)
+        self.class.matches?(@tag_names, hook.tag_name_lists)
       end
 
       def count(tag)
