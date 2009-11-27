@@ -1,0 +1,66 @@
+  <div id="fileHeader">
+    <h1>output_safety.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/lib/active_support/core_ext/string/output_safety.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ActiveSupport #:nodoc:
+  module CoreExtensions #:nodoc:
+    module String #:nodoc:
+      module OutputSafety
+        def self.included(base)
+          base.class_eval do
+            alias_method :add_without_safety, :+
+            alias_method :+, :add_with_safety
+            alias_method_chain :concat, :safety
+            undef_method :&lt;&lt;
+            alias_method :&lt;&lt;, :concat_with_safety
+          end
+        end
+
+        def html_safe?
+          defined?(@_rails_html_safe) &amp;&amp; @_rails_html_safe
+        end
+
+        def html_safe!
+          @_rails_html_safe = true
+          self
+        end
+
+        def add_with_safety(other)
+          result = add_without_safety(other)
+          if html_safe? &amp;&amp; also_html_safe?(other)
+            result.html_safe!
+          else
+            result
+          end
+        end
+
+        def concat_with_safety(other_or_fixnum)
+          result = concat_without_safety(other_or_fixnum)
+          unless html_safe? &amp;&amp; also_html_safe?(other_or_fixnum)
+            @_rails_html_safe = false
+          end
+          result
+        end
+
+        private
+          def also_html_safe?(other)
+            other.respond_to?(:html_safe?) &amp;&amp; other.html_safe?
+          end
+      end
+    end
+  end
+end</pre>
+    </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -54,7 +54,7 @@
             nil
           elsif value.nil?
             value = super
-            local_cache.write(key, value || NULL) if local_cache
+            local_cache.mute { local_cache.write(key, value || NULL) } if local_cache
             value.duplicable? ? value.dup : value
           else
             # forcing the value to be immutable
@@ -64,12 +64,12 @@
 
         def write(key, value, options = nil)
           value = value.to_s if respond_to?(:raw?) &amp;&amp; raw?(options)
-          local_cache.write(key, value || NULL) if local_cache
+          local_cache.mute { local_cache.write(key, value || NULL) } if local_cache
           super
         end
 
         def delete(key, options = nil)
-          local_cache.write(key, NULL) if local_cache
+          local_cache.mute { local_cache.write(key, NULL) } if local_cache
           super
         end
 
@@ -86,7 +86,7 @@
 
         def increment(key, amount = 1)
           if value = super
-            local_cache.write(key, value.to_s) if local_cache
+            local_cache.mute { local_cache.write(key, value.to_s) } if local_cache
             value
           else
             nil
@@ -95,7 +95,7 @@
 
         def decrement(key, amount = 1)
           if value = super
-            local_cache.write(key, value.to_s) if local_cache
+            local_cache.mute { local_cache.write(key, value.to_s) } if local_cache
             value
           else
             nil

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -124,7 +124,11 @@ class StaticSegmentTest &lt; Test::Unit::TestCase
   end
 end
 
-class DynamicSegmentTest &lt; Test::Unit::TestCase
+class DynamicSegmentTest &lt; ActiveSupport::TestCase
+  def setup
+    @segment = nil
+  end
+
   def segment(options = {})
     unless @segment
       @segment = ROUTING::DynamicSegment.new(:a, options)
@@ -358,7 +362,11 @@ class ControllerSegmentTest &lt; Test::Unit::TestCase
   end
 end
 
-class PathSegmentTest &lt; Test::Unit::TestCase
+class PathSegmentTest &lt; ActiveSupport::TestCase
+  def setup
+    @segment = nil
+  end
+
   def segment(options = {})
     unless @segment
       @segment = ROUTING::PathSegment.new(:path, options)
@@ -771,7 +779,7 @@ class LegacyRouteSetTests &lt; ActiveSupport::TestCase
 
     ActionController::Routing.use_controllers! %w(content admin/user admin/news_feed)
   end
-  
+
   def teardown
     @rs.clear!
   end
@@ -1111,21 +1119,21 @@ class LegacyRouteSetTests &lt; ActiveSupport::TestCase
       map.post 'post/:id', :controller=&gt; 'post', :action=&gt; 'show', :requirements =&gt; {:id =&gt; /\d+/}
     end
     exception = assert_raise(ActionController::RoutingError) { rs.generate(:controller =&gt; 'post', :action =&gt; 'show', :bad_param =&gt; &quot;foo&quot;, :use_route =&gt; &quot;post&quot;) }
-    assert_match /^post_url failed to generate/, exception.message
+    assert_match(/^post_url failed to generate/, exception.message)
     from_match = exception.message.match(/from \{[^\}]+\}/).to_s
-    assert_match /:bad_param=&gt;&quot;foo&quot;/,   from_match
-    assert_match /:action=&gt;&quot;show&quot;/,     from_match
-    assert_match /:controller=&gt;&quot;post&quot;/, from_match
+    assert_match(/:bad_param=&gt;&quot;foo&quot;/,   from_match)
+    assert_match(/:action=&gt;&quot;show&quot;/,     from_match)
+    assert_match(/:controller=&gt;&quot;post&quot;/, from_match)
 
     expected_match = exception.message.match(/expected: \{[^\}]+\}/).to_s
-    assert_no_match /:bad_param=&gt;&quot;foo&quot;/,   expected_match
-    assert_match    /:action=&gt;&quot;show&quot;/,     expected_match
-    assert_match    /:controller=&gt;&quot;post&quot;/, expected_match
+    assert_no_match(/:bad_param=&gt;&quot;foo&quot;/,   expected_match)
+    assert_match(   /:action=&gt;&quot;show&quot;/,     expected_match)
+    assert_match(   /:controller=&gt;&quot;post&quot;/, expected_match)
 
     diff_match = exception.message.match(/diff: \{[^\}]+\}/).to_s
-    assert_match    /:bad_param=&gt;&quot;foo&quot;/,   diff_match
-    assert_no_match /:action=&gt;&quot;show&quot;/,     diff_match
-    assert_no_match /:controller=&gt;&quot;post&quot;/, diff_match
+    assert_match(   /:bad_param=&gt;&quot;foo&quot;/,   diff_match)
+    assert_no_match(/:action=&gt;&quot;show&quot;/,     diff_match)
+    assert_no_match(/:controller=&gt;&quot;post&quot;/, diff_match)
   end
 
   # this specifies the case where your formerly would get a very confusing error message with an empty diff
@@ -2581,10 +2589,10 @@ class RouteLoadingTest &lt; Test::Unit::TestCase
 
     routes.reload
   end
-  
+
   def test_load_multiple_configurations
     routes.add_configuration_file(&quot;engines.rb&quot;)
-    
+
     File.expects(:stat).at_least_once.returns(@stat)
 
     routes.expects(:load).with('./config/routes.rb')

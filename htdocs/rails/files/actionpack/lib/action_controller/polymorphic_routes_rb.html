@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -93,8 +93,7 @@
         record_or_hash_or_array = record_or_hash_or_array[0] if record_or_hash_or_array.size == 1
       end
 
-      record    = extract_record(record_or_hash_or_array)
-      namespace = extract_namespace(record_or_hash_or_array)
+      record = extract_record(record_or_hash_or_array)
 
       args = case record_or_hash_or_array
         when Hash;  [ record_or_hash_or_array ]
@@ -115,8 +114,7 @@
         end
 
       args.delete_if {|arg| arg.is_a?(Symbol) || arg.is_a?(String)}
-
-      named_route = build_named_route_call(record_or_hash_or_array, namespace, inflection, options)
+      named_route = build_named_route_call(record_or_hash_or_array, inflection, options)
 
       url_options = options.except(:action, :routing_type)
       unless url_options.empty?
@@ -170,7 +168,7 @@
         options[:routing_type] || :url
       end
 
-      def build_named_route_call(records, namespace, inflection, options = {})
+      def build_named_route_call(records, inflection, options = {})
         unless records.is_a?(Array)
           record = extract_record(records)
           route  = ''
@@ -180,7 +178,7 @@
             if parent.is_a?(Symbol) || parent.is_a?(String)
               string &lt;&lt; &quot;#{parent}_&quot;
             else
-              string &lt;&lt; &quot;#{RecordIdentifier.__send__(&quot;plural_class_name&quot;, parent)}&quot;.singularize
+              string &lt;&lt; RecordIdentifier.__send__(&quot;plural_class_name&quot;, parent).singularize
               string &lt;&lt; &quot;_&quot;
             end
           end
@@ -189,12 +187,12 @@
         if record.is_a?(Symbol) || record.is_a?(String)
           route &lt;&lt; &quot;#{record}_&quot;
         else
-          route &lt;&lt; &quot;#{RecordIdentifier.__send__(&quot;plural_class_name&quot;, record)}&quot;
+          route &lt;&lt; RecordIdentifier.__send__(&quot;plural_class_name&quot;, record)
           route = route.singularize if inflection == :singular
           route &lt;&lt; &quot;_&quot;
         end
 
-        action_prefix(options) + namespace + route + routing_type(options).to_s
+        action_prefix(options) + route + routing_type(options).to_s
       end
 
       def extract_record(record_or_hash_or_array)
@@ -203,19 +201,6 @@
           when Hash;  record_or_hash_or_array[:id]
           else        record_or_hash_or_array
         end
-      end
-
-      # Remove the first symbols from the array and return the url prefix
-      # implied by those symbols.
-      def extract_namespace(record_or_hash_or_array)
-        return &quot;&quot; unless record_or_hash_or_array.is_a?(Array)
-
-        namespace_keys = []
-        while (key = record_or_hash_or_array.first) &amp;&amp; key.is_a?(String) || key.is_a?(Symbol)
-          namespace_keys &lt;&lt; record_or_hash_or_array.shift
-        end
-
-        namespace_keys.map {|k| &quot;#{k}_&quot;}.join
       end
   end
 end

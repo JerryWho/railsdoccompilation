@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -20,7 +20,7 @@ require 'action_view/helpers/form_helper'
 
 module ActionView
   class Base
-    @@field_error_proc = Proc.new{ |html_tag, instance| &quot;&lt;div class=\&quot;fieldWithErrors\&quot;&gt;#{html_tag}&lt;/div&gt;&quot; }
+    @@field_error_proc = Proc.new{ |html_tag, instance| &quot;&lt;div class=\&quot;fieldWithErrors\&quot;&gt;#{html_tag}&lt;/div&gt;&quot;.html_safe! }
     cattr_accessor :field_error_proc
   end
 
@@ -188,7 +188,7 @@ module ActionView
         options = params.extract_options!.symbolize_keys
 
         if object = options.delete(:object)
-          objects = [object].flatten
+          objects = Array.wrap(object)
         else
           objects = params.collect {|object_name| instance_variable_get(&quot;@#{object_name}&quot;) }.compact
         end
@@ -307,7 +307,7 @@ module ActionView
       end
 
       def error_wrapping(html_tag, has_error)
-        has_error ? Base.field_error_proc.call(html_tag, self) : html_tag
+        has_error ? Base.field_error_proc.call(html_tag, self).html_safe! : html_tag
       end
 
       def error_message

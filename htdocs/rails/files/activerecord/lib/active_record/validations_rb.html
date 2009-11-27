@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -44,11 +44,13 @@
     end
 
     def message
-      generate_message(@message, options.dup)
+      # When type is a string, it means that we do not have to do a lookup, because
+      # the user already sent the &quot;final&quot; message.
+      type.is_a?(String) ? type : generate_message(default_options)
     end
 
     def full_message
-      attribute.to_s == 'base' ? message : generate_full_message(message, options.dup)
+      attribute.to_s == 'base' ? message : generate_full_message(default_options)
     end
 
     alias :to_s :message
@@ -77,24 +79,19 @@
       # &lt;li&gt;&lt;tt&gt;activerecord.errors.messages.blank&lt;/tt&gt;&lt;/li&gt;
       # &lt;li&gt;any default you provided through the +options+ hash (in the activerecord.errors scope)&lt;/li&gt;
       # &lt;/ol&gt;
-      def generate_message(message, options = {})
+      def generate_message(options = {})
         keys = @base.class.self_and_descendants_from_active_record.map do |klass|
-          [ :&quot;models.#{klass.name.underscore}.attributes.#{attribute}.#{message}&quot;,
-            :&quot;models.#{klass.name.underscore}.#{message}&quot; ]
+          [ :&quot;models.#{klass.name.underscore}.attributes.#{attribute}.#{@message}&quot;,
+            :&quot;models.#{klass.name.underscore}.#{@message}&quot; ]
         end.flatten
 
         keys &lt;&lt; options.delete(:default)
-        keys &lt;&lt; :&quot;messages.#{message}&quot;
-        keys &lt;&lt; message if message.is_a?(String)
-        keys &lt;&lt; @type unless @type == message
+        keys &lt;&lt; :&quot;messages.#{@message}&quot;
+        keys &lt;&lt; @message if @message.is_a?(String)
+        keys &lt;&lt; @type unless @type == @message
         keys.compact!
 
-        options.reverse_merge! :default =&gt; keys,
-                               :scope =&gt; [:activerecord, :errors],
-                               :model =&gt; @base.class.human_name,
-                               :attribute =&gt; @base.class.human_attribute_name(attribute.to_s),
-                               :value =&gt; value
-
+        options.merge!(:default =&gt; keys)
         I18n.translate(keys.shift, options)
       end
 
@@ -125,16 +122,24 @@
       #         full_messages:
       #           title:
       #             blank: This title is screwed!
-      def generate_full_message(message, options = {})
-        options.reverse_merge! :message =&gt; self.message,
-                               :model =&gt; @base.class.human_name,
-                               :attribute =&gt; @base.class.human_attribute_name(attribute.to_s),
-                               :value =&gt; value
+      def generate_full_message(options = {})
+        keys = [
+          :&quot;full_messages.#{@message}&quot;,
+          :'full_messages.format',
+          '{{attribute}} {{message}}'
+        ]
 
-        key = :&quot;full_messages.#{@message}&quot;
-        defaults = [:'full_messages.format', '{{attribute}} {{message}}']
+        options.merge!(:default =&gt; keys, :message =&gt; self.message)
+        I18n.translate(keys.shift, options)
+      end
 
-        I18n.t(key, options.merge(:default =&gt; defaults, :scope =&gt; [:activerecord, :errors]))
+      # Return user options with default options.
+      #
+      def default_options
+        options.reverse_merge :scope =&gt; [:activerecord, :errors],
+                              :model =&gt; @base.class.human_name,
+                              :attribute =&gt; @base.class.human_attribute_name(attribute.to_s),
+                              :value =&gt; value
       end
   end
 
@@ -151,7 +156,8 @@
     end
 
     def initialize(base) # :nodoc:
-      @base, @errors = base, {}
+      @base = base
+      clear
     end
 
     # Adds an error to the base object instead of any particular attribute. This is used
@@ -167,16 +173,10 @@
     # error can be added to the same +attribute+ in which case an array will be returned on a call to &lt;tt&gt;on(attribute)&lt;/tt&gt;.
     # If no +messsage+ is supplied, :invalid is assumed.
     # If +message+ is a Symbol, it will be translated, using the appropriate scope (see translate_error).
-    # def add(attribute, message = nil, options = {})
-    #   message ||= :invalid
-    #   message = generate_message(attribute, message, options)) if message.is_a?(Symbol)
-    #   @errors[attribute.to_s] ||= []
-    #   @errors[attribute.to_s] &lt;&lt; message
-    # end
-
-    def add(error_or_attr, message = nil, options = {})
-      error, attribute = error_or_attr.is_a?(Error) ? [error_or_attr, error_or_attr.attribute] : [nil, error_or_attr]
+    #
+    def add(attribute, message = nil, options = {})
       options[:message] = options.delete(:default) if options.has_key?(:default)
+      error, message = message, nil if message.is_a?(Error)
 
       @errors[attribute.to_s] ||= []
       @errors[attribute.to_s] &lt;&lt; (error || Error.new(@base, attribute, message, options))
@@ -300,7 +300,7 @@
 
     # Removes all errors that have been added.
     def clear
-      @errors = {}
+      @errors = ActiveSupport::OrderedHash.new
     end
 
     # Returns the total number of errors added. Two errors added to the same attribute will be counted as such.
@@ -338,7 +338,7 @@
     end
 
     def generate_message(attribute, message = :invalid, options = {})
-      ActiveSupport::Deprecation.warn(&quot;ActiveRecord::Errors#generate_message has been deprecated. Please use ActiveRecord::Error#generate_message.&quot;)
+      ActiveSupport::Deprecation.warn(&quot;ActiveRecord::Errors#generate_message has been deprecated. Please use ActiveRecord::Error.new().to_s.&quot;)
       Error.new(@base, attribute, message, options).to_s
     end
   end

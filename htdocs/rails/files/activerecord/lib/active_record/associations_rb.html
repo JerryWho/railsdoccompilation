@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -292,9 +292,10 @@
     # You can manipulate objects and associations before they are saved to the database, but there is some special behavior you should be
     # aware of, mostly involving the saving of associated objects.
     #
-    # Unless you enable the :autosave option on a &lt;tt&gt;has_one&lt;/tt&gt;, &lt;tt&gt;belongs_to&lt;/tt&gt;,
-    # &lt;tt&gt;has_many&lt;/tt&gt;, or &lt;tt&gt;has_and_belongs_to_many&lt;/tt&gt; association,
-    # in which case the members are always saved.
+    # Unless you set the :autosave option on a &lt;tt&gt;has_one&lt;/tt&gt;, &lt;tt&gt;belongs_to&lt;/tt&gt;,
+    # &lt;tt&gt;has_many&lt;/tt&gt;, or &lt;tt&gt;has_and_belongs_to_many&lt;/tt&gt; association. Setting it
+    # to +true+ will _always_ save the members, whereas setting it to +false+ will
+    # _never_ save the members.
     #
     # === One-to-one associations
     #
@@ -891,7 +892,9 @@
       #   if the real class name is Person, you'll have to specify it with this option.
       # [:conditions]
       #   Specify the conditions that the associated object must meet in order to be included as a +WHERE+
-      #   SQL fragment, such as &lt;tt&gt;rank = 5&lt;/tt&gt;.
+      #   SQL fragment, such as &lt;tt&gt;rank = 5&lt;/tt&gt;. Record creation from the association is scoped if a hash
+      #   is used. &lt;tt&gt;has_one :account, :conditions =&gt; {:enabled =&gt; true}&lt;/tt&gt; will create an enabled account with &lt;tt&gt;@company.create_account&lt;/tt&gt;
+      #   or &lt;tt&gt;@company.build_account&lt;/tt&gt;.
       # [:order]
       #   Specify the order in which the associated objects are returned as an &lt;tt&gt;ORDER BY&lt;/tt&gt; SQL fragment,
       #   such as &lt;tt&gt;last_name, first_name DESC&lt;/tt&gt;.
@@ -1341,8 +1344,8 @@
             end
 
             define_method(&quot;#{reflection.name.to_s.singularize}_ids=&quot;) do |new_value|
-              ids = (new_value || []).reject { |nid| nid.blank? }
-              send(&quot;#{reflection.name}=&quot;, reflection.klass.find(ids))
+              ids = (new_value || []).reject { |nid| nid.blank? }.map(&amp;:to_i)
+              send(&quot;#{reflection.name}=&quot;, reflection.klass.find(ids).index_by(&amp;:id).values_at(*ids))
             end
           end
         end
@@ -1425,7 +1428,7 @@
           if reflection.options.include?(:dependent)
             # Add polymorphic type if the :as option is present
             dependent_conditions = []
-            dependent_conditions &lt;&lt; &quot;#{reflection.primary_key_name} = \#{record.quoted_id}&quot;
+            dependent_conditions &lt;&lt; &quot;#{reflection.primary_key_name} = \#{record.#{reflection.name}.send(:owner_quoted_id)}&quot;
             dependent_conditions &lt;&lt; &quot;#{reflection.options[:as]}_type = '#{base_class.name}'&quot; if reflection.options[:as]
             dependent_conditions &lt;&lt; sanitize_sql(reflection.options[:conditions], reflection.quoted_table_name) if reflection.options[:conditions]
             dependent_conditions &lt;&lt; extra_conditions if extra_conditions

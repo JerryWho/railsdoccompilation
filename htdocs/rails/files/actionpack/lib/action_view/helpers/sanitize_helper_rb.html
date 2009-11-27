@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Mon Oct 12 20:16:21 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -66,7 +66,11 @@ module ActionView
       # confuse browsers.
       #
       def sanitize(html, options = {})
-        self.class.white_list_sanitizer.sanitize(html, options)
+        returning self.class.white_list_sanitizer.sanitize(html, options) do |sanitized|
+          if sanitized
+            sanitized.html_safe!
+          end
+        end
       end
 
       # Sanitizes a block of CSS code. Used by +sanitize+ when it comes across a style attribute.
@@ -89,7 +93,11 @@ module ActionView
       #   strip_tags(&quot;&lt;div id='top-bar'&gt;Welcome to my website!&lt;/div&gt;&quot;)
       #   # =&gt; Welcome to my website!
       def strip_tags(html)
-        self.class.full_sanitizer.sanitize(html)
+        returning self.class.full_sanitizer.sanitize(html) do |sanitized|
+          if sanitized
+            sanitized.html_safe!
+          end
+        end
       end
 
       # Strips all link tags from +text+ leaving just the link text.

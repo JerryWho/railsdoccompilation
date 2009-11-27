@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Fri Nov 27 16:38:00 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -60,7 +60,14 @@ class NilClass
 
   private
     def method_missing(method, *args, &amp;block)
-      raise_nil_warning_for METHOD_CLASS_MAP[method], method, caller
+      # Ruby 1.9.2: disallow explicit coercion via method_missing.
+      if method == :to_ary || method == :to_str
+        super
+      elsif klass = METHOD_CLASS_MAP[method]
+        raise_nil_warning_for klass, method, caller
+      else
+        super
+      end
     end
 
     # Raises a NoMethodError when you attempt to call a method on +nil+.
@@ -72,6 +79,5 @@ class NilClass
       raise NoMethodError, message, with_caller || caller
     end
 end
-
 </pre>
     </div>

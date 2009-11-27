@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -17,10 +17,13 @@
     <h2>Source Code</h2>
     <pre>module ActiveRecord
   module NestedAttributes #:nodoc:
+    class TooManyRecords &lt; ActiveRecordError
+    end
+
     def self.included(base)
       base.extend(ClassMethods)
-      base.class_inheritable_accessor :reject_new_nested_attributes_procs, :instance_writer =&gt; false
-      base.reject_new_nested_attributes_procs = {}
+      base.class_inheritable_accessor :nested_attributes_options, :instance_writer =&gt; false
+      base.nested_attributes_options = {}
     end
 
     # == Nested Attributes
@@ -79,10 +82,10 @@
     #     accepts_nested_attributes_for :avatar, :allow_destroy =&gt; true
     #   end
     #
-    # Now, when you add the &lt;tt&gt;_delete&lt;/tt&gt; key to the attributes hash, with a
+    # Now, when you add the &lt;tt&gt;_destroy&lt;/tt&gt; key to the attributes hash, with a
     # value that evaluates to +true+, you will destroy the associated model:
     #
-    #   member.avatar_attributes = { :id =&gt; '2', :_delete =&gt; '1' }
+    #   member.avatar_attributes = { :id =&gt; '2', :_destroy =&gt; '1' }
     #   member.avatar.marked_for_destruction? # =&gt; true
     #   member.save
     #   member.avatar #=&gt; nil
@@ -102,14 +105,14 @@
     # the attribute hash.
     #
     # For each hash that does _not_ have an &lt;tt&gt;id&lt;/tt&gt; key a new record will
-    # be instantiated, unless the hash also contains a &lt;tt&gt;_delete&lt;/tt&gt; key
+    # be instantiated, unless the hash also contains a &lt;tt&gt;_destroy&lt;/tt&gt; key
     # that evaluates to +true+.
     #
     #   params = { :member =&gt; {
     #     :name =&gt; 'joe', :posts_attributes =&gt; [
     #       { :title =&gt; 'Kari, the awesome Ruby documentation browser!' },
     #       { :title =&gt; 'The egalitarian assumption of the modern citizen' },
-    #       { :title =&gt; '', :_delete =&gt; '1' } # this will be ignored
+    #       { :title =&gt; '', :_destroy =&gt; '1' } # this will be ignored
     #     ]
     #   }}
     #
@@ -140,6 +143,22 @@
     #   member.posts.first.title # =&gt; 'Kari, the awesome Ruby documentation browser!'
     #   member.posts.second.title # =&gt; 'The egalitarian assumption of the modern citizen'
     #
+    #  Alternatively, :reject_if also accepts a symbol for using methods:
+    #
+    #    class Member &lt; ActiveRecord::Base
+    #      has_many :posts
+    #      accepts_nested_attributes_for :posts, :reject_if =&gt; :new_record?
+    #    end
+    #
+    #    class Member &lt; ActiveRecord::Base
+    #      has_many :posts
+    #      accepts_nested_attributes_for :posts, :reject_if =&gt; :reject_posts
+    #
+    #      def reject_posts(attributed)
+    #        attributed['title].blank?
+    #      end
+    #    end
+    #
     # If the hash contains an &lt;tt&gt;id&lt;/tt&gt; key that matches an already
     # associated record, the matching record will be modified:
     #
@@ -157,7 +176,7 @@
     # By default the associated records are protected from being destroyed. If
     # you want to destroy any of the associated records through the attributes
     # hash, you have to enable it first using the &lt;tt&gt;:allow_destroy&lt;/tt&gt;
-    # option. This will allow you to also use the &lt;tt&gt;_delete&lt;/tt&gt; key to
+    # option. This will allow you to also use the &lt;tt&gt;_destroy&lt;/tt&gt; key to
     # destroy existing records:
     #
     #   class Member &lt; ActiveRecord::Base
@@ -166,7 +185,7 @@
     #   end
     #
     #   params = { :member =&gt; {
-    #     :posts_attributes =&gt; [{ :id =&gt; '2', :_delete =&gt; '1' }]
+    #     :posts_attributes =&gt; [{ :id =&gt; '2', :_destroy =&gt; '1' }]
     #   }}
     #
     #   member.attributes = params['member']
@@ -189,14 +208,23 @@
       # Supported options:
       # [:allow_destroy]
       #   If true, destroys any members from the attributes hash with a
-      #   &lt;tt&gt;_delete&lt;/tt&gt; key and a value that evaluates to +true+
+      #   &lt;tt&gt;_destroy&lt;/tt&gt; key and a value that evaluates to +true+
       #   (eg. 1, '1', true, or 'true'). This option is off by default.
       # [:reject_if]
-      #   Allows you to specify a Proc that checks whether a record should be
-      #   built for a certain attribute hash. The hash is passed to the Proc
-      #   and the Proc should return either +true+ or +false+. When no Proc
-      #   is specified a record will be built for all attribute hashes that
-      #   do not have a &lt;tt&gt;_delete&lt;/tt&gt; that evaluates to true.
+      #   Allows you to specify a Proc or a Symbol pointing to a method
+      #   that checks whether a record should be built for a certain attribute
+      #   hash. The hash is passed to the supplied Proc or the method
+      #   and it should return either +true+ or +false+. When no :reject_if
+      #   is specified, a record will be built for all attribute hashes that
+      #   do not have a &lt;tt&gt;_destroy&lt;/tt&gt; value that evaluates to true.
+      #   Passing &lt;tt&gt;:all_blank&lt;/tt&gt; instead of a Proc will create a proc
+      #   that will reject a record where all the attributes are blank.
+      # [:limit]
+      #   Allows you to specify the maximum number of the associated records that
+      #   can be processes with the nested attributes. If the size of the
+      #   nested attributes array exceeds the specified limit, NestedAttributes::TooManyRecords
+      #   exception is raised. If omitted, any number associations can be processed.
+      #   Note that the :limit option is only applicable to one-to-many associations.
       #
       # Examples:
       #   # creates avatar_attributes=
@@ -206,7 +234,7 @@
       def accepts_nested_attributes_for(*attr_names)
         options = { :allow_destroy =&gt; false }
         options.update(attr_names.extract_options!)
-        options.assert_valid_keys(:allow_destroy, :reject_if)
+        options.assert_valid_keys(:allow_destroy, :reject_if, :limit)
 
         attr_names.each do |association_name|
           if reflection = reflect_on_association(association_name)
@@ -218,16 +246,18 @@
             end
 
             reflection.options[:autosave] = true
-            self.reject_new_nested_attributes_procs[association_name.to_sym] = options[:reject_if]
+            self.nested_attributes_options[association_name.to_sym] = options
 
             # def pirate_attributes=(attributes)
             #   assign_nested_attributes_for_one_to_one_association(:pirate, attributes, false)
             # end
             class_eval %{
               def #{association_name}_attributes=(attributes)
-                assign_nested_attributes_for_#{type}_association(:#{association_name}, attributes, #{options[:allow_destroy]})
+                assign_nested_attributes_for_#{type}_association(:#{association_name}, attributes)
               end
             }, __FILE__, __LINE__
+
+            add_autosave_association_callbacks(reflection)
           else
             raise ArgumentError, &quot;No association found for name `#{association_name}'. Has it been defined yet?&quot;
           end
@@ -240,15 +270,25 @@
     # destruction of this association.
     #
     # See ActionView::Helpers::FormHelper::fields_for for more info.
-    def _delete
+    def _destroy
       marked_for_destruction?
+    end
+
+    # Deal with deprecated _delete.
+    #
+    def _delete #:nodoc:
+      ActiveSupport::Deprecation.warn &quot;_delete is deprecated in nested attributes. Use _destroy instead.&quot;
+      _destroy
     end
 
     private
 
     # Attribute hash keys that should not be assigned as normal attributes.
     # These hash keys are nested attributes implementation details.
-    UNASSIGNABLE_KEYS = %w{ id _delete }
+    #
+    # TODO Remove _delete from UNASSIGNABLE_KEYS when deprecation warning are
+    # removed.
+    UNASSIGNABLE_KEYS = %w( id _destroy _delete )
 
     # Assigns the given attributes to the association.
     #
@@ -257,17 +297,23 @@
     # record will be built.
     #
     # If the given attributes include a matching &lt;tt&gt;:id&lt;/tt&gt; attribute _and_ a
-    # &lt;tt&gt;:_delete&lt;/tt&gt; key set to a truthy value, then the existing record
+    # &lt;tt&gt;:_destroy&lt;/tt&gt; key set to a truthy value, then the existing record
     # will be marked for destruction.
-    def assign_nested_attributes_for_one_to_one_association(association_name, attributes, allow_destroy)
-      attributes = attributes.stringify_keys
+    def assign_nested_attributes_for_one_to_one_association(association_name, attributes)
+      options = self.nested_attributes_options[association_name]
+      attributes = attributes.with_indifferent_access
 
       if attributes['id'].blank?
         unless reject_new_record?(association_name, attributes)
-          send(&quot;build_#{association_name}&quot;, attributes.except(*UNASSIGNABLE_KEYS))
+          method = &quot;build_#{association_name}&quot;
+          if respond_to?(method)
+            send(method, attributes.except(*UNASSIGNABLE_KEYS))
+          else
+            raise ArgumentError, &quot;Cannot build association #{association_name}. Are you trying to build a polymorphic one-to-one association?&quot;
+          end
         end
       elsif (existing_record = send(association_name)) &amp;&amp; existing_record.id.to_s == attributes['id'].to_s
-        assign_to_or_mark_for_destruction(existing_record, attributes, allow_destroy)
+        assign_to_or_mark_for_destruction(existing_record, attributes, options[:allow_destroy])
       end
     end
 
@@ -276,7 +322,7 @@
     # Hashes with an &lt;tt&gt;:id&lt;/tt&gt; value matching an existing associated record
     # will update that record. Hashes without an &lt;tt&gt;:id&lt;/tt&gt; value will build
     # a new record for the association. Hashes with a matching &lt;tt&gt;:id&lt;/tt&gt;
-    # value and a &lt;tt&gt;:_delete&lt;/tt&gt; key set to a truthy value will mark the
+    # value and a &lt;tt&gt;:_destroy&lt;/tt&gt; key set to a truthy value will mark the
     # matched record for destruction.
     #
     # For example:
@@ -284,7 +330,7 @@
     #   assign_nested_attributes_for_collection_association(:people, {
     #     '1' =&gt; { :id =&gt; '1', :name =&gt; 'Peter' },
     #     '2' =&gt; { :name =&gt; 'John' },
-    #     '3' =&gt; { :id =&gt; '2', :_delete =&gt; true }
+    #     '3' =&gt; { :id =&gt; '2', :_destroy =&gt; true }
     #   })
     #
     # Will update the name of the Person with ID 1, build a new associated
@@ -296,11 +342,17 @@
     #   assign_nested_attributes_for_collection_association(:people, [
     #     { :id =&gt; '1', :name =&gt; 'Peter' },
     #     { :name =&gt; 'John' },
-    #     { :id =&gt; '2', :_delete =&gt; true }
+    #     { :id =&gt; '2', :_destroy =&gt; true }
     #   ])
-    def assign_nested_attributes_for_collection_association(association_name, attributes_collection, allow_destroy)
+    def assign_nested_attributes_for_collection_association(association_name, attributes_collection)
+      options = self.nested_attributes_options[association_name]
+
       unless attributes_collection.is_a?(Hash) || attributes_collection.is_a?(Array)
         raise ArgumentError, &quot;Hash or Array expected, got #{attributes_collection.class.name} (#{attributes_collection.inspect})&quot;
+      end
+
+      if options[:limit] &amp;&amp; attributes_collection.size &gt; options[:limit]
+        raise TooManyRecords, &quot;Maximum #{options[:limit]} records are allowed. Got #{attributes_collection.size} records instead.&quot;
       end
 
       if attributes_collection.is_a? Hash
@@ -308,39 +360,50 @@
       end
 
       attributes_collection.each do |attributes|
-        attributes = attributes.stringify_keys
+        attributes = attributes.with_indifferent_access
 
         if attributes['id'].blank?
           unless reject_new_record?(association_name, attributes)
             send(association_name).build(attributes.except(*UNASSIGNABLE_KEYS))
           end
         elsif existing_record = send(association_name).detect { |record| record.id.to_s == attributes['id'].to_s }
-          assign_to_or_mark_for_destruction(existing_record, attributes, allow_destroy)
+          assign_to_or_mark_for_destruction(existing_record, attributes, options[:allow_destroy])
         end
       end
     end
 
     # Updates a record with the +attributes+ or marks it for destruction if
-    # +allow_destroy+ is +true+ and has_delete_flag? returns +true+.
+    # +allow_destroy+ is +true+ and has_destroy_flag? returns +true+.
     def assign_to_or_mark_for_destruction(record, attributes, allow_destroy)
-      if has_delete_flag?(attributes) &amp;&amp; allow_destroy
+      if has_destroy_flag?(attributes) &amp;&amp; allow_destroy
         record.mark_for_destruction
       else
         record.attributes = attributes.except(*UNASSIGNABLE_KEYS)
       end
     end
 
-    # Determines if a hash contains a truthy _delete key.
-    def has_delete_flag?(hash)
-      ConnectionAdapters::Column.value_to_boolean hash['_delete']
+    # Determines if a hash contains a truthy _destroy key.
+    def has_destroy_flag?(hash)
+      ConnectionAdapters::Column.value_to_boolean(hash['_destroy']) ||
+      ConnectionAdapters::Column.value_to_boolean(hash['_delete']) # TODO Remove after deprecation.
     end
 
     # Determines if a new record should be build by checking for
-    # has_delete_flag? or if a &lt;tt&gt;:reject_if&lt;/tt&gt; proc exists for this
+    # has_destroy_flag? or if a &lt;tt&gt;:reject_if&lt;/tt&gt; proc exists for this
     # association and evaluates to +true+.
     def reject_new_record?(association_name, attributes)
-      has_delete_flag?(attributes) ||
-        self.class.reject_new_nested_attributes_procs[association_name].try(:call, attributes)
+      has_destroy_flag?(attributes) || call_reject_if(association_name, attributes)
+    end
+
+    def call_reject_if(association_name, attributes)
+      callback = self.nested_attributes_options[association_name][:reject_if]
+
+      case callback
+      when Symbol
+        method(callback).arity == 0 ? send(callback) : send(callback, attributes)
+      when Proc
+        callback.try(:call, attributes)
+      end
     end
   end
 end

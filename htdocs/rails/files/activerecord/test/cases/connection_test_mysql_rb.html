@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Mon Oct 12 20:16:21 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -58,6 +58,14 @@ class MysqlConnectionTest &lt; ActiveRecord::TestCase
     sleep 2
     @connection.verify!
     assert @connection.active?
+ end
+
+  # Test that MySQL allows multiple results for stored procedures
+  if Mysql.const_defined?(:CLIENT_MULTI_RESULTS)
+    def test_multi_results
+      rows = ActiveRecord::Base.connection.select_rows('CALL ten();')
+      assert_equal 10, rows[0][0].to_i, &quot;ten() did not return 10 as expected: #{rows.inspect}&quot;
+    end
   end
 
   private

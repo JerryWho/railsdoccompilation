@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -16,8 +16,10 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>class Pirate &lt; ActiveRecord::Base
-  belongs_to :parrot
-  has_and_belongs_to_many :parrots
+  belongs_to :parrot, :validate =&gt; true
+  belongs_to :non_validated_parrot, :class_name =&gt; 'Parrot'
+  has_and_belongs_to_many :parrots, :validate =&gt; true
+  has_and_belongs_to_many :non_validated_parrots, :class_name =&gt; 'Parrot'
   has_and_belongs_to_many :parrots_with_method_callbacks, :class_name =&gt; &quot;Parrot&quot;,
     :before_add    =&gt; :log_before_add,
     :after_add     =&gt; :log_after_add,
@@ -34,6 +36,7 @@
 
   # These both have :autosave enabled because accepts_nested_attributes_for is used on them.
   has_one :ship
+  has_one :non_validated_ship, :class_name =&gt; 'Ship'
   has_many :birds
   has_many :birds_with_method_callbacks, :class_name =&gt; &quot;Bird&quot;,
     :before_add    =&gt; :log_before_add,
@@ -55,6 +58,10 @@
 
   def ship_log
     @ship_log ||= []
+  end
+
+  def reject_empty_ships_on_create(attributes)
+    attributes.delete('_reject_me_if_new').present? &amp;&amp; new_record?
   end
 
   private

@@ -1,4 +1,4 @@
-  <div id="C00000912">
+  <div id="C00000923">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />IntegrationTestTest<br/>
   In:
@@ -17,8 +17,10 @@ Test::Unit::TestCase
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M006428&name=setup" >setup</a></li>
-  <li><a href="index.html?a=M006429&name=test_opens_new_session" >test_opens_new_session</a></li>
+  <li><a href="index.html?a=M006471&name=method_missing" >method_missing</a></li>
+  <li><a href="index.html?a=M006468&name=setup" >setup</a></li>
+  <li><a href="index.html?a=M006470&name=test_does_not_prevent_method_missing_passing_up_to_ancestors" >test_does_not_prevent_method_missing_passing_up_to_ancestors</a></li>
+  <li><a href="index.html?a=M006469&name=test_opens_new_session" >test_opens_new_session</a></li>
   </ul>
 
 
@@ -27,13 +29,29 @@ Test::Unit::TestCase
 
 
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M006428" class="method">
-  <div id="M006428_title" class="title">
+<div id="M006471" class="method">
+  <div id="M006471_title" class="title">
+    <b>method_missing</b>(name, *args)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M006471_source')" id="l_M006471_source">show source</a> ]</p>
+  <div id="M006471_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionpack/test/controller/integration_test.rb, line 216</span>
+216:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">method_missing</span>(<span class="ruby-identifier">name</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+217:         <span class="ruby-identifier">name</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'foo'</span> <span class="ruby-operator">?</span> <span class="ruby-value str">'pass'</span> <span class="ruby-operator">:</span> <span class="ruby-keyword kw">super</span>
+218:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M006468" class="method">
+  <div id="M006468_title" class="title">
     <b>setup</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M006428_source')" id="l_M006428_source">show source</a> ]</p>
-  <div id="M006428_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M006468_source')" id="l_M006468_source">show source</a> ]</p>
+  <div id="M006468_source" class="dyn-source">
 <pre>
      <span class="ruby-comment cmt"># File actionpack/test/controller/integration_test.rb, line 194</span>
 194:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">setup</span>
@@ -45,13 +63,48 @@ Test::Unit::TestCase
   </div>
 </div>
 </div>
-<div id="M006429" class="method">
-  <div id="M006429_title" class="title">
+<div id="M006470" class="method">
+  <div id="M006470_title" class="title">
+    <b>test_does_not_prevent_method_missing_passing_up_to_ancestors</b>()
+  </div>
+  <div class="description">
+  <p>
+RSpec mixes Matchers (which has a <a
+href="index.html?a=M006471&name=method_missing">method_missing</a>) into
+IntegrationTest&#8217;s superclass. Make sure IntegrationTest does not try
+to delegate these methods to the session object.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M006470_source')" id="l_M006470_source">show source</a> ]</p>
+  <div id="M006470_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionpack/test/controller/integration_test.rb, line 214</span>
+214:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_does_not_prevent_method_missing_passing_up_to_ancestors</span>
+215:     <span class="ruby-identifier">mixin</span> = <span class="ruby-constant">Module</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span>
+216:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">method_missing</span>(<span class="ruby-identifier">name</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+217:         <span class="ruby-identifier">name</span>.<span class="ruby-identifier">to_s</span> <span class="ruby-operator">==</span> <span class="ruby-value str">'foo'</span> <span class="ruby-operator">?</span> <span class="ruby-value str">'pass'</span> <span class="ruby-operator">:</span> <span class="ruby-keyword kw">super</span>
+218:       <span class="ruby-keyword kw">end</span>
+219:     <span class="ruby-keyword kw">end</span>
+220:     <span class="ruby-ivar">@test</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">superclass</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:include</span>, <span class="ruby-identifier">mixin</span>)
+221:     <span class="ruby-keyword kw">begin</span>
+222:       <span class="ruby-identifier">assert_equal</span> <span class="ruby-value str">'pass'</span>, <span class="ruby-ivar">@test</span>.<span class="ruby-identifier">foo</span>
+223:     <span class="ruby-keyword kw">ensure</span>
+224:       <span class="ruby-comment cmt"># leave other tests as unaffected as possible</span>
+225:       <span class="ruby-identifier">mixin</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:remove_method</span>, <span class="ruby-identifier">:method_missing</span>)
+226:     <span class="ruby-keyword kw">end</span>
+227:   <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M006469" class="method">
+  <div id="M006469_title" class="title">
     <b>test_opens_new_session</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M006429_source')" id="l_M006429_source">show source</a> ]</p>
-  <div id="M006429_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M006469_source')" id="l_M006469_source">show source</a> ]</p>
+  <div id="M006469_source" class="dyn-source">
 <pre>
      <span class="ruby-comment cmt"># File actionpack/test/controller/integration_test.rb, line 200</span>
 200:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">test_opens_new_session</span>

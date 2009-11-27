@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -45,6 +45,12 @@ class ProtectedPerson &lt; ActiveRecord::Base
   set_table_name 'people'
   attr_accessor :addon
   attr_protected :first_name
+
+  def special_error
+    this_method_does_not_exist!
+  rescue
+    errors.add(:special_error, &quot;This method does not exist&quot;)
+  end
 end
 
 class UniqueReply &lt; Reply
@@ -186,6 +192,14 @@ class ValidationsTest &lt; ActiveRecord::TestCase
         person = ProtectedPerson.create!
         assert_equal person.first_name, &quot;Mary&quot;, &quot;should be ok when no attributes are passed to create!&quot;
       end
+    end
+  end
+
+  def test_values_are_not_retrieved_unless_needed
+    assert_nothing_raised do
+      person = ProtectedPerson.new
+      person.special_error
+      assert_equal &quot;This method does not exist&quot;, person.errors[:special_error]
     end
   end
 
@@ -922,14 +936,18 @@ class ValidationsTest &lt; ActiveRecord::TestCase
   end
 
   def test_validates_length_with_globally_modified_error_message
-    ActiveSupport::Deprecation.silence do
-      ActiveRecord::Errors.default_error_messages[:too_short] = 'tu est trops petit hombre {{count}}'
-    end
+    defaults = ActiveSupport::Deprecation.silence { ActiveRecord::Errors.default_error_messages }
+    original_message = defaults[:too_short]
+    defaults[:too_short] = 'tu est trops petit hombre {{count}}'
+
     Topic.validates_length_of :title, :minimum =&gt; 10
     t = Topic.create(:title =&gt; 'too short')
     assert !t.valid?
 
     assert_equal 'tu est trops petit hombre 10', t.errors['title']
+
+  ensure
+    defaults[:too_short] = original_message
   end
 
   def test_validates_size_of_association
@@ -1449,12 +1467,22 @@ class ValidationsTest &lt; ActiveRecord::TestCase
   end
 
   def test_validation_order
-     Topic.validates_presence_of :title
-     Topic.validates_length_of :title, :minimum =&gt; 2
+    Topic.validates_presence_of :title, :author_name
+    Topic.validate {|topic| topic.errors.add('author_email_address', 'will never be valid')}
+    Topic.validates_length_of :title, :content, :minimum =&gt; 2
 
-     t = Topic.new(&quot;title&quot; =&gt; &quot;&quot;)
-     assert !t.valid?
-     assert_equal &quot;can't be blank&quot;, t.errors.on(&quot;title&quot;).first
+    t = Topic.new :title =&gt; ''
+    t.valid?
+    e = t.errors.instance_variable_get '@errors'
+    assert_equal 'title', key = e.keys.first
+    assert_equal &quot;can't be blank&quot;, t.errors.on(key).first
+    assert_equal 'is too short (minimum is 2 characters)', t.errors.on(key).second
+    assert_equal 'author_name', key = e.keys.second
+    assert_equal &quot;can't be blank&quot;, t.errors.on(key)
+    assert_equal 'author_email_address', key = e.keys.third
+    assert_equal 'will never be valid', t.errors.on(key)
+    assert_equal 'content', key = e.keys.fourth
+    assert_equal 'is too short (minimum is 2 characters)', t.errors.on(key)
   end
 
   def test_invalid_should_be_the_opposite_of_valid

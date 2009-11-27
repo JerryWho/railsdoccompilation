@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -716,6 +716,26 @@ class FormHelperTest &lt; ActionView::TestCase
 
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
                '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
+               '&lt;input id=&quot;post_author_attributes_name&quot; name=&quot;post[author_attributes][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;author #321&quot; /&gt;' +
+               '&lt;input id=&quot;post_author_attributes_id&quot; name=&quot;post[author_attributes][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
+               '&lt;/form&gt;'
+
+    assert_dom_equal expected, output_buffer
+  end
+  
+  def test_nested_fields_for_with_existing_records_on_a_nested_attributes_one_to_one_association_with_explicit_hidden_field_placement
+    @post.author = Author.new(321)
+
+    form_for(:post, @post) do |f|
+      concat f.text_field(:title)
+      f.fields_for(:author) do |af|
+        concat af.hidden_field(:id)
+        concat af.text_field(:name)
+      end
+    end
+    
+    expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
+               '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
                '&lt;input id=&quot;post_author_attributes_id&quot; name=&quot;post[author_attributes][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_author_attributes_name&quot; name=&quot;post[author_attributes][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;author #321&quot; /&gt;' +
                '&lt;/form&gt;'
@@ -735,6 +755,30 @@ class FormHelperTest &lt; ActionView::TestCase
       end
     end
 
+    expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
+               '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_name&quot; name=&quot;post[comments_attributes][0][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #1&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;1&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_1_name&quot; name=&quot;post[comments_attributes][1][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #2&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_1_id&quot; name=&quot;post[comments_attributes][1][id]&quot; type=&quot;hidden&quot; value=&quot;2&quot; /&gt;' +
+               '&lt;/form&gt;'
+
+    assert_dom_equal expected, output_buffer
+  end
+
+  def test_nested_fields_for_with_existing_records_on_a_nested_attributes_collection_association_with_explicit_hidden_field_placement
+    @post.comments = Array.new(2) { |id| Comment.new(id + 1) }
+
+    form_for(:post, @post) do |f|
+      concat f.text_field(:title)
+      @post.comments.each do |comment|
+        f.fields_for(:comments, comment) do |cf|
+          concat cf.hidden_field(:id)
+          concat cf.text_field(:name)
+        end
+      end
+    end
+    
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
                '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;1&quot; /&gt;' +
@@ -781,9 +825,45 @@ class FormHelperTest &lt; ActionView::TestCase
 
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
                '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
-               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_0_name&quot; name=&quot;post[comments_attributes][0][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #321&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_1_name&quot; name=&quot;post[comments_attributes][1][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;new comment&quot; /&gt;' +
+               '&lt;/form&gt;'
+
+    assert_dom_equal expected, output_buffer
+  end
+
+  def test_nested_fields_for_with_an_empty_supplied_attributes_collection
+    form_for(:post, @post) do |f|
+      concat f.text_field(:title)
+      f.fields_for(:comments, []) do |cf|
+        concat cf.text_field(:name)
+      end
+    end
+
+    expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
+               '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
+               '&lt;/form&gt;'
+
+    assert_dom_equal expected, output_buffer
+  end
+
+  def test_nested_fields_for_with_existing_records_on_a_supplied_nested_attributes_collection
+    @post.comments = Array.new(2) { |id| Comment.new(id + 1) }
+
+    form_for(:post, @post) do |f|
+      concat f.text_field(:title)
+      f.fields_for(:comments, @post.comments) do |cf|
+        concat cf.text_field(:name)
+      end
+    end
+
+    expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
+               '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_name&quot; name=&quot;post[comments_attributes][0][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #1&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;1&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_1_name&quot; name=&quot;post[comments_attributes][1][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #2&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_1_id&quot; name=&quot;post[comments_attributes][1][id]&quot; type=&quot;hidden&quot; value=&quot;2&quot; /&gt;' +
                '&lt;/form&gt;'
 
     assert_dom_equal expected, output_buffer
@@ -803,8 +883,8 @@ class FormHelperTest &lt; ActionView::TestCase
 
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
                '&lt;input name=&quot;post[title]&quot; size=&quot;30&quot; type=&quot;text&quot; id=&quot;post_title&quot; value=&quot;Hello World&quot; /&gt;' +
-               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_0_name&quot; name=&quot;post[comments_attributes][0][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #321&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_1_name&quot; name=&quot;post[comments_attributes][1][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;new comment&quot; /&gt;' +
                '&lt;/form&gt;'
 
@@ -822,8 +902,8 @@ class FormHelperTest &lt; ActionView::TestCase
     end
 
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
-               '&lt;input id=&quot;post_comments_attributes_abc_id&quot; name=&quot;post[comments_attributes][abc][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_abc_name&quot; name=&quot;post[comments_attributes][abc][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #321&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_abc_id&quot; name=&quot;post[comments_attributes][abc][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;/form&gt;'
 
     assert_dom_equal expected, output_buffer
@@ -857,18 +937,18 @@ class FormHelperTest &lt; ActionView::TestCase
     end
 
     expected = '&lt;form action=&quot;http://www.example.com&quot; method=&quot;post&quot;&gt;' +
-               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_0_name&quot; name=&quot;post[comments_attributes][0][name]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;comment #321&quot; /&gt;' +
-               '&lt;input id=&quot;post_comments_attributes_0_relevances_attributes_0_id&quot; name=&quot;post[comments_attributes][0][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;314&quot; /&gt;' +
                '&lt;input id=&quot;post_comments_attributes_0_relevances_attributes_0_value&quot; name=&quot;post[comments_attributes][0][relevances_attributes][0][value]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;commentrelevance #314&quot; /&gt;' +
-               '&lt;input id=&quot;post_tags_attributes_0_id&quot; name=&quot;post[tags_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;123&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_relevances_attributes_0_id&quot; name=&quot;post[comments_attributes][0][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;314&quot; /&gt;' +
+               '&lt;input id=&quot;post_comments_attributes_0_id&quot; name=&quot;post[comments_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;321&quot; /&gt;' +
                '&lt;input id=&quot;post_tags_attributes_0_value&quot; name=&quot;post[tags_attributes][0][value]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;tag #123&quot; /&gt;' +
-               '&lt;input id=&quot;post_tags_attributes_0_relevances_attributes_0_id&quot; name=&quot;post[tags_attributes][0][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;3141&quot; /&gt;' +
                '&lt;input id=&quot;post_tags_attributes_0_relevances_attributes_0_value&quot; name=&quot;post[tags_attributes][0][relevances_attributes][0][value]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;tagrelevance #3141&quot; /&gt;' +
-               '&lt;input id=&quot;post_tags_attributes_1_id&quot; name=&quot;post[tags_attributes][1][id]&quot; type=&quot;hidden&quot; value=&quot;456&quot; /&gt;' +
+               '&lt;input id=&quot;post_tags_attributes_0_relevances_attributes_0_id&quot; name=&quot;post[tags_attributes][0][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;3141&quot; /&gt;' +
+               '&lt;input id=&quot;post_tags_attributes_0_id&quot; name=&quot;post[tags_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;123&quot; /&gt;' +
                '&lt;input id=&quot;post_tags_attributes_1_value&quot; name=&quot;post[tags_attributes][1][value]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;tag #456&quot; /&gt;' +
-               '&lt;input id=&quot;post_tags_attributes_1_relevances_attributes_0_id&quot; name=&quot;post[tags_attributes][1][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;31415&quot; /&gt;' +
                '&lt;input id=&quot;post_tags_attributes_1_relevances_attributes_0_value&quot; name=&quot;post[tags_attributes][1][relevances_attributes][0][value]&quot; size=&quot;30&quot; type=&quot;text&quot; value=&quot;tagrelevance #31415&quot; /&gt;' +
+               '&lt;input id=&quot;post_tags_attributes_1_relevances_attributes_0_id&quot; name=&quot;post[tags_attributes][1][relevances_attributes][0][id]&quot; type=&quot;hidden&quot; value=&quot;31415&quot; /&gt;' +
+               '&lt;input id=&quot;post_tags_attributes_1_id&quot; name=&quot;post[tags_attributes][1][id]&quot; type=&quot;hidden&quot; value=&quot;456&quot; /&gt;' +
                '&lt;/form&gt;'
 
     assert_dom_equal expected, output_buffer
@@ -1041,7 +1121,7 @@ class FormHelperTest &lt; ActionView::TestCase
     (field_helpers - %w(hidden_field)).each do |selector|
       src = &lt;&lt;-END_SRC
         def #{selector}(field, *args, &amp;proc)
-          &quot;&lt;label for='\#{field}'&gt;\#{field.to_s.humanize}:&lt;/label&gt; &quot; + super + &quot;&lt;br/&gt;&quot;
+          (&quot;&lt;label for='\#{field}'&gt;\#{field.to_s.humanize}:&lt;/label&gt; &quot; + super + &quot;&lt;br/&gt;&quot;).html_safe!
         end
       END_SRC
       class_eval src, __FILE__, __LINE__

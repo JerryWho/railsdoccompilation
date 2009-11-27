@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -103,6 +103,23 @@ class HttpDigestAuthenticationTest &lt; ActionController::TestCase
 
   test &quot;authentication request with invalid nonce&quot; do
     @request.env['HTTP_AUTHORIZATION'] = encode_credentials(:username =&gt; 'pretty', :password =&gt; 'please', :nonce =&gt; &quot;xxyyzz&quot;)
+    get :display
+
+    assert_response :unauthorized
+    assert_equal &quot;Authentication Failed&quot;, @response.body
+  end
+
+  test &quot;authentication request with missing nonce should return 401&quot; do
+    @request.env['HTTP_AUTHORIZATION'] = encode_credentials(:username =&gt; 'pretty', :password =&gt; 'please', :remove_nonce =&gt; true)
+    get :display
+
+    assert_response :unauthorized
+    assert_equal &quot;Authentication Failed&quot;, @response.body
+  end
+
+  test &quot;authentication request with Basic auth credentials should return 401&quot; do
+    ActionController::Base.session_options[:secret] = &quot;session_options_secret&quot;
+    @request.env['HTTP_AUTHORIZATION'] = ActionController::HttpAuthentication::Basic.encode_credentials('pretty', 'please')
     get :display
 
     assert_response :unauthorized
@@ -237,9 +254,14 @@ class HttpDigestAuthenticationTest &lt; ActionController::TestCase
 
     assert_response :unauthorized
 
+    remove_nonce = options.delete(:remove_nonce)
+
     credentials = decode_credentials(@response.headers['WWW-Authenticate'])
     credentials.merge!(options)
     credentials.merge!(:uri =&gt; @request.env['REQUEST_URI'].to_s)
+
+    credentials.delete(:nonce) if remove_nonce
+
     ActionController::HttpAuthentication::Digest.encode_credentials(method, credentials, password, options[:password_is_ha1])
   end
 

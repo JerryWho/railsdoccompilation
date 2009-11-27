@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -17,11 +17,178 @@
     <h2>Source Code</h2>
     <pre>require 'abstract_unit'
 
-class TestCaseTest &lt; ActionView::TestCase
-  def test_should_have_current_url
-    controller = TestController.new
-    assert_nothing_raised(NoMethodError){ controller.url_for({:controller =&gt; &quot;foo&quot;, :action =&gt; &quot;index&quot;}) }
+module ActionView
+  class TestCase
+    module ATestHelper
+    end
+
+    module AnotherTestHelper
+      def from_another_helper
+        'Howdy!'
+      end
+    end
+
+    module ASharedTestHelper
+      def from_shared_helper
+        'Holla!'
+      end
+    end
+    helper ASharedTestHelper
+
+    module SharedTests
+      def self.included(test_case)
+        test_case.class_eval do
+          test &quot;helpers defined on ActionView::TestCase are available&quot; do
+            assert test_case.ancestors.include?(ASharedTestHelper)
+            assert_equal 'Holla!', from_shared_helper
+          end
+        end
+      end
+    end
+
+    class GeneralViewTest &lt; ActionView::TestCase
+      include SharedTests
+      test_case = self
+
+      test &quot;works without testing a helper module&quot; do
+        assert_equal 'Eloy', render('developers/developer', :developer =&gt; stub(:name =&gt; 'Eloy'))
+      end
+
+      test &quot;can render a layout with block&quot; do
+        assert_equal &quot;Before (ChrisCruft)\n!\nAfter&quot;,
+                      render(:layout =&gt; &quot;test/layout_for_partial&quot;, :locals =&gt; {:name =&gt; &quot;ChrisCruft&quot;}) {&quot;!&quot;}
+      end
+
+      helper AnotherTestHelper
+      test &quot;additional helper classes can be specified as in a controller&quot; do
+        assert test_case.ancestors.include?(AnotherTestHelper)
+        assert_equal 'Howdy!', from_another_helper
+      end
+    end
+
+    class ClassMethodsTest &lt; ActionView::TestCase
+      include SharedTests
+      test_case = self
+
+      tests ATestHelper
+      test &quot;tests the specified helper module&quot; do
+        assert_equal ATestHelper, test_case.helper_class
+        assert test_case.ancestors.include?(ATestHelper)
+      end
+
+      helper AnotherTestHelper
+      test &quot;additional helper classes can be specified as in a controller&quot; do
+        assert test_case.ancestors.include?(AnotherTestHelper)
+        assert_equal 'Howdy!', from_another_helper
+
+        test_case.helper_class.module_eval do
+          def render_from_helper
+            from_another_helper
+          end
+        end
+        assert_equal 'Howdy!', render(:partial =&gt; 'test/from_helper')
+      end
+    end
+
+    class ATestHelperTest &lt; ActionView::TestCase
+      include SharedTests
+      test_case = self
+
+      test &quot;inflects the name of the helper module to test from the test case class&quot; do
+        assert_equal ATestHelper, test_case.helper_class
+        assert test_case.ancestors.include?(ATestHelper)
+      end
+
+      test &quot;a configured test controller is available&quot; do
+        assert_kind_of ActionController::Base, controller
+        assert_equal '', controller.controller_path
+      end
+
+      test &quot;helper class that is being tested is always included in view instance&quot; do
+        self.class.helper_class.module_eval do
+          def render_from_helper
+            render :partial =&gt; 'customer', :collection =&gt; @customers
+          end
+        end
+
+        TestController.stubs(:controller_path).returns('test')
+
+        @customers = [stub(:name =&gt; 'Eloy'), stub(:name =&gt; 'Manfred')]
+        assert_match /Hello: EloyHello: Manfred/, render(:partial =&gt; 'test/from_helper')
+      end
+
+      test &quot;no additional helpers should shared across test cases&quot; do
+        assert !test_case.ancestors.include?(AnotherTestHelper)
+        assert_raise(NoMethodError) { send :from_another_helper }
+      end
+
+      test &quot;is able to use routes&quot; do
+        controller.request.assign_parameters('foo', 'index')
+        assert_equal '/foo', url_for
+        assert_equal '/bar', url_for(:controller =&gt; 'bar')
+      end
+
+      test &quot;is able to use named routes&quot; do
+        with_routing do |set|
+          set.draw { |map| map.resources :contents }
+          assert_equal 'http://test.host/contents/new', new_content_url
+          assert_equal 'http://test.host/contents/1',   content_url(:id =&gt; 1)
+        end
+      end
+
+      test &quot;named routes can be used from helper included in view&quot; do
+        with_routing do |set|
+          set.draw { |map| map.resources :contents }
+          master_helper_module.module_eval do
+            def render_from_helper
+              new_content_url
+            end
+          end
+
+          assert_equal 'http://test.host/contents/new', render(:partial =&gt; 'test/from_helper')
+        end
+      end
+
+      test &quot;is able to render partials with local variables&quot; do
+        assert_equal 'Eloy', render('developers/developer', :developer =&gt; stub(:name =&gt; 'Eloy'))
+        assert_equal 'Eloy', render(:partial =&gt; 'developers/developer',
+                                    :locals =&gt; { :developer =&gt; stub(:name =&gt; 'Eloy') })
+      end
+
+      test &quot;is able to render partials from templates and also use instance variables&quot; do
+        TestController.stubs(:controller_path).returns('test')
+
+        @customers = [stub(:name =&gt; 'Eloy'), stub(:name =&gt; 'Manfred')]
+        assert_match /Hello: EloyHello: Manfred/, render(:file =&gt; 'test/list')
+      end
+
+      test &quot;is able to make methods available to the view&quot; do
+        master_helper_module.module_eval do
+          def render_from_helper; from_test_case end
+        end
+        assert_equal 'Word!', render(:partial =&gt; 'test/from_helper')
+      end
+
+      def from_test_case; 'Word!'; end
+      helper_method :from_test_case
+    end
+
+    class AssertionsTest &lt; ActionView::TestCase
+      def render_from_helper
+        form_tag('/foo') do
+          concat render(:text =&gt; '&lt;ul&gt;&lt;li&gt;foo&lt;/li&gt;&lt;/ul&gt;')
+        end
+      end
+      helper_method :render_from_helper
+
+      test &quot;uses the output_buffer for assert_select&quot; do
+        render(:partial =&gt; 'test/from_helper')
+
+        assert_select 'form' do
+          assert_select 'li', :text =&gt; 'foo'
+        end
+      end
+    end
   end
-end
-</pre>
+end</pre>
     </div>

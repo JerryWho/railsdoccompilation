@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -21,14 +21,14 @@ require 'action_view/helpers/benchmark_helper'
 class BenchmarkHelperTest &lt; ActionView::TestCase
   tests ActionView::Helpers::BenchmarkHelper
 
-  def teardown
-    controller.logger.send(:clear_buffer)
+  def setup
+    super
+    controller.logger = ActiveSupport::BufferedLogger.new(StringIO.new)
+    controller.logger.auto_flushing = false
   end
 
-  def controller
-    logger = ActiveSupport::BufferedLogger.new(StringIO.new)
-    logger.auto_flushing = false
-    @controller ||= Struct.new(:logger).new(logger)
+  def teardown
+    controller.logger.send(:clear_buffer)
   end
 
   def test_without_block

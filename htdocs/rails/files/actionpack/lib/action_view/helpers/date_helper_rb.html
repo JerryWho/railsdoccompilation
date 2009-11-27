@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -43,8 +43,10 @@ module ActionView
       #   47 hrs, 59 mins, 29 secs &lt;-&gt; 29 days, 23 hrs, 59 mins, 29 secs            # =&gt; [2..29] days
       #   29 days, 23 hrs, 59 mins, 30 secs &lt;-&gt; 59 days, 23 hrs, 59 mins, 29 secs   # =&gt; about 1 month
       #   59 days, 23 hrs, 59 mins, 30 secs &lt;-&gt; 1 yr minus 1 sec                    # =&gt; [2..12] months
-      #   1 yr &lt;-&gt; 2 yrs minus 1 secs                                               # =&gt; about 1 year
-      #   2 yrs &lt;-&gt; max time or date                                                # =&gt; over [2..X] years
+      #   1 yr &lt;-&gt; 1 yr, 3 months                                                   # =&gt; about 1 year
+      #   1 yr, 3 months &lt;-&gt; 1 yr, 9 months                                         # =&gt; over 1 year
+      #   1 yr, 9 months &lt;-&gt; 2 yr minus 1 sec                                       # =&gt; almost 2 years
+      #   2 yrs &lt;-&gt; max time or date                                                # =&gt; (same rules as 1 yr)
       #
       # With &lt;tt&gt;include_seconds&lt;/tt&gt; = true and the difference &lt; 1 minute 29 seconds:
       #   0-4   secs      # =&gt; less than 5 seconds
@@ -60,17 +62,18 @@ module ActionView
       #   distance_of_time_in_words(from_time, 50.minutes.from_now)           # =&gt; about 1 hour
       #   distance_of_time_in_words(from_time, from_time + 15.seconds)        # =&gt; less than a minute
       #   distance_of_time_in_words(from_time, from_time + 15.seconds, true)  # =&gt; less than 20 seconds
-      #   distance_of_time_in_words(from_time, 3.years.from_now)              # =&gt; over 3 years
+      #   distance_of_time_in_words(from_time, 3.years.from_now)              # =&gt; about 3 years
       #   distance_of_time_in_words(from_time, from_time + 60.hours)          # =&gt; about 3 days
       #   distance_of_time_in_words(from_time, from_time + 45.seconds, true)  # =&gt; less than a minute
       #   distance_of_time_in_words(from_time, from_time - 45.seconds, true)  # =&gt; less than a minute
       #   distance_of_time_in_words(from_time, 76.seconds.from_now)           # =&gt; 1 minute
       #   distance_of_time_in_words(from_time, from_time + 1.year + 3.days)   # =&gt; about 1 year
-      #   distance_of_time_in_words(from_time, from_time + 4.years + 9.days + 30.minutes + 5.seconds) # =&gt; over 4 years
+      #   distance_of_time_in_words(from_time, from_time + 3.years + 6.months) # =&gt; over 3 years
+      #   distance_of_time_in_words(from_time, from_time + 4.years + 9.days + 30.minutes + 5.seconds) # =&gt; about 4 years
       #
       #   to_time = Time.now + 6.years + 19.days
-      #   distance_of_time_in_words(from_time, to_time, true)     # =&gt; over 6 years
-      #   distance_of_time_in_words(to_time, from_time, true)     # =&gt; over 6 years
+      #   distance_of_time_in_words(from_time, to_time, true)     # =&gt; about 6 years
+      #   distance_of_time_in_words(to_time, from_time, true)     # =&gt; about 6 years
       #   distance_of_time_in_words(Time.now, Time.now)           # =&gt; less than a minute
       #
       def distance_of_time_in_words(from_time, to_time = 0, include_seconds = false, options = {})
@@ -98,12 +101,21 @@ module ActionView
             when 2..44           then locale.t :x_minutes,      :count =&gt; distance_in_minutes
             when 45..89          then locale.t :about_x_hours,  :count =&gt; 1
             when 90..1439        then locale.t :about_x_hours,  :count =&gt; (distance_in_minutes.to_f / 60.0).round
-            when 1440..2879      then locale.t :x_days,         :count =&gt; 1
-            when 2880..43199     then locale.t :x_days,         :count =&gt; (distance_in_minutes / 1440).round
+            when 1440..2529      then locale.t :x_days,         :count =&gt; 1
+            when 2530..43199     then locale.t :x_days,         :count =&gt; (distance_in_minutes.to_f / 1440.0).round
             when 43200..86399    then locale.t :about_x_months, :count =&gt; 1
-            when 86400..525599   then locale.t :x_months,       :count =&gt; (distance_in_minutes / 43200).round
-            when 525600..1051199 then locale.t :about_x_years,  :count =&gt; 1
-            else                      locale.t :over_x_years,   :count =&gt; (distance_in_minutes / 525600).round
+            when 86400..525599   then locale.t :x_months,       :count =&gt; (distance_in_minutes.to_f / 43200.0).round
+            else
+              distance_in_years           = distance_in_minutes / 525600
+              minute_offset_for_leap_year = (distance_in_years / 4) * 1440
+              remainder                   = ((distance_in_minutes - minute_offset_for_leap_year) % 525600)
+              if remainder &lt; 131400
+                locale.t(:about_x_years,  :count =&gt; distance_in_years)
+              elsif remainder &lt; 394200
+                locale.t(:over_x_years,   :count =&gt; distance_in_years)
+              else
+                locale.t(:almost_x_years, :count =&gt; distance_in_years + 1)
+              end
           end
         end
       end
@@ -921,15 +933,15 @@ module ActionView
 
     class InstanceTag #:nodoc:
       def to_date_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_date
+        datetime_selector(options, html_options).select_date.html_safe!
       end
 
       def to_time_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_time
+        datetime_selector(options, html_options).select_time.html_safe!
       end
 
       def to_datetime_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_datetime
+        datetime_selector(options, html_options).select_datetime.html_safe!
       end
 
       private
@@ -940,7 +952,7 @@ module ActionView
           options[:field_name]           = @method_name
           options[:include_position]     = true
           options[:prefix]             ||= @object_name
-          options[:index]                = @auto_index if @auto_index &amp;&amp; !options.has_key?(:index)
+          options[:index]                = @auto_index if defined?(@auto_index) &amp;&amp; @auto_index &amp;&amp; !options.has_key?(:index)
           options[:datetime_separator] ||= ' &amp;mdash; '
           options[:time_separator]     ||= ' : '
 

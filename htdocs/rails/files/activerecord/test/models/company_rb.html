@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -81,6 +81,8 @@ class Firm &lt; Company
   has_many :readonly_clients, :class_name =&gt; 'Client', :readonly =&gt; true
   has_many :clients_using_primary_key, :class_name =&gt; 'Client',
            :primary_key =&gt; 'name', :foreign_key =&gt; 'firm_name'
+  has_many :clients_using_primary_key_with_delete_all, :class_name =&gt; 'Client',
+           :primary_key =&gt; 'name', :foreign_key =&gt; 'firm_name', :dependent =&gt; :delete_all
   has_many :clients_grouped_by_firm_id, :class_name =&gt; &quot;Client&quot;, :group =&gt; &quot;firm_id&quot;, :select =&gt; &quot;firm_id&quot;
   has_many :clients_grouped_by_name, :class_name =&gt; &quot;Client&quot;, :group =&gt; &quot;name&quot;, :select =&gt; &quot;name&quot;
 
@@ -89,7 +91,14 @@ class Firm &lt; Company
   has_one :account_with_select, :foreign_key =&gt; &quot;firm_id&quot;, :select =&gt; &quot;id, firm_id&quot;, :class_name=&gt;'Account'
   has_one :readonly_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;, :readonly =&gt; true
   has_one :account_using_primary_key, :primary_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;
+  has_one :account_using_foreign_and_primary_keys, :foreign_key =&gt; &quot;firm_name&quot;, :primary_key =&gt; &quot;name&quot;, :class_name =&gt; &quot;Account&quot;
   has_one :deletable_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;, :dependent =&gt; :delete
+  
+  has_one :account_limit_500_with_hash_conditions, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Account&quot;, :conditions =&gt; { :credit_limit =&gt; 500 }
+
+  has_one :unautosaved_account, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; 'Account', :autosave =&gt; false
+  has_many :accounts
+  has_many :unautosaved_accounts, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; 'Account', :autosave =&gt; false
 end
 
 class DependentFirm &lt; Company
@@ -153,6 +162,7 @@ end
 
 class Account &lt; ActiveRecord::Base
   belongs_to :firm
+  belongs_to :unautosaved_firm, :foreign_key =&gt; &quot;firm_id&quot;, :class_name =&gt; &quot;Firm&quot;, :autosave =&gt; false
 
   def self.destroyed_account_ids
     @destroyed_account_ids ||= Hash.new { |h,k| h[k] = [] }

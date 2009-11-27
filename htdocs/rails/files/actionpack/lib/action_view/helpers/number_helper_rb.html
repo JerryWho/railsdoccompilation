@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:15 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -263,6 +263,11 @@
       #  number_to_human_size(483989, :precision =&gt; 0)                      # =&gt; 473 KB
       #  number_to_human_size(1234567, :precision =&gt; 2, :separator =&gt; ',')  # =&gt; 1,18 MB
       #
+      # Zeros after the decimal point are always stripped out, regardless of the
+      # specified precision:
+      #  helper.number_to_human_size(1234567890123, :precision =&gt; 5)        # =&gt; &quot;1.12283 TB&quot;
+      #  helper.number_to_human_size(524288000, :precision=&gt;5)              # =&gt; &quot;500 MB&quot;
+      #
       # You can still use &lt;tt&gt;number_to_human_size&lt;/tt&gt; with the old API that accepts the
       # +precision+ as its optional second parameter:
       #  number_to_human_size(1234567, 2)    # =&gt; 1.18 MB
@@ -308,7 +313,7 @@
               :precision =&gt; precision,
               :separator =&gt; separator,
               :delimiter =&gt; delimiter
-            ).sub(/(\d)(#{escaped_separator}[1-9]*)?0+\z/, '\1\2').sub(/#{escaped_separator}\z/, '')
+            ).sub(/(#{escaped_separator})(\d*[1-9])?0+\z/, '\1\2').sub(/#{escaped_separator}\z/, '')
             storage_units_format.gsub(/%n/, formatted_number).gsub(/%u/, unit)
           rescue
             number

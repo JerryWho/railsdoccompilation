@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -29,7 +29,7 @@ module ActiveSupport
       if string.blank?
         {}
       else
-        doc = Nokogiri::XML(string)
+        doc = Nokogiri::XML(string) { |cfg| cfg.noblanks }
         raise doc.errors.first if doc.errors.length &gt; 0
         doc.to_hash
       end
@@ -50,33 +50,25 @@ module ActiveSupport
         # hash::
         #   Hash to merge the converted element into.
         def to_hash(hash = {})
-          hash[name] ||= attributes_as_hash
+          attributes = attributes_as_hash
+          if hash[name]
+            hash[name] = [hash[name]].flatten
+            hash[name] &lt;&lt; attributes
+          else
+            hash[name] ||= attributes
+          end
 
-          walker = lambda { |memo, parent, child, callback|
-            next if child.blank? &amp;&amp; 'file' != parent['type']
+          children.each { |child|
+            next if child.blank? &amp;&amp; 'file' != self['type']
 
-            if child.text?
-              (memo[CONTENT_ROOT] ||= '') &lt;&lt; child.content
+            if child.text? || child.cdata?
+              (attributes[CONTENT_ROOT] ||= '') &lt;&lt; child.content
               next
             end
 
-            name = child.name
-
-            child_hash = child.attributes_as_hash
-            if memo[name]
-              memo[name] = [memo[name]].flatten
-              memo[name] &lt;&lt; child_hash
-            else
-              memo[name] = child_hash
-            end
-
-            # Recusively walk children
-            child.children.each { |c|
-              callback.call(child_hash, child, c, callback)
-            }
+            child.to_hash attributes
           }
 
-          children.each { |c| walker.call(hash[name], self, c, walker) }
           hash
         end
 

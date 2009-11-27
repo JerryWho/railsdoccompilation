@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -25,18 +25,21 @@
 
       def create(attrs = {}, replace_existing = true)
         new_record(replace_existing) do |reflection|
+          attrs = merge_with_conditions(attrs)
           reflection.create_association(attrs)
         end
       end
 
       def create!(attrs = {}, replace_existing = true)
         new_record(replace_existing) do |reflection|
+          attrs = merge_with_conditions(attrs)
           reflection.create_association!(attrs)
         end
       end
 
       def build(attrs = {}, replace_existing = true)
         new_record(replace_existing) do |reflection|
+          attrs = merge_with_conditions(attrs)
           reflection.build_association(attrs)
         end
       end
@@ -135,6 +138,12 @@
           end
 
           record
+        end
+
+        def merge_with_conditions(attrs={})
+          attrs ||= {}
+          attrs.update(@reflection.options[:conditions]) if @reflection.options[:conditions].is_a?(Hash)
+          attrs
         end
     end
   end

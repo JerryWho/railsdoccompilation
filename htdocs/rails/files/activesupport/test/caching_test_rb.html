@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -52,7 +52,9 @@ class CacheStoreSettingTest &lt; ActiveSupport::TestCase
 
   def test_mem_cache_fragment_cache_store_with_given_mem_cache_like_object
     MemCache.expects(:new).never
-    store = ActiveSupport::Cache.lookup_store :mem_cache_store, stub(&quot;memcache&quot;, :get =&gt; true)
+    memcache = Object.new
+    def memcache.get() true end
+    store = ActiveSupport::Cache.lookup_store :mem_cache_store, memcache
     assert_kind_of(ActiveSupport::Cache::MemCacheStore, store)
   end
 
@@ -340,6 +342,25 @@ uses_memcached 'memcached backed store' do
     end
 
     include CacheStoreBehavior
+  end
+end
+
+class CacheStoreLoggerTest &lt; ActiveSupport::TestCase
+  def setup
+    @cache = ActiveSupport::Cache.lookup_store(:memory_store)
+
+    @buffer = StringIO.new
+    @cache.logger = Logger.new(@buffer)
+  end
+
+  def test_logging
+    @cache.fetch('foo') { 'bar' }
+    assert @buffer.string.present?
+  end
+
+  def test_mute_logging
+    @cache.mute { @cache.fetch('foo') { 'bar' } }
+    assert @buffer.string.blank?
   end
 end
 </pre>

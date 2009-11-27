@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:55:10 +0200 2009</td>
+      <td>Fri Nov 27 16:38:16 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -148,16 +148,16 @@ module Rails
           opt.on('-q', '--quiet', 'Suppress normal output.') { |v| options[:quiet] = v }
           opt.on('-t', '--backtrace', 'Debugging: show backtrace on errors.') { |v| options[:backtrace] = v }
           opt.on('-c', '--svn', 'Modify files with subversion. (Note: svn must be in path)') do
-            options[:svn] = `svn status`.inject({}) do |opt, e|
-              opt[e.chomp[7..-1]] = true
-              opt
+            options[:svn] = {}
+            `svn status`.each_line do |line|
+              options[:svn][line.chomp[7..-1]] = true
             end
           end
           opt.on('-g', '--git', 'Modify files with git. (Note: git must be in path)') do
-            options[:git] = `git status`.inject({:new =&gt; {}, :modified =&gt; {}}) do |opt, e|
-              opt[:new][e.chomp[14..-1]] = true if e =~ /new file:/
-              opt[:modified][e.chomp[14..-1]] = true if e =~ /modified:/
-              opt
+            options[:git] = {:new =&gt; {}, :modified =&gt; {}}
+            `git status`.each_line do |line|
+              options[:git][:new][line.chomp[14..-1]] = true if line =~ /new file:/
+              options[:git][:modified][line.chomp[14..-1]] = true if line =~ /modified:/
             end
           end
         end
