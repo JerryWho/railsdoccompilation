@@ -1,0 +1,88 @@
+  <div id="fileHeader">
+    <h1>xml_element_decl.c</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>ext/nokogiri/xml_element_decl.c</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Mon Oct 12 19:40:25 +0200 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#include &lt;xml_element_decl.h&gt;
+
+static ID id_document;
+
+/*
+ * call-seq:
+ *  element_type
+ *
+ * The element_type
+ */
+static VALUE element_type(VALUE self)
+{
+  xmlElementPtr node;
+  Data_Get_Struct(self, xmlElement, node);
+  return INT2NUM((long)node-&gt;etype);
+}
+
+/*
+ * call-seq:
+ *  content
+ *
+ * The allowed content for this ElementDecl
+ */
+static VALUE content(VALUE self)
+{
+  xmlElementPtr node;
+  Data_Get_Struct(self, xmlElement, node);
+
+  if(!node-&gt;content) return Qnil;
+
+  return Nokogiri_wrap_element_content(
+      rb_funcall(self, id_document, 0),
+      node-&gt;content
+  );
+}
+
+/*
+ * call-seq:
+ *  prefix
+ *
+ * The namespace prefix for this ElementDecl
+ */
+static VALUE prefix(VALUE self)
+{
+  xmlElementPtr node;
+  Data_Get_Struct(self, xmlElement, node);
+
+  if(!node-&gt;prefix) return Qnil;
+
+  return NOKOGIRI_STR_NEW2(node-&gt;prefix);
+}
+
+VALUE cNokogiriXmlElementDecl;
+
+void init_xml_element_decl()
+{
+  VALUE nokogiri = rb_define_module(&quot;Nokogiri&quot;);
+  VALUE xml = rb_define_module_under(nokogiri, &quot;XML&quot;);
+  VALUE node = rb_define_class_under(xml, &quot;Node&quot;, rb_cObject);
+  VALUE klass = rb_define_class_under(xml, &quot;ElementDecl&quot;, node);
+
+  cNokogiriXmlElementDecl = klass;
+
+  rb_define_method(klass, &quot;element_type&quot;, element_type, 0);
+  rb_define_method(klass, &quot;content&quot;, content, 0);
+  rb_define_method(klass, &quot;prefix&quot;, prefix, 0);
+
+  id_document = rb_intern(&quot;document&quot;);
+}
+</pre>
+    </div>
