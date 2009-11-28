@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:43:12 +0200 2009</td>
+      <td>Mon Oct 12 19:44:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -19,6 +19,8 @@
 require &quot;webrat/selenium/selenium_rc_server&quot;
 require &quot;webrat/selenium/application_server_factory&quot;
 require &quot;webrat/selenium/application_servers/base&quot;
+
+require &quot;selenium&quot;
 
 module Webrat
   class TimeoutError &lt; WebratError
@@ -94,7 +96,12 @@ module Webrat
     webrat_deprecate :clicks_button, :click_button
 
     def click_link(link_text_or_regexp, options = {})
-      pattern = adjust_if_regexp(link_text_or_regexp)
+      if link_text_or_regexp.is_a?(Regexp)
+        pattern = &quot;evalregex:#{link_text_or_regexp.inspect}&quot;
+      else
+        pattern = link_text_or_regexp.to_s
+      end
+
       locator = &quot;webratlink=#{pattern}&quot;
       selenium.wait_for_element locator, :timeout_in_seconds =&gt; 5
       selenium.click locator
@@ -179,7 +186,19 @@ module Webrat
         sleep 0.25
       end
 
-      raise Webrat::TimeoutError.new(message + &quot; (after #{timeout} sec)&quot;)
+      error_message = &quot;#{message} (after #{timeout} sec)&quot;
+
+      if $browser
+        error_message += &lt;&lt;-EOS
+
+
+HTML of the page was:
+
+#{selenium.get_html_source}&quot;
+EOS
+      end
+
+      raise Webrat::TimeoutError.new(error_message)
       true
     end
 

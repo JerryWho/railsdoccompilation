@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:43:12 +0200 2009</td>
+      <td>Mon Oct 12 19:44:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -15,8 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require &quot;webrat/core/xml/nokogiri&quot;
-require &quot;webrat/core/xml/rexml&quot;
+    <pre>require &quot;webrat/core/xml&quot;
 
 module Webrat
   module Matchers
@@ -33,38 +32,14 @@ module Webrat
         matched = matches(stringlike)
 
         if @options[:count]
-          matched.size == @options[:count] &amp;&amp; (!@block || @block.call(matched))
+          matched.size == @options[:count].to_i &amp;&amp; (!@block || @block.call(matched))
         else
           matched.any? &amp;&amp; (!@block || @block.call(matched))
         end
       end
 
       def matches(stringlike)
-        if Webrat.configuration.parse_with_nokogiri?
-          nokogiri_matches(stringlike)
-        else
-          rexml_matches(stringlike)
-        end
-      end
-
-      def rexml_matches(stringlike)
-        if REXML::Node === stringlike || Array === stringlike
-          @query = query.map { |q| q.gsub(%r'^//', './/') }
-        else
-          @query = query
-        end
-
-        add_options_conditions_to(@query)
-
-        @document = Webrat.rexml_document(stringlike)
-
-        @query.map do |q|
-          if @document.is_a?(Array)
-            @document.map { |d| REXML::XPath.match(d, q) }
-          else
-            REXML::XPath.match(@document, q)
-          end
-        end.flatten.compact
+        nokogiri_matches(stringlike)
       end
 
       def nokogiri_matches(stringlike)

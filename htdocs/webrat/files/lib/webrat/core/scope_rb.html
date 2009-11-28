@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:43:12 +0200 2009</td>
+      <td>Mon Oct 12 19:44:05 +0200 2009</td>
     </tr>
     </table>
   </div>
@@ -128,6 +128,21 @@ module Webrat
     end
 
     webrat_deprecate :selects, :select
+
+    # Verifies that a an option element exists on the current page with the specified
+    # text. You can optionally restrict the search to a specific select list by
+    # assigning &lt;tt&gt;options[:from]&lt;/tt&gt; the value of the select list's name or
+    # a label. Remove the option's value before the form is submitted.
+    #
+    # Examples:
+    #   unselect &quot;January&quot;
+    #   unselect &quot;February&quot;, :from =&gt; &quot;event_month&quot;
+    #   unselect &quot;February&quot;, :from =&gt; &quot;Event Month&quot;
+    def unselect(option_text, options={})
+      select_option(option_text, options[:from]).unchoose
+    end
+
+    webrat_deprecate :unselects, :unselect
 
     DATE_TIME_SUFFIXES = {
       :year   =&gt; '1i',
@@ -329,12 +344,12 @@ module Webrat
         dom = Webrat::XML.html_document(@response_body)
       end
 
-      Webrat.define_dom_method(@response, dom)
+      Webrat::XML.define_dom_method(@response, dom)
       return dom
     end
 
     def scoped_dom
-      Webrat::XML.css_at(@scope.dom, @selector)
+      @scope.dom.css(@selector).first
     end
 
     def locate_field(field_locator, *field_types) #:nodoc:

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:43:12 +0200 2009</td>
+      <td>Sat Nov 28 12:11:46 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -24,7 +24,7 @@ module Webrat
   class Link &lt; Element #:nodoc:
 
     def self.xpath_search
-      &quot;.//a[@href]&quot;
+      [&quot;.//a[@href]&quot;]
     end
 
     def click(options = {})
@@ -43,7 +43,7 @@ module Webrat
   protected
 
     def id
-      Webrat::XML.attribute(@element, &quot;id&quot;)
+      @element[&quot;id&quot;]
     end
 
     def data
@@ -51,11 +51,11 @@ module Webrat
     end
 
     def title
-      Webrat::XML.attribute(@element, &quot;title&quot;)
+      @element[&quot;title&quot;]
     end
 
     def href
-      Webrat::XML.attribute(@element, &quot;href&quot;)
+      @element[&quot;href&quot;]
     end
 
     def absolute_href
@@ -70,12 +70,12 @@ module Webrat
 
     def authenticity_token
       return unless onclick &amp;&amp; onclick.include?(&quot;s.setAttribute('name', 'authenticity_token');&quot;) &amp;&amp;
-        onclick =~ /s\.setAttribute\('value', '([a-f0-9]{40})'\);/
+        ( onclick =~ /s\.setAttribute\('value', '([a-f0-9]{40})'\);/ || onclick =~ /s\.setAttribute\('value', '(.{44})'\);/ )
       $LAST_MATCH_INFO.captures.first
     end
 
     def onclick
-      Webrat::XML.attribute(@element, &quot;onclick&quot;)
+      @element[&quot;onclick&quot;]
     end
 
     def http_method

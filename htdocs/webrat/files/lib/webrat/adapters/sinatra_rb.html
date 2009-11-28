@@ -1,9 +1,9 @@
   <div id="fileHeader">
-    <h1>form_locator.rb</h1>
+    <h1>sinatra.rb</h1>
     <table class="header-table">
     <tr class="top-aligned-row">
       <td><strong>Path:</strong></td>
-      <td>lib/webrat/core/locators/form_locator.rb</td>
+      <td>lib/webrat/adapters/sinatra.rb</td>
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
@@ -15,23 +15,13 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require &quot;webrat/core/locators/locator&quot;
+    <pre>module Webrat
+  class SinatraAdapter &lt; RackAdapter
+    def initialize(context)
+      app = context.respond_to?(:app) ? context.app : Sinatra::Application
 
-module Webrat
-  module Locators
-
-    class FormLocator &lt; Locator # :nodoc:
-
-      def locate
-        Form.load(@session, form_element)
-      end
-
-      def form_element
-        @dom.css(&quot;#&quot; + @value).first
-      end
-
+      super(Rack::Test::Session.new(Rack::MockSession.new(app, &quot;www.example.com&quot;)))
     end
-
   end
 end
 </pre>
