@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:51:54 +0100 2009</td>
+      <td>Mon Dec 07 23:46:26 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -22,7 +22,7 @@ module Sass::Script
   class Color &lt; Literal
     class &lt;&lt; self; include Haml::Util; end
 
-    # A hash from color names to [red, green, blue] value arrays.
+    # A hash from color names to `[red, green, blue]` value arrays.
     HTML4_COLORS = map_vals({
         'black'   =&gt; 0x000000,
         'silver'  =&gt; 0xc0c0c0,
@@ -41,16 +41,21 @@ module Sass::Script
         'teal'    =&gt; 0x008080,
         'aqua'    =&gt; 0x00ffff
       }) {|color| (0..2).map {|n| color &gt;&gt; (n &lt;&lt; 3) &amp; 0xff}.reverse}
-    # A hash from [red, green, blue] value arrays to color names.
+    # A hash from `[red, green, blue]` value arrays to color names.
     HTML4_COLORS_REVERSE = map_hash(HTML4_COLORS) {|k, v| [v, k]}
 
+    # Creates a new color from RGB components.
+    # *Note*: when modifying the components of an existing color,
+    # use \{#with} rather than creating a new color object.
+    # This preserves forwards-compatiblity for alpha channels and such.
+    #
     # @param rgb [Array&lt;Fixnum&gt;] A three-element array of the red, green, and blue values (respectively)
     #   of the color
     # @raise [Sass::SyntaxError] if any color value isn't between 0 and 255
     def initialize(rgb)
       rgb = rgb.map {|c| c.to_i}
       raise Sass::SyntaxError.new(&quot;Color values must be between 0 and 255&quot;) if rgb.any? {|c| c &lt; 0 || c &gt; 255}
-      super(rgb)
+      super(rgb.freeze)
     end
 
     # @deprecated This will be removed in version 2.6.
@@ -66,10 +71,30 @@ END
 
     # Returns the red, green, and blue components of the color.
     #
-    # @return [Array&lt;Fixnum&gt;] A three-element array of the red, green, and blue
+    # @return [Array&lt;Fixnum&gt;] A frozen three-element array of the red, green, and blue
     #   values (respectively) of the color
     def rgb
       @value
+    end
+
+    # Returns a copy of this color with one or more channels changed.
+    #
+    # For example:
+    #
+    #     Color.new([10, 20, 30]).with(:blue =&gt; 40)
+    #       #=&gt; rgb(10, 40, 30)
+    #     Color.new([126, 126, 126]).with(:red =&gt; 0, :green =&gt; 255)
+    #       #=&gt; rgb(0, 255, 126)
+    #
+    # @param attrs [Hash&lt;Symbol, Fixnum&gt;]
+    #   A map of channel names (`:red`, `:green`, or `:blue`) to values
+    # @return [Color] The new Color object
+    def with(attrs)
+      Color.new([
+          attrs[:red] || rgb[0],
+          attrs[:green] || rgb[1],
+          attrs[:blue] || rgb[2],
+        ])
     end
 
     # The SassScript `+` operation.
@@ -127,10 +152,7 @@ END
     # {Color}
     # : Multiplies each of the RGB color channels together.
     #
-    # {Literal}
-    # : See {Literal#times}.
-    #
-    # @param other [Literal] The right-hand side of the operator
+    # @param other [Number, Color] The right-hand side of the operator
     # @return [Color] The resulting color
     # @raise [Sass::SyntaxError] if `other` is a number with units
     def times(other)
@@ -173,10 +195,7 @@ END
     # {Color}
     # : Takes each of this color's RGB color channels modulo the other color's.
     #
-    # {Literal}
-    # : See {Literal#mod}.
-    #
-    # @param other [Literal] The right-hand side of the operator
+    # @param other [Number, Color] The right-hand side of the operator
     # @return [Color] The resulting color
     # @raise [Sass::SyntaxError] if `other` is a number with units
     def mod(other)
@@ -212,7 +231,7 @@ END
         res = rgb[i].send(operation, other_num ? other.value : other.rgb[i])
         result[i] = [ [res, 255].min, 0 ].max
       end
-      Color.new(result)
+      with(:red =&gt; result[0], :green =&gt; result[1], :blue =&gt; result[2])
     end
   end
 end
