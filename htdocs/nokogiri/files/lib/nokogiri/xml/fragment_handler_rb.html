@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:21:01 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -25,33 +25,27 @@
         @document       = node.document
         @stack          = [node]
         @html_eh        = node.kind_of? HTML::DocumentFragment
-
-        # the regexes used in start_element() and characters() anchor at
-        # start-of-line, but we really only want them to anchor at
-        # start-of-doc. so let's only save up to the first newline.
-        #
-        # this implementation choice was the result of some benchmarks, if
-        # you're curious: http://gist.github.com/115936
-        #
-        @original_html = original_html.lstrip
-        newline_index = @original_html.index(&quot;\n&quot;)
-        @original_html = @original_html[0,newline_index] if newline_index
+        @original_html  = prepare_for_regex(original_html.strip)
       end
 
       def start_element name, attrs = []
         regex = @html_eh ? %r{^\s*&lt;#{Regexp.escape(name)}}i :
                            %r{^\s*&lt;#{Regexp.escape(name)}}
 
-        @doc_started = true if @original_html =~ regex
+        if ! @doc_started &amp;&amp; @original_html =~ regex
+          @doc_started = true
+        end
         return unless @doc_started
 
-        if match = name.match(QNAME_REGEX)
-          prefix, name = match[1], match[2]
-          ns = @document.root.namespace_definitions.detect { |x|
-            x.prefix == prefix
-          }
-        else
-          ns = nil
+        ns = nil
+        if @document.root
+          match = name.match(QNAME_REGEX)
+          if match
+            prefix, name = match[1], match[2]
+            ns = @document.root.namespace_definitions.detect { |x|
+              x.prefix == prefix
+            }
+          end
         end
 
         node = Element.new(name, @document)
@@ -67,7 +61,7 @@
       end
 
       def characters string
-        @doc_started = true if @original_html.strip =~ %r{^\s*#{Regexp.escape(string.strip)}}
+        @doc_started = true
         @stack.last &lt;&lt; Text.new(string, @document)
       end
 
@@ -82,6 +76,20 @@
       def end_element name
         return unless @stack.last.name == name
         @stack.pop
+      end
+
+      private
+
+      #
+      # the regexes used in start_element() and characters() anchor at
+      # start-of-line, but we really only want them to anchor at
+      # start-of-doc. so let's only save up to the first newline.
+      #
+      # this implementation choice was the result of some benchmarks, if
+      # you're curious: http://gist.github.com/115936
+      #
+      def prepare_for_regex(string)
+        (newline_index = string.index(&quot;\n&quot;)) ? string.slice(0,newline_index) : string
       end
     end
   end

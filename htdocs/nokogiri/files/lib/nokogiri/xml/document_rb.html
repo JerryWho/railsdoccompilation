@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -77,6 +77,34 @@
         self
       end
 
+      ###
+      # Recursively get all namespaces from this node and its subtree and
+      # return them as a hash.
+      #
+      # For example, given this document:
+      #
+      #   &lt;root xmlns:foo=&quot;bar&quot;&gt;
+      #     &lt;bar xmlns:hello=&quot;world&quot; /&gt;
+      #   &lt;/root&gt;
+      #
+      # This method will return:
+      #
+      #   { 'xmlns:foo' =&gt; 'bar', 'xmlns:hello' =&gt; 'world' }
+      #
+      # WARNING: this method will clobber duplicate names in the keys.
+      # For example, given this document:
+      #
+      #   &lt;root xmlns:foo=&quot;bar&quot;&gt;
+      #     &lt;bar xmlns:foo=&quot;baz&quot; /&gt;
+      #   &lt;/root&gt;
+      #
+      # The hash returned will look like this: { 'xmlns:foo' =&gt; 'bar' }
+      def collect_namespaces
+        ns = {}
+        traverse { |j| ns.merge!(j.namespaces) }
+        ns
+      end
+
       # Get the list of decorators given +key+
       def decorators key
         @decorators ||= Hash.new
@@ -129,13 +157,16 @@
 
       undef_method :swap, :parent, :namespace, :default_namespace=
       undef_method :add_namespace_definition, :attributes
-      undef_method :namespace_definitions, :line
+      undef_method :namespace_definitions, :line, :add_namespace
 
       def add_child child
-        if [Node::ELEMENT_NODE, Node::DOCUMENT_FRAG_NODE].include? child.type
-          raise &quot;Document already has a root node&quot; if root
+        raise &quot;Document already has a root node&quot; if root
+        if child.type == Node::DOCUMENT_FRAG_NODE
+          raise &quot;Document cannot have multiple root nodes&quot; if child.children.size &gt; 1
+          super(child.children.first)
+        else
+          super
         end
-        super
       end
       alias :&lt;&lt; :add_child
 

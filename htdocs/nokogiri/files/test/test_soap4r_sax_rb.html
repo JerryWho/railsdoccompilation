@@ -1,0 +1,71 @@
+  <div id="fileHeader">
+    <h1>test_soap4r_sax.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/test_soap4r_sax.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require &quot;helper&quot;
+
+module XSD
+  module XMLParser
+    class Parser
+      @factory_added = nil
+
+      class &lt;&lt; self; attr_reader :factory_added; end
+
+      def self.add_factory o
+        @factory_added = o
+      end
+
+      def initialize *args
+        @charset = nil
+      end
+
+      def characters foo
+      end
+
+      def start_element *args
+      end
+
+      def end_element *args
+      end
+    end
+  end
+end
+
+require 'xsd/xmlparser/nokogiri'
+
+class TestSoap4rSax &lt; Nokogiri::TestCase
+  def test_factory_added
+    assert_equal XSD::XMLParser::Nokogiri, XSD::XMLParser::Nokogiri.factory_added
+  end
+
+  def test_parse
+    o = Class.new(::XSD::XMLParser::Nokogiri) do
+      attr_accessor :element_started
+      def initialize *args
+        super
+        @element_started = false
+      end
+
+      def start_element *args
+        @element_started = true
+      end
+    end.new 'foo'
+    o.do_parse '&lt;?xml version=&quot;1.0&quot; ?&gt;&lt;root xmlns=&quot;http://example.com/&quot;/&gt;'
+    assert o.element_started, 'element started'
+  end
+end
+</pre>
+    </div>

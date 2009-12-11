@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -20,6 +20,16 @@
 class TestMemoryLeak &lt; Nokogiri::TestCase
 
   if ENV['NOKOGIRI_GC'] # turning these off by default for now
+
+    def test_dont_hurt_em_why
+      content = File.open(&quot;#{File.dirname(__FILE__)}/files/dont_hurt_em_why.xml&quot;).read
+      ndoc = Nokogiri::XML(content)
+      2.times do
+        info = ndoc.search('status text').first.inner_text
+        url = ndoc.search('user name').first.inner_text
+        GC.start
+      end
+    end
 
     def test_for_memory_leak
       begin

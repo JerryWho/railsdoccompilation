@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:21:01 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -164,6 +164,12 @@
       alias :% :at
 
       ###
+      # Filter this list for nodes that match +expr+
+      def filter expr
+        find_all { |node| node.matches?(expr) }
+      end
+
+      ###
       # Append the class attribute +name+ to all Node objects in the NodeSet.
       def add_class name
         each do |el|
@@ -234,8 +240,8 @@
 
       ###
       # Get the inner html of all contained Node objects
-      def inner_html
-        collect{|j| j.inner_html}.join('')
+      def inner_html *args
+        collect{|j| j.inner_html(*args) }.join('')
       end
 
       ###
@@ -310,6 +316,17 @@
       # the NodeSet
       def children
         inject(NodeSet.new(document)) { |set, node| set += node.children }
+      end
+
+      ###
+      # Returns a new NodeSet containing all the nodes in the NodeSet
+      # in reverse order
+      def reverse
+        node_set = NodeSet.new(document)
+        (length - 1).downto(0) do |x|
+          node_set.push self[x]
+        end
+        node_set
       end
 
       ###

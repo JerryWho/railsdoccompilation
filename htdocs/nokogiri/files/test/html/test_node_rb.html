@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -32,6 +32,11 @@ module Nokogiri
           &lt;/body&gt;
         &lt;/html&gt;
         eohtml
+      end
+
+      def test_attr
+        node = @html.at('div.baz')
+        assert_equal node['class'], node.attr('class')
       end
 
       def test_get_attribute
@@ -93,6 +98,14 @@ module Nokogiri
         assert list = node.ancestors('.baz')
         assert_equal 1, list.length
         assert_equal 'div', list.first.name
+      end
+
+      def test_matches_inside_fragment
+        fragment = DocumentFragment.new @html
+        fragment &lt;&lt; XML::Node.new('a', @html)
+
+        a = fragment.children.last
+        assert a.matches?('a'), 'a should match'
       end
 
       def test_css_matches?
@@ -222,6 +235,7 @@ module Nokogiri
       end
 
       def test_to_html_does_not_contain_entities
+        return unless defined?(NKF) # NKF is not implemented on Rubinius as of 2009-11-23
         html = NKF.nkf(&quot;-e --msdos&quot;, &lt;&lt;-EOH)
         &lt;html&gt;&lt;body&gt;
         &lt;p&gt; test paragraph

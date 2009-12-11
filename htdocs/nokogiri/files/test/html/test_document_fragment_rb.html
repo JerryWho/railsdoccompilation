@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:21:01 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -26,6 +26,19 @@ module Nokogiri
         @html = Nokogiri::HTML.parse(File.read(HTML_FILE), HTML_FILE)
       end
 
+      def test_ancestors_search
+        html = %q{
+          &lt;div&gt;
+            &lt;ul&gt;
+              &lt;li&gt;foo&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/div&gt;
+        }
+        fragment = Nokogiri::HTML.fragment html
+        li = fragment.at('li')
+        assert li.matches?('li')
+      end
+
       def test_fun_encoding
         string = %Q(&lt;body&gt;こんにちは&lt;/body&gt;)
         html = Nokogiri::HTML::DocumentFragment.parse(
@@ -41,6 +54,16 @@ module Nokogiri
       def test_fragment_should_have_document
         fragment = Nokogiri::HTML::DocumentFragment.new(@html)
         assert_equal @html, fragment.document
+      end
+
+      def test_empty_fragment_should_be_searchable_by_css
+        fragment = Nokogiri::HTML.fragment(&quot;&quot;)
+        assert_equal 0, fragment.css(&quot;a&quot;).size
+      end
+
+      def test_empty_fragment_should_be_searchable
+        fragment = Nokogiri::HTML.fragment(&quot;&quot;)
+        assert_equal 0, fragment.search(&quot;//a&quot;).size
       end
 
       def test_name
@@ -102,6 +125,22 @@ module Nokogiri
         assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
       end
 
+      def test_html_fragment_with_leading_text_and_newline
+        fragment = HTML::Document.new.fragment(&quot;First line\nSecond line&lt;br&gt;Broken line&quot;)
+        assert_equal fragment.to_s, &quot;First line\nSecond line&lt;br&gt;Broken line&quot;
+      end
+
+      def test_html_fragment_with_leading_whitespace_and_text_and_newline
+        fragment = HTML::Document.new.fragment(&quot;  First line\nSecond line&lt;br&gt;Broken line&quot;)
+        assert_equal &quot;First line\nSecond line&lt;br&gt;Broken line&quot;, fragment.to_s
+      end
+
+      def test_html_fragment_with_leading_entity
+        failed = &quot;&amp;quot;test&lt;br/&gt;test&amp;quot;&quot;
+        fragment = Nokogiri::HTML::DocumentFragment.parse(failed)
+        assert_equal '&quot;test&lt;br&gt;test&quot;', fragment.to_html
+      end
+
       def test_to_s
         doc = &quot;&lt;span&gt;foo&lt;br&gt;&lt;/span&gt;&lt;span&gt;bar&lt;/span&gt;&quot;
         fragment = Nokogiri::HTML::Document.new.fragment(doc)
@@ -143,7 +182,6 @@ module Nokogiri
         assert_equal(&quot;&lt;p&gt;hello&lt;!-- your ad here --&gt;&lt;/p&gt;&quot;,
           fragment.to_s)
       end
-
     end
   end
 end

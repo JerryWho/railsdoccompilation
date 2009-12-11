@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -24,7 +24,7 @@ module Nokogiri
 
       def initialize(message)
         self.cstruct = LibXML::XmlSyntaxError.new(LibXML::XmlSyntaxError.allocate())
-        self.cstruct[:message] = FFI::MemoryPointer.from_string(message)
+        self.cstruct[:message] = LibXML.xmlStrdup(message)
       end
 
       def domain
@@ -48,7 +48,14 @@ module Nokogiri
         unless cstruct[:message].null?
           LibXML.xmlFree(cstruct[:message])
         end
-        cstruct[:message] = string
+        cstruct[:message] = LibXML.xmlStrdup(string)
+        string
+      end
+
+      def initialize_copy(other)
+        raise ArgumentError, &quot;node must be a Nokogiri::XML::SyntaxError&quot; unless other.is_a?(Nokogiri::XML::SyntaxError)
+        LibXML.xmlCopyError(other.cstruct, cstruct)
+        self
       end
 
       def level

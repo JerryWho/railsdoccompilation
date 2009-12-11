@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -16,215 +16,6 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>#include &lt;xml_syntax_error.h&gt;
-
-static void dealloc(xmlErrorPtr ptr)
-{
-  NOKOGIRI_DEBUG_START(ptr);
-  xmlResetError(ptr);
-  xmlFree(ptr);
-  NOKOGIRI_DEBUG_END(ptr);
-}
-
-static VALUE allocate(VALUE klass)
-{
-  xmlErrorPtr error = xmlMalloc(sizeof(xmlError));
-  memset(error, 0, sizeof(xmlError));
-  return Data_Wrap_Struct(klass, NULL, dealloc, error);
-}
-
-/*
- * call-seq:
- *  column
- *
- * Column number or 0 if not available
- */
-static VALUE column(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM(error-&gt;int2);
-}
-
-/*
- * call-seq:
- *  int1
- *
- * Extra number information
- */
-static VALUE int1(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM(error-&gt;int1);
-}
-
-/*
- * call-seq:
- *  str3
- *
- * Extra string information
- */
-static VALUE str3(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  if(error-&gt;str3) return NOKOGIRI_STR_NEW2(error-&gt;str3);
-  return Qnil;
-}
-
-/*
- * call-seq:
- *  str2
- *
- * Extra string information
- */
-static VALUE str2(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  if(error-&gt;str2) return NOKOGIRI_STR_NEW2(error-&gt;str2);
-  return Qnil;
-}
-
-/*
- * call-seq:
- *  str1
- *
- * Extra string information
- */
-static VALUE str1(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  if(error-&gt;str1) return NOKOGIRI_STR_NEW2(error-&gt;str1);
-  return Qnil;
-}
-
-/*
- * call-seq:
- *  line
- *
- * Get the line number of the error
- */
-static VALUE line(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM(error-&gt;line);
-}
-
-/*
- * call-seq:
- *  file
- *
- * Get the filename for the error
- */
-static VALUE file(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  if(error-&gt;file) return NOKOGIRI_STR_NEW2(error-&gt;file);
-
-  return Qnil;
-}
-
-/*
- * call-seq:
- *  level
- *
- * Get the error level
- */
-static VALUE level(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM((short)error-&gt;level);
-}
-
-/*
- * call-seq:
- *  code
- *
- * Get the error code
- */
-static VALUE code(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM(error-&gt;code);
-}
-
-/*
- * call-seq:
- *  domain
- *
- * Get the part of the library that raised this exception
- */
-static VALUE domain(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  return INT2NUM(error-&gt;domain);
-}
-
-/*
- * call-seq:
- *  message
- *
- * Get the human readable message.
- */
-static VALUE message(VALUE self)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-  if(error-&gt;message) return NOKOGIRI_STR_NEW2(error-&gt;message);
-  return Qnil;
-}
-
-/*
- * call-seq:
- *  message=
- *
- * Set the human readable message.
- */
-static VALUE set_message(VALUE self, VALUE _message)
-{
-  xmlErrorPtr error;
-  Data_Get_Struct(self, xmlError, error);
-
-  if(error-&gt;message) {
-    xmlFree(error-&gt;message);
-    error-&gt;message = 0;
-  }
-
-  if(RTEST(_message)) {
-    error-&gt;message = xmlMalloc(RSTRING_LEN(_message) + 1);
-    memset(error-&gt;message, 0, RSTRING_LEN(_message) + 1);
-    memcpy(error-&gt;message, StringValuePtr(_message), RSTRING_LEN(_message));
-  }
-
-  return message;
-}
-
-/*
- * call-seq:
- *  initialize_copy(old_copy)
- *
- * Initialize a copy of the +old_copy+
- */
-static VALUE initialize_copy(VALUE self, VALUE _old_copy)
-{
-  if(!rb_obj_is_kind_of(_old_copy, cNokogiriXmlSyntaxError))
-    rb_raise(rb_eArgError, &quot;node must be a Nokogiri::XML::SyntaxError&quot;);
-
-  xmlErrorPtr error, old_error;
-  Data_Get_Struct(self, xmlError, error);
-  Data_Get_Struct(_old_copy, xmlError, old_error);
-
-  xmlCopyError(old_error, error);
-
-  return message;
-}
 
 void Nokogiri_error_array_pusher(void * ctx, xmlErrorPtr error)
 {
@@ -241,10 +32,25 @@ VALUE Nokogiri_wrap_xml_syntax_error(VALUE klass, xmlErrorPtr error)
 {
   if(!klass) klass = cNokogiriXmlSyntaxError;
 
-  xmlErrorPtr ptr = calloc(1, sizeof(xmlError));
-  xmlCopyError(error, ptr);
+  VALUE msg = error-&gt;message ? NOKOGIRI_STR_NEW2(error-&gt;message) : Qnil;
 
-  return Data_Wrap_Struct(klass, NULL, dealloc, ptr);
+  VALUE e = rb_class_new_instance(
+      1,
+      &amp;msg,
+      klass
+  );
+  rb_iv_set(e, &quot;@domain&quot;, INT2NUM(error-&gt;domain));
+  rb_iv_set(e, &quot;@code&quot;, INT2NUM(error-&gt;code));
+  rb_iv_set(e, &quot;@level&quot;, INT2NUM((short)error-&gt;level));
+  rb_iv_set(e, &quot;@file&quot;, RBSTR_OR_QNIL(error-&gt;file));
+  rb_iv_set(e, &quot;@line&quot;, INT2NUM(error-&gt;line));
+  rb_iv_set(e, &quot;@str1&quot;, RBSTR_OR_QNIL(error-&gt;str1));
+  rb_iv_set(e, &quot;@str2&quot;, RBSTR_OR_QNIL(error-&gt;str2));
+  rb_iv_set(e, &quot;@str3&quot;, RBSTR_OR_QNIL(error-&gt;str3));
+  rb_iv_set(e, &quot;@int1&quot;, INT2NUM(error-&gt;int1));
+  rb_iv_set(e, &quot;@column&quot;, INT2NUM(error-&gt;int2));
+
+  return e;
 }
 
 VALUE cNokogiriXmlSyntaxError;
@@ -260,21 +66,6 @@ void init_xml_syntax_error()
   VALUE klass = rb_define_class_under(xml, &quot;SyntaxError&quot;, syntax_error_mommy);
   cNokogiriXmlSyntaxError = klass;
 
-  rb_define_alloc_func(klass, allocate);
-
-  rb_define_method(klass, &quot;message&quot;, message, 0);
-  rb_define_method(klass, &quot;message=&quot;, set_message, 1);
-  rb_define_method(klass, &quot;initialize_copy&quot;, initialize_copy, 1);
-  rb_define_method(klass, &quot;domain&quot;, domain, 0);
-  rb_define_method(klass, &quot;code&quot;, code, 0);
-  rb_define_method(klass, &quot;level&quot;, level, 0);
-  rb_define_method(klass, &quot;file&quot;, file, 0);
-  rb_define_method(klass, &quot;line&quot;, line, 0);
-  rb_define_method(klass, &quot;str1&quot;, str1, 0);
-  rb_define_method(klass, &quot;str2&quot;, str2, 0);
-  rb_define_method(klass, &quot;str3&quot;, str3, 0);
-  rb_define_method(klass, &quot;int1&quot;, int1, 0);
-  rb_define_method(klass, &quot;column&quot;, column, 0);
 }
 </pre>
     </div>

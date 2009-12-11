@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:54:09 +0100 2009</td>
+      <td>Fri Dec 11 22:20:49 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -25,6 +25,18 @@ module Nokogiri
       def setup
         super
         @xml = Nokogiri::XML.parse(File.read(XML_FILE), XML_FILE)
+      end
+
+      def test_collect_namespaces
+        doc = Nokogiri::XML(&lt;&lt;-eoxml)
+        &lt;xml&gt;
+          &lt;foo xmlns='hello'&gt;
+            &lt;bar xmlns:foo='world' /&gt;
+          &lt;/foo&gt;
+        &lt;/xml&gt;
+        eoxml
+        assert_equal({&quot;xmlns&quot;=&gt;&quot;hello&quot;, &quot;xmlns:foo&quot;=&gt;&quot;world&quot;},
+          doc.collect_namespaces)
       end
 
       def test_subclass_initialize_modify # testing a segv
@@ -113,6 +125,12 @@ module Nokogiri
         assert_equal '1.0', @xml.version
       end
 
+      def test_add_namespace
+        assert_raise NoMethodError do
+          @xml.add_namespace('foo', 'bar')
+        end
+      end
+
       def test_attributes
         assert_raise NoMethodError do
           @xml.attributes
@@ -147,12 +165,20 @@ module Nokogiri
         assert_equal 0, fragment.children.length
       end
 
-      def test_add_child_with_fragment
+      def test_add_child_fragment_with_single_node
         doc = Nokogiri::XML::Document.new
         fragment = doc.fragment('&lt;hello /&gt;')
         doc.add_child fragment
         assert_equal '/hello', doc.at('//hello').path
         assert_equal 'hello', doc.root.name
+      end
+
+      def test_add_child_fragment_with_multiple_nodes
+        doc = Nokogiri::XML::Document.new
+        fragment = doc.fragment('&lt;hello /&gt;&lt;goodbye /&gt;')
+        assert_raises(RuntimeError) do
+          doc.add_child fragment
+        end
       end
 
       def test_add_child_with_multiple_roots
