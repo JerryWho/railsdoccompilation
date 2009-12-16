@@ -1,0 +1,88 @@
+  <div id="fileHeader">
+    <h1>stub_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/factory_girl/proxy/stub_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'spec_helper'))
+
+describe Factory::Proxy::Stub do
+  before do
+    @class = &quot;class&quot;
+    @instance = &quot;instance&quot;
+    stub(@class).new { @instance }
+    stub(@instance, :id=)
+    stub(@instance).id { 42 }
+    stub(@instance).reload { @instance.connection.reload }
+
+    @stub = Factory::Proxy::Stub.new(@class)
+  end
+
+  it &quot;should not be a new record&quot; do
+    @stub.result.should_not be_new_record
+  end
+
+  it &quot;should not be able to connect to the database&quot; do
+    lambda { @stub.result.reload }.should raise_error(RuntimeError)
+  end
+
+  describe &quot;when a user factory exists&quot; do
+    before do
+      @user = &quot;user&quot;
+      stub(Factory).stub(:user, {}) { @user }
+    end
+
+    describe &quot;when asked to associate with another factory&quot; do
+      before do
+        stub(@instance).owner { @user }
+        mock(Factory).stub(:user, {}) { @user }
+        mock(@stub).set(:owner, @user)
+
+        @stub.associate(:owner, :user, {})
+      end
+
+      it &quot;should set a value for the association&quot; do
+        @stub.result.owner.should == @user
+      end
+    end
+
+    it &quot;should return the association when building one&quot; do
+      mock(Factory).create.never
+      @stub.association(:user).should == @user
+    end
+
+    it &quot;should return the actual instance when asked for the result&quot; do
+      @stub.result.should == @instance
+    end
+  end
+
+  describe &quot;with an existing attribute&quot; do
+    before do
+      @value = &quot;value&quot;
+      mock(@instance).send(:attribute) { @value }
+      mock(@instance).send(:attribute=, @value)
+      @stub.set(:attribute, @value)
+    end
+
+    it &quot;should to the resulting object&quot; do
+      @stub.attribute.should == 'value'
+    end
+
+    it &quot;should return that value when asked for that attribute&quot; do
+      @stub.get(:attribute).should == @value
+    end
+  end
+end
+</pre>
+    </div>

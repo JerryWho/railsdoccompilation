@@ -1,0 +1,68 @@
+  <div id="fileHeader">
+    <h1>stub.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/factory_girl/proxy/stub.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>class Factory 
+  class Proxy
+    class Stub &lt; Proxy #:nodoc:
+      @@next_id = 1000
+
+      def initialize(klass)
+        @stub = klass.new
+        @stub.id = next_id
+        @stub.instance_eval do
+          def new_record?
+            id.nil?
+          end
+
+          def connection
+            raise &quot;stubbed models are not allowed to access the database&quot;
+          end
+
+          def reload
+            raise &quot;stubbed models are not allowed to access the database&quot;
+          end
+        end
+      end
+
+      def next_id
+        @@next_id += 1
+      end
+
+      def get(attribute)
+        @stub.send(attribute)
+      end
+
+      def set(attribute, value)
+        @stub.send(:&quot;#{attribute}=&quot;, value)
+      end
+
+      def associate(name, factory, attributes)
+        set(name, Factory.stub(factory, attributes))
+      end
+
+      def association(factory, overrides = {})
+        Factory.stub(factory, overrides)
+      end
+
+      def result
+        @stub
+      end
+    end
+  end
+end
+</pre>
+    </div>

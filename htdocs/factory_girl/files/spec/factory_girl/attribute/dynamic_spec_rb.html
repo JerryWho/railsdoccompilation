@@ -1,0 +1,68 @@
+  <div id="fileHeader">
+    <h1>dynamic_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/factory_girl/attribute/dynamic_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Fri Nov 27 19:50:25 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'spec_helper'))
+
+describe Factory::Attribute::Dynamic do
+  before do
+    @name  = :first_name
+    @block = lambda { 'value' }
+    @attr  = Factory::Attribute::Dynamic.new(@name, @block)
+  end
+
+  it &quot;should have a name&quot; do
+    @attr.name.should == @name
+  end
+
+  it &quot;should call the block to set a value&quot; do
+    @proxy = &quot;proxy&quot;
+    stub(@proxy).set
+    @attr.add_to(@proxy)
+    @proxy.should have_received.set(@name, 'value')
+  end
+
+  it &quot;should yield the proxy to the block when adding its value to a proxy&quot; do
+    @block = lambda {|a| a }
+    @attr  = Factory::Attribute::Dynamic.new(:user, @block)
+    @proxy = &quot;proxy&quot;
+    stub(@proxy).set
+    @attr.add_to(@proxy)
+    @proxy.should have_received.set(:user, @proxy)
+  end
+
+  it &quot;should raise an error when defining an attribute writer&quot; do
+    lambda {
+      Factory::Attribute::Dynamic.new('test=', nil)
+    }.should raise_error(Factory::AttributeDefinitionError)
+  end
+
+  it &quot;should raise an error when returning a sequence&quot; do
+    stub(Factory).sequence { Factory::Sequence.new }
+    block = lambda { Factory.sequence(:email) }
+    attr = Factory::Attribute::Dynamic.new(:email, block)
+    proxy = stub!.set.subject
+    lambda {
+      attr.add_to(proxy)
+    }.should raise_error(Factory::SequenceAbuseError)
+  end
+
+  it &quot;should convert names to symbols&quot; do
+    Factory::Attribute::Dynamic.new('name', nil).name.should == :name
+  end
+end
+</pre>
+    </div>

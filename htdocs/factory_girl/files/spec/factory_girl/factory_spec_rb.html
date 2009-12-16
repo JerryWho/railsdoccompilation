@@ -1,0 +1,509 @@
+  <div id="fileHeader">
+    <h1>factory_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/factory_girl/factory_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
+
+describe Factory do
+  describe &quot;defining a factory&quot; do
+    before do
+      @name    = :user
+      @factory = &quot;factory&quot;
+      stub(@factory).factory_name { @name }
+      @options = { :class =&gt; 'magic' }
+      stub(Factory).new { @factory }
+    end
+
+    it &quot;should create a new factory using the specified name and options&quot; do
+      mock(Factory).new(@name, @options) { @factory }
+      Factory.define(@name, @options) {|f| }
+    end
+
+    it &quot;should pass the factory do the block&quot; do
+      yielded = nil
+      Factory.define(@name) do |y|
+        yielded = y
+      end
+      yielded.should == @factory
+    end
+
+    it &quot;should add the factory to the list of factories&quot; do
+      Factory.define(@name) {|f| }
+      @factory.should == Factory.factories[@name]
+    end
+  end
+
+  describe &quot;a factory&quot; do
+    before do
+      @name    = :user
+      @class   = User
+      @factory = Factory.new(@name)
+    end
+
+    it &quot;should have a factory name&quot; do
+      @factory.factory_name.should == @name
+    end
+
+    it &quot;should have a build class&quot; do
+      @factory.build_class.should == @class
+    end
+
+    it &quot;should have a default strategy&quot; do
+      @factory.default_strategy.should == :create
+    end
+
+    it &quot;should not allow the same attribute to be added twice&quot; do
+      lambda {
+        2.times { @factory.add_attribute :first_name }
+      }.should raise_error(Factory::AttributeDefinitionError)
+    end
+
+    it &quot;should add a static attribute when an attribute is defined with a value&quot; do
+      attribute = 'attribute'
+      stub(attribute).name { :name }
+      mock(Factory::Attribute::Static).new(:name, 'value') { attribute }
+      @factory.add_attribute(:name, 'value')
+    end
+
+    it &quot;should add a dynamic attribute when an attribute is defined with a block&quot; do
+      attribute = 'attribute'
+      stub(attribute).name { :name }
+      block     = lambda {}
+      mock(Factory::Attribute::Dynamic).new(:name, block) { attribute }
+      @factory.add_attribute(:name, &amp;block)
+    end
+
+    it &quot;should raise for an attribute with a value and a block&quot; do
+      lambda {
+        @factory.add_attribute(:name, 'value') {}
+      }.should raise_error(Factory::AttributeDefinitionError)
+    end
+
+    describe &quot;adding an attribute using a in-line sequence&quot; do
+      it &quot;should create the sequence&quot; do
+        mock(Factory::Sequence).new
+        @factory.sequence(:name) {}
+      end
+
+      it &quot;should add a dynamic attribute&quot; do
+        attribute = 'attribute'
+        stub(attribute).name { :name }
+        mock(Factory::Attribute::Dynamic).new(:name, is_a(Proc)) { attribute }
+        @factory.sequence(:name) {}
+        @factory.attributes.should include(attribute)
+      end
+    end
+
+    describe &quot;after adding an attribute&quot; do
+      before do
+        @attribute = &quot;attribute&quot;
+        @proxy     = &quot;proxy&quot;
+
+        stub(@attribute).name { :name }
+        stub(@attribute).add_to
+        stub(@proxy).set
+        stub(@proxy).result { 'result' }
+        stub(Factory::Attribute::Static).new { @attribute }
+        stub(Factory::Proxy::Build).new { @proxy }
+
+        @factory.add_attribute(:name, 'value')
+      end
+
+      it &quot;should create the right proxy using the build class when running&quot; do
+        mock(Factory::Proxy::Build).new(@factory.build_class) { @proxy }
+        @factory.run(Factory::Proxy::Build, {})
+      end
+
+      it &quot;should add the attribute to the proxy when running&quot; do
+        mock(@attribute).add_to(@proxy)
+        @factory.run(Factory::Proxy::Build, {})
+      end
+
+      it &quot;should return the result from the proxy when running&quot; do
+        mock(@proxy).result() { 'result' }
+        @factory.run(Factory::Proxy::Build, {}).should == 'result'
+      end
+    end
+
+    it &quot;should add an association without a factory name or overrides&quot; do
+      factory = Factory.new(:post)
+      name    = :user
+      attr    = 'attribute'
+      mock(Factory::Attribute::Association).new(name, name, {}) { attr }
+      factory.association(name)
+      factory.attributes.should include(attr)
+    end
+
+    it &quot;should add an association with overrides&quot; do
+      factory   = Factory.new(:post)
+      name      = :user
+      attr      = 'attribute'
+      overrides = { :first_name =&gt; 'Ben' }
+      mock(Factory::Attribute::Association).new(name, name, overrides) { attr }
+      factory.association(name, overrides)
+      factory.attributes.should include(attr)
+    end
+
+    it &quot;should add an association with a factory name&quot; do
+      factory = Factory.new(:post)
+      attr = 'attribute'
+      mock(Factory::Attribute::Association).new(:author, :user, {}) { attr }
+      factory.association(:author, :factory =&gt; :user)
+      factory.attributes.should include(attr)
+    end
+
+    it &quot;should add an association with a factory name and overrides&quot; do
+      factory = Factory.new(:post)
+      attr = 'attribute'
+      mock(Factory::Attribute::Association).new(:author, :user, :first_name =&gt; 'Ben') { attr }
+      factory.association(:author, :factory =&gt; :user, :first_name =&gt; 'Ben')
+      factory.attributes.should include(attr)
+    end
+
+    it &quot;should raise for a self referencing association&quot; do
+      factory = Factory.new(:post)
+      lambda {
+        factory.association(:parent, :factory =&gt; :post)
+      }.should raise_error(Factory::AssociationDefinitionError)
+    end
+
+    it &quot;should add an attribute using the method name when passed an undefined method&quot; do
+      attribute = 'attribute'
+      stub(attribute).name { :name }
+      block = lambda {}
+      mock(Factory::Attribute::Static).new(:name, 'value') { attribute }
+      @factory.send(:name, 'value')
+      @factory.attributes.should include(attribute)
+    end
+
+    describe &quot;when overriding generated attributes with a hash&quot; do
+      before do
+        @attr  = :name
+        @value = 'The price is right!'
+        @hash  = { @attr =&gt; @value }
+      end
+
+      it &quot;should return the overridden value in the generated attributes&quot; do
+        @factory.add_attribute(@attr, 'The price is wrong, Bob!')
+        result = @factory.run(Factory::Proxy::AttributesFor, @hash)
+        result[@attr].should == @value
+      end
+
+      it &quot;should not call a lazy attribute block for an overridden attribute&quot; do
+        @factory.add_attribute(@attr) { flunk }
+        result = @factory.run(Factory::Proxy::AttributesFor, @hash)
+      end
+
+      it &quot;should override a symbol parameter with a string parameter&quot; do
+        @factory.add_attribute(@attr, 'The price is wrong, Bob!')
+        @hash = { @attr.to_s =&gt; @value }
+        result = @factory.run(Factory::Proxy::AttributesFor, @hash)
+        result[@attr].should == @value
+      end
+    end
+
+    describe &quot;overriding an attribute with an alias&quot; do
+      before do
+        @factory.add_attribute(:test, 'original')
+        Factory.alias(/(.*)_alias/, '\1')
+        @result = @factory.run(Factory::Proxy::AttributesFor,
+                               :test_alias =&gt; 'new')
+      end
+
+      it &quot;should use the passed in value for the alias&quot; do
+        @result[:test_alias].should == 'new'
+      end
+
+      it &quot;should discard the predefined value for the attribute&quot; do
+        @result[:test].should be_nil
+      end
+    end
+
+    it &quot;should guess the build class from the factory name&quot; do
+      @factory.build_class.should == User
+    end
+
+    describe &quot;when defined with a custom class&quot; do
+      before do
+        @class   = User
+        @factory = Factory.new(:author, :class =&gt; @class)
+      end
+
+      it &quot;should use the specified class as the build class&quot; do
+        @factory.build_class.should == @class
+      end
+    end
+
+    describe &quot;when defined with a class instead of a name&quot; do
+      before do
+        @class   = ArgumentError
+        @name    = :argument_error
+        @factory = Factory.new(@class)
+      end
+
+      it &quot;should guess the name from the class&quot; do
+        @factory.factory_name.should == @name
+      end
+
+      it &quot;should use the class as the build class&quot; do
+        @factory.build_class.should == @class
+      end
+    end
+
+    describe &quot;when defined with a custom class name&quot; do
+      before do
+        @class   = ArgumentError
+        @factory = Factory.new(:author, :class =&gt; :argument_error)
+      end
+
+      it &quot;should use the specified class as the build class&quot; do
+        @factory.build_class.should == @class
+      end
+    end
+  end
+
+  describe &quot;a factory with a name ending in s&quot; do
+    before do
+      @name    = :business
+      @class   = Business
+      @factory = Factory.new(@name)
+    end
+
+    it &quot;should have a factory name&quot; do
+      @factory.factory_name.should == @name
+    end
+
+    it &quot;should have a build class&quot; do
+      @factory.build_class.should == @class
+    end
+  end
+
+  describe &quot;a factory with a string for a name&quot; do
+    before do
+      @name    = :user
+      @factory = Factory.new(@name.to_s) {}
+    end
+
+    it &quot;should convert the string to a symbol&quot; do
+      @factory.factory_name.should == @name
+    end
+  end
+
+  describe &quot;a factory defined with a string name&quot; do
+    before do
+      Factory.factories = {}
+      @name    = :user
+      @factory = Factory.define(@name.to_s) {}
+    end
+
+    it &quot;should store the factory using a symbol&quot; do
+      Factory.factories[@name].should == @factory
+    end
+  end
+
+  describe &quot;after defining a factory&quot; do
+    before do
+      @name    = :user
+      @factory = &quot;factory&quot;
+
+      Factory.factories[@name] = @factory
+    end
+
+    after { Factory.factories.clear }
+
+    it &quot;should use Proxy::AttributesFor for Factory.attributes_for&quot; do
+      mock(@factory).run(Factory::Proxy::AttributesFor, :attr =&gt; 'value') { 'result' }
+      Factory.attributes_for(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    it &quot;should use Proxy::Build for Factory.build&quot; do
+      mock(@factory).run(Factory::Proxy::Build, :attr =&gt; 'value') { 'result' }
+      Factory.build(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    it &quot;should use Proxy::Create for Factory.create&quot; do
+      mock(@factory).run(Factory::Proxy::Create, :attr =&gt; 'value') { 'result' }
+      Factory.create(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    it &quot;should use Proxy::Stub for Factory.stub&quot; do
+      mock(@factory).run(Factory::Proxy::Stub, :attr =&gt; 'value') { 'result' }
+      Factory.stub(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    it &quot;should use default strategy option as Factory.default_strategy&quot; do
+      stub(@factory).default_strategy { :create }
+      mock(@factory).run(Factory::Proxy::Create, :attr =&gt; 'value') { 'result' }
+      Factory.default_strategy(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    it &quot;should use the default strategy for the global Factory method&quot; do
+      stub(@factory).default_strategy { :create }
+      mock(@factory).run(Factory::Proxy::Create, :attr =&gt; 'value') { 'result' }
+      Factory(@name, :attr =&gt; 'value').should == 'result'
+    end
+
+    [:build, :create, :attributes_for, :stub].each do |method|
+      it &quot;should raise an ArgumentError on #{method} with a nonexistant factory&quot; do
+        lambda { Factory.send(method, :bogus) }.should raise_error(ArgumentError)
+      end
+
+      it &quot;should recognize either 'name' or :name for Factory.#{method}&quot; do
+        stub(@factory).run
+        lambda { Factory.send(method, @name.to_s) }.should_not raise_error
+        lambda { Factory.send(method, @name.to_sym) }.should_not raise_error
+      end
+    end
+  end
+
+  describe 'defining a factory with a parent parameter' do
+    before do
+      @parent = Factory.define :object do |f|
+        f.name  'Name'
+      end
+    end
+
+    it &quot;should raise an ArgumentError when trying to use a non-existent factory as parent&quot; do
+      lambda {
+        Factory.define(:child, :parent =&gt; :nonexsitent) {}
+      }.should raise_error(ArgumentError)
+    end
+
+    it &quot;should create a new factory using the class of the parent&quot; do
+      child = Factory.define(:child, :parent =&gt; :object) {}
+      child.build_class.should == @parent.build_class
+    end
+
+    it &quot;should create a new factory while overriding the parent class&quot; do
+      class Other; end
+
+      child = Factory.define(:child, :parent =&gt; :object, :class =&gt; Other) {}
+      child.build_class.should == Other
+    end
+
+    it &quot;should create a new factory with attributes of the parent&quot; do
+      child = Factory.define(:child, :parent =&gt; :object) {}
+      child.attributes.size.should == 1
+      child.attributes.first.name.should == :name
+    end
+
+    it &quot;should allow to define additional attributes&quot; do
+      child = Factory.define(:child, :parent =&gt; :object) do |f|
+        f.email 'person@somebody.com'
+      end
+      child.attributes.size.should == 2
+    end
+
+    it &quot;should allow to override parent attributes&quot; do
+      child = Factory.define(:child, :parent =&gt; :object) do |f|
+        f.name { 'Child Name' }
+      end
+      child.attributes.size.should == 1
+      child.attributes.first.should be_kind_of(Factory::Attribute::Dynamic)
+    end
+  end
+
+  describe 'defining a factory with a default strategy parameter' do
+    it &quot;should raise an ArgumentError when trying to use a non-existent factory&quot; do
+      lambda {
+        Factory.define(:object, :default_strategy =&gt; :nonexistent) {}
+      }.should raise_error(ArgumentError)
+    end
+
+    it &quot;should create a new factory with a specified default strategy&quot; do
+      factory = Factory.define(:object, :default_strategy =&gt; :stub) {}
+      factory.default_strategy.should == :stub
+    end
+  end
+
+  def self.in_directory_with_files(*files)
+    before do
+      @pwd = Dir.pwd
+      @tmp_dir = File.join(File.dirname(__FILE__), 'tmp')
+      FileUtils.mkdir_p @tmp_dir
+      Dir.chdir(@tmp_dir)
+
+      files.each do |file|
+        FileUtils.mkdir_p File.dirname(file)
+        FileUtils.touch file
+        stub(Factory).require(file)
+      end
+    end
+
+    after do
+      Dir.chdir(@pwd)
+      FileUtils.rm_rf(@tmp_dir)
+    end
+  end
+
+  def require_definitions_from(file)
+    simple_matcher do |given, matcher|
+      has_received = have_received.require(file)
+      result = has_received.matches?(given)
+      matcher.description = &quot;require definitions from #{file}&quot;
+      matcher.failure_message = has_received.failure_message
+      result
+    end
+  end
+
+  share_examples_for &quot;finds definitions&quot; do
+    before do
+      stub(Factory).require
+      Factory.find_definitions
+    end
+    subject { Factory }
+  end
+
+  describe &quot;with factories.rb&quot; do
+    in_directory_with_files 'factories.rb'
+    it_should_behave_like &quot;finds definitions&quot;
+    it { should require_definitions_from('factories.rb') }
+  end
+
+  %w(spec test).each do |dir|
+    describe &quot;with a factories file under #{dir}&quot; do
+      in_directory_with_files File.join(dir, 'factories.rb')
+      it_should_behave_like &quot;finds definitions&quot;
+      it { should require_definitions_from(&quot;#{dir}/factories.rb&quot;) }
+    end
+
+    describe &quot;with a factories file under #{dir}/factories&quot; do
+      in_directory_with_files File.join(dir, 'factories', 'post_factory.rb')
+      it_should_behave_like &quot;finds definitions&quot;
+      it { should require_definitions_from(&quot;#{dir}/factories/post_factory.rb&quot;) }
+    end
+
+    describe &quot;with several factories files under #{dir}/factories&quot; do
+      in_directory_with_files File.join(dir, 'factories', 'post_factory.rb'),
+                              File.join(dir, 'factories', 'person_factory.rb')
+      it_should_behave_like &quot;finds definitions&quot;
+      it { should require_definitions_from(&quot;#{dir}/factories/post_factory.rb&quot;) }
+      it { should require_definitions_from(&quot;#{dir}/factories/person_factory.rb&quot;) }
+    end
+
+    describe &quot;with nested and unnested factories files under #{dir}&quot; do
+      in_directory_with_files File.join(dir, 'factories.rb'),
+                              File.join(dir, 'factories', 'post_factory.rb'),
+                              File.join(dir, 'factories', 'person_factory.rb')
+      it_should_behave_like &quot;finds definitions&quot;
+      it { should require_definitions_from(&quot;#{dir}/factories.rb&quot;) }
+      it { should require_definitions_from(&quot;#{dir}/factories/post_factory.rb&quot;) }
+      it { should require_definitions_from(&quot;#{dir}/factories/person_factory.rb&quot;) }
+    end
+  end
+end
+</pre>
+    </div>
