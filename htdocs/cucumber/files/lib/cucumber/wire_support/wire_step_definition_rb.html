@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Wed Dec 16 18:11:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -18,20 +18,25 @@
     <pre>module Cucumber
   module WireSupport
     class WireStepDefinition
-      def initialize(id, connection)
-        @id, @connection = id, connection
+      attr_reader :regexp_source, :file_colon_line
+      
+      def initialize(connection, data)
+        @connection = connection
+        @id              = data['id']
+        @regexp_source   = data['regexp'] || &quot;Unknown&quot;
+        @file_colon_line = data['source'] || &quot;Unknown&quot;
       end
       
       def invoke(args)
-        @connection.invoke(@id, args)
+        prepared_args = args.map{ |arg| prepare(arg) }
+        @connection.invoke(@id, prepared_args)
       end
 
-      def regexp_source
-        &quot;/FIXME/&quot;
-      end
-
-      def file_colon_line
-        &quot;FIXME:0&quot;
+      private
+      
+      def prepare(arg)
+        return arg unless arg.is_a?(Cucumber::Ast::Table)
+        arg.raw
       end
     end
   end

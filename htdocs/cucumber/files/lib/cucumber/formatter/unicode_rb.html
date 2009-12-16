@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Wed Dec 16 18:11:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -18,36 +18,42 @@
     <pre># Require this file if you need Unicode support.
 require 'cucumber/platform'
 require 'cucumber/formatter/ansicolor'
-
 $KCODE='u' unless Cucumber::RUBY_1_9
 
-if Cucumber::WINDOWS_MRI &amp;&amp; `chcp` =~ /(\d+)/
+if Cucumber::WINDOWS &amp;&amp; `cmd /c chcp` =~ /(\d+)/
+  require 'iconv'
   codepage = $1.to_i
-  codepages = (1251..1252)
+  Cucumber::CODEPAGE = &quot;cp#{codepage}&quot;
 
-  if codepages.include?(codepage)
-    Cucumber::CODEPAGE = &quot;cp#{codepage}&quot;
-  
-    require 'iconv'
-    module Kernel #:nodoc:
-      alias cucumber_print print
-      def print(*a)
-        begin
-          cucumber_print(*Iconv.iconv(Cucumber::CODEPAGE, &quot;UTF-8&quot;, *a))
-        rescue Iconv::IllegalSequence
-          cucumber_print(*a)
+  module Cucumber
+    module WindowsOutput #:nodoc:
+      def self.extended(o)
+        o.instance_eval do
+          alias cucumber_print print
+          def print(*a)
+            begin
+              cucumber_print(*Iconv.iconv(Cucumber::CODEPAGE, &quot;UTF-8&quot;, *a.map{|a|a.to_s}))
+            rescue Iconv::IllegalSequence
+              cucumber_print(*a)
+            end
+          end
+
+          alias cucumber_puts puts
+          def puts(*a)
+            begin
+              cucumber_puts(*Iconv.iconv(Cucumber::CODEPAGE, &quot;UTF-8&quot;, *a.map{|a|a.to_s}))
+            rescue Iconv::IllegalSequence
+              cucumber_puts(*a)
+            end
+          end
         end
       end
 
-      alias cucumber_puts puts
-      def puts(*a)
-        begin
-          cucumber_puts(*Iconv.iconv(Cucumber::CODEPAGE, &quot;UTF-8&quot;, *a))
-        rescue Iconv::IllegalSequence
-          cucumber_puts(*a)
-        end
-      end
+      Kernel.extend(self)
+      STDOUT.extend(self)
+      STDERR.extend(self)
     end
   end
-end</pre>
+end
+</pre>
     </div>

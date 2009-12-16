@@ -1,0 +1,51 @@
+  <div id="fileHeader">
+    <h1>io.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/cucumber/formatter/io.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'cucumber/formatter/color_io'
+
+module Cucumber
+  module Formatter
+    module Io
+      def ensure_io(path_or_io, name)
+        return nil if path_or_io.nil?
+        return path_or_io if ColorIO === path_or_io || path_or_io.respond_to?(:write)
+        file = File.open(path_or_io, Cucumber.file_mode('w'))
+        at_exit do
+          unless file.closed?
+            file.flush
+            file.close
+          end
+        end
+        file
+      end
+
+      def ensure_file(path, name)
+        raise &quot;You *must* specify --out FILE for the #{name} formatter&quot; unless String === path
+        raise &quot;I can't write #{name} to a directory - it has to be a file&quot; if File.directory?(path)
+        ensure_io(path, name)
+      end
+
+      def ensure_dir(path, name)
+        raise &quot;You *must* specify --out DIR for the #{name} formatter&quot; unless String === path
+        raise &quot;I can't write #{name} reports to a file - it has to be a directory&quot; if File.file?(path)
+        FileUtils.mkdir_p(path) unless File.directory?(path)
+        path
+      end
+    end
+  end
+end</pre>
+    </div>

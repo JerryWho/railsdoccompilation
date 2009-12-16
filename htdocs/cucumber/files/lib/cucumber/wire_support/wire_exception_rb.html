@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Wed Dec 16 18:11:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -19,8 +19,30 @@
   module WireSupport
     # Proxy for an exception that occured at the remote end of the wire
     class WireException &lt; StandardError
-      def initialize(args)
+      module CanSetName
+        attr_writer :exception_name
+        def to_s
+          @exception_name
+        end
+      end
+      
+      def initialize(args, host, port)
         super args['message']
+        if args['exception']
+          self.class.extend(CanSetName)
+          self.class.exception_name = &quot;#{args['exception']} from #{host}:#{port}&quot;
+        end
+        if args['backtrace']
+          @backtrace = if args['backtrace'].is_a?(String)
+              args['backtrace'].split(&quot;\n&quot;) # TODO: change cuke4nuke to pass an array instead of a big string
+            else
+              args['backtrace']
+            end
+        end
+      end
+      
+      def backtrace
+        @backtrace || super
       end
     end
   end

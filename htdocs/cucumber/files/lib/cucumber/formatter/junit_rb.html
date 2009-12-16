@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:17 +0100 2009</td>
+      <td>Wed Dec 09 15:35:22 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -16,11 +16,15 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>require 'cucumber/formatter/ordered_xml_markup'
+require 'cucumber/formatter/io'
+require 'fileutils'
 
 module Cucumber
   module Formatter
     # The formatter used for &lt;tt&gt;--format junit&lt;/tt&gt;
     class Junit
+      include Io
+      
       class UnNamedFeatureError &lt; StandardError
         def initialize(feature_file)
           super(&quot;The feature in '#{feature_file}' does not have a name. The JUnit XML format requires a name for the testsuite element.&quot;)
@@ -28,8 +32,7 @@ module Cucumber
       end
       
       def initialize(step_mother, io, options)
-        raise &quot;You *must* specify --out DIR for the junit formatter&quot; unless String === io &amp;&amp; File.directory?(io)
-        @reportdir = io
+        @reportdir = ensure_dir(io, &quot;junit&quot;)
         @options = options
       end
 
@@ -73,8 +76,9 @@ module Cucumber
         scenario_name = name.strip.delete(&quot;.\r\n&quot;)
         scenario_name = &quot;Unnamed scenario&quot; if name.blank?
         @scenario = scenario_name
-        @outline = keyword.include?('Scenario Outline')
-        @output = &quot;Scenario#{ &quot; outline&quot; if @outline}: #{@scenario}\n\n&quot;
+        description = &quot;Scenario&quot;
+        description &lt;&lt; &quot; outline&quot; if keyword.include?('Scenario Outline')
+        @output = &quot;#{description}: #{@scenario}\n\n&quot;
       end
 
       def before_steps(steps)
@@ -82,7 +86,7 @@ module Cucumber
       end
       
       def after_steps(steps)
-        return if @in_background || @outline
+        return if @in_background || @in_examples
         
         duration = Time.now - @steps_start
         if steps.failed?
@@ -94,16 +98,21 @@ module Cucumber
       
       def before_examples(*args)
         @header_row = true
+        @in_examples = true
+      end
+      
+      def after_examples(*args)
+        @in_examples = false
       end
 
       def before_table_row(table_row)
-        return unless @outline
+        return unless @in_examples
 
         @table_start = Time.now
       end
 
       def after_table_row(table_row)
-        return unless @outline
+        return unless @in_examples
         duration = Time.now - @table_start
         unless @header_row
           name_suffix = &quot; (outline example : #{table_row.name})&quot;

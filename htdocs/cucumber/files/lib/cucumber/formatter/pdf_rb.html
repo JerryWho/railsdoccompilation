@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:17 +0100 2009</td>
+      <td>Thu Nov 26 17:49:20 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -16,6 +16,7 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>require 'cucumber/formatter/console'
+require 'cucumber/formatter/io'
 require 'fileutils'
 require 'prawn'
 require &quot;prawn/layout&quot;
@@ -30,11 +31,12 @@ module Cucumber
     class Pdf
       include FileUtils
       include Console
+      include Io
       attr_writer :indent
 
-      def initialize(step_mother, io, options)
+      def initialize(step_mother, path_or_io, options)
         @step_mother = step_mother
-        raise &quot;You *must* specify --out FILE for the pdf formatter&quot; unless File === io
+        @file = ensure_file(path_or_io, &quot;pdf&quot;)
 
         if(options[:dry_run])
           @status_colors = { :passed =&gt; BLACK, :skipped =&gt; BLACK, :undefined =&gt; BLACK, :failed =&gt; BLACK}
@@ -45,12 +47,10 @@ module Cucumber
         @pdf = Prawn::Document.new
         @scrap = Prawn::Document.new
         @doc = @scrap
-        @io = io
         @options = options
         @exceptions = []
         @indent = 0
         @buffer = []
-        puts &quot;writing to #{io.path}&quot;
         load_cover_page_image
         @pdf.text &quot;\n\n\nCucumber features&quot;, :align =&gt; :center, :size =&gt; 32
         @pdf.text &quot;Generated: #{Time.now.strftime(&quot;%Y-%m-%d %H:%M&quot;)}&quot;, :size =&gt; 10, :at =&gt; [0, 24]
@@ -83,7 +83,7 @@ module Cucumber
       end
 
       def after_features(features)
-        @pdf.render_file(@io.path)
+        @pdf.render_file(@file.path)
         puts &quot;\ndone&quot;
       end
 

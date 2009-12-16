@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Wed Dec 16 18:11:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -26,7 +26,7 @@ module Cucumber
         make_request(:step_matches, :name_to_match =&gt; name_to_match) do
           def handle_step_matches(params)
             params.map do |raw_step_match|
-              step_definition = WireStepDefinition.new(raw_step_match['id'], @connection)
+              step_definition = WireStepDefinition.new(@connection, raw_step_match)
               step_args = raw_step_match['args'].map do |raw_arg|
                 StepArgument.new(raw_arg['val'], raw_arg['pos'])
               end
@@ -40,13 +40,60 @@ module Cucumber
         StepMatch.new(step_definition, @name_to_match, @name_to_report, step_args)
       end
       
+      def snippet_text(step_keyword, step_name, multiline_arg_class_name)
+        request_params = { :step_keyword =&gt; step_keyword, :step_name =&gt; step_name, :multiline_arg_class =&gt; multiline_arg_class_name }
+
+        make_request(:snippet_text, request_params) do
+          def handle_snippet_text(text)
+            text
+          end
+        end
+      end
+      
       def invoke(step_definition_id, args)
         request_params = { :id =&gt; step_definition_id, :args =&gt; args }
-        
+
         make_request(:invoke, request_params) do
           def handle_success(params)
           end
+          
+          def handle_pending(message)
+            raise Pending, message || &quot;TODO&quot;
+          end
+          
+          def handle_diff(tables)
+            table1 = Ast::Table.new(tables[0])
+            table2 = Ast::Table.new(tables[1])
+            begin
+              table1.diff!(table2)
+            rescue Cucumber::Ast::Table::Different
+              @connection.diff_failed
+            end
+            @connection.diff_ok
+          end
         
+          def handle_step_failed(params)
+            handle_fail(params)
+          end
+        end
+      end
+      
+      def diff_failed
+        make_request(:diff_failed) do
+          def handle_success(params)
+          end
+          
+          def handle_step_failed(params)
+            handle_fail(params)
+          end
+        end
+      end
+      
+      def diff_ok
+        make_request(:diff_ok) do
+          def handle_success(params)
+          end
+          
           def handle_step_failed(params)
             handle_fail(params)
           end
@@ -69,12 +116,9 @@ module Cucumber
       
       private
       
-      def handler(request_message, &amp;block)
-        RequestHandler.new(self, request_message, &amp;block)
-      end
-      
       def make_request(request_message, params = nil, &amp;block)
-        handler(request_message, &amp;block).execute(params)
+        handler = RequestHandler.new(self, request_message, &amp;block)
+        handler.execute(params)
       end
     end
   end

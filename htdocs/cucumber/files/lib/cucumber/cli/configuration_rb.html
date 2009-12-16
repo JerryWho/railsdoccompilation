@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:17 +0100 2009</td>
+      <td>Wed Dec 16 18:11:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -144,28 +144,19 @@ module Cucumber
     private
     
       def formatters(step_mother)
-        return [Formatter::Pretty.new(step_mother, nil, @options)] if @options[:autoformat]
+        # TODO: We should remove the autoformat functionality. That
+        # can be done with the gherkin CLI.
+        if @options[:autoformat]
+          require 'cucumber/formatter/pretty'
+          return [Formatter::Pretty.new(step_mother, nil, @options)]
+        end
+
         @options[:formats].map do |format_and_out|
           format = format_and_out[0]
-          out    = format_and_out[1]
-          if String === out # file name
-            unless File.directory?(out)
-              out = File.open(out, Cucumber.file_mode('w'))
-              at_exit do
-                
-                # Since Spork &quot;never&quot; actually exits, I want to flush and close earlier...
-                unless out.closed?
-                  out.flush
-                  out.close
-                end
-                
-              end
-            end
-          end
-
+          path_or_io = format_and_out[1]
           begin
             formatter_class = formatter_class(format)
-            formatter_class.new(step_mother, out, @options)
+            formatter_class.new(step_mother, path_or_io, @options)
           rescue Exception =&gt; e
             e.message &lt;&lt; &quot;\nError creating formatter: #{format}&quot;
             raise e
