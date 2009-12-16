@@ -1,0 +1,147 @@
+  <div id="fileHeader">
+    <h1>tableish_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/web/tableish_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Wed Dec 16 18:19:07 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.expand_path(File.dirname(__FILE__) + &quot;/../../spec_helper&quot;)
+
+def World(*a); end
+require 'cucumber/web/tableish'
+
+module Cucumber
+  module Web
+    describe Tableish do
+      include Tableish
+      
+      unless RUBY_PLATFORM =~ /java/
+        it &quot;should convert a table&quot; do
+          html = &lt;&lt;-HTML
+            &lt;table id=&quot;tools&quot;&gt;
+              &lt;tr&gt;
+                &lt;th&gt;tool&lt;/th&gt;
+                &lt;th&gt;dude&lt;/th&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;webrat&lt;/td&gt;
+                &lt;td&gt;bryan&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;cucumber&lt;/td&gt;
+                &lt;td&gt;aslak&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/table&gt;
+          HTML
+
+          _tableish(html, 'table#tools tr', 'td,th').should == [
+            %w{tool dude},
+            %w{webrat bryan},
+            %w{cucumber aslak}
+          ]
+        end
+
+        it &quot;should size to the first row&quot; do
+          html = &lt;&lt;-HTML
+            &lt;table id=&quot;tools&quot;&gt;
+              &lt;tr&gt;
+                &lt;th&gt;tool&lt;/th&gt;
+                &lt;th&gt;dude&lt;/th&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;webrat&lt;/td&gt;
+                &lt;td&gt;bryan&lt;/td&gt;
+                &lt;td&gt;crapola&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;cucumber&lt;/td&gt;
+                &lt;td&gt;aslak&lt;/td&gt;
+                &lt;td&gt;gunk&lt;/td&gt;
+                &lt;td&gt;filth&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/table&gt;
+          HTML
+
+          _tableish(html, 'table#tools tr', 'td,th').should == [
+            %w{tool dude},
+            %w{webrat bryan},
+            %w{cucumber aslak}
+          ]
+        end
+
+        it &quot;should pad with empty Strings if some rows are shorter&quot; do
+          html = &lt;&lt;-HTML
+            &lt;table id=&quot;tools&quot;&gt;
+              &lt;tr&gt;
+                &lt;th&gt;tool&lt;/th&gt;
+                &lt;th&gt;dude&lt;/th&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;webrat&lt;/td&gt;
+                &lt;td&gt;bryan&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;cucumber&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/table&gt;
+          HTML
+
+          _tableish(html, 'table#tools tr', 'td,th').should == [
+            %w{tool dude},
+            %w{webrat bryan},
+            ['cucumber', '']
+          ]
+        end
+
+        it &quot;should convert a dl&quot; do
+          html = &lt;&lt;-HTML
+            &lt;dl id=&quot;tools&quot;&gt;
+              &lt;dt&gt;webrat&lt;/dt&gt;
+              &lt;dd&gt;bryan&lt;/dd&gt;
+              &lt;dt&gt;cucumber&lt;/dt&gt;
+              &lt;dd&gt;aslak&lt;/dd&gt;
+            &lt;/dl&gt;
+          HTML
+
+          _tableish(html, 'dl#tools dt', lambda{|dt| [dt, dt.next.next]}).should == [
+            %w{webrat bryan},
+            %w{cucumber aslak}
+          ]
+        end
+
+        it &quot;should convert a ul&quot; do
+          html = &lt;&lt;-HTML
+            &lt;ul id=&quot;phony&quot;&gt;
+              &lt;li&gt;nope&lt;/li&gt;
+            &lt;/ul&gt;
+
+            &lt;ul id=&quot;yes&quot;&gt;
+              &lt;li&gt;webrat&lt;/li&gt;
+              &lt;li&gt;bryan&lt;/li&gt;
+              &lt;li&gt;cucumber&lt;/li&gt;
+              &lt;li&gt;aslak&lt;/li&gt;
+            &lt;/ul&gt;
+          HTML
+
+          _tableish(html, 'ul#yes li', lambda{|li| [li]}).should == [
+            %w{webrat},
+            %w{bryan},
+            %w{cucumber},
+            %w{aslak},
+          ]
+        end
+      end
+    end
+  end
+end</pre>
+    </div>
