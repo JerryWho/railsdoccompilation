@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 07 23:46:26 +0100 2009</td>
+      <td>Thu Dec 17 19:41:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -18,6 +18,16 @@
     <pre>require 'test/unit'
 require File.dirname(__FILE__) + '/../../lib/sass'
 require 'sass/script'
+
+module UserFunctions
+  def user_defined
+    Sass::Script::String.new(&quot;I'm a user-defined string!&quot;)
+  end
+end
+
+module Sass::Script::Functions
+  include UserFunctions
+end
 
 class SassFunctionTest &lt; Test::Unit::TestCase
   def test_hsl
@@ -153,6 +163,10 @@ class SassFunctionTest &lt; Test::Unit::TestCase
     assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(\&quot;foo\&quot;, 10, 12)&quot;);
     assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(10, \&quot;foo\&quot;, 12)&quot;);
     assert_error_message(&quot;\&quot;foo\&quot; is not a number for `rgb'&quot;, &quot;rgb(10, 10, \&quot;foo\&quot;)&quot;);
+  end
+
+  def test_user_defined_function
+    assert_equal(&quot;I'm a user-defined string!&quot;, evaluate(&quot;user_defined()&quot;))
   end
 
   private

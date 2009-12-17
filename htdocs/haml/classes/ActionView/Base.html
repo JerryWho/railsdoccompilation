@@ -1,7 +1,8 @@
-  <div id="C00000057">
+  <div id="C00000094">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Base<br/>
   In:
+<a href="#" onclick="jsHref('files/lib/haml/template/plugin_rb.html');">lib/haml/template/plugin.rb</a>
 <a href="#" onclick="jsHref('files/test/haml/helper_test_rb.html');">test/haml/helper_test.rb</a>
 
 Parent:&nbsp;
@@ -19,7 +20,8 @@ Object
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000443&name=nested_tag" >nested_tag</a></li>
+  <li><a href="index.html?a=M000615&name=compile_template" >compile_template</a></li>
+  <li><a href="index.html?a=M000616&name=nested_tag" >nested_tag</a></li>
   </ul>
 
 
@@ -28,13 +30,53 @@ Object
 
 
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000443" class="method">
-  <div id="M000443_title" class="title">
+<div id="M000615" class="method">
+  <div id="M000615_title" class="title">
+    <b>compile_template</b>(handler, template, file_name, local_assigns)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000615_source')" id="l_M000615_source">show source</a> ]</p>
+  <div id="M000615_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/haml/template/plugin.rb, line 47</span>
+47:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">compile_template</span>(<span class="ruby-identifier">handler</span>, <span class="ruby-identifier">template</span>, <span class="ruby-identifier">file_name</span>, <span class="ruby-identifier">local_assigns</span>)
+48:       <span class="ruby-identifier">render_symbol</span> = <span class="ruby-identifier">assign_method_name</span>(<span class="ruby-identifier">handler</span>, <span class="ruby-identifier">template</span>, <span class="ruby-identifier">file_name</span>)
+49: 
+50:       <span class="ruby-comment cmt"># Move begin up two lines so it captures compilation exceptions.</span>
+51:       <span class="ruby-keyword kw">begin</span>
+52:         <span class="ruby-identifier">render_source</span> = <span class="ruby-identifier">create_template_source</span>(<span class="ruby-identifier">handler</span>, <span class="ruby-identifier">template</span>, <span class="ruby-identifier">render_symbol</span>, <span class="ruby-identifier">local_assigns</span>.<span class="ruby-identifier">keys</span>)
+53:         <span class="ruby-identifier">line_offset</span> = <span class="ruby-ivar">@@template_args</span>[<span class="ruby-identifier">render_symbol</span>].<span class="ruby-identifier">size</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">handler</span>.<span class="ruby-identifier">line_offset</span>
+54:       
+55:         <span class="ruby-identifier">file_name</span> = <span class="ruby-value str">'compiled-template'</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">file_name</span>.<span class="ruby-identifier">blank?</span>
+56:         <span class="ruby-constant">CompiledTemplates</span>.<span class="ruby-identifier">module_eval</span>(<span class="ruby-identifier">render_source</span>, <span class="ruby-identifier">file_name</span>, <span class="ruby-operator">-</span><span class="ruby-identifier">line_offset</span>)
+57:       <span class="ruby-keyword kw">rescue</span> <span class="ruby-constant">Exception</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">e</span> <span class="ruby-comment cmt"># errors from template code</span>
+58:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">logger</span>
+59:           <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;ERROR: compiling #{render_symbol} RAISED #{e}&quot;</span>
+60:           <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;Function body: #{render_source}&quot;</span>
+61:           <span class="ruby-identifier">logger</span>.<span class="ruby-identifier">debug</span> <span class="ruby-node">&quot;Backtrace: #{e.backtrace.join(&quot;\n&quot;)}&quot;</span>
+62:         <span class="ruby-keyword kw">end</span>
+63: 
+64:         <span class="ruby-comment cmt"># There's no way to tell Haml about the filename,</span>
+65:         <span class="ruby-comment cmt"># so we've got to insert it ourselves.</span>
+66:         <span class="ruby-identifier">e</span>.<span class="ruby-identifier">backtrace</span>[<span class="ruby-value">0</span>].<span class="ruby-identifier">gsub!</span>(<span class="ruby-value str">'(haml)'</span>, <span class="ruby-identifier">file_name</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Haml</span><span class="ruby-operator">::</span><span class="ruby-constant">Error</span>)
+67:         
+68:         <span class="ruby-identifier">raise</span> <span class="ruby-constant">ActionView</span><span class="ruby-operator">::</span><span class="ruby-constant">TemplateError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">extract_base_path_from</span>(<span class="ruby-identifier">file_name</span>) <span class="ruby-operator">||</span> <span class="ruby-identifier">view_paths</span>.<span class="ruby-identifier">first</span>, <span class="ruby-identifier">file_name</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">template</span>, <span class="ruby-ivar">@assigns</span>, <span class="ruby-identifier">template</span>, <span class="ruby-identifier">e</span>)
+69:       <span class="ruby-keyword kw">end</span>
+70:       
+71:       <span class="ruby-ivar">@@compile_time</span>[<span class="ruby-identifier">render_symbol</span>] = <span class="ruby-constant">Time</span>.<span class="ruby-identifier">now</span>
+72:       <span class="ruby-comment cmt"># logger.debug &quot;Compiled template #{file_name || template}\n ==&gt; #{render_symbol}&quot; if logger</span>
+73:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000616" class="method">
+  <div id="M000616_title" class="title">
     <b>nested_tag</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000443_source')" id="l_M000443_source">show source</a> ]</p>
-  <div id="M000443_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000616_source')" id="l_M000616_source">show source</a> ]</p>
+  <div id="M000616_source" class="dyn-source">
 <pre>
    <span class="ruby-comment cmt"># File test/haml/helper_test.rb, line 6</span>
 6:   <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">nested_tag</span>

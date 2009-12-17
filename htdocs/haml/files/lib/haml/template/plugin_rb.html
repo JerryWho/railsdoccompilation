@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Thu Dec 17 19:41:34 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -19,8 +19,11 @@
 # using the &gt; 2.0.1 template handler API.
 
 module Haml
-  class Plugin &lt; ActionView::TemplateHandler
-    include ActionView::TemplateHandlers::Compilable if defined?(ActionView::TemplateHandlers::Compilable)
+  class Plugin &lt; Haml::Util.av_template_class(:Handler)
+    if defined?(ActionView::TemplateHandlers::Compilable) ||
+        defined?(ActionView::Template::Handlers::Compilable)
+      include Haml::Util.av_template_class(:Handlers)::Compilable
+    end
 
     def compile(template)
       options = Haml::Template.options.dup
@@ -55,7 +58,8 @@ end.register_template_handler(:haml, Haml::Plugin)
 # In Rails 2.0.2, ActionView::TemplateError took arguments
 # that we can't fill in from the Haml::Plugin context.
 # Thus, we've got to monkeypatch ActionView::Base to catch the error.
-if ActionView::TemplateError.instance_method(:initialize).arity == 5
+if defined?(ActionView::TemplateError) &amp;&amp;
+    ActionView::TemplateError.instance_method(:initialize).arity == 5
   class ActionView::Base
     def compile_template(handler, template, file_name, local_assigns)
       render_symbol = assign_method_name(handler, template, file_name)

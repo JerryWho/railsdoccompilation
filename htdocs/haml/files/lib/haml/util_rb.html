@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 07 23:46:25 +0100 2009</td>
+      <td>Thu Dec 17 19:41:50 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -161,6 +161,19 @@ module Haml
       return Rails.root.to_s if defined?(Rails.root)
       return RAILS_ROOT.to_s if defined?(RAILS_ROOT)
       return nil
+    end
+
+    # Returns an ActionView::Template* class.
+    # In pre-3.0 versions of Rails, most of these classes
+    # were of the form `ActionView::TemplateFoo`,
+    # while afterwards they were of the form `ActionView;:Template::Foo`.
+    #
+    # @param name [#to_s] The name of the class to get.
+    #   For example, `:Error` will return `ActionView::TemplateError`
+    #   or `ActionView::Template::Error`.
+    def av_template_class(name)
+      return ActionView.const_get(&quot;Template#{name}&quot;) if ActionView.const_defined?(&quot;Template#{name}&quot;)
+      return ActionView::Template.const_get(name.to_s)
     end
 
     ## Rails XSS Safety
