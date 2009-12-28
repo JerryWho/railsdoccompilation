@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Mon Dec 28 12:18:34 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -21,19 +21,33 @@ require 'cucumber/wire_support/wire_language'
 module Cucumber
   module WireSupport
     describe WirePacket do
-      it &quot;should convert to JSON&quot; do
-        packet = WirePacket.new('test_message', :foo =&gt; :bar)
-        packet.to_json.should == &quot;[\&quot;test_message\&quot;,{\&quot;foo\&quot;:\&quot;bar\&quot;}]&quot;
+
+      describe &quot;#to_json&quot; do
+        it &quot;should convert params to a JSON hash&quot; do
+          packet = WirePacket.new('test_message', :foo =&gt; :bar)
+          packet.to_json.should == &quot;[\&quot;test_message\&quot;,{\&quot;foo\&quot;:\&quot;bar\&quot;}]&quot;
+        end
+        
+        it &quot;should not pass blank params&quot; do
+          packet = WirePacket.new('test_message')
+          packet.to_json.should == &quot;[\&quot;test_message\&quot;]&quot;
+        end
       end
       
       describe &quot;.parse&quot; do
-        it &quot;should understand a raw packet containing no arguments&quot; do
+        it &quot;should understand a raw packet containing null parameters&quot; do
           packet = WirePacket.parse(&quot;[\&quot;test_message\&quot;,null]&quot;)
           packet.message.should == 'test_message'
           packet.params.should be_nil
         end
+
+        it &quot;should understand a raw packet containing no parameters&quot; do
+          packet = WirePacket.parse(&quot;[\&quot;test_message\&quot;]&quot;)
+          packet.message.should == 'test_message'
+          packet.params.should be_nil
+        end
         
-        it &quot;should understand a raw packet containging arguments data&quot; do
+        it &quot;should understand a raw packet containging parameters data&quot; do
           packet = WirePacket.parse(&quot;[\&quot;test_message\&quot;,{\&quot;foo\&quot;:\&quot;bar\&quot;}]&quot;)
           packet.params['foo'].should == 'bar'
         end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Mon Dec 28 12:18:45 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -37,6 +37,22 @@ module Cucumber
         @step_number = 0
         @header_red = nil
       end
+
+      def embed(file, mime_type)
+        case(mime_type)
+        when /^image\/(png|gif|jpg|jpeg)/
+          embed_image(file)
+        end
+      end
+
+      def embed_image(file)
+        id = file.hash
+        @builder.span(:class =&gt; 'embed') do |pre|
+          pre &lt;&lt; %{&lt;a href=&quot;&quot; onclick=&quot;img=document.getElementById('#{id}'); img.style.display = (img.style.display == 'none' ? 'block' : 'none');return false&quot;&gt;Screenshot&lt;/a&gt;&lt;br&gt;&amp;nbsp;
+          &lt;img id=&quot;#{id}&quot; style=&quot;display: none&quot; src=&quot;#{file}&quot;/&gt;}
+        end
+      end
+
 
       def before_features(features)
         @step_count = get_step_count(features)

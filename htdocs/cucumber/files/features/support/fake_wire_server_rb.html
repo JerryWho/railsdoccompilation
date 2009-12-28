@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Mon Dec 28 12:18:34 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -21,11 +21,16 @@ require 'json'
 class FakeWireServer
   def initialize(port, protocol_table)
     @port, @protocol_table = port, protocol_table
+    @delays = {}
   end
 
   def run
     @server = TCPServer.open(@port)
     loop { handle_connections }
+  end
+  
+  def delay_response(message, delay)
+    @delays[message] = delay
   end
 
   private
@@ -36,7 +41,7 @@ class FakeWireServer
 
   def open_session_on(socket)
     begin
-      SocketSession.new(socket, @protocol_table).start
+      SocketSession.new(socket, @protocol_table, @delays).start
     rescue Exception =&gt; e
       raise e
     ensure
@@ -45,9 +50,10 @@ class FakeWireServer
   end
   
   class SocketSession
-    def initialize(socket, protocol)
+    def initialize(socket, protocol, delays)
       @socket = socket
       @protocol = protocol
+      @delays = delays
     end
 
     def start
@@ -60,11 +66,14 @@ class FakeWireServer
     
     def handle(data)
       if protocol_entry = response_to(data.strip)
+        sleep delay(data)
         send_response(protocol_entry['response'])
       else
         serialized_exception = { :message =&gt; &quot;Not understood: #{data}&quot;, :backtrace =&gt; [] }
         send_response(['fail', serialized_exception ].to_json)
       end
+    rescue =&gt; e
+      send_response(['fail', { :message =&gt; e.message, :backtrace =&gt; e.backtrace, :exception =&gt; e.class } ].to_json)
     end
 
     def response_to(data)
@@ -75,6 +84,11 @@ class FakeWireServer
 
     def send_response(response)
       @socket.puts response + &quot;\n&quot;
+    end
+    
+    def delay(data)
+      message = JSON.parse(data.strip)[0]
+      @delays[message.to_sym] || 0
     end
   end
 end</pre>

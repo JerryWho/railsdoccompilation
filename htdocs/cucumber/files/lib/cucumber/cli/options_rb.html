@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Mon Dec 28 12:18:45 +0100 2009</td>
     </tr>
     </table>
   </div>
@@ -133,7 +133,18 @@ module Cucumber
             &quot;loaded first.&quot;,
             &quot;This option can be specified multiple times.&quot;) do |v|
             @options[:require] &lt;&lt; v
+            if(Cucumber::JRUBY &amp;&amp; File.directory?(v))
+              $CLASSPATH &lt;&lt; v
+            end
           end
+
+          if(Cucumber::JRUBY)
+            opts.on(&quot;-j DIR&quot;, &quot;--jars DIR&quot;,
+            &quot;Load all the jars under DIR&quot;) do |jars|
+              Dir[&quot;#{jars}/**/*.jar&quot;].each {|jar| require jar}
+            end
+          end
+
           opts.on(&quot;--i18n LANG&quot;,
             &quot;List keywords for in a particular language&quot;,
             %{Run with &quot;--i18n help&quot; to see all languages}) do |lang|
