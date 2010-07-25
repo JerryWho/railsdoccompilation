@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,6 +19,13 @@
 require File.dirname(__FILE__) + '/../test_helper'
 require 'sass/engine'
 
+module Sass::Script::Functions::UserFunctions
+  def assert_options(val)
+    val.options[:foo]
+    Sass::Script::String.new(&quot;Options defined!&quot;)
+  end
+end
+
 class SassScriptTest &lt; Test::Unit::TestCase
   include Sass::Script
 
@@ -27,10 +34,27 @@ class SassScriptTest &lt; Test::Unit::TestCase
     assert_raise(Sass::SyntaxError, &quot;Color values must be between 0 and 255&quot;) {Color.new([256, 2, 3])}
   end
 
+  def test_color_checks_rgba_input
+    assert_raise(Sass::SyntaxError, &quot;Alpha channel must be between 0 and 1&quot;) {Color.new([1, 2, 3, 1.1])}
+    assert_raise(Sass::SyntaxError, &quot;Alpha channel must be between 0 and 1&quot;) {Color.new([1, 2, 3, -0.1])}
+  end
+
   def test_string_escapes
+    assert_equal &quot;'&quot;, resolve(&quot;\&quot;'\&quot;&quot;)
     assert_equal '&quot;', resolve(&quot;\&quot;\\\&quot;\&quot;&quot;)
-    assert_equal &quot;\\&quot;, resolve(&quot;\&quot;\\\\\&quot;&quot;)
+    assert_equal &quot;\\\\&quot;, resolve(&quot;\&quot;\\\\\&quot;&quot;)
     assert_equal &quot;\\02fa&quot;, resolve(&quot;\&quot;\\02fa\&quot;&quot;)
+
+    assert_equal &quot;'&quot;, resolve(&quot;'\\''&quot;)
+    assert_equal '&quot;', resolve(&quot;'\&quot;'&quot;)
+    assert_equal &quot;\\\\&quot;, resolve(&quot;'\\\\'&quot;)
+    assert_equal &quot;\\02fa&quot;, resolve(&quot;'\\02fa'&quot;)
+  end
+
+  def test_string_interpolation
+    assert_equal &quot;foo2bar&quot;, resolve('\'foo#{1 + 1}bar\'')
+    assert_equal &quot;foo2bar&quot;, resolve('&quot;foo#{1 + 1}bar&quot;')
+    assert_equal &quot;foo1bar5baz4bang&quot;, resolve('\'foo#{1 + &quot;bar#{2 + 3}baz&quot; + 4}bang\'')
   end
 
   def test_color_names
@@ -39,15 +63,114 @@ class SassScriptTest &lt; Test::Unit::TestCase
     assert_equal &quot;#fffffe&quot;, resolve(&quot;white - #000001&quot;)
   end
 
-  def test_implicit_strings
-    silence_warnings do
-      assert_equal Sass::Script::String.new(&quot;foo&quot;), eval(&quot;foo&quot;)
-      assert_equal Sass::Script::String.new(&quot;foo bar&quot;), eval(&quot;foo bar&quot;)
-      assert_equal Sass::Script::String.new(&quot;foo/bar&quot;), eval(&quot;foo/bar&quot;)
+  def test_rgba_color_literals
+    assert_equal Sass::Script::Color.new([1, 2, 3, 0.75]), eval(&quot;rgba(1, 2, 3, 0.75)&quot;)
+    assert_equal &quot;rgba(1, 2, 3, 0.75)&quot;, resolve(&quot;rgba(1, 2, 3, 0.75)&quot;)
+
+    assert_equal Sass::Script::Color.new([1, 2, 3, 0]), eval(&quot;rgba(1, 2, 3, 0)&quot;)
+    assert_equal &quot;rgba(1, 2, 3, 0)&quot;, resolve(&quot;rgba(1, 2, 3, 0)&quot;)
+
+    assert_equal Sass::Script::Color.new([1, 2, 3]), eval(&quot;rgba(1, 2, 3, 1)&quot;)
+    assert_equal Sass::Script::Color.new([1, 2, 3, 1]), eval(&quot;rgba(1, 2, 3, 1)&quot;)
+    assert_equal &quot;#010203&quot;, resolve(&quot;rgba(1, 2, 3, 1)&quot;)
+    assert_equal &quot;white&quot;, resolve(&quot;rgba(255, 255, 255, 1)&quot;)
+  end
+
+  def test_rgba_color_math
+    assert_equal &quot;rgba(50, 50, 100, 0.35)&quot;, resolve(&quot;rgba(1, 1, 2, 0.35) * rgba(50, 50, 50, 0.35)&quot;)
+    assert_equal &quot;rgba(52, 52, 52, 0.25)&quot;, resolve(&quot;rgba(2, 2, 2, 0.25) + rgba(50, 50, 50, 0.25)&quot;)
+
+    assert_raise(Sass::SyntaxError, &quot;Alpha channels must be equal: rgba(1, 2, 3, 0.15) + rgba(50, 50, 50, 0.75)&quot;) do
+      resolve(&quot;rgba(1, 2, 3, 0.15) + rgba(50, 50, 50, 0.75)&quot;)
+    end
+    assert_raise(Sass::SyntaxError, &quot;Alpha channels must be equal: #123456 * rgba(50, 50, 50, 0.75)&quot;) do
+      resolve(&quot;#123456 * rgba(50, 50, 50, 0.75)&quot;)
+    end
+    assert_raise(Sass::SyntaxError, &quot;Alpha channels must be equal: #123456 / #123456&quot;) do
+      resolve(&quot;rgba(50, 50, 50, 0.75) / #123456&quot;)
     end
   end
 
-  def test_interpolation
+  def test_rgba_number_math
+    assert_equal &quot;rgba(49, 49, 49, 0.75)&quot;, resolve(&quot;rgba(50, 50, 50, 0.75) - 1&quot;)
+    assert_equal &quot;rgba(100, 100, 100, 0.75)&quot;, resolve(&quot;rgba(50, 50, 50, 0.75) * 2&quot;)
+  end
+
+  def test_compressed_colors
+    assert_equal &quot;#123456&quot;, resolve(&quot;#123456&quot;, :style =&gt; :compressed)
+    assert_equal &quot;rgba(1, 2, 3, 0.5)&quot;, resolve(&quot;rgba(1, 2, 3, 0.5)&quot;, :style =&gt; :compressed)
+    assert_equal &quot;#123&quot;, resolve(&quot;#112233&quot;, :style =&gt; :compressed)
+    assert_equal &quot;#000&quot;, resolve(&quot;black&quot;, :style =&gt; :compressed)
+    assert_equal &quot;red&quot;, resolve(&quot;#f00&quot;, :style =&gt; :compressed)
+    assert_equal &quot;blue&quot;, resolve(&quot;#00f&quot;, :style =&gt; :compressed)
+    assert_equal &quot;navy&quot;, resolve(&quot;#000080&quot;, :style =&gt; :compressed)
+    assert_equal &quot;navy #fff&quot;, resolve(&quot;#000080 white&quot;, :style =&gt; :compressed)
+    assert_equal &quot;This color is #fff&quot;, resolve('&quot;This color is #{ white }&quot;', :style =&gt; :compressed)
+  end
+
+  def test_implicit_strings
+    assert_equal Sass::Script::String.new(&quot;foo&quot;), eval(&quot;foo&quot;)
+    assert_equal Sass::Script::String.new(&quot;foo bar&quot;), eval(&quot;foo bar&quot;)
+    assert_equal Sass::Script::String.new(&quot;foo/bar&quot;), eval(&quot;foo/bar&quot;)
+  end
+
+  def test_basic_interpolation
+    assert_equal &quot;foo3bar&quot;, resolve(&quot;foo\#{1 + 2}bar&quot;)
+    assert_equal &quot;foo3 bar&quot;, resolve(&quot;foo\#{1 + 2} bar&quot;)
+    assert_equal &quot;foo 3bar&quot;, resolve(&quot;foo \#{1 + 2}bar&quot;)
+    assert_equal &quot;foo 3 bar&quot;, resolve(&quot;foo \#{1 + 2} bar&quot;)
+    assert_equal &quot;foo 35 bar&quot;, resolve(&quot;foo \#{1 + 2}\#{2 + 3} bar&quot;)
+    assert_equal &quot;foo 3 5 bar&quot;, resolve(&quot;foo \#{1 + 2} \#{2 + 3} bar&quot;)
+    assert_equal &quot;3bar&quot;, resolve(&quot;\#{1 + 2}bar&quot;)
+    assert_equal &quot;foo3&quot;, resolve(&quot;foo\#{1 + 2}&quot;)
+    assert_equal &quot;3&quot;, resolve(&quot;\#{1 + 2}&quot;)
+  end
+
+  def test_interpolation_in_function
+    assert_equal 'flabnabbit(1foo)', resolve('flabnabbit(#{1 + &quot;foo&quot;})')
+    assert_equal 'flabnabbit(foo 1foobaz)', resolve('flabnabbit(foo #{1 + &quot;foo&quot;}baz)')
+    assert_equal('flabnabbit(foo 1foo2bar baz)',
+      resolve('flabnabbit(foo #{1 + &quot;foo&quot;}#{2 + &quot;bar&quot;} baz)'))
+  end
+
+  def test_interpolation_near_operators
+    assert_equal '3 , 7', resolve('#{1 + 2} , #{3 + 4}')
+    assert_equal '3, 7', resolve('#{1 + 2}, #{3 + 4}')
+    assert_equal '3 ,7', resolve('#{1 + 2} ,#{3 + 4}')
+    assert_equal '3,7', resolve('#{1 + 2},#{3 + 4}')
+
+    assert_equal '3 / 7', resolve('3 / #{3 + 4}')
+    assert_equal '3 /7', resolve('3 /#{3 + 4}')
+    assert_equal '3/ 7', resolve('3/ #{3 + 4}')
+    assert_equal '3/7', resolve('3/#{3 + 4}')
+
+    assert_equal '3 * 7', resolve('#{1 + 2} * 7')
+    assert_equal '3* 7', resolve('#{1 + 2}* 7')
+    assert_equal '3 *7', resolve('#{1 + 2} *7')
+    assert_equal '3*7', resolve('#{1 + 2}*7')
+
+    assert_equal '-3', resolve('-#{1 + 2}')
+    assert_equal '- 3', resolve('- #{1 + 2}')
+
+    assert_equal '5 + 3 * 7', resolve('5 + #{1 + 2} * #{3 + 4}')
+    assert_equal '5 +3 * 7', resolve('5 +#{1 + 2} * #{3 + 4}')
+    assert_equal '5+3 * 7', resolve('5+#{1 + 2} * #{3 + 4}')
+    assert_equal '3 * 7 + 5', resolve('#{1 + 2} * #{3 + 4} + 5')
+    assert_equal '3 * 7+ 5', resolve('#{1 + 2} * #{3 + 4}+ 5')
+    assert_equal '3 * 7+5', resolve('#{1 + 2} * #{3 + 4}+5')
+
+    assert_equal '5/3 + 7', resolve('5 / (#{1 + 2} + #{3 + 4})')
+    assert_equal '5/3 + 7', resolve('5 /(#{1 + 2} + #{3 + 4})')
+    assert_equal '5/3 + 7', resolve('5 /( #{1 + 2} + #{3 + 4} )')
+    assert_equal '3 + 7/5', resolve('(#{1 + 2} + #{3 + 4}) / 5')
+    assert_equal '3 + 7/5', resolve('(#{1 + 2} + #{3 + 4})/ 5')
+    assert_equal '3 + 7/5', resolve('( #{1 + 2} + #{3 + 4} )/ 5')
+
+    assert_equal '3 + 5', resolve('#{1 + 2} + 2 + 3')
+    assert_equal '3 +5', resolve('#{1 + 2} +2 + 3')
+  end
+
+  def test_string_interpolation
     assert_equal &quot;foo bar, baz bang&quot;, resolve('&quot;foo #{&quot;bar&quot;}, #{&quot;baz&quot;} bang&quot;')
     assert_equal &quot;foo bar baz bang&quot;, resolve('&quot;foo #{&quot;#{&quot;ba&quot; + &quot;r&quot;} baz&quot;} bang&quot;')
     assert_equal 'foo #{bar baz} bang', resolve('&quot;foo \#{#{&quot;ba&quot; + &quot;r&quot;} baz} bang&quot;')
@@ -63,78 +186,57 @@ foo \#{&quot;\#{&quot;ba&quot; + &quot;r&quot;} baz&quot;} bang
   a: b
 SASS
     assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
-foo \#{bar baz} bang {
+foo [bar=&quot;\#{bar baz}&quot;] bang {
   a: b; }
 CSS
-foo \\\#{\#{&quot;ba&quot; + &quot;r&quot;} baz} bang
+foo [bar=&quot;\\\#{\#{&quot;ba&quot; + &quot;r&quot;} baz}&quot;] bang
   a: b
 SASS
     assert_equal(&lt;&lt;CSS, render(&lt;&lt;SASS))
-foo \#{baz bang {
+foo [bar=&quot;\#{baz&quot;] bang {
   a: b; }
 CSS
-foo \#{&quot;\\\#{&quot; + &quot;baz&quot;} bang
+foo [bar=&quot;\#{&quot;\\\#{&quot; + &quot;baz&quot;}&quot;] bang
   a: b
 SASS
   end
 
-  def test_implicit_string_warning
-    assert_warning(&lt;&lt;WARN) {eval(&quot;foo&quot;)}
-DEPRECATION WARNING:
-On line 1, character 1 of 'test_implicit_string_warning_inline.sass'
-Implicit strings have been deprecated and will be removed in version 2.4.
-'foo' was not quoted. Please add double quotes (e.g. &quot;foo&quot;).
-WARN
-    assert_warning(&lt;&lt;WARN) {eval(&quot;1 + foo&quot;)}
-DEPRECATION WARNING:
-On line 1, character 5 of 'test_implicit_string_warning_inline.sass'
-Implicit strings have been deprecated and will be removed in version 2.4.
-'foo' was not quoted. Please add double quotes (e.g. &quot;foo&quot;).
-WARN
-    assert_warning(&lt;&lt;WARN) {render(&quot;@if 1 + foo&quot;)}
-DEPRECATION WARNING:
-On line 1, character 9 of 'test_implicit_string_warning_inline.sass'
-Implicit strings have been deprecated and will be removed in version 2.4.
-'foo' was not quoted. Please add double quotes (e.g. &quot;foo&quot;).
-WARN
-
-    # Regression
-    assert_warning(&lt;&lt;WARN) {render(&quot;@if if&quot;)}
-DEPRECATION WARNING:
-On line 1, character 5 of 'test_implicit_string_warning_inline.sass'
-Implicit strings have been deprecated and will be removed in version 2.4.
-'if' was not quoted. Please add double quotes (e.g. &quot;if&quot;).
-WARN
-  end
-
   def test_inaccessible_functions
-    assert_warning &lt;&lt;WARN do
-DEPRECATION WARNING:
-On line 2, character 6 of 'test_inaccessible_functions_inline.sass'
-Implicit strings have been deprecated and will be removed in version 2.4.
-'to_s' was not quoted. Please add double quotes (e.g. &quot;to_s&quot;).
-WARN
-      assert_equal &quot;send(to_s)&quot;, resolve(&quot;send(to_s)&quot;, :line =&gt; 2)
-    end
+    assert_equal &quot;send(to_s)&quot;, resolve(&quot;send(to_s)&quot;, :line =&gt; 2)
     assert_equal &quot;public_instance_methods()&quot;, resolve(&quot;public_instance_methods()&quot;)
   end
 
-  def test_hyphen_warning
-    a = Sass::Script::String.new(&quot;a&quot;)
-    b = Sass::Script::String.new(&quot;b&quot;)
-    assert_warning(&lt;&lt;WARN) {eval(&quot;!a-!b&quot;, {}, env(&quot;a&quot; =&gt; a, &quot;b&quot; =&gt; b))}
-DEPRECATION WARNING:
-On line 1, character 3 of 'test_hyphen_warning_inline.sass'
-- will be allowed as part of variable names in version 2.4.
-Please add whitespace to separate it from the previous token.
-WARN
+  def test_default_functions
+    assert_equal &quot;url(12)&quot;, resolve(&quot;url(12)&quot;)
+    assert_equal 'blam(&quot;foo&quot;)', resolve('blam(&quot;foo&quot;)')
+  end
 
-    assert_warning(&lt;&lt;WARN) {eval(&quot;true-false&quot;)}
-DEPRECATION WARNING:
-On line 1, character 5 of 'test_hyphen_warning_inline.sass'
-- will be allowed as part of variable names in version 2.4.
-Please add whitespace to separate it from the previous token.
-WARN
+  def test_function_results_have_options
+    assert_equal &quot;Options defined!&quot;, resolve(&quot;assert_options(abs(1))&quot;)
+    assert_equal &quot;Options defined!&quot;, resolve(&quot;assert_options(round(1.2))&quot;)
+  end
+
+  def test_funcall_requires_no_whitespace_before_lparen
+    assert_equal &quot;no-repeat 15px&quot;, resolve(&quot;no-repeat (7px + 8px)&quot;)
+    assert_equal &quot;no-repeat(15px)&quot;, resolve(&quot;no-repeat(7px + 8px)&quot;)
+  end
+
+  def test_dynamic_url
+    assert_equal &quot;url(foo-bar)&quot;, resolve(&quot;url($foo)&quot;, {}, env('foo' =&gt; Sass::Script::String.new(&quot;foo-bar&quot;)))
+    assert_equal &quot;url(foo-bar baz)&quot;, resolve(&quot;url($foo $bar)&quot;, {}, env('foo' =&gt; Sass::Script::String.new(&quot;foo-bar&quot;), 'bar' =&gt; Sass::Script::String.new(&quot;baz&quot;)))
+    assert_equal &quot;url(foo baz)&quot;, resolve(&quot;url(foo $bar)&quot;, {}, env('bar' =&gt; Sass::Script::String.new(&quot;baz&quot;)))
+    assert_equal &quot;url(foo bar)&quot;, resolve(&quot;url(foo    bar)&quot;)
+  end
+
+  def test_url_with_interpolation
+    assert_equal &quot;url(http://sass-lang.com/images/foo-bar)&quot;, resolve(&quot;url(http://sass-lang.com/images/\#{foo-bar})&quot;)
+    assert_equal 'url(&quot;http://sass-lang.com/images/foo-bar&quot;)', resolve(&quot;url('http://sass-lang.com/images/\#{foo-bar}')&quot;)
+    assert_equal 'url(&quot;http://sass-lang.com/images/foo-bar&quot;)', resolve('url(&quot;http://sass-lang.com/images/#{foo-bar}&quot;)')
+    assert_unquoted &quot;url(http://sass-lang.com/images/\#{foo-bar})&quot;
+  end
+
+  def test_hyphenated_variables
+    assert_equal(&quot;a-b&quot;, resolve(&quot;$a-b&quot;, {}, env(&quot;a-b&quot; =&gt; Sass::Script::String.new(&quot;a-b&quot;))))
   end
 
   def test_ruby_equality
@@ -172,27 +274,27 @@ WARN
     assert_equal &quot;2&quot;, resolve(&quot;1 + 1&quot;)
     assert_equal &quot;0&quot;, resolve(&quot;1 - 1&quot;)
     assert_equal &quot;8&quot;, resolve(&quot;2 * 4&quot;)
-    assert_equal &quot;0.5&quot;, resolve(&quot;2 / 4&quot;)
-    assert_equal &quot;2&quot;, resolve(&quot;4 / 2&quot;)
+    assert_equal &quot;0.5&quot;, resolve(&quot;(2 / 4)&quot;)
+    assert_equal &quot;2&quot;, resolve(&quot;(4 / 2)&quot;)
 
     assert_equal &quot;-1&quot;, resolve(&quot;-1&quot;)
   end
 
   def test_string_ops
-    assert_equal &quot;foo bar&quot;, resolve('&quot;foo&quot; &quot;bar&quot;')
+    assert_equal '&quot;foo&quot; &quot;bar&quot;', resolve('&quot;foo&quot; &quot;bar&quot;')
     assert_equal &quot;true 1&quot;, resolve('true 1')
-    assert_equal &quot;foo, bar&quot;, resolve('&quot;foo&quot; , &quot;bar&quot;')
+    assert_equal '&quot;foo&quot;, &quot;bar&quot;', resolve(&quot;'foo' , 'bar'&quot;)
     assert_equal &quot;true, 1&quot;, resolve('true , 1')
     assert_equal &quot;foobar&quot;, resolve('&quot;foo&quot; + &quot;bar&quot;')
     assert_equal &quot;true1&quot;, resolve('true + 1')
-    assert_equal &quot;foo-bar&quot;, resolve('&quot;foo&quot; - &quot;bar&quot;')
+    assert_equal '&quot;foo&quot;-&quot;bar&quot;', resolve(&quot;'foo' - 'bar'&quot;)
     assert_equal &quot;true-1&quot;, resolve('true - 1')
-    assert_equal &quot;foo/bar&quot;, resolve('&quot;foo&quot; / &quot;bar&quot;')
+    assert_equal '&quot;foo&quot;/&quot;bar&quot;', resolve('&quot;foo&quot; / &quot;bar&quot;')
     assert_equal &quot;true/1&quot;, resolve('true / 1')
 
-    assert_equal &quot;-bar&quot;, resolve('- &quot;bar&quot;')
+    assert_equal '-&quot;bar&quot;', resolve(&quot;- 'bar'&quot;)
     assert_equal &quot;-true&quot;, resolve('- true')
-    assert_equal &quot;/bar&quot;, resolve('/ &quot;bar&quot;')
+    assert_equal '/&quot;bar&quot;', resolve('/ &quot;bar&quot;')
     assert_equal &quot;/true&quot;, resolve('/ true')
   end
 
@@ -212,7 +314,7 @@ WARN
   end
 
   def test_equals
-    assert_equal(&quot;true&quot;, resolve('&quot;foo&quot; == !foo', {},
+    assert_equal(&quot;true&quot;, resolve('&quot;foo&quot; == $foo', {},
         env(&quot;foo&quot; =&gt; Sass::Script::String.new(&quot;foo&quot;))))
     assert_equal &quot;true&quot;, resolve(&quot;1 == 1.0&quot;)
     assert_equal &quot;true&quot;, resolve(&quot;false != true&quot;)
@@ -242,23 +344,107 @@ WARN
     assert_equal &quot;true&quot;, resolve(&quot;1.1cm == 11mm&quot;)
   end
 
-  # Regression tests
+  def test_operations_have_options
+    assert_equal &quot;Options defined!&quot;, resolve(&quot;assert_options(1 + 1)&quot;)
+    assert_equal &quot;Options defined!&quot;, resolve(&quot;assert_options('bar' + 'baz')&quot;)
+  end
+
+  def test_slash_compiles_literally_when_left_alone
+    assert_equal &quot;1px/2px&quot;, resolve(&quot;1px/2px&quot;)
+    assert_equal &quot;1px/2px/3px/4px&quot;, resolve(&quot;1px/2px/3px/4px&quot;)
+
+    assert_equal &quot;1px/2px redpx bluepx&quot;, resolve(&quot;1px/2px redpx bluepx&quot;)
+    assert_equal &quot;foo 1px/2px/3px bar&quot;, resolve(&quot;foo 1px/2px/3px bar&quot;)
+  end
+
+  def test_slash_divides_with_parens
+    assert_equal &quot;0.5&quot;, resolve(&quot;(1px/2px)&quot;)
+    assert_equal &quot;0.5&quot;, resolve(&quot;(1px)/2px&quot;)
+    assert_equal &quot;0.5&quot;, resolve(&quot;1px/(2px)&quot;)
+  end
+
+  def test_slash_divides_with_other_arithmetic
+    assert_equal &quot;0.5px&quot;, resolve(&quot;1px*1px/2px&quot;)
+    assert_equal &quot;0.5px&quot;, resolve(&quot;1px/2px*1px&quot;)
+    assert_equal &quot;0.5&quot;, resolve(&quot;0+1px/2px&quot;)
+    assert_equal &quot;0.5&quot;, resolve(&quot;1px/2px+0&quot;)
+  end
+
+  def test_slash_divides_with_variable
+    assert_equal &quot;0.5&quot;, resolve(&quot;$var/2px&quot;, {}, env(&quot;var&quot; =&gt; eval(&quot;1px&quot;)))
+    assert_equal &quot;0.5&quot;, resolve(&quot;1px/$var&quot;, {}, env(&quot;var&quot; =&gt; eval(&quot;2px&quot;)))
+    assert_equal &quot;0.5&quot;, resolve(&quot;$var&quot;, {}, env(&quot;var&quot; =&gt; eval(&quot;1px/2px&quot;)))
+  end
+
+  def test_colors_with_wrong_number_of_digits
+    assert_raise(Sass::SyntaxError,
+      &quot;Colors must have either three or six digits: '#0'&quot;) {eval(&quot;#0&quot;)}
+    assert_raise(Sass::SyntaxError,
+      &quot;Colors must have either three or six digits: '#12'&quot;) {eval(&quot;#12&quot;)}
+    assert_raise(Sass::SyntaxError,
+      &quot;Colors must have either three or six digits: '#abcd'&quot;) {eval(&quot;#abcd&quot;)}
+    assert_raise(Sass::SyntaxError,
+      &quot;Colors must have either three or six digits: '#abcdE'&quot;) {eval(&quot;#abcdE&quot;)}
+    assert_raise(Sass::SyntaxError,
+      &quot;Colors must have either three or six digits: '#abcdEFA'&quot;) {eval(&quot;#abcdEFA&quot;)}
+  end
+
+  # Regression Tests
+
+  def test_funcall_has_higher_precedence_than_color_name
+    assert_equal &quot;teal(12)&quot;, resolve(&quot;teal(12)&quot;)
+    assert_equal &quot;tealbang(12)&quot;, resolve(&quot;tealbang(12)&quot;)
+    assert_equal &quot;teal-bang(12)&quot;, resolve(&quot;teal-bang(12)&quot;)
+    assert_equal &quot;teal\\+bang(12)&quot;, resolve(&quot;teal\\+bang(12)&quot;)
+  end
 
   def test_interpolation_after_hash
     assert_equal &quot;#2&quot;, resolve('&quot;##{1 + 1}&quot;')
+  end
+
+  def test_misplaced_comma_in_funcall
+    assert_raise(Sass::SyntaxError,
+      'Invalid CSS after &quot;foo(bar, &quot;: expected function argument, was &quot;)&quot;') {eval('foo(bar, )')}
+  end
+
+  def test_color_prefixed_identifier
+    assert_equal &quot;tealbang&quot;, resolve(&quot;tealbang&quot;)
+    assert_equal &quot;teal-bang&quot;, resolve(&quot;teal-bang&quot;)
+  end
+
+  def test_op_prefixed_identifier
+    assert_equal &quot;notbang&quot;, resolve(&quot;notbang&quot;)
+    assert_equal &quot;not-bang&quot;, resolve(&quot;not-bang&quot;)
+    assert_equal &quot;or-bang&quot;, resolve(&quot;or-bang&quot;)
+    assert_equal &quot;and-bang&quot;, resolve(&quot;and-bang&quot;)
   end
 
   private
 
   def resolve(str, opts = {}, environment = env)
     munge_filename opts
-    eval(str, opts, environment).to_s
+    val = eval(str, opts, environment)
+    val.is_a?(Sass::Script::String) ? val.value : val.to_s
+  end
+
+  def assert_unquoted(str, opts = {}, environment = env)
+    munge_filename opts
+    val = eval(str, opts, environment)
+    assert_kind_of Sass::Script::String, val
+    assert_equal :identifier, val.type
+  end
+
+  def assert_quoted(str, opts = {}, environment = env)
+    munge_filename opts
+    val = eval(str, opts, environment)
+    assert_kind_of Sass::Script::String, val
+    assert_equal :string, val.type
   end
 
   def eval(str, opts = {}, environment = env)
     munge_filename opts
-    Sass::Script.parse(str, opts[:line] || 1,
-      opts[:offset] || 0, opts[:filename]).perform(environment)
+    Sass::Script.parse(str, opts.delete(:line) || 1,
+      opts.delete(:offset) || 0, opts).perform(environment)
   end
 
   def render(sass, options = {})

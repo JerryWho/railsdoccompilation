@@ -1,0 +1,273 @@
+  <div id="fileHeader">
+    <h1>script_conversion_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/script_conversion_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+require File.dirname(__FILE__) + '/../test_helper'
+require 'sass/engine'
+
+class SassScriptConversionTest &lt; Test::Unit::TestCase
+  def test_bool
+    assert_renders &quot;true&quot;
+    assert_renders &quot;false&quot;
+  end
+
+  def test_color
+    assert_renders &quot;#abcdef&quot;
+    assert_renders &quot;blue&quot;
+    assert_renders &quot;rgba(0, 1, 2, 0.2)&quot;
+
+    assert_equal &quot;#aabbcc&quot;, render(&quot;#abc&quot;)
+    assert_equal &quot;blue&quot;, render(&quot;#0000ff&quot;)
+  end
+
+  def test_number
+    assert_renders &quot;10&quot;
+    assert_renders &quot;10.35&quot;
+    assert_renders &quot;12px&quot;
+    assert_renders &quot;12.45px&quot;
+
+    assert_equal &quot;12.346&quot;, render(&quot;12.345678901&quot;)
+  end
+
+  def test_string
+    assert_renders '&quot;foo&quot;'
+    assert_renders '&quot;bar baz&quot;'
+    assert_equal '&quot;baz bang&quot;', render(&quot;'baz bang'&quot;)
+  end
+
+  def test_string_quotes
+    assert_equal &quot;'quote\&quot;quote'&quot;, render('&quot;quote\\&quot;quote&quot;')
+    assert_equal '&quot;quote\'quote&quot;', render(&quot;'quote\\'quote'&quot;)
+    assert_renders '&quot;quote\'quote\\&quot;quote&quot;'
+    assert_equal '&quot;quote\'quote\\&quot;quote&quot;', render(&quot;'quote\\'quote\&quot;quote'&quot;)
+  end
+
+  def test_string_escapes
+    assert_renders '&quot;foo\\\\bar&quot;'
+  end
+
+  def test_funcall
+    assert_renders &quot;foo(true, blue)&quot;
+    assert_renders &quot;hsla(20deg, 30%, 50%, 0.3)&quot;
+    assert_renders &quot;blam()&quot;
+
+    assert_renders &quot;-\xC3\xBFoo(12px)&quot;
+    assert_renders &quot;-foo(12px)&quot;
+  end
+
+  def test_url
+    assert_renders &quot;url(foo.gif)&quot;
+    assert_renders &quot;url($var)&quot;
+    assert_renders &quot;url(\#{$var}/flip.gif)&quot;
+  end
+
+  def test_variable
+    assert_renders &quot;$foo-bar&quot;
+    assert_renders &quot;$flaznicate&quot;
+    assert_warning(&lt;&lt;WARN) {assert_equal &quot;$tumbly-wumbly&quot;, render(&quot;!tumbly-wumbly&quot;)}
+DEPRECATION WARNING:
+On line 1, character 1 of 'test_variable_inline.sass'
+Variables with ! have been deprecated and will be removed in version 3.2.
+Use &quot;$tumbly-wumbly&quot; instead.
+
+You can use `sass-convert --in-place --from sass2 file.sass' to convert files automatically.
+WARN
+  end
+
+  def test_important
+    assert_renders &quot;!important&quot;
+    assert_renders &quot;$foo !important&quot;
+  end
+
+  def test_comma_operator
+    assert_renders &quot;$foo, $bar $baz&quot;
+    assert_renders &quot;$foo $bar, $baz&quot;
+
+    assert_renders &quot;($foo, $bar) $baz&quot;
+    assert_renders &quot;$foo ($bar, $baz)&quot;
+
+    assert_equal &quot;$foo, $bar $baz&quot;, render(&quot;$foo, ($bar $baz)&quot;)
+    assert_equal &quot;$foo $bar, $baz&quot;, render(&quot;($foo $bar), $baz&quot;)
+  end
+
+  def test_concat_operator
+    assert_renders &quot;$foo $bar or $baz&quot;
+    assert_renders &quot;$foo or $bar $baz&quot;
+
+    assert_renders &quot;($foo $bar) or $baz&quot;
+    assert_renders &quot;$foo or ($bar $baz)&quot;
+
+    assert_equal &quot;$foo $bar or $baz&quot;, render(&quot;$foo ($bar or $baz)&quot;)
+    assert_equal &quot;$foo or $bar $baz&quot;, render(&quot;($foo or $bar) $baz&quot;)
+  end
+
+  def self.test_precedence(outer, inner)
+    op_outer = Sass::Script::Lexer::OPERATORS_REVERSE[outer]
+    op_inner = Sass::Script::Lexer::OPERATORS_REVERSE[inner]
+    class_eval &lt;&lt;RUBY
+      def test_precedence_#{outer}_#{inner} 
+        assert_renders &quot;$foo #{op_outer} $bar #{op_inner} $baz&quot;
+        assert_renders &quot;$foo #{op_inner} $bar #{op_outer} $baz&quot;
+
+        assert_renders &quot;($foo #{op_outer} $bar) #{op_inner} $baz&quot;
+        assert_renders &quot;$foo #{op_inner} ($bar #{op_outer} $baz)&quot;
+
+        assert_equal &quot;$foo #{op_outer} $bar #{op_inner} $baz&quot;,
+          render(&quot;$foo #{op_outer} ($bar #{op_inner} $baz)&quot;)
+        assert_equal &quot;$foo #{op_inner} $bar #{op_outer} $baz&quot;,
+          render(&quot;($foo #{op_inner} $bar) #{op_outer} $baz&quot;)
+      end
+RUBY
+  end
+
+  test_precedence :or, :and
+  test_precedence :and, :eq
+  test_precedence :and, :neq
+  test_precedence :eq, :gt
+  test_precedence :eq, :gte
+  test_precedence :eq, :lt
+  test_precedence :eq, :lte
+  test_precedence :gt, :plus
+  test_precedence :gt, :minus
+  test_precedence :plus, :times
+  test_precedence :plus, :div
+  test_precedence :plus, :mod
+
+  def test_unary_op
+    assert_renders &quot;-12px&quot;
+    assert_renders '/&quot;foo&quot;'
+    assert_renders 'not true'
+
+    assert_renders &quot;-(foo(12px))&quot;
+    assert_renders &quot;-(-foo(12px))&quot;
+    assert_renders &quot;-(_foo(12px))&quot;
+    assert_renders &quot;-(\xC3\xBFoo(12px))&quot;
+    assert_renders &quot;-(blue)&quot;
+
+    assert_equal 'not true or false', render('(not true) or false')
+    assert_equal 'not (true or false)', render('not (true or false)')
+  end
+
+  def test_interpolation
+    assert_renders &quot;$foo\#{$bar}$baz&quot;
+    assert_renders &quot;$foo\#{$bar} $baz&quot;
+    assert_renders &quot;$foo \#{$bar}$baz&quot;
+    assert_renders &quot;$foo \#{$bar} $baz&quot;
+    assert_renders &quot;$foo \#{$bar}\#{$bang} $baz&quot;
+    assert_renders &quot;$foo \#{$bar} \#{$bang} $baz&quot;
+    assert_renders &quot;\#{$bar}$baz&quot;
+    assert_renders &quot;$foo\#{$bar}&quot;
+    assert_renders &quot;\#{$bar}&quot;
+  end
+
+  def test_interpolation_in_function
+    assert_renders 'flabnabbit(#{1 + &quot;foo&quot;})'
+    assert_renders 'flabnabbit($foo #{1 + &quot;foo&quot;}$baz)'
+    assert_renders 'flabnabbit($foo #{1 + &quot;foo&quot;}#{2 + &quot;bar&quot;} $baz)'
+  end
+
+  def test_interpolation_near_operators
+    assert_renders '#{1 + 2} , #{3 + 4}'
+    assert_renders '#{1 + 2}, #{3 + 4}'
+    assert_renders '#{1 + 2} ,#{3 + 4}'
+    assert_renders '#{1 + 2},#{3 + 4}'
+
+    assert_renders '3 / #{3 + 4}'
+    assert_renders '3 /#{3 + 4}'
+    assert_renders '3/ #{3 + 4}'
+    assert_renders '3/#{3 + 4}'
+
+    assert_renders '#{1 + 2} * 7'
+    assert_renders '#{1 + 2}* 7'
+    assert_renders '#{1 + 2} *7'
+    assert_renders '#{1 + 2}*7'
+
+    assert_renders '-#{1 + 2}'
+    assert_renders '- #{1 + 2}'
+
+    assert_renders '5 + #{1 + 2} * #{3 + 4}'
+    assert_renders '5 +#{1 + 2} * #{3 + 4}'
+    assert_renders '5+#{1 + 2} * #{3 + 4}'
+    assert_renders '#{1 + 2} * #{3 + 4} + 5'
+    assert_renders '#{1 + 2} * #{3 + 4}+ 5'
+    assert_renders '#{1 + 2} * #{3 + 4}+5'
+
+    assert_equal '5 / #{1 + 2} + #{3 + 4}', render('5 / (#{1 + 2} + #{3 + 4})')
+    assert_equal '5 / #{1 + 2} + #{3 + 4}', render('5 /(#{1 + 2} + #{3 + 4})')
+    assert_equal '5 / #{1 + 2} + #{3 + 4}', render('5 /( #{1 + 2} + #{3 + 4} )')
+    assert_equal '#{1 + 2} + #{3 + 4} / 5', render('(#{1 + 2} + #{3 + 4}) / 5')
+    assert_equal '#{1 + 2} + #{3 + 4} / 5', render('(#{1 + 2} + #{3 + 4})/ 5')
+    assert_equal '#{1 + 2} + #{3 + 4} / 5', render('( #{1 + 2} + #{3 + 4} )/ 5')
+
+    assert_renders '#{1 + 2} + 2 + 3'
+    assert_renders '#{1 + 2} +2 + 3'
+  end
+
+  def test_string_interpolation
+    assert_renders '&quot;foo#{$bar}baz&quot;'
+    assert_renders '&quot;foo #{$bar}baz&quot;'
+    assert_renders '&quot;foo#{$bar} baz&quot;'
+    assert_renders '&quot;foo #{$bar} baz&quot;'
+    assert_renders '&quot;foo #{$bar}#{$bang} baz&quot;'
+    assert_renders '&quot;foo #{$bar} #{$bang} baz&quot;'
+    assert_renders '&quot;#{$bar}baz&quot;'
+    assert_renders '&quot;foo#{$bar}&quot;'
+    assert_equal '#{$bar}', render('&quot;#{$bar}&quot;')
+
+    assert_equal '&quot;foo#{$bar}baz&quot;', render(&quot;'foo\#{$bar}baz'&quot;)
+  end
+
+  def test_sass2_string_interpolation
+    assert_equal 'foo#{$bar}baz', render('&quot;foo#{$bar}baz&quot;', :context =&gt; :equals)
+    assert_equal '#{$bar}baz', render('&quot;#{$bar}baz&quot;', :context =&gt; :equals)
+    assert_equal 'foo#{$bar}', render('&quot;foo#{$bar}&quot;', :context =&gt; :equals)
+
+    assert_equal 'unquote(&quot;.foo#{$bar}.bar&quot;)', render('&quot;.foo#{$bar}.bar&quot;', :context =&gt; :equals)
+    assert_equal 'unquote(&quot;.foo#{$bar}&quot;)', render('&quot;.foo#{$bar}&quot;', :context =&gt; :equals)
+    assert_equal 'unquote(&quot;#{$bar}.bar&quot;)', render('&quot;#{$bar}.bar&quot;', :context =&gt; :equals)
+
+    assert_equal &quot;unquote(\&quot;f'o\#{$bar}b'z\&quot;)&quot;, render(&quot;'f\\'o\#{$bar}b\\'z'&quot;, :context =&gt; :equals)
+    assert_equal &quot;unquote('f\&quot;o\#{$bar}b\&quot;z')&quot;, render(&quot;'f\\\&quot;o\#{$bar}b\\\&quot;z'&quot;, :context =&gt; :equals)
+    assert_equal &quot;unquote(\&quot;f'o\#{$bar}b\\\&quot;z\&quot;)&quot;, render(&quot;'f\\'o\#{$bar}b\\\&quot;z'&quot;, :context =&gt; :equals)
+  end
+
+  def test_sass2_urls
+    Haml::Util.silence_haml_warnings do
+      assert_equal 'url(foo/bar.gif)', render('url(foo/bar.gif)', :context =&gt; :equals)
+      assert_equal 'url(&quot;foo/bar.gif&quot;)', render('url(&quot;foo/bar.gif&quot;)', :context =&gt; :equals)
+
+      assert_equal 'url($var)', render('url(!var)', :context =&gt; :equals)
+      assert_equal 'url(&quot;#{$var}/flip.gif&quot;)', render('url(&quot;#{!var}/flip.gif&quot;)', :context =&gt; :equals)
+    end
+  end
+
+  private
+
+  def assert_renders(script, options = {})
+    assert_equal(script, render(script, options))
+  end
+
+  def render(script, options = {})
+    munge_filename(options)
+    node = Sass::Script.parse(script, 1, 0, options)
+    node.context = options[:context] if options[:context]
+    node.to_sass
+  end
+end
+</pre>
+    </div>

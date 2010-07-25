@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,13 +18,68 @@
     <pre>require 'sass/script/literal'
 
 module Sass::Script
-  # A SassScript object representing a string of text.
+  # A SassScript object representing a CSS string *or* a CSS identifier.
   class String &lt; Literal
     # The Ruby value of the string.
     #
     # @return [String]
     attr_reader :value
-    alias_method :to_s, :value
+
+    # Whether this is a CSS string or a CSS identifier.
+    # The difference is that strings are written with double-quotes,
+    # while identifiers aren't.
+    #
+    # @return [Symbol] `:string` or `:identifier`
+    attr_reader :type
+
+    # In addition to setting the \{#context} of the string,
+    # this sets the string to be an identifier if the context is `:equals`.
+    #
+    # @see Node#context=
+    def context=(context)
+      super
+      @type = :identifier if context == :equals
+    end
+
+    # Creates a new string.
+    #
+    # @param value [String] See \{#value}
+    # @param type [Symbol] See \{#type}
+    def initialize(value, type = :identifier)
+      super(value)
+      @type = type
+    end
+
+    # @see Literal#plus
+    def plus(other)
+      other_str = other.is_a?(Sass::Script::String) ? other.value : other.to_s
+      Sass::Script::String.new(self.value + other_str, self.type)
+    end
+
+    # @see Node#to_s
+    def to_s(opts = {})
+      if self.type == :identifier
+        return %q{&quot;&quot;} if context == :equals &amp;&amp; self.value.size == 0
+        return self.value.gsub(&quot;\n&quot;, &quot; &quot;)
+      end
+
+      return &quot;\&quot;#{value.gsub('&quot;', &quot;\\\&quot;&quot;)}\&quot;&quot; if opts[:quote] == %q{&quot;}
+      return &quot;'#{value.gsub(&quot;'&quot;, &quot;\\'&quot;)}'&quot; if opts[:quote] == %q{'}
+      return &quot;\&quot;#{value}\&quot;&quot; unless value.include?('&quot;')
+      return &quot;'#{value}'&quot; unless value.include?(&quot;'&quot;)
+      &quot;\&quot;#{value.gsub('&quot;', &quot;\\\&quot;&quot;)}\&quot;&quot; #'
+    end
+
+    # @see Node#to_sass
+    def to_sass(opts = {})
+      if self.type == :identifier &amp;&amp; context == :equals &amp;&amp;
+          self.value !~ Sass::SCSS::RX::URI &amp;&amp;
+          Sass::SCSS::RX.escape_ident(self.value).include?(?\\)
+        return &quot;unquote(#{Sass::Script::String.new(self.value, :string).to_sass})&quot;
+      else
+        return to_s
+      end
+    end
   end
 end
 </pre>

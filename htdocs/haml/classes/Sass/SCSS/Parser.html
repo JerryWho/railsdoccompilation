@@ -1,0 +1,160 @@
+  <div id="C00000151">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />Parser<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/sass/scss/parser_rb.html');">lib/sass/scss/parser.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+The parser for <a href="index.html?a=C00000147&name=SCSS">SCSS</a>. It
+parses a string of code into a tree of {<a
+href="index.html?a=C00000161&name=Sass::Tree::Node">Sass::Tree::Node</a>}s.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001510&name=new" >new</a></li>
+  <li><a href="index.html?a=M001511&name=parse" >parse</a></li>
+  <li><a href="index.html?a=M001512&name=parse_interp_ident" >parse_interp_ident</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('classes/Sass/SCSS/RX.html');">Sass::SCSS::RX</a></li>
+</ul>
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">DIRECTIVES</td>
+    <td>=</td>
+    <td class="attr-value">Set[:mixin, :include, :debug, :warn, :for, :while, :if, :extend, :import, :media]</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">EXPR_NAMES</td>
+    <td>=</td>
+    <td class="attr-value">{         :media_query =&gt; &quot;media query (e.g. print, screen, print and screen)&quot;,         :media_expr =&gt; &quot;media expression (e.g. (min-device-width: 800px)))&quot;,         :pseudo_expr =&gt; &quot;expression (e.g. fr, 2n+1)&quot;,         :interp_ident =&gt; &quot;identifier&quot;,         :interp_name =&gt; &quot;identifier&quot;,         :expr =&gt; &quot;expression (e.g. 1px, bold)&quot;,         :selector_comma_sequence =&gt; &quot;selector&quot;,         :simple_selector_sequence =&gt; &quot;selector&quot;,       }</td>
+  </tr>
+  <tr valign='top'>
+    <td class="attr-name">TOK_NAMES</td>
+    <td>=</td>
+    <td class="attr-value">Haml::Util.to_hash(         Sass::SCSS::RX.constants.map {|c| [Sass::SCSS::RX.const_get(c), c.downcase]}).         merge(IDENT =&gt; &quot;identifier&quot;, /[;}]/ =&gt; '&quot;;&quot;')</td>
+  </tr>
+  </table>
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001510" class="method">
+  <div id="M001510_title" class="title">
+    <b>new</b>(str, line = 1)
+  </div>
+  <div class="description">
+  <p>
+@param str [String, StringScanner] The source document to parse.
+</p>
+<pre>
+  Note that `Parser` *won't* raise a nice error message if this isn't properly parsed;
+  for that, you should use the higher-level {Sass::Engine} or {Sass::CSS}.
+</pre>
+<p>
+@param line [Fixnum] The line on which the source string appeared,
+</p>
+<pre>
+  if it's part of another document
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001510_source')" id="l_M001510_source">show source</a> ]</p>
+  <div id="M001510_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/scss/parser.rb, line 14</span>
+14:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">str</span>, <span class="ruby-identifier">line</span> = <span class="ruby-value">1</span>)
+15:         <span class="ruby-ivar">@template</span> = <span class="ruby-identifier">str</span>
+16:         <span class="ruby-ivar">@line</span> = <span class="ruby-identifier">line</span>
+17:         <span class="ruby-ivar">@strs</span> = []
+18:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001511" class="method">
+  <div id="M001511_title" class="title">
+    <b>parse</b>()
+  </div>
+  <div class="description">
+  <p>
+Parses an <a href="index.html?a=C00000147&name=SCSS">SCSS</a> document.
+</p>
+<p>
+@return [<a
+href="index.html?a=C00000168&name=Sass::Tree::RootNode">Sass::Tree::RootNode</a>]
+The root node of the document tree @raise [<a
+href="index.html?a=C00000183&name=Sass::SyntaxError">Sass::SyntaxError</a>]
+if there&#8217;s a syntax error in the document
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001511_source')" id="l_M001511_source">show source</a> ]</p>
+  <div id="M001511_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/scss/parser.rb, line 24</span>
+24:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parse</span>
+25:         <span class="ruby-identifier">init_scanner!</span>
+26:         <span class="ruby-identifier">root</span> = <span class="ruby-identifier">stylesheet</span>
+27:         <span class="ruby-identifier">expected</span>(<span class="ruby-value str">&quot;selector or at-rule&quot;</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-ivar">@scanner</span>.<span class="ruby-identifier">eos?</span>
+28:         <span class="ruby-identifier">root</span>
+29:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001512" class="method">
+  <div id="M001512_title" class="title">
+    <b>parse_interp_ident</b>()
+  </div>
+  <div class="description">
+  <p>
+Parses an identifier with interpolation. Note that this won&#8217;t assert
+that the identifier takes up the entire input string; it&#8217;s meant to
+be used with `StringScanner`s as part of other parsers.
+</p>
+<p>
+@return [Array&lt;String, <a
+href="index.html?a=C00000138&name=Sass::Script::Node">Sass::Script::Node</a>&gt;,
+nil]
+</p>
+<pre>
+  The interpolated identifier, or nil if none could be parsed
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001512_source')" id="l_M001512_source">show source</a> ]</p>
+  <div id="M001512_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/scss/parser.rb, line 37</span>
+37:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">parse_interp_ident</span>
+38:         <span class="ruby-identifier">init_scanner!</span>
+39:         <span class="ruby-identifier">interp_ident</span>
+40:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

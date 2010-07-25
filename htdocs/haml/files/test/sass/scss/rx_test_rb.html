@@ -1,0 +1,175 @@
+  <div id="fileHeader">
+    <h1>rx_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/scss/rx_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+require File.dirname(__FILE__) + '/../../test_helper'
+require 'sass/engine'
+
+class ScssRxTest &lt; Test::Unit::TestCase
+  include Sass::SCSS::RX
+
+  def test_identifiers
+    assert_match IDENT, &quot;foo&quot;
+    assert_match IDENT, &quot;\xC3\xBFoo&quot; # Initial char can be nonascii
+    assert_match IDENT, &quot;\\123abcoo&quot; # Initial char can be unicode escape
+    assert_match IDENT, &quot;\\f oo&quot; # Unicode escapes can be followed by whitespace
+    assert_match IDENT, &quot;\\fa\too&quot;
+    assert_match IDENT, &quot;\\ff2\roo&quot;
+    assert_match IDENT, &quot;\\f13a\foo&quot;
+    assert_match IDENT, &quot;\\f13abcoo&quot;
+    assert_match IDENT, &quot;\\ oo&quot; # Initial char can be a plain escape as well
+    assert_match IDENT, &quot;\\~oo&quot;
+    assert_match IDENT, &quot;\\\\oo&quot;
+    assert_match IDENT, &quot;\\{oo&quot;
+    assert_match IDENT, &quot;\\\xC3\xBFoo&quot;
+    assert_match IDENT, &quot;-foo&quot; # Can put a - before anything
+    assert_match IDENT, &quot;-\xC3\xBFoo&quot;
+    assert_match IDENT, &quot;-\\f oo&quot;
+    assert_match IDENT, &quot;_foo&quot; # Can put a _ before anything
+    assert_match IDENT, &quot;_\xC3\xBFoo&quot;
+    assert_match IDENT, &quot;_\\f oo&quot;
+
+    assert_match IDENT, &quot;foo-bar&quot;
+    assert_match IDENT, &quot;f012-23&quot;
+    assert_match IDENT, &quot;foo_-_bar&quot;
+    assert_match IDENT, &quot;f012_23&quot;
+
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/escapes-003.xht
+    assert_match IDENT, &quot;c\\lass&quot;
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/escapes-004.xht
+    assert_match IDENT, &quot;c\\00006Cas\\000073&quot;
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/ident-001.xht
+    assert_match IDENT, &quot;IdE6n-3t0_6&quot;
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/ident-006.xht
+    assert_match IDENT, &quot;\\6000ident&quot;
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/ident-007.xht
+    assert_match IDENT, &quot;iden\\6000t\\6000&quot;
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/ident-013.xht
+    assert_match IDENT, &quot;\\-ident&quot;
+  end
+
+  def test_underscores_in_identifiers
+    assert_match IDENT, &quot;foo_bar&quot;
+    assert_match IDENT, &quot;_\xC3\xBFfoo&quot;
+    assert_match IDENT, &quot;__foo&quot;
+    assert_match IDENT, &quot;_1foo&quot;
+    assert_match IDENT, &quot;-_foo&quot;
+    assert_match IDENT, &quot;_-foo&quot;
+  end
+
+  def test_invalid_identifiers
+    assert_no_match IDENT, &quot;&quot;
+    assert_no_match IDENT, &quot;1foo&quot;
+    assert_no_match IDENT, &quot;-1foo&quot;
+    assert_no_match IDENT, &quot;--foo&quot;
+    assert_no_match IDENT, &quot;foo bar&quot;
+    assert_no_match IDENT, &quot;foo~bar&quot;
+
+    # http://www.w3.org/Style/CSS/Test/CSS2.1/current/xhtml1/escapes-008.xht
+    assert_no_match IDENT, &quot;c\\06C  ass&quot;
+    assert_no_match IDENT, &quot;back\\67\n round&quot;
+  end
+
+  def test_double_quote_strings
+    assert_match STRING, '&quot;foo bar&quot;'
+    assert_match STRING, '&quot;foo\\\nbar&quot;'
+    assert_match STRING, &quot;\&quot;\\\&quot;\&quot;&quot;
+    assert_match STRING, '&quot;\t !#$%&amp;(-~()*+,-./0123456789~&quot;'
+  end
+
+  def test_single_quote_strings
+    assert_match STRING, &quot;'foo bar'&quot;
+    assert_match STRING, &quot;'foo\\\nbar'&quot;
+    assert_match STRING, &quot;'\\''&quot;
+    assert_match STRING, &quot;'\t !#\$%&amp;(-~()*+,-./0123456789~'&quot;
+  end
+
+  def test_invalid_strings
+    assert_no_match STRING, &quot;\&quot;foo\nbar\&quot;&quot;
+    assert_no_match STRING, &quot;\&quot;foo\&quot;bar\&quot;&quot;
+    assert_no_match STRING, &quot;'foo\nbar'&quot;
+    assert_no_match STRING, &quot;'foo'bar'&quot;
+  end
+
+  def test_uri
+    assert_match URI, 'url(&quot;foo bar)&quot;)'
+    assert_match URI, &quot;url('foo bar)')&quot;
+    assert_match URI, 'url( &quot;foo bar)&quot; )'
+    assert_match URI, &quot;url(#\\%&amp;**+,-./0123456789~)&quot;
+  end
+
+  def test_invalid_uri
+    assert_no_match URI, 'url(foo)bar)'
+  end
+
+  def test_unicode_range
+    assert_match UNICODERANGE, 'U+00-Ff'
+    assert_match UNICODERANGE, 'u+980-9FF'
+    assert_match UNICODERANGE, 'U+9aF??'
+    assert_match UNICODERANGE, 'U+??'
+  end
+
+  def test_escape_empty_ident
+    assert_equal &quot;&quot;, Sass::SCSS::RX.escape_ident(&quot;&quot;)
+  end
+
+  def test_escape_just_prefix_ident
+    assert_equal &quot;\\-&quot;, Sass::SCSS::RX.escape_ident(&quot;-&quot;)
+    assert_equal &quot;\\_&quot;, Sass::SCSS::RX.escape_ident(&quot;_&quot;)
+  end
+
+  def test_escape_plain_ident
+    assert_equal &quot;foo&quot;, Sass::SCSS::RX.escape_ident(&quot;foo&quot;)
+    assert_equal &quot;foo-1bar&quot;, Sass::SCSS::RX.escape_ident(&quot;foo-1bar&quot;)
+    assert_equal &quot;-foo-bar&quot;, Sass::SCSS::RX.escape_ident(&quot;-foo-bar&quot;)
+    assert_equal &quot;f2oo_bar&quot;, Sass::SCSS::RX.escape_ident(&quot;f2oo_bar&quot;)
+    assert_equal &quot;_foo_bar&quot;, Sass::SCSS::RX.escape_ident(&quot;_foo_bar&quot;)
+  end
+
+  def test_escape_initial_funky_ident
+    assert_equal &quot;\\000035foo&quot;, Sass::SCSS::RX.escape_ident(&quot;5foo&quot;)
+    assert_equal &quot;-\\000035foo&quot;, Sass::SCSS::RX.escape_ident(&quot;-5foo&quot;)
+    assert_equal &quot;_\\000035foo&quot;, Sass::SCSS::RX.escape_ident(&quot;_5foo&quot;)
+
+    assert_equal &quot;\\&amp;foo&quot;, Sass::SCSS::RX.escape_ident(&quot;&amp;foo&quot;)
+    assert_equal &quot;-\\&amp;foo&quot;, Sass::SCSS::RX.escape_ident(&quot;-&amp;foo&quot;)
+
+    assert_equal &quot;-\\ foo&quot;, Sass::SCSS::RX.escape_ident(&quot;- foo&quot;)
+  end
+
+  def test_escape_mid_funky_ident
+    assert_equal &quot;foo\\&amp;bar&quot;, Sass::SCSS::RX.escape_ident(&quot;foo&amp;bar&quot;)
+    assert_equal &quot;foo\\ \\ bar&quot;, Sass::SCSS::RX.escape_ident(&quot;foo  bar&quot;)
+    assert_equal &quot;foo\\00007fbar&quot;, Sass::SCSS::RX.escape_ident(&quot;foo\177bar&quot;)
+  end
+
+  private
+
+  def assert_match(rx, str)
+    assert_not_nil(match = rx.match(str))
+    assert_equal str.size, match[0].size
+  end
+
+  def assert_no_match(rx, str)
+    match = rx.match(str)
+    assert_not_equal str.size, match &amp;&amp; match[0].size
+  end
+
+end
+</pre>
+    </div>

@@ -1,0 +1,110 @@
+  <div id="fileHeader">
+    <h1>subset_map_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/haml/util/subset_map_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>#!/usr/bin/env ruby
+require File.dirname(__FILE__) + '/../../test_helper'
+
+class SubsetMapTest &lt; Test::Unit::TestCase
+  def setup
+    @ssm = Haml::Util::SubsetMap.new
+    @ssm[Set[1, 2]] = &quot;Foo&quot;
+    @ssm[Set[&quot;fizz&quot;, &quot;fazz&quot;]] = &quot;Bar&quot;
+
+    @ssm[Set[:foo, :bar]] = &quot;Baz&quot;
+    @ssm[Set[:foo, :bar, :baz]] = &quot;Bang&quot;
+
+    @ssm[Set[:bip, :bop, :blip]] = &quot;Qux&quot;
+    @ssm[Set[:bip, :bop]] = &quot;Thram&quot;
+  end
+
+  def test_equal_keys
+    assert_equal [[&quot;Foo&quot;, Set[1, 2]]], @ssm.get(Set[1, 2])
+    assert_equal [[&quot;Bar&quot;, Set[&quot;fizz&quot;, &quot;fazz&quot;]]], @ssm.get(Set[&quot;fizz&quot;, &quot;fazz&quot;])
+  end
+
+  def test_subset_keys
+    assert_equal [[&quot;Foo&quot;, Set[1, 2]]], @ssm.get(Set[1, 2, &quot;fuzz&quot;])
+    assert_equal [[&quot;Bar&quot;, Set[&quot;fizz&quot;, &quot;fazz&quot;]]], @ssm.get(Set[&quot;fizz&quot;, &quot;fazz&quot;, 3])
+  end
+
+  def test_superset_keys
+    assert_equal [], @ssm.get(Set[1])
+    assert_equal [], @ssm.get(Set[2])
+    assert_equal [], @ssm.get(Set[&quot;fizz&quot;])
+    assert_equal [], @ssm.get(Set[&quot;fazz&quot;])
+  end
+
+  def test_disjoint_keys
+    assert_equal [], @ssm.get(Set[3, 4])
+    assert_equal [], @ssm.get(Set[&quot;fuzz&quot;, &quot;frizz&quot;])
+    assert_equal [], @ssm.get(Set[&quot;gran&quot;, 15])
+  end
+
+  def test_semi_disjoint_keys
+    assert_equal [], @ssm.get(Set[2, 3])
+    assert_equal [], @ssm.get(Set[&quot;fizz&quot;, &quot;fuzz&quot;])
+    assert_equal [], @ssm.get(Set[1, &quot;fazz&quot;])
+  end
+
+  def test_empty_key_set
+    assert_raise(ArgumentError) {@ssm[Set[]] = &quot;Fail&quot;}
+  end
+
+  def test_empty_key_get
+    assert_equal [], @ssm.get(Set[])
+  end
+
+  def test_multiple_subsets
+    assert_equal [[&quot;Foo&quot;, Set[1, 2]], [&quot;Bar&quot;, Set[&quot;fizz&quot;, &quot;fazz&quot;]]], @ssm.get(Set[1, 2, &quot;fizz&quot;, &quot;fazz&quot;])
+    assert_equal [[&quot;Foo&quot;, Set[1, 2]], [&quot;Bar&quot;, Set[&quot;fizz&quot;, &quot;fazz&quot;]]], @ssm.get(Set[1, 2, 3, &quot;fizz&quot;, &quot;fazz&quot;, &quot;fuzz&quot;])
+
+    assert_equal [[&quot;Baz&quot;, Set[:foo, :bar]]], @ssm.get(Set[:foo, :bar])
+    assert_equal [[&quot;Baz&quot;, Set[:foo, :bar]], [&quot;Bang&quot;, Set[:foo, :bar, :baz]]], @ssm.get(Set[:foo, :bar, :baz])
+  end
+
+  def test_bracket_bracket
+    assert_equal [&quot;Foo&quot;], @ssm[Set[1, 2, &quot;fuzz&quot;]]
+    assert_equal [&quot;Baz&quot;, &quot;Bang&quot;], @ssm[Set[:foo, :bar, :baz]]
+  end
+
+  def test_order_preserved
+    @ssm[Set[10, 11, 12]] = 1
+    @ssm[Set[10, 11]] = 2
+    @ssm[Set[11]] = 3
+    @ssm[Set[11, 12]] = 4
+    @ssm[Set[9, 10, 11, 12, 13]] = 5
+    @ssm[Set[10, 13]] = 6
+
+    assert_equal(
+      [[1, Set[10, 11, 12]], [2, Set[10, 11]], [3, Set[11]], [4, Set[11, 12]],
+        [5, Set[9, 10, 11, 12, 13]], [6, Set[10, 13]]],
+      @ssm.get(Set[9, 10, 11, 12, 13]))
+  end
+
+  def test_multiple_equal_values
+    @ssm[Set[11, 12]] = 1
+    @ssm[Set[12, 13]] = 2
+    @ssm[Set[13, 14]] = 1
+    @ssm[Set[14, 15]] = 1
+
+    assert_equal(
+      [[1, Set[11, 12]], [2, Set[12, 13]], [1, Set[13, 14]], [1, Set[14, 15]]],
+      @ssm.get(Set[11, 12, 13, 14, 15]))
+  end
+end
+</pre>
+    </div>

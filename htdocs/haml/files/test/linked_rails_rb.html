@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:51:54 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -22,10 +22,31 @@ if File.exists?(linked_rails) &amp;&amp; !$:.include?(linked_rails + '/activesup
   puts &quot;[ using linked Rails ]&quot;
   $:.unshift linked_rails + '/activesupport/lib'
   $:.unshift linked_rails + '/actionpack/lib'
+  $:.unshift linked_rails + '/railties/lib'
 end
 require 'rubygems'
 require 'action_controller'
 require 'action_view'
+
+begin
+  # Necessary for Rails 3
+  require 'rails'
+rescue LoadError
+  # Necessary for Rails 2.3.7
+  require 'initializer'
+rescue LoadError
+end
+
+if defined?(Rails::Application) # Rails 3
+  class TestApp &lt; Rails::Application
+    config.root = File.join(File.dirname(__FILE__), &quot;../..&quot;)
+  end
+  Rails.application = TestApp
+elsif defined?(RAILS_ROOT)
+  RAILS_ROOT.replace(File.join(File.dirname(__FILE__), &quot;../..&quot;))
+else
+  RAILS_ROOT = File.join(File.dirname(__FILE__), &quot;../..&quot;)
+end
 
 ActionController::Base.logger = Logger.new(nil)
 
@@ -34,7 +55,7 @@ ActionController::Base.logger = Logger.new(nil)
 # since we don't want to load the entirety of Rails.
 Dir[File.dirname(__FILE__) + '/plugins/*'].each do |plugin|
   $: &lt;&lt; plugin + '/lib'
-  Object.new.instance_eval(File.read(plugin + '/init.rb'))
+  eval(File.read(plugin + '/init.rb'))
 end
 </pre>
     </div>

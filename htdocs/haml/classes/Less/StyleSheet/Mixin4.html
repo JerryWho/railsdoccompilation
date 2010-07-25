@@ -1,0 +1,124 @@
+  <div id="C00000070">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Mixin4<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/sass/less_rb.html');">lib/sass/less.rb</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+Selector mixins that don&#8217;t have arguments. This depends only on the
+syntax at the call site; if it doesn&#8217;t use parens, it hits this
+production, regardless of whether the mixin being called has arguments or
+not.
+</p>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001088&name=build" >build</a></li>
+  <li><a href="index.html?a=M001087&name=build_with_sass" >build_with_sass</a></li>
+  <li><a href="index.html?a=M001089&name=selector_base" >selector_base</a></li>
+  <li><a href="index.html?a=M001090&name=selector_str" >selector_str</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001088" class="method">
+  <div id="M001088_title" class="title">
+    <b>build</b>(env)
+  </div>
+  <div class="description">
+  <p>
+Alias for <a
+href="index.html?a=M001087&name=build_with_sass">build_with_sass</a>
+</p>
+  </div>
+</div>
+<div id="M001087" class="method">
+  <div id="M001087_title" class="title">
+    <b>build_with_sass</b>(env)
+  </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M001088&name=build">build</a>
+</div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001087_source')" id="l_M001087_source">show source</a> ]</p>
+  <div id="M001087_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/less.rb, line 15</span>
+15:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">build_with_sass</span>(<span class="ruby-identifier">env</span>)
+16:         <span class="ruby-identifier">selectors</span>.<span class="ruby-identifier">build</span>(<span class="ruby-identifier">env</span>, <span class="ruby-identifier">:mixin</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">path</span><span class="ruby-operator">|</span>
+17:           <span class="ruby-identifier">el</span> = <span class="ruby-identifier">path</span>.<span class="ruby-identifier">inject</span>(<span class="ruby-identifier">env</span>.<span class="ruby-identifier">root</span>) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">current</span>, <span class="ruby-identifier">node</span><span class="ruby-operator">|</span>
+18:             <span class="ruby-identifier">current</span>.<span class="ruby-identifier">descend</span>(<span class="ruby-identifier">node</span>.<span class="ruby-identifier">selector</span>, <span class="ruby-identifier">node</span>) <span class="ruby-keyword kw">or</span> <span class="ruby-identifier">raise</span> <span class="ruby-constant">MixinNameError</span>, <span class="ruby-node">&quot;#{selectors.text_value} in #{env}&quot;</span>
+19:           <span class="ruby-keyword kw">end</span>
+20:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">el</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">Mixin</span><span class="ruby-operator">::</span><span class="ruby-constant">Def</span>)
+21:             <span class="ruby-comment cmt"># Calling a mixin with arguments, which gets compiled to a Sass mixin</span>
+22:             <span class="ruby-identifier">env</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">Mixin</span><span class="ruby-operator">::</span><span class="ruby-constant">Call</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">el</span>, [], <span class="ruby-identifier">env</span>)
+23:           <span class="ruby-keyword kw">else</span>
+24:             <span class="ruby-comment cmt"># Calling a mixin without arguments, which gets compiled to @extend</span>
+25:             <span class="ruby-identifier">sel</span> = <span class="ruby-identifier">selector_str</span>(<span class="ruby-identifier">path</span>)
+26:             <span class="ruby-identifier">base</span> = <span class="ruby-identifier">selector_str</span>(<span class="ruby-identifier">selector_base</span>(<span class="ruby-identifier">path</span>))
+27:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">base</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">sel</span>
+28:               <span class="ruby-identifier">env</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SassNode</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Tree</span><span class="ruby-operator">::</span><span class="ruby-constant">ExtendNode</span>.<span class="ruby-identifier">new</span>([<span class="ruby-identifier">sel</span>]))
+29:             <span class="ruby-keyword kw">else</span>
+30:               <span class="ruby-constant">Haml</span><span class="ruby-operator">::</span><span class="ruby-constant">Util</span>.<span class="ruby-identifier">haml_warn</span> <span class="ruby-value str">&quot;WARNING: Sass doesn't support mixing in selector sequences.\nReplacing \&quot;\#{sel}\&quot; with \&quot;@extend \#{base}\&quot;\n&quot;</span>
+31:               <span class="ruby-identifier">env</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SassNode</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Tree</span><span class="ruby-operator">::</span><span class="ruby-constant">CommentNode</span>.<span class="ruby-identifier">new</span>(<span class="ruby-node">&quot;// #{sel};&quot;</span>, <span class="ruby-keyword kw">true</span>))
+32:               <span class="ruby-identifier">env</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">SassNode</span>.<span class="ruby-identifier">new</span>(<span class="ruby-constant">Sass</span><span class="ruby-operator">::</span><span class="ruby-constant">Tree</span><span class="ruby-operator">::</span><span class="ruby-constant">ExtendNode</span>.<span class="ruby-identifier">new</span>([<span class="ruby-identifier">base</span>]))
+33:             <span class="ruby-keyword kw">end</span>
+34:           <span class="ruby-keyword kw">end</span>
+35:         <span class="ruby-keyword kw">end</span>
+36:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001089" class="method">
+  <div id="M001089_title" class="title">
+    <b>selector_base</b>(path)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001089_source')" id="l_M001089_source">show source</a> ]</p>
+  <div id="M001089_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/less.rb, line 44</span>
+44:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">selector_base</span>(<span class="ruby-identifier">path</span>)
+45:         <span class="ruby-identifier">el</span>, <span class="ruby-identifier">i</span> = <span class="ruby-constant">Haml</span><span class="ruby-operator">::</span><span class="ruby-constant">Util</span>.<span class="ruby-identifier">enum_with_index</span>(<span class="ruby-identifier">path</span>).<span class="ruby-identifier">to_a</span>.<span class="ruby-identifier">reverse</span>.<span class="ruby-identifier">find</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">e</span>, <span class="ruby-identifier">i</span><span class="ruby-operator">|</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">selector</span> <span class="ruby-operator">!~</span> <span class="ruby-regexp re">/^:{1,2}$/</span>} <span class="ruby-operator">||</span>
+46:           [<span class="ruby-identifier">path</span>.<span class="ruby-identifier">first</span>, <span class="ruby-value">0</span>]
+47:         <span class="ruby-identifier">sel</span> = (<span class="ruby-identifier">el</span>.<span class="ruby-identifier">selector</span> <span class="ruby-operator">=~</span> <span class="ruby-regexp re">/^:{0,2}$/</span> <span class="ruby-operator">?</span> <span class="ruby-identifier">el</span>.<span class="ruby-identifier">selector</span> <span class="ruby-operator">:</span> <span class="ruby-value str">&quot;&quot;</span>)
+48:         [<span class="ruby-constant">Node</span><span class="ruby-operator">::</span><span class="ruby-constant">Element</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">el</span>.<span class="ruby-identifier">name</span>, <span class="ruby-identifier">sel</span>)] <span class="ruby-operator">+</span> <span class="ruby-identifier">path</span>[<span class="ruby-identifier">i</span><span class="ruby-operator">+</span><span class="ruby-value">1</span><span class="ruby-operator">..</span><span class="ruby-value">-1</span>]
+49:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001090" class="method">
+  <div id="M001090_title" class="title">
+    <b>selector_str</b>(path)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001090_source')" id="l_M001090_source">show source</a> ]</p>
+  <div id="M001090_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/less.rb, line 51</span>
+51:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">selector_str</span>(<span class="ruby-identifier">path</span>)
+52:         <span class="ruby-identifier">path</span>.<span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">e</span><span class="ruby-operator">|</span> <span class="ruby-identifier">e</span>.<span class="ruby-identifier">sass_selector_str</span>}.<span class="ruby-identifier">join</span>(<span class="ruby-value str">' '</span>).<span class="ruby-identifier">gsub</span>(<span class="ruby-value str">' :'</span>, <span class="ruby-value str">':'</span>)
+53:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

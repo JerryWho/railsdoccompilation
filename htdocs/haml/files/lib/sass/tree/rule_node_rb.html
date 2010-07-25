@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -16,6 +16,7 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>require 'pathname'
+require 'uri'
 
 module Sass::Tree
   # A static node reprenting a CSS rule.
@@ -25,46 +26,56 @@ module Sass::Tree
     # The character used to include the parent selector
     PARENT = '&amp;'
 
-    # The CSS selectors for this rule.
-    # Each string is a selector line, and the lines are meant to be separated by commas.
-    # For example,
+    # The CSS selector for this rule,
+    # interspersed with {Sass::Script::Node}s
+    # representing `#{}`-interpolation.
+    # Any adjacent strings will be merged together.
     #
-    #     foo, bar, baz,
-    #     bip, bop, bup
-    #
-    # would be
-    #
-    #     [&quot;foo, bar, baz&quot;,
-    #      &quot;bip, bop, bup&quot;]
-    #
-    # @return [Array&lt;String&gt;]
-    attr_accessor :rules
+    # @return [Array&lt;String, Sass::Script::Node&gt;]
+    attr_accessor :rule
 
-    # The CSS selectors for this rule,
-    # parsed for commas and parent-references.
+    # The CSS selector for this rule,
+    # without any unresolved interpolation
+    # but with parent references still intact.
     # It's only set once {Tree::Node#perform} has been called.
     #
-    # It's an array of arrays of arrays.
-    # The first level of arrays represents distinct lines in the Sass file;
-    # the second level represents comma-separated selectors;
-    # the third represents structure within those selectors,
-    # currently only parent-refs (represented by `:parent`).
-    # For example,
-    #
-    #     &amp;.foo, bar, baz,
-    #     bip, &amp;.bop, bup
-    #
-    # would be
-    #
-    #     [[[:parent, &quot;foo&quot;], [&quot;bar&quot;], [&quot;baz&quot;]],
-    #      [[&quot;bip&quot;], [:parent, &quot;bop&quot;], [&quot;bup&quot;]]]
-    #
-    # @return [Array&lt;Array&lt;Array&lt;String|Symbol&gt;&gt;&gt;]
+    # @return [Selector::CommaSequence]
     attr_accessor :parsed_rules
 
-    # @param rule [String] The first CSS rule. See \{#rules}
+    # The CSS selector for this rule,
+    # without any unresolved interpolation or parent references.
+    # It's only set once {Tree::Node#cssize} has been called.
+    #
+    # @return [Selector::CommaSequence]
+    attr_accessor :resolved_rules
+
+    # How deep this rule is indented
+    # relative to a base-level rule.
+    # This is only greater than 0 in the case that:
+    #
+    # * This node is in a CSS tree
+    # * The style is :nested
+    # * This is a child rule of another rule
+    # * The parent rule has properties, and thus will be rendered
+    #
+    # @return [Fixnum]
+    attr_accessor :tabs
+
+    # Whether or not this rule is the last rule in a nested group.
+    # This is only set in a CSS tree.
+    #
+    # @return [Boolean]
+    attr_accessor :group_end
+
+    # @param rule [Array&lt;String, Sass::Script::Node&gt;]
+    #   The CSS rule. See \{#rule}
     def initialize(rule)
-      @rules = [rule]
+      #p rule
+      merged = Haml::Util.merge_adjacent_strings(rule)
+      #p merged
+      @rule = Haml::Util.strip_string_array(merged)
+      #p @rule
+      @tabs = 0
       super()
     end
 
@@ -74,63 +85,90 @@ module Sass::Tree
     # @return [Boolean] Whether or not this node and the other object
     #   are the same
     def ==(other)
-      self.class == other.class &amp;&amp; rules == other.rules &amp;&amp; super
+      self.class == other.class &amp;&amp; rule == other.rule &amp;&amp; super
     end
 
     # Adds another {RuleNode}'s rules to this one's.
     #
     # @param node [RuleNode] The other node
     def add_rules(node)
-      @rules += node.rules
+      @rule = Haml::Util.strip_string_array(
+        Haml::Util.merge_adjacent_strings(@rule + [&quot;\n&quot;] + node.rule))
     end
 
     # @return [Boolean] Whether or not this rule is continued on the next line
     def continued?
-      @rules.last[-1] == ?,
+      last = @rule.last
+      last.is_a?(String) &amp;&amp; last[-1] == ?,
     end
+
+    # @see Node#to_sass
+    def to_sass(tabs, opts = {})
+      name = selector_to_sass(rule, opts)
+      name = &quot;\\&quot; + name if name[0] == ?:
+      name.gsub(/^/, '  ' * tabs) + children_to_src(tabs, opts, :sass)
+    end
+
+    # @see Node#to_scss
+    def to_scss(tabs, opts = {})
+      name = selector_to_scss(rule, tabs, opts)
+      res = name + children_to_src(tabs, opts, :scss)
+
+      if children.last.is_a?(CommentNode) &amp;&amp; children.last.silent
+        res.slice!(-3..-1)
+        res &lt;&lt; &quot;\n&quot; &lt;&lt; ('  ' * tabs) &lt;&lt; &quot;}\n&quot;
+      end
+
+      res
+    end
+
+    # Extends this Rule's selector with the given `extends`.
+    #
+    # @see Node#do_extend
+    def do_extend(extends)
+      node = dup
+      node.resolved_rules = resolved_rules.do_extend(extends)
+      node
+    end
+
+    protected
 
     # Computes the CSS for the rule.
     #
     # @param tabs [Fixnum] The level of indentation for the CSS
-    # @param super_rules [Array&lt;Array&lt;String&gt;&gt;] The rules for the parent node
-    #   (see \{#rules}), or `nil` if there are no parents
     # @return [String] The resulting CSS
-    # @raise [Sass::SyntaxError] if the rule has no parents but uses `&amp;`
-    def to_s(tabs, super_rules = nil)
-      resolved_rules = resolve_parent_refs(super_rules)
-
-      properties = []
-      sub_rules = []
+    def _to_s(tabs)
+      tabs = tabs + self.tabs
 
       rule_separator = style == :compressed ? ',' : ', '
-      line_separator = [:nested, :expanded].include?(style) ? &quot;,\n&quot; : rule_separator
+      line_separator =
+        case style
+          when :nested, :expanded; &quot;\n&quot;
+          when :compressed; &quot;&quot;
+          else; &quot; &quot;
+        end
       rule_indent = '  ' * (tabs - 1)
       per_rule_indent, total_indent = [:nested, :expanded].include?(style) ? [rule_indent, ''] : ['', rule_indent]
 
-      total_rule = total_indent + resolved_rules.map do |line|
-        per_rule_indent + line.join(rule_separator)
+      total_rule = total_indent + resolved_rules.members.
+        map {|seq| seq.to_a.join}.
+        join(rule_separator).split(&quot;\n&quot;).map do |line|
+        per_rule_indent + line.strip
       end.join(line_separator)
 
-      children.each do |child|
-        next if child.invisible?
-        if child.is_a? RuleNode
-          sub_rules &lt;&lt; child
-        else
-          properties &lt;&lt; child
-        end
-      end
-
       to_return = ''
-      if !properties.empty?
-        old_spaces = '  ' * (tabs - 1)
-        spaces = '  ' * tabs
-        if @options[:line_comments] &amp;&amp; style != :compressed
+      old_spaces = '  ' * (tabs - 1)
+      spaces = '  ' * tabs
+      if style != :compressed
+        if @options[:debug_info]
+          to_return &lt;&lt; debug_info_rule.to_s(tabs) &lt;&lt; &quot;\n&quot;
+        elsif @options[:line_comments]
           to_return &lt;&lt; &quot;#{old_spaces}/* line #{line}&quot;
 
           if filename
             relative_filename = if @options[:css_filename]
               begin
-                Pathname.new(filename).relative_path_from(  
+                Pathname.new(filename).relative_path_from(
                   Pathname.new(File.dirname(@options[:css_filename]))).to_s
               rescue ArgumentError
                 nil
@@ -142,99 +180,111 @@ module Sass::Tree
 
           to_return &lt;&lt; &quot; */\n&quot;
         end
-
-        if style == :compact
-          properties = properties.map { |a| a.to_s(1) }.select{|a| a &amp;&amp; a.length &gt; 0}.join(' ')
-          to_return &lt;&lt; &quot;#{total_rule} { #{properties} }\n&quot;
-        elsif style == :compressed
-          properties = properties.map { |a| a.to_s(1) }.select{|a| a &amp;&amp; a.length &gt; 0}.join(';')
-          to_return &lt;&lt; &quot;#{total_rule}{#{properties}}&quot;
-        else
-          properties = properties.map { |a| a.to_s(tabs + 1) }.select{|a| a &amp;&amp; a.length &gt; 0}.join(&quot;\n&quot;)
-          end_props = (style == :expanded ? &quot;\n&quot; + old_spaces : ' ')
-          to_return &lt;&lt; &quot;#{total_rule} {\n#{properties}#{end_props}}\n&quot;
-        end
       end
 
-      tabs += 1 unless properties.empty? || style != :nested
-      sub_rules.each do |sub|
-        to_return &lt;&lt; sub.to_s(tabs, resolved_rules)
+      if style == :compact
+        properties = children.map { |a| a.to_s(1) }.join(' ')
+        to_return &lt;&lt; &quot;#{total_rule} { #{properties} }#{&quot;\n&quot; if group_end}&quot;
+      elsif style == :compressed
+        properties = children.map { |a| a.to_s(1) }.join(';')
+        to_return &lt;&lt; &quot;#{total_rule}{#{properties}}&quot;
+      else
+        properties = children.map { |a| a.to_s(tabs + 1) }.join(&quot;\n&quot;)
+        end_props = (style == :expanded ? &quot;\n&quot; + old_spaces : ' ')
+        to_return &lt;&lt; &quot;#{total_rule} {\n#{properties}#{end_props}}#{&quot;\n&quot; if group_end}&quot;
       end
 
       to_return
     end
 
-    protected
-
-    # Runs any SassScript that may be embedded in the rule,
-    # and parses the selectors for commas.
+    # Runs SassScript interpolation in the selector,
+    # and then parses the result into a {Sass::Selector::CommaSequence}.
     #
     # @param environment [Sass::Environment] The lexical environment containing
     #   variable and mixin values
     def perform!(environment)
-      @parsed_rules = @rules.map {|r| parse_selector(interpolate(r, environment))}
+      @parsed_rules = Sass::SCSS::StaticParser.new(run_interp(@rule, environment), self.line).
+        parse_selector(self.filename)
       super
+    end
+
+    # Converts nested rules into a flat list of rules.
+    #
+    # @param extends [Haml::Util::SubsetMap{Selector::Simple =&gt; Selector::Sequence}]
+    #   The extensions defined for this tree
+    # @param parent [RuleNode, nil] The parent node of this node,
+    #   or nil if the parent isn't a {RuleNode}
+    def _cssize(extends, parent)
+      node = super
+      rules = node.children.select {|c| c.is_a?(RuleNode)}
+      props = node.children.reject {|c| c.is_a?(RuleNode) || c.invisible?}
+
+      unless props.empty?
+        node.children = props
+        rules.each {|r| r.tabs += 1} if style == :nested
+        rules.unshift(node)
+      end
+
+      rules.last.group_end = true unless parent || rules.empty?
+
+      rules
+    end
+
+    # Resolves parent references and nested selectors,
+    # and updates the indentation based on the parent's indentation.
+    #
+    # @param extends [Haml::Util::SubsetMap{Selector::Simple =&gt; Selector::Sequence}]
+    #   The extensions defined for this tree
+    # @param parent [RuleNode, nil] The parent node of this node,
+    #   or nil if the parent isn't a {RuleNode}
+    # @raise [Sass::SyntaxError] if the rule has no parents but uses `&amp;`
+    def cssize!(extends, parent)
+      self.resolved_rules = @parsed_rules.resolve_parent_refs(parent &amp;&amp; parent.resolved_rules)
+      super
+    end
+
+    # Returns an error message if the given child node is invalid,
+    # and false otherwise.
+    #
+    # {ExtendNode}s are valid within {RuleNode}s.
+    #
+    # @param child [Tree::Node] A potential child node.
+    # @return [Boolean, String] Whether or not the child node is valid,
+    #   as well as the error message to display if it is invalid
+    def invalid_child?(child)
+      super unless child.is_a?(ExtendNode)
+    end
+
+    # A hash that will be associated with this rule in the CSS document
+    # if the {file:SASS_REFERENCE.md#debug_info-option `:debug_info` option} is enabled.
+    # This data is used by e.g. [the FireSass Firebug extension](https://addons.mozilla.org/en-US/firefox/addon/103988).
+    #
+    # @return [{#to_s =&gt; #to_s}]
+    def debug_info
+      {:filename =&gt; filename &amp;&amp; (&quot;file://&quot; + URI.escape(File.expand_path(filename))),
+       :line =&gt; self.line}
     end
 
     private
 
-    def resolve_parent_refs(super_rules)
-      if super_rules.nil?
-        return @parsed_rules.map do |line|
-          line.map do |rule|
-            if rule.include?(:parent)
-              raise Sass::SyntaxError.new(&quot;Base-level rules cannot contain the parent-selector-referencing character '#{PARENT}'.&quot;, self.line)
-            end
-
-            rule.join
-          end.compact
-        end
+    def debug_info_rule
+      node = DirectiveNode.new(&quot;@media -sass-debug-info&quot;)
+      debug_info.map {|k, v| [k.to_s, v.to_s]}.sort.each do |k, v|
+        rule = RuleNode.new([&quot;&quot;])
+        rule.resolved_rules = Sass::Selector::CommaSequence.new(
+          [Sass::Selector::Sequence.new(
+              [Sass::Selector::SimpleSequence.new(
+                  [Sass::Selector::Element.new(k.to_s.gsub(/[^\w-]/, &quot;\\\\\\0&quot;), nil)])
+              ])
+          ])
+        prop = PropNode.new([&quot;&quot;], &quot;&quot;, :new)
+        prop.resolved_name = &quot;font-family&quot;
+        prop.resolved_value = Sass::SCSS::RX.escape_ident(v.to_s)
+        rule &lt;&lt; prop
+        node &lt;&lt; rule
       end
-
-      new_rules = []
-      super_rules.each do |super_line|
-        @parsed_rules.each do |line|
-          new_rules &lt;&lt; []
-
-          super_line.each do |super_rule|
-            line.each do |rule|
-              rule = [:parent, &quot; &quot;, *rule] unless rule.include?(:parent)
-
-              new_rules.last &lt;&lt; rule.map do |segment|
-                next segment unless segment == :parent
-                super_rule
-              end.join
-            end
-          end
-        end
-      end
-      new_rules
-    end
-
-    def parse_selector(text)
-      scanner = StringScanner.new(text)
-      rules = [[]]
-
-      while scanner.rest?
-        rules.last &lt;&lt; scanner.scan(/[^&quot;,&amp;]*/)
-        case scanner.scan(/./)
-        when '&amp;'; rules.last &lt;&lt; :parent
-        when ','
-          scanner.scan(/\s*/)
-          rules &lt;&lt; [] if scanner.rest?
-        when '&quot;'
-          rules.last &lt;&lt; '&quot;' &lt;&lt; scanner.scan(/([^&quot;\\]|\\.)*/)
-          # We don't want to enforce that strings are closed,
-          # but we do want to consume quotes or trailing backslashes.
-          rules.last &lt;&lt; scanner.scan(/./) if scanner.rest?
-        end
-      end
-
-      rules.map! do |l|
-        Haml::Util.merge_adjacent_strings(l).reject {|r| r.is_a?(String) &amp;&amp; r.empty?}
-      end
-
-      rules
+      node.options = @options.merge(:debug_info =&gt; false, :line_comments =&gt; false, :style =&gt; :compressed)
+      node
     end
   end
 end

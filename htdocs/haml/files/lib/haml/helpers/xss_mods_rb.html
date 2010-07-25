@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:51:54 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -36,45 +36,46 @@
       def html_escape_with_haml_xss(text)
         str = text.to_s
         return text if str.html_safe?
-        html_escape_without_haml_xss(str).html_safe!
+        Haml::Util.html_safe(html_escape_without_haml_xss(str))
       end
 
       # Output is always HTML safe
       def find_and_preserve_with_haml_xss(*args, &amp;block)
-        find_and_preserve_without_haml_xss(*args, &amp;block).html_safe!
+        Haml::Util.html_safe(find_and_preserve_without_haml_xss(*args, &amp;block))
       end
 
       # Output is always HTML safe
       def preserve_with_haml_xss(*args, &amp;block)
-        preserve_without_haml_xss(*args, &amp;block).html_safe!
+        Haml::Util.html_safe(preserve_without_haml_xss(*args, &amp;block))
       end
 
       # Output is always HTML safe
       def list_of_with_haml_xss(*args, &amp;block)
-        list_of_without_haml_xss(*args, &amp;block).html_safe!
+        Haml::Util.html_safe(list_of_without_haml_xss(*args, &amp;block))
       end
 
       # Input is escaped, output is always HTML safe
       def surround_with_haml_xss(front, back = front, &amp;block)
-        surround_without_haml_xss(
-          haml_xss_html_escape(front),
-          haml_xss_html_escape(back),
-          &amp;block).html_safe!
+        Haml::Util.html_safe(
+          surround_without_haml_xss(
+            haml_xss_html_escape(front),
+            haml_xss_html_escape(back),
+            &amp;block))
       end
 
       # Input is escaped, output is always HTML safe
       def precede_with_haml_xss(str, &amp;block)
-        precede_without_haml_xss(haml_xss_html_escape(str), &amp;block).html_safe!
+        Haml::Util.html_safe(precede_without_haml_xss(haml_xss_html_escape(str), &amp;block))
       end
 
       # Input is escaped, output is always HTML safe
       def succeed_with_haml_xss(str, &amp;block)
-        succeed_without_haml_xss(haml_xss_html_escape(str), &amp;block).html_safe!
+        Haml::Util.html_safe(succeed_without_haml_xss(haml_xss_html_escape(str), &amp;block))
       end
 
       # Output is always HTML safe
       def capture_haml_with_haml_xss(*args, &amp;block)
-        capture_haml_without_haml_xss(*args, &amp;block).html_safe!
+        Haml::Util.html_safe(capture_haml_without_haml_xss(*args, &amp;block))
       end
 
       # Input is escaped
@@ -84,7 +85,7 @@
 
       # Output is always HTML safe
       def haml_indent_with_haml_xss
-        haml_indent_without_haml_xss.html_safe!
+        Haml::Util.html_safe(haml_indent_without_haml_xss)
       end
 
       # Input is escaped, haml_concat'ed output is always HTML safe
@@ -96,7 +97,7 @@
 
       # Output is always HTML safe
       def escape_once_with_haml_xss(*args)
-        escape_once_without_haml_xss(*args).html_safe!
+        Haml::Util.html_safe(escape_once_without_haml_xss(*args))
       end
 
       private
@@ -106,6 +107,75 @@
       def haml_xss_html_escape(text)
         return text unless Haml::Util.rails_xss_safe? &amp;&amp; haml_buffer.options[:escape_html]
         html_escape(text)
+      end
+    end
+
+    class ErrorReturn
+      # Any attempt to treat ErrorReturn as a string should cause it to blow up.
+      alias_method :html_safe, :to_s
+      alias_method :html_safe?, :to_s
+      alias_method :html_safe!, :to_s
+    end
+  end
+end
+
+module ActionView
+  module Helpers
+    module CaptureHelper
+      def with_output_buffer_with_haml_xss(*args, &amp;block)
+        res = with_output_buffer_without_haml_xss(*args, &amp;block)
+        case res
+        when Array; res.map {|s| Haml::Util.html_safe(s)}
+        when String; Haml::Util.html_safe(res)
+        else; res
+        end
+      end
+      alias_method :with_output_buffer_without_haml_xss, :with_output_buffer
+      alias_method :with_output_buffer, :with_output_buffer_with_haml_xss
+    end
+
+    module FormTagHelper
+      def form_tag_with_haml_xss(*args, &amp;block)
+        res = form_tag_without_haml_xss(*args, &amp;block)
+        res = Haml::Util.html_safe(res) unless block_given?
+        res
+      end
+      alias_method :form_tag_without_haml_xss, :form_tag
+      alias_method :form_tag, :form_tag_with_haml_xss
+    end
+
+    module FormHelper
+      def form_for_with_haml_xss(*args, &amp;block)
+        res = form_for_without_haml_xss(*args, &amp;block)
+        return Haml::Util.html_safe(res) if res.is_a?(String)
+        return res
+      end
+      alias_method :form_for_without_haml_xss, :form_for
+      alias_method :form_for, :form_for_with_haml_xss
+    end
+
+    module TextHelper
+      def concat_with_haml_xss(string)
+        if is_haml?
+          haml_buffer.buffer.concat(haml_xss_html_escape(string))
+        else
+          concat_without_haml_xss(string)
+        end
+      end
+      alias_method :concat_without_haml_xss, :concat
+      alias_method :concat, :concat_with_haml_xss
+
+      # safe_concat was introduced in Rails 3.0
+      if Haml::Util.has?(:instance_method, self, :safe_concat)
+        def safe_concat_with_haml_xss(string)
+          if is_haml?
+            haml_buffer.buffer.concat(string)
+          else
+            safe_concat_without_haml_xss(string)
+          end
+        end
+        alias_method :safe_concat_without_haml_xss, :safe_concat
+        alias_method :safe_concat, :safe_concat_with_haml_xss
       end
     end
   end

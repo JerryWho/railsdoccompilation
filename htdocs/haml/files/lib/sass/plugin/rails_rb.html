@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,15 +18,23 @@
     <pre>unless defined?(Sass::RAILS_LOADED)
   Sass::RAILS_LOADED = true
 
-  Sass::Plugin.options.merge!(:template_location =&gt; Haml::Util.rails_root + '/public/stylesheets/sass',
-                              :css_location      =&gt; Haml::Util.rails_root + '/public/stylesheets',
-                              :cache_location    =&gt; Haml::Util.rails_root + '/tmp/sass-cache',
-                              :always_check      =&gt; RAILS_ENV != &quot;production&quot;,
-                              :full_exception    =&gt; RAILS_ENV != &quot;production&quot;)
+  # Reverse-merging (we're in Rails, anyway) so we dont' clobber what's already been defined further up-stream
+  Sass::Plugin.options.reverse_merge!(:template_location =&gt; Haml::Util.rails_root + '/public/stylesheets/sass',
+                                      :css_location      =&gt; Haml::Util.rails_root + '/public/stylesheets',
+                                      :cache_location    =&gt; Haml::Util.rails_root + '/tmp/sass-cache',
+                                      :always_check      =&gt; Haml::Util.rails_env == &quot;development&quot;,
+                                      :quiet             =&gt; Haml::Util.rails_env != &quot;production&quot;,
+                                      :full_exception    =&gt; Haml::Util.rails_env != &quot;production&quot;)
 
-  if defined?(ActionDispatch::Callbacks.to_prepare)
-    # Rails &gt;= 3.0.0
-    ActionDispatch::Callbacks.to_prepare(:sass_process) {Sass::Plugin.check_for_updates}
+  if defined?(ActionController::Metal)
+    # Rails &gt;= 3.0
+    require 'sass/plugin/rack'
+    Rails.configuration.middleware.use(Sass::Plugin::Rack)
+  elsif defined?(ActionController::Dispatcher) &amp;&amp;
+      defined?(ActionController::Dispatcher.middleware)
+    # Rails &gt;= 2.3
+    require 'sass/plugin/rack'
+    ActionController::Dispatcher.middleware.use(Sass::Plugin::Rack)
   else
     module ActionController
       class Base

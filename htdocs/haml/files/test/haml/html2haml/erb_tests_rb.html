@@ -1,0 +1,429 @@
+  <div id="fileHeader">
+    <h1>erb_tests.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/haml/html2haml/erb_tests.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Thu Dec 17 23:17:27 +0100 2009</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module ErbTests
+  def test_erb
+    assert_equal '- foo = bar', render_erb('&lt;% foo = bar %&gt;')
+    assert_equal '- foo = bar', render_erb('&lt;% foo = bar -%&gt;')
+    assert_equal '= h @item.title', render_erb('&lt;%=h @item.title %&gt;')
+    assert_equal '= h @item.title', render_erb('&lt;%=h @item.title -%&gt;')
+  end
+
+  def test_inline_erb
+    assert_equal(&quot;%p= foo&quot;, render_erb(&quot;&lt;p&gt;&lt;%= foo %&gt;&lt;/p&gt;&quot;))
+  end
+
+  def test_non_inline_erb
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+%p
+  = foo
+HAML
+&lt;p&gt;
+  &lt;%= foo %&gt;
+&lt;/p&gt;
+HTML
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+%p
+  = foo
+HAML
+&lt;p&gt;
+  &lt;%= foo %&gt;&lt;/p&gt;
+HTML
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+%p
+  = foo
+HAML
+&lt;p&gt;&lt;%= foo %&gt;
+&lt;/p&gt;
+HTML
+  end
+
+  def test_erb_in_cdata
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+:cdata
+  Foo \#{bar} baz
+HAML
+&lt;![CDATA[Foo &lt;%= bar %&gt; baz]]&gt;
+HTML
+  end
+
+  def test_erb_in_script
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+:javascript
+  function foo() {
+    return \#{foo.to_json};
+  }
+HAML
+&lt;script type=&quot;text/javascript&quot;&gt;
+  function foo() {
+    return &lt;%= foo.to_json %&gt;;
+  }
+&lt;/script&gt;
+HTML
+  end
+
+  def test_erb_in_style
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;HTML))
+:css
+  foo {
+      bar: \#{&quot;baz&quot;};
+  }
+HAML
+&lt;style type=&quot;text/css&quot;&gt;
+    foo {
+        bar: &lt;%= &quot;baz&quot; %&gt;;
+    }
+&lt;/style&gt;
+HTML
+  end
+
+  def test_erb_in_line
+    assert_equal 'foo bar #{baz}', render_erb('foo bar &lt;%= baz %&gt;')
+    assert_equal 'foo bar #{baz}! Bang.', render_erb('foo bar &lt;%= baz %&gt;! Bang.')
+  end
+
+  def test_erb_multi_in_line
+    assert_equal('foo bar #{baz}! Bang #{bop}.',
+      render_erb('foo bar &lt;%= baz %&gt;! Bang &lt;%= bop %&gt;.'))
+    assert_equal('foo bar #{baz}#{bop}!',
+      render_erb('foo bar &lt;%= baz %&gt;&lt;%= bop %&gt;!'))
+  end
+
+  def test_erb_with_html_special_chars
+    assert_equal '= 3 &lt; 5 ? &quot;OK&quot; : &quot;Your computer is b0rken&quot;',
+      render_erb('&lt;%= 3 &lt; 5 ? &quot;OK&quot; : &quot;Your computer is b0rken&quot; %&gt;')
+  end
+
+  def test_erb_in_class_attribute
+    assert_equal &quot;%div{:class =&gt; dyna_class} I have a dynamic attribute&quot;,
+      render_erb('&lt;div class=&quot;&lt;%= dyna_class %&gt;&quot;&gt;I have a dynamic attribute&lt;/div&gt;')
+  end
+
+  def test_erb_in_id_attribute
+    assert_equal &quot;%div{:id =&gt; dyna_id} I have a dynamic attribute&quot;,
+      render_erb('&lt;div id=&quot;&lt;%= dyna_id %&gt;&quot;&gt;I have a dynamic attribute&lt;/div&gt;')
+  end
+
+  def test_erb_in_attribute_results_in_string_interpolation
+    assert_equal('%div{:id =&gt; &quot;item_#{i}&quot;} Ruby string interpolation FTW',
+      render_erb('&lt;div id=&quot;item_&lt;%= i %&gt;&quot;&gt;Ruby string interpolation FTW&lt;/div&gt;'))
+  end
+
+  def test_erb_in_attribute_with_trailing_content
+    assert_equal('%div{:class =&gt; &quot;#{12}!&quot;} Bang!',
+      render_erb('&lt;div class=&quot;&lt;%= 12 %&gt;!&quot;&gt;Bang!&lt;/div&gt;'))
+  end
+
+  def test_erb_in_html_escaped_attribute
+    assert_equal '%div{:class =&gt; &quot;foo&quot;} Bang!',
+      render_erb('&lt;div class=&quot;&lt;%= &quot;foo&quot; %&gt;&quot;&gt;Bang!&lt;/div&gt;')
+  end
+
+  def test_erb_in_attribute_to_multiple_interpolations
+    assert_equal('%div{:class =&gt; &quot;#{12} + #{13}&quot;} Math is super',
+      render_erb('&lt;div class=&quot;&lt;%= 12 %&gt; + &lt;%= 13 %&gt;&quot;&gt;Math is super&lt;/div&gt;'))
+  end
+
+  def test_whitespace_eating_erb_tags
+    assert_equal '- form_for', render_erb('&lt;%- form_for -%&gt;')
+  end
+
+  def test_interpolation_in_erb
+    assert_equal('= &quot;Foo #{bar} baz&quot;', render_erb('&lt;%= &quot;Foo #{bar} baz&quot; %&gt;'))
+  end
+
+  def test_interpolation_in_erb_attrs
+    assert_equal('%p{:foo =&gt; &quot;#{bar} baz&quot;}',
+      render_erb('&lt;p foo=&quot;&lt;%= &quot;#{bar} baz&quot; %&gt;&quot;&gt;&lt;/p&gt;'))
+  end
+
+  def test_multiline_erb_silent_script
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  - foo
+  - bar
+  - baz
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%
+    foo
+    bar
+    baz
+  %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  def test_multiline_erb_loud_script
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  = foo +            |
+      bar.baz.bang + |
+    baz              |
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%=
+    foo +
+      bar.baz.bang +
+    baz
+  %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  def test_weirdly_indented_multiline_erb_loud_script
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  = foo +          |
+    bar.baz.bang + |
+    baz            |
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%=
+    foo +
+  bar.baz.bang +
+    baz
+  %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  def test_two_multiline_erb_loud_scripts
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  = foo +          |
+    bar.baz.bang + |
+    baz            |
+  -#
+  = foo.bar do |
+      bang     |
+    end        |
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%=
+    foo +
+    bar.baz.bang +
+    baz
+  %&gt;
+  &lt;%= foo.bar do
+        bang
+      end %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  def test_multiline_then_single_line_erb_loud_scripts
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  = foo +          |
+    bar.baz.bang + |
+    baz            |
+  = foo.bar
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%=
+    foo +
+    bar.baz.bang +
+    baz
+  %&gt;
+  &lt;%= foo.bar %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  def test_multiline_erb_but_really_single_line
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+.blah
+  = foo
+  %p foo
+HAML
+&lt;div class=&quot;blah&quot;&gt;
+  &lt;%=
+    foo
+  %&gt;
+  &lt;p&gt;foo&lt;/p&gt;
+&lt;/div&gt;
+ERB
+  end
+
+  ### Block Parsing
+
+  def test_block_parsing
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- foo do
+  %p bar
+HAML
+&lt;% foo do %&gt;
+  &lt;p&gt;bar&lt;/p&gt;
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_block_parsing_with_args
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- foo do |a, b, c|
+  %p bar
+HAML
+&lt;% foo do |a, b, c| %&gt;
+  &lt;p&gt;bar&lt;/p&gt;
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_block_parsing_with_equals
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+= foo do
+  %p bar
+HAML
+&lt;%= foo do %&gt;
+  &lt;p&gt;bar&lt;/p&gt;
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_block_parsing_with_modified_end
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- foo do
+  blah
+- end.bip
+HAML
+&lt;% foo do %&gt;
+  blah
+&lt;% end.bip %&gt;
+ERB
+  end
+
+  def test_block_parsing_with_modified_end_with_block
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- foo do
+  blah
+- end.bip do
+  brang
+HAML
+&lt;% foo do %&gt;
+  blah
+&lt;% end.bip do %&gt;
+  brang
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_multiline_block_opener
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- foo bar
+- baz bang
+- biddle do
+  foo
+HAML
+&lt;% foo bar
+  baz bang
+  biddle do %&gt;
+    foo
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_if_elsif_else_parsing
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- if foo
+  %p bar
+- elsif bar.foo(&quot;zip&quot;)
+  #bang baz
+- else
+  %strong bibble
+HAML
+&lt;% if foo %&gt;
+  &lt;p&gt;bar&lt;/p&gt;
+&lt;% elsif bar.foo(&quot;zip&quot;) %&gt;
+  &lt;div id=&quot;bang&quot;&gt;baz&lt;/div&gt;
+&lt;% else %&gt;
+  &lt;strong&gt;bibble&lt;/strong&gt;
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_case_when_parsing
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- case foo.bar
+- when &quot;bip&quot;
+  %p bip
+- when &quot;bop&quot;
+  %p BOP
+- when bizzle.bang.boop.blip
+  %em BIZZLE BANG BOOP BLIP
+HAML
+&lt;% case foo.bar %&gt;
+&lt;% when &quot;bip&quot; %&gt;
+  &lt;p&gt;bip&lt;/p&gt;
+&lt;% when &quot;bop&quot; %&gt;
+  &lt;p&gt;BOP&lt;/p&gt;
+&lt;% when bizzle.bang.boop.blip %&gt;
+  &lt;em&gt;BIZZLE BANG BOOP BLIP&lt;/em&gt;
+&lt;% end %&gt;
+ERB
+
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- case foo.bar
+- when &quot;bip&quot;
+  %p bip
+- when &quot;bop&quot;
+  %p BOP
+- when bizzle.bang.boop.blip
+  %em BIZZLE BANG BOOP BLIP
+HAML
+&lt;% case foo.bar
+   when &quot;bip&quot; %&gt;
+  &lt;p&gt;bip&lt;/p&gt;
+&lt;% when &quot;bop&quot; %&gt;
+  &lt;p&gt;BOP&lt;/p&gt;
+&lt;% when bizzle.bang.boop.blip %&gt;
+  &lt;em&gt;BIZZLE BANG BOOP BLIP&lt;/em&gt;
+&lt;% end %&gt;
+ERB
+  end
+
+  def test_begin_rescue_ensure
+    assert_equal(&lt;&lt;HAML.rstrip, render_erb(&lt;&lt;ERB))
+- begin
+  %p a
+- rescue FooException =&gt; e
+  %p b
+- ensure
+  %p c
+HAML
+&lt;% begin %&gt;
+  &lt;p&gt;a&lt;/p&gt;
+&lt;% rescue FooException =&gt; e %&gt;
+  &lt;p&gt;b&lt;/p&gt;
+&lt;% ensure %&gt;
+  &lt;p&gt;c&lt;/p&gt;
+&lt;% end %&gt;
+ERB
+  end
+end
+</pre>
+    </div>

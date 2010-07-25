@@ -1,0 +1,50 @@
+  <div id="fileHeader">
+    <h1>css_parser.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/script/css_parser.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'sass/script'
+require 'sass/script/css_lexer'
+
+module Sass
+  module Script
+    # This is a subclass of {Parser} for use in parsing plain CSS properties.
+    #
+    # @see Sass::SCSS::CssParser
+    class CssParser &lt; Parser
+      private
+
+      # @private
+      def lexer_class; CssLexer; end
+
+      # We need a production that only does /,
+      # since * and % aren't allowed in plain CSS
+      production :div, :unary_plus, :div
+
+      def string
+        return number unless tok = try_tok(:string)
+        return tok.value unless @lexer.peek &amp;&amp; @lexer.peek.type == :begin_interpolation
+      end
+
+      # Short-circuit all the SassScript-only productions
+      alias_method :interpolation, :concat
+      alias_method :or_expr, :div
+      alias_method :unary_div, :ident
+      alias_method :paren, :string
+    end
+  end
+end
+</pre>
+    </div>

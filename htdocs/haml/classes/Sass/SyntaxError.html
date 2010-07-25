@@ -1,4 +1,4 @@
-  <div id="C00000091">
+  <div id="C00000183">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />SyntaxError<br/>
   In:
@@ -14,14 +14,32 @@ StandardError
 
   <div class="description"><p>
 An exception class that keeps track of the line of the <a
-href="index.html?a=C00000062&name=Sass">Sass</a> template it was raised on
-and the <a href="index.html?a=C00000062&name=Sass">Sass</a> file that was
+href="index.html?a=C00000111&name=Sass">Sass</a> template it was raised on
+and the <a href="index.html?a=C00000111&name=Sass">Sass</a> file that was
 being parsed (if applicable).
 </p>
 <p>
-All <a href="index.html?a=C00000062&name=Sass">Sass</a> errors are raised
+All <a href="index.html?a=C00000111&name=Sass">Sass</a> errors are raised
 as {<a
-href="index.html?a=C00000091&name=Sass::SyntaxError">Sass::SyntaxError</a>}s.
+href="index.html?a=C00000183&name=Sass::SyntaxError">Sass::SyntaxError</a>}s.
+</p>
+<p>
+When dealing with SyntaxErrors, it&#8217;s important to provide filename
+and line number information. This will be used in various error reports to
+users, including backtraces; see \{sass_backtrace} for details.
+</p>
+<p>
+Some of this information is usually provided as part of the constructor.
+New backtrace entries can be added with \{add_backtrace}, which is called
+when an exception is raised between files (e.g. with `@import`).
+</p>
+<p>
+Often, a chunk of code will all have similar backtrace information - the
+same filename or even line. It may also be useful to have a default line
+number set. In those situations, the default values can be used by omitting
+the information on the original exception, and then calling
+\{modify_backtrace} in a wrapper `rescue`. When doing this, be sure that
+all exceptions ultimately end up with the information filled in.
 </p>
 </div>
 
@@ -29,9 +47,16 @@ href="index.html?a=C00000091&name=Sass::SyntaxError">Sass::SyntaxError</a>}s.
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000611&name=add_metadata" >add_metadata</a></li>
-  <li><a href="index.html?a=M000610&name=new" >new</a></li>
-  <li><a href="index.html?a=M000612&name=to_s" >to_s</a></li>
+  <li><a href="index.html?a=M001671&name=add_backtrace" >add_backtrace</a></li>
+  <li><a href="index.html?a=M001674&name=backtrace" >backtrace</a></li>
+  <li><a href="index.html?a=M001676&name=exception_to_css" >exception_to_css</a></li>
+  <li><a href="index.html?a=M001672&name=modify_backtrace" >modify_backtrace</a></li>
+  <li><a href="index.html?a=M001667&name=new" >new</a></li>
+  <li><a href="index.html?a=M001675&name=sass_backtrace_str" >sass_backtrace_str</a></li>
+  <li><a href="index.html?a=M001668&name=sass_filename" >sass_filename</a></li>
+  <li><a href="index.html?a=M001670&name=sass_line" >sass_line</a></li>
+  <li><a href="index.html?a=M001669&name=sass_mixin" >sass_mixin</a></li>
+  <li><a href="index.html?a=M001673&name=to_s" >to_s</a></li>
   </ul>
 
 
@@ -42,15 +67,37 @@ href="index.html?a=C00000091&name=Sass::SyntaxError">Sass::SyntaxError</a>}s.
   <table border='0' cellpadding='5'>
   <tr valign='top'>
     <td class='attr-rw'>
-[R]
+[RW]
     </td>
-    <td class='attr-name'>sass_filename</td>
+    <td class='attr-name'>sass_backtrace</td>
     <td class='attr-desc'>
-The name of the file that was being parsed when the exception was raised.
-This could be `nil` if no filename is available.
+The backtrace of the error within <a
+href="index.html?a=C00000111&name=Sass">Sass</a> files. This is an array of
+hashes containing information for a single entry. The hashes have the
+following keys:
 
 <p>
-@return [String]
+`:filename` : The name of the file in which the exception was raised,
+</p>
+<pre>
+  or `nil` if no filename is available.
+</pre>
+<p>
+`:mixin` : The name of the mixin in which the exception was raised,
+</p>
+<pre>
+  or `nil` if it wasn't raised in a mixin.
+</pre>
+<p>
+`:line` : The line of the file on which the error occurred. Never nil.
+</p>
+<p>
+This information is also included in standard backtrace format in the
+output of \{<a href="index.html?a=M001674&name=backtrace">backtrace</a>}.
+</p>
+<p>
+@return [Aray&lt;{Symbol =&gt; <a
+href="index.html?a=C00000008&name=Object">Object</a>&gt;}]
 </p>
 </td>
   </tr>
@@ -58,75 +105,298 @@ This could be `nil` if no filename is available.
     <td class='attr-rw'>
 [RW]
     </td>
-    <td class='attr-name'>sass_line</td>
+    <td class='attr-name'>sass_template</td>
     <td class='attr-desc'>
-The line of the <a href="index.html?a=C00000062&name=Sass">Sass</a>
-template on which the error occurred.
+The text of the template where this error was raised.
 
 <p>
-@return [Fixnum]
+@return [String]
 </p>
 </td>
   </tr>
   </table>
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000610" class="method">
-  <div id="M000610_title" class="title">
-    <b>new</b>(msg, lineno = nil)
+<div id="M001676" class="method">
+  <div id="M001676_title" class="title">
+    <b>exception_to_css</b>(e, options)
   </div>
   <div class="description">
   <p>
-@param msg [String] The error message @param lineno [Fixnum] See
-\{sass_line}
+Returns an error report for an exception in <a
+href="index.html?a=C00000181&name=CSS">CSS</a> format.
 </p>
+<p>
+@param e [Exception] @param options [{Symbol =&gt; <a
+href="index.html?a=C00000008&name=Object">Object</a>}] The options passed
+to {Sass::Engine#initialize} @return [String] The error report @raise
+[Exception] `e`, if the
+</p>
+<pre>
+  {file:SASS_REFERENCE.md#full_exception-option `:full_exception`} option
+  is set to false.
+</pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000610_source')" id="l_M000610_source">show source</a> ]</p>
-  <div id="M000610_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001676_source')" id="l_M001676_source">show source</a> ]</p>
+  <div id="M001676_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 21</span>
-21:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">msg</span>, <span class="ruby-identifier">lineno</span> = <span class="ruby-keyword kw">nil</span>)
-22:       <span class="ruby-ivar">@message</span> = <span class="ruby-identifier">msg</span>
-23:       <span class="ruby-ivar">@sass_line</span> = <span class="ruby-identifier">lineno</span>
-24:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/sass/error.rb, line 160</span>
+160:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">exception_to_css</span>(<span class="ruby-identifier">e</span>, <span class="ruby-identifier">options</span>)
+161:         <span class="ruby-identifier">raise</span> <span class="ruby-identifier">e</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:full_exception</span>]
+162: 
+163:         <span class="ruby-identifier">header</span> = <span class="ruby-identifier">header_string</span>(<span class="ruby-identifier">e</span>, <span class="ruby-identifier">options</span>)
+164: 
+165:         <span class="ruby-value str">&quot;/*\n\#{header}\n\nBacktrace:\\n\#{e.backtrace.join(\&quot;\\n\&quot;)}\n*/\nbody:before {\n  white-space: pre;\n  font-family: monospace;\n  content: \&quot;\#{header.gsub('\&quot;', '\\\&quot;').gsub(\&quot;\\n\&quot;, '\\\\A ')}\&quot;; }\n&quot;</span>
+166:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001667" class="method">
+  <div id="M001667_title" class="title">
+    <b>new</b>(msg, attrs = {})
+  </div>
+  <div class="description">
+  <p>
+@param msg [String] The error message @param attrs [{Symbol =&gt; <a
+href="index.html?a=C00000008&name=Object">Object</a>}] The information in
+the backtrace entry.
+</p>
+<pre>
+  See \{#sass\_backtrace}
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001667_source')" id="l_M001667_source">show source</a> ]</p>
+  <div id="M001667_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 55</span>
+55:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>(<span class="ruby-identifier">msg</span>, <span class="ruby-identifier">attrs</span> = {})
+56:       <span class="ruby-ivar">@message</span> = <span class="ruby-identifier">msg</span>
+57:       <span class="ruby-ivar">@sass_backtrace</span> = []
+58:       <span class="ruby-identifier">add_backtrace</span>(<span class="ruby-identifier">attrs</span>)
+59:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000611" class="method">
-  <div id="M000611_title" class="title">
-    <b>add_metadata</b>(filename, line)
+<div id="M001671" class="method">
+  <div id="M001671_title" class="title">
+    <b>add_backtrace</b>(attrs)
   </div>
   <div class="description">
   <p>
-Add information about the filename and line on which the error was raised,
-and re-raises the exception.
+Adds an entry to the exception&#8217;s <a
+href="index.html?a=C00000111&name=Sass">Sass</a> backtrace.
 </p>
 <p>
-@param filename [String] See \{sass_filename} @param line [Fixnum] See
-\{sass_line} @raise [<a
-href="index.html?a=C00000091&name=Sass::SyntaxError">Sass::SyntaxError</a>]
-self
+@param attrs [{Symbol =&gt; <a
+href="index.html?a=C00000008&name=Object">Object</a>}] The information in
+the backtrace entry.
 </p>
+<pre>
+  See \{#sass\_backtrace}
+</pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000611_source')" id="l_M000611_source">show source</a> ]</p>
-  <div id="M000611_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001671_source')" id="l_M001671_source">show source</a> ]</p>
+  <div id="M001671_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 32</span>
-32:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_metadata</span>(<span class="ruby-identifier">filename</span>, <span class="ruby-identifier">line</span>)
-33:       <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">sass_line</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">line</span>
-34:       <span class="ruby-identifier">add_backtrace_entry</span>(<span class="ruby-identifier">filename</span>) <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">sass_filename</span>
-35:       <span class="ruby-identifier">raise</span> <span class="ruby-keyword kw">self</span>
-36:     <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 88</span>
+88:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">add_backtrace</span>(<span class="ruby-identifier">attrs</span>)
+89:       <span class="ruby-identifier">sass_backtrace</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">reject</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">k</span>, <span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-identifier">v</span>.<span class="ruby-identifier">nil?</span>}
+90:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000612" class="method">
-  <div id="M000612_title" class="title">
+<div id="M001674" class="method">
+  <div id="M001674_title" class="title">
+    <b>backtrace</b>()
+  </div>
+  <div class="description">
+  <p>
+Returns the standard exception backtrace, including the <a
+href="index.html?a=C00000111&name=Sass">Sass</a> backtrace.
+</p>
+<p>
+@return [Array&lt;String&gt;]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001674_source')" id="l_M001674_source">show source</a> ]</p>
+  <div id="M001674_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/sass/error.rb, line 126</span>
+126:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">backtrace</span>
+127:       <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span> <span class="ruby-keyword kw">if</span> <span class="ruby-keyword kw">super</span>.<span class="ruby-identifier">nil?</span>
+128:       <span class="ruby-identifier">sass_backtrace</span>.<span class="ruby-identifier">map</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">h</span><span class="ruby-operator">|</span>
+129:         <span class="ruby-node">&quot;#{h[:filename] || &quot;(sass)&quot;}:#{h[:line]}&quot;</span> <span class="ruby-operator">+</span>
+130:           (<span class="ruby-identifier">h</span>[<span class="ruby-identifier">:mixin</span>] <span class="ruby-operator">?</span> <span class="ruby-node">&quot;:in `#{h[:mixin]}'&quot;</span> <span class="ruby-operator">:</span> <span class="ruby-value str">&quot;&quot;</span>)
+131:       <span class="ruby-keyword kw">end</span> <span class="ruby-operator">+</span> <span class="ruby-keyword kw">super</span>
+132:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001672" class="method">
+  <div id="M001672_title" class="title">
+    <b>modify_backtrace</b>(attrs)
+  </div>
+  <div class="description">
+  <p>
+Modify the top <a href="index.html?a=C00000111&name=Sass">Sass</a>
+backtrace entries (that is, the most deeply nested ones) to have the given
+attributes.
+</p>
+<p>
+Specifically, this goes through the backtrace entries from most deeply
+nested to least, setting the given attributes for each entry. If an entry
+already has one of the given attributes set, the pre-existing attribute
+takes precedence and is not used for less deeply-nested entries (even if
+they don&#8217;t have that attribute set).
+</p>
+<p>
+@param attrs [{Symbol =&gt; <a
+href="index.html?a=C00000008&name=Object">Object</a>}] The information to
+add to the backtrace entry.
+</p>
+<pre>
+  See \{#sass\_backtrace}
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001672_source')" id="l_M001672_source">show source</a> ]</p>
+  <div id="M001672_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/sass/error.rb, line 106</span>
+106:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">modify_backtrace</span>(<span class="ruby-identifier">attrs</span>)
+107:       <span class="ruby-identifier">attrs</span> = <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">reject</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">k</span>, <span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-identifier">v</span>.<span class="ruby-identifier">nil?</span>}
+108:       <span class="ruby-comment cmt"># Move backwards through the backtrace</span>
+109:       (<span class="ruby-value">0</span><span class="ruby-operator">...</span><span class="ruby-identifier">sass_backtrace</span>.<span class="ruby-identifier">size</span>).<span class="ruby-identifier">to_a</span>.<span class="ruby-identifier">reverse</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+110:         <span class="ruby-identifier">entry</span> = <span class="ruby-identifier">sass_backtrace</span>[<span class="ruby-identifier">i</span>]
+111:         <span class="ruby-identifier">sass_backtrace</span>[<span class="ruby-identifier">i</span>] = <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">merge</span>(<span class="ruby-identifier">entry</span>)
+112:         <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">reject!</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">k</span>, <span class="ruby-identifier">v</span><span class="ruby-operator">|</span> <span class="ruby-identifier">entry</span>.<span class="ruby-identifier">include?</span>(<span class="ruby-identifier">k</span>)}
+113:         <span class="ruby-keyword kw">break</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">attrs</span>.<span class="ruby-identifier">empty?</span>
+114:       <span class="ruby-keyword kw">end</span>
+115:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001675" class="method">
+  <div id="M001675_title" class="title">
+    <b>sass_backtrace_str</b>(default_filename = &quot;an unknown file&quot;)
+  </div>
+  <div class="description">
+  <p>
+Returns a string representation of the <a
+href="index.html?a=C00000111&name=Sass">Sass</a> backtrace.
+</p>
+<p>
+@param default_filename [String] The filename to use for unknown files @see
+sass_backtrace @return [String]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001675_source')" id="l_M001675_source">show source</a> ]</p>
+  <div id="M001675_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/sass/error.rb, line 139</span>
+139:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sass_backtrace_str</span>(<span class="ruby-identifier">default_filename</span> = <span class="ruby-value str">&quot;an unknown file&quot;</span>)
+140:       <span class="ruby-identifier">lines</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">message</span>.<span class="ruby-identifier">split</span>(<span class="ruby-value str">&quot;\n&quot;</span>)
+141:       <span class="ruby-identifier">msg</span> = <span class="ruby-identifier">lines</span>[<span class="ruby-value">0</span>] <span class="ruby-operator">+</span> <span class="ruby-identifier">lines</span>[<span class="ruby-value">1</span><span class="ruby-operator">..</span><span class="ruby-value">-1</span>].
+142:         <span class="ruby-identifier">map</span> {<span class="ruby-operator">|</span><span class="ruby-identifier">l</span><span class="ruby-operator">|</span> <span class="ruby-value str">&quot;\n&quot;</span> <span class="ruby-operator">+</span> (<span class="ruby-value str">&quot; &quot;</span> <span class="ruby-operator">*</span> <span class="ruby-value str">&quot;Syntax error: &quot;</span>.<span class="ruby-identifier">size</span>) <span class="ruby-operator">+</span> <span class="ruby-identifier">l</span>}.<span class="ruby-identifier">join</span>
+143:       <span class="ruby-node">&quot;Syntax error: #{msg}&quot;</span> <span class="ruby-operator">+</span>
+144:         <span class="ruby-constant">Haml</span><span class="ruby-operator">::</span><span class="ruby-constant">Util</span>.<span class="ruby-identifier">enum_with_index</span>(<span class="ruby-identifier">sass_backtrace</span>).<span class="ruby-identifier">map</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">entry</span>, <span class="ruby-identifier">i</span><span class="ruby-operator">|</span>
+145:         <span class="ruby-node">&quot;\n        #{i == 0 ? &quot;on&quot; : &quot;from&quot;} line #{entry[:line]}&quot;</span> <span class="ruby-operator">+</span>
+146:           <span class="ruby-node">&quot; of #{entry[:filename] || default_filename}&quot;</span> <span class="ruby-operator">+</span>
+147:           (<span class="ruby-identifier">entry</span>[<span class="ruby-identifier">:mixin</span>] <span class="ruby-operator">?</span> <span class="ruby-node">&quot;, in `#{entry[:mixin]}'&quot;</span> <span class="ruby-operator">:</span> <span class="ruby-value str">&quot;&quot;</span>)
+148:       <span class="ruby-keyword kw">end</span>.<span class="ruby-identifier">join</span>
+149:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001668" class="method">
+  <div id="M001668_title" class="title">
+    <b>sass_filename</b>()
+  </div>
+  <div class="description">
+  <p>
+The name of the file in which the exception was raised. This could be `nil`
+if no filename is available.
+</p>
+<p>
+@return [String, nil]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001668_source')" id="l_M001668_source">show source</a> ]</p>
+  <div id="M001668_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 65</span>
+65:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sass_filename</span>
+66:       <span class="ruby-identifier">sass_backtrace</span>.<span class="ruby-identifier">first</span>[<span class="ruby-identifier">:filename</span>]
+67:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001670" class="method">
+  <div id="M001670_title" class="title">
+    <b>sass_line</b>()
+  </div>
+  <div class="description">
+  <p>
+The line of the <a href="index.html?a=C00000111&name=Sass">Sass</a>
+template on which the error occurred.
+</p>
+<p>
+@return [Fixnum]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001670_source')" id="l_M001670_source">show source</a> ]</p>
+  <div id="M001670_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 80</span>
+80:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sass_line</span>
+81:       <span class="ruby-identifier">sass_backtrace</span>.<span class="ruby-identifier">first</span>[<span class="ruby-identifier">:line</span>]
+82:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001669" class="method">
+  <div id="M001669_title" class="title">
+    <b>sass_mixin</b>()
+  </div>
+  <div class="description">
+  <p>
+The name of the mixin in which the error occurred. This could be `nil` if
+the error occurred outside a mixin.
+</p>
+<p>
+@return [Fixnum]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001669_source')" id="l_M001669_source">show source</a> ]</p>
+  <div id="M001669_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 73</span>
+73:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">sass_mixin</span>
+74:       <span class="ruby-identifier">sass_backtrace</span>.<span class="ruby-identifier">first</span>[<span class="ruby-identifier">:mixin</span>]
+75:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001673" class="method">
+  <div id="M001673_title" class="title">
     <b>to_s</b>()
   </div>
   <div class="description">
@@ -135,13 +405,13 @@ self
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000612_source')" id="l_M000612_source">show source</a> ]</p>
-  <div id="M000612_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001673_source')" id="l_M001673_source">show source</a> ]</p>
+  <div id="M001673_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/sass/error.rb, line 49</span>
-49:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">to_s</span>
-50:       <span class="ruby-ivar">@message</span>
-51:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/sass/error.rb, line 118</span>
+118:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">to_s</span>
+119:       <span class="ruby-ivar">@message</span>
+120:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>

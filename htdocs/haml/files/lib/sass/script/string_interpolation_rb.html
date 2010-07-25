@@ -1,0 +1,112 @@
+  <div id="fileHeader">
+    <h1>string_interpolation.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/script/string_interpolation.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Sass::Script
+  # A SassScript object representing `#{}` interpolation within a string.
+  #
+  # @see Interpolation
+  class StringInterpolation &lt; Node
+    # Interpolation in a string is of the form `&quot;before #{mid} after&quot;`,
+    # where `before` and `after` may include more interpolation.
+    #
+    # @param before [Node] The string before the interpolation
+    # @param mid [Node] The SassScript within the interpolation
+    # @param after [Node] The string after the interpolation
+    def initialize(before, mid, after)
+      @before = before
+      @mid = mid
+      @after = after
+    end
+
+    # @return [String] A human-readable s-expression representation of the interpolation
+    def inspect
+      &quot;(string_interpolation #{@before.inspect} #{@mid.inspect} #{@after.inspect})&quot;
+    end
+
+    # @see Node#to_sass
+    def to_sass(opts = {})
+      # We can get rid of all of this when we remove the deprecated :equals context
+      before_unquote, before_quote_char, before_str = parse_str(@before.to_sass(opts))
+      after_unquote, after_quote_char, after_str = parse_str(@after.to_sass(opts))
+      unquote = before_unquote || after_unquote ||
+        (before_quote_char &amp;&amp; !after_quote_char &amp;&amp; !after_str.empty?) ||
+        (!before_quote_char &amp;&amp; after_quote_char &amp;&amp; !before_str.empty?)
+      quote_char =
+        if before_quote_char &amp;&amp; after_quote_char &amp;&amp; before_quote_char != after_quote_char
+          before_str.gsub!(&quot;\\'&quot;, &quot;'&quot;)
+          before_str.gsub!('&quot;', &quot;\\\&quot;&quot;)
+          after_str.gsub!(&quot;\\'&quot;, &quot;'&quot;)
+          after_str.gsub!('&quot;', &quot;\\\&quot;&quot;)
+          '&quot;'
+        else
+          before_quote_char || after_quote_char
+        end
+
+      res = &quot;&quot;
+      res &lt;&lt; 'unquote(' if unquote
+      res &lt;&lt; quote_char if quote_char
+      res &lt;&lt; before_str
+      res &lt;&lt; '#{' &lt;&lt; @mid.to_sass(opts) &lt;&lt; '}'
+      res &lt;&lt; after_str
+      res &lt;&lt; quote_char if quote_char
+      res &lt;&lt; ')' if unquote
+      res
+    end
+
+    # Returns the three components of the interpolation, `before`, `mid`, and `after`.
+    #
+    # @return [Array&lt;Node&gt;]
+    # @see #initialize
+    # @see Node#children
+    def children
+      [@before, @mid, @after].compact
+    end
+
+    protected
+
+    # Evaluates the interpolation.
+    #
+    # @param environment [Sass::Environment] The environment in which to evaluate the SassScript
+    # @return [Sass::Script::String] The SassScript string that is the value of the interpolation
+    def _perform(environment)
+      res = &quot;&quot;
+      before = @before.perform(environment)
+      res &lt;&lt; before.value
+      mid = @mid.perform(environment)
+      res &lt;&lt; (mid.is_a?(Sass::Script::String) ? mid.value : mid.to_s)
+      res &lt;&lt; @after.perform(environment).value
+      Sass::Script::String.new(res, before.type)
+    end
+
+    private
+
+    def parse_str(str)
+      case str
+      when /^unquote\(([&quot;'])(.*)\1\)$/
+        return true, $1, $2
+      when '&quot;&quot;'
+        return false, nil, &quot;&quot;
+      when /^([&quot;'])(.*)\1$/
+        return false, $1, $2
+      else
+        return false, nil, str
+      end
+    end
+  end
+end
+</pre>
+    </div>

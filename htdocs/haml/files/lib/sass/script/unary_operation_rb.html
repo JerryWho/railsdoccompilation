@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,7 +17,7 @@
     <h2>Source Code</h2>
     <pre>module Sass::Script
   # A SassScript parse node representing a unary operation,
-  # such as `-!b` or `not true`.
+  # such as `-$b` or `not true`.
   #
   # Currently only `-`, `/`, and `not` are unary operators.
   class UnaryOperation &lt; Node
@@ -27,6 +27,7 @@
     def initialize(operand, operator)
       @operand = operand
       @operator = operator
+      super()
     end
 
     # @return [String] A human-readable s-expression representation of the operation
@@ -34,12 +35,34 @@
       &quot;(#{@operator.inspect} #{@operand.inspect})&quot;
     end
 
+    # @see Node#to_sass
+    def to_sass(opts = {})
+      operand = @operand.to_sass(opts)
+      if @operand.is_a?(Operation) ||
+          (@operator == :minus &amp;&amp;
+           (operand =~ Sass::SCSS::RX::IDENT) == 0)
+        operand = &quot;(#{@operand.to_sass(opts)})&quot;
+      end
+      op = Lexer::OPERATORS_REVERSE[@operator]
+      op + (op =~ /[a-z]/ ? &quot; &quot; : &quot;&quot;) + operand
+    end
+
+    # Returns the operand of the operation.
+    #
+    # @return [Array&lt;Node&gt;]
+    # @see Node#children
+    def children
+      [@operand]
+    end
+
+    protected
+
     # Evaluates the operation.
     #
     # @param environment [Sass::Environment] The environment in which to evaluate the SassScript
     # @return [Literal] The SassScript object that is the value of the operation
     # @raise [Sass::SyntaxError] if the operation is undefined for the operand
-    def perform(environment)
+    def _perform(environment)
       operator = &quot;unary_#{@operator}&quot;
       literal = @operand.perform(environment)
       literal.send(operator)

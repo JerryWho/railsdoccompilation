@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -33,17 +33,22 @@
 
       protected
 
+      # @see Node#to_src
+      def to_src(tabs, opts, fmt)
+        &quot;#{'  ' * tabs}$#{dasherize(@name, opts)}: #{@expr.to_sass(opts)}#{' !default' if @guarded}#{semi fmt}\n&quot;
+      end
+
       # Loads the new variable value into the environment.
       #
       # @param environment [Sass::Environment] The lexical environment containing
       #   variable and mixin values
       def _perform(environment)
-        if @guarded &amp;&amp; environment.var(@name).nil?
-          environment.set_var(@name, @expr.perform(environment))
-        elsif !@guarded
-          environment.set_var(@name, @expr.perform(environment))
+        return [] if @guarded &amp;&amp; !environment.var(@name).nil?
+        val = @expr.perform(environment)
+        if @expr.context == :equals &amp;&amp; val.is_a?(Sass::Script::String)
+          val = Sass::Script::String.new(val.value)
         end
-
+        environment.set_var(@name, val)
         []
       end
     end

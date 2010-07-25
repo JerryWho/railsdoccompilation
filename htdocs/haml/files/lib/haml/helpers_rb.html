@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:29 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,12 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>if defined?(ActionView)
-  require 'haml/helpers/action_view_mods'
-  require 'haml/helpers/action_view_extensions'
-end
-
-module Haml
+    <pre>module Haml
   # This module contains various helpful methods to make it easier to do various tasks.
   # {Haml::Helpers} is automatically included in the context
   # that a Haml template is parsed in, so all these methods are at your
@@ -69,8 +64,7 @@ MESSAGE
 
     self.extend self
 
-    @@action_view_defined = defined?(ActionView)
-    @@force_no_action_view = false
+    @@action_view_defined = false
 
     # @return [Boolean] Whether or not ActionView is loaded
     def self.action_view?
@@ -251,6 +245,33 @@ MESSAGE
       haml_buffer.tabulation -= i
     end
 
+    # Sets the number of tabs the buffer automatically adds
+    # to the lines of the template,
+    # but only for the duration of the block.
+    # For example:
+    #
+    #     %h1 foo
+    #     - with_tabs(2) do
+    #       %p bar
+    #     %strong baz
+    #
+    # Produces:
+    #
+    #     &lt;h1&gt;foo&lt;/h1&gt;
+    #         &lt;p&gt;bar&lt;/p&gt;
+    #     &lt;strong&gt;baz&lt;/strong&gt;
+    #
+    #
+    # @param i [Fixnum] The number of tabs to use
+    # @yield A block in which the indentation will be `i` spaces
+    def with_tabs(i)
+      old_tabs = haml_buffer.tabulation
+      haml_buffer.tabulation = i
+      yield
+    ensure
+      haml_buffer.tabulation = old_tabs
+    end
+
     # Surrounds a block of Haml code with strings,
     # with no whitespace in between.
     # For example:
@@ -338,7 +359,9 @@ MESSAGE
         haml_buffer.capture_position = position
         block.call(*args)
 
-        captured = haml_buffer.buffer.slice!(position..-1).split(/^/)
+        captured = haml_buffer.buffer.slice!(position..-1)
+        return captured if haml_buffer.options[:ugly]
+        captured = captured.split(/^/)
 
         min_tabs = nil
         captured.each do |line|
@@ -355,22 +378,16 @@ MESSAGE
       haml_buffer.capture_position = nil
     end
 
-    # @deprecated This will be removed in version 2.4.
-    # @see #haml_concat
-    def puts(*args)
-      warn &lt;&lt;END
-DEPRECATION WARNING:
-The Haml #puts helper is deprecated and will be removed in version 2.4.
-Use the #haml_concat helper instead.
-END
-      haml_concat(*args)
-    end
-
     # Outputs text directly to the Haml buffer, with the proper indentation.
     #
     # @param text [#to_s] The text to output
     def haml_concat(text = &quot;&quot;)
-      haml_buffer.buffer &lt;&lt; haml_indent &lt;&lt; text.to_s &lt;&lt; &quot;\n&quot;
+      unless haml_buffer.options[:ugly] || haml_indent == 0
+        haml_buffer.buffer &lt;&lt; haml_indent &lt;&lt;
+          text.to_s.gsub(&quot;\n&quot;, &quot;\n&quot; + haml_indent) &lt;&lt; &quot;\n&quot;
+      else
+        haml_buffer.buffer &lt;&lt; text.to_s &lt;&lt; &quot;\n&quot;
+      end
       ErrorReturn.new(&quot;haml_concat&quot;)
     end
 
@@ -383,6 +400,11 @@ END
     # Can take a block that will run between the opening and closing tags.
     # If the block is a Haml block or outputs text using \{#haml\_concat},
     # the text will be properly indented.
+    #
+    # `name` can be a string using the standard Haml class/id shorthand
+    # (e.g. &quot;span#foo.bar&quot;, &quot;#foo&quot;).
+    # Just like standard Haml tags, these class and id values
+    # will be merged with manually-specified attributes.
     #
     # `flags` is a list of symbol flags
     # like those that can be put at the end of a Haml tag
@@ -398,7 +420,7 @@ END
     #
     #     haml_tag :table do
     #       haml_tag :tr do
-    #         haml_tag :td, {:class =&gt; 'cell'} do
+    #         haml_tag 'td.cell' do
     #           haml_tag :strong, &quot;strong!&quot;
     #           haml_concat &quot;data&quot;
     #         end
@@ -434,13 +456,14 @@ END
     def haml_tag(name, *rest, &amp;block)
       ret = ErrorReturn.new(&quot;haml_tag&quot;)
 
-      name = name.to_s
       text = rest.shift.to_s unless [Symbol, Hash, NilClass].any? {|t| rest.first.is_a? t}
       flags = []
       flags &lt;&lt; rest.shift while rest.first.is_a? Symbol
+      name, attrs = merge_name_and_attributes(name.to_s, rest.shift || {})
+
       attributes = Haml::Precompiler.build_attributes(haml_buffer.html?,
                                                       haml_buffer.options[:attr_wrapper],
-                                                      rest.shift || {})
+                                                      attrs)
 
       if text.nil? &amp;&amp; block.nil? &amp;&amp; (haml_buffer.options[:autoclose].include?(name) || flags.include?(:/))
         haml_concat &quot;&lt;#{name}#{attributes} /&gt;&quot;
@@ -454,8 +477,17 @@ END
 
       tag = &quot;&lt;#{name}#{attributes}&gt;&quot;
       if block.nil?
-        tag &lt;&lt; text.to_s &lt;&lt; &quot;&lt;/#{name}&gt;&quot;
-        haml_concat tag
+        text = text.to_s
+        if text.include?(&quot;\n&quot;)
+          haml_concat tag
+          tab_up
+          haml_concat text
+          tab_down
+          haml_concat &quot;&lt;/#{name}&gt;&quot;
+        else
+          tag &lt;&lt; text &lt;&lt; &quot;&lt;/#{name}&gt;&quot;
+          haml_concat tag
+        end
         return ret
       end
 
@@ -491,7 +523,7 @@ END
     # @param text [String] The string to sanitize
     # @return [String] The sanitized string
     def html_escape(text)
-      text.to_s.gsub(/[\&quot;&gt;&lt;&amp;]/n) {|s| HTML_ESCAPE[s]}
+      Haml::Util.silence_warnings {text.to_s.gsub(/[\&quot;&gt;&lt;&amp;]/n) {|s| HTML_ESCAPE[s]}}
     end
 
     # Escapes HTML entities in `text`, but without escaping an ampersand
@@ -529,18 +561,29 @@ END
 
     private
 
+    # Parses the tag name used for \{#haml\_tag}
+    # and merges it with the Ruby attributes hash.
+    def merge_name_and_attributes(name, attributes_hash = {})
+      # skip merging if no ids or classes found in name
+      return name, attributes_hash unless name =~ /^(.+?)?([\.#].*)$/
+
+      return $1 || &quot;div&quot;, Buffer.merge_attrs(
+        Precompiler.parse_class_and_id($2),
+        Haml::Util.map_keys(attributes_hash) {|key| key.to_s})
+    end
+
     # Runs a block of code with the given buffer as the currently active buffer.
     #
     # @param buffer [Haml::Buffer] The Haml buffer to use temporarily
     # @yield A block in which the given buffer should be used
     def with_haml_buffer(buffer)
       @haml_buffer, old_buffer = buffer, @haml_buffer
-      old_buffer.active, was_active = false, old_buffer.active? if old_buffer
-      @haml_buffer.active = true
+      old_buffer.active, old_was_active = false, old_buffer.active? if old_buffer
+      @haml_buffer.active, was_active = true, @haml_buffer.active?
       yield
     ensure
-      @haml_buffer.active = false
-      old_buffer.active = was_active if old_buffer
+      @haml_buffer.active = was_active
+      old_buffer.active = old_was_active if old_buffer
       @haml_buffer = old_buffer
     end
 
@@ -561,11 +604,10 @@ END
       _erbout = _hamlout.buffer
       proc { |*args| proc.call(*args) }
     end
-
-    include ActionViewExtensions if self.const_defined? &quot;ActionViewExtensions&quot;
   end
 end
 
+# @private
 class Object
   # Haml overrides various `ActionView` helpers,
   # which call an \{#is\_haml?} method

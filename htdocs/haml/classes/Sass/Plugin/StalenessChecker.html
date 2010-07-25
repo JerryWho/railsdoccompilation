@@ -1,0 +1,202 @@
+  <div id="C00000177">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />StalenessChecker<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/sass/plugin/staleness_checker_rb.html');">lib/sass/plugin/staleness_checker.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+The class handles `.s[ca]ss` file staleness checks via their mtime
+timestamps.
+</p>
+<p>
+To speed things up two level of caches are employed:
+</p>
+<ul>
+<li>A class-level dependency cache which stores @import paths for each file.
+This is a long-lived cache that is reused by every <a
+href="index.html?a=C00000177&name=StalenessChecker">StalenessChecker</a>
+instance.
+
+</li>
+<li>Two short-lived instance-level caches, one for file mtimes and one for
+whether a file is stale during this particular run. These are only used by
+a single <a
+href="index.html?a=C00000177&name=StalenessChecker">StalenessChecker</a>
+instance.
+
+</li>
+</ul>
+<p>
+Usage:
+</p>
+<ul>
+<li>For a one-off staleness check of a single `.s[ca]ss` file, the class-level
+{<a
+href="index.html?a=M001652&name=stylesheet_needs_update?">stylesheet_needs_update?</a>}
+method should be used.
+
+</li>
+<li>For a series of staleness checks (e.g. checking all files for staleness) a
+<a href="index.html?a=C00000177&name=StalenessChecker">StalenessChecker</a>
+instance should be created, and the instance-level
+\{stylesheet_needs_update?} method should be used. the caches should make
+the whole process significantly faster. <b>WARNING</b>: It is important not
+to retain the instance for too long, as its instance-level caches are never
+explicitly expired.
+
+</li>
+</ul>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M001651&name=new" >new</a></li>
+  <li><a href="index.html?a=M001652&name=stylesheet_needs_update?" >stylesheet_needs_update?</a></li>
+  <li><a href="index.html?a=M001653&name=stylesheet_needs_update?" >stylesheet_needs_update?</a></li>
+  </ul>
+
+
+
+
+  <div class="sectiontitle">Constants</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class="attr-name">DELETED</td>
+    <td>=</td>
+    <td class="attr-value">1.0/0.0</td>
+  </tr>
+  </table>
+
+  <div class="sectiontitle">Attributes</div>
+  <table border='0' cellpadding='5'>
+  <tr valign='top'>
+    <td class='attr-rw'>
+[RW]
+    </td>
+    <td class='attr-name'>dependencies_cache</td>
+    <td class='attr-desc'>
+@private
+
+</td>
+  </tr>
+  </table>
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M001651" class="method">
+  <div id="M001651_title" class="title">
+    <b>new</b>()
+  </div>
+  <div class="description">
+  <p>
+Creates a new <a
+href="index.html?a=C00000177&name=StalenessChecker">StalenessChecker</a>
+for checking the staleness of several stylesheets at once.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001651_source')" id="l_M001651_source">show source</a> ]</p>
+  <div id="M001651_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/plugin/staleness_checker.rb, line 35</span>
+35:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+36:         <span class="ruby-ivar">@dependencies</span> = <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">class</span>.<span class="ruby-identifier">dependencies_cache</span>
+37: 
+38:         <span class="ruby-comment cmt"># Entries in the following instance-level caches are never explicitly expired.</span>
+39:         <span class="ruby-comment cmt"># Instead they are supposed to automaticaly go out of scope when a series of staleness checks</span>
+40:         <span class="ruby-comment cmt"># (this instance of StalenessChecker was created for) is finished.</span>
+41:         <span class="ruby-ivar">@mtimes</span>, <span class="ruby-ivar">@dependencies_stale</span> = {}, {}
+42:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M001653" class="method">
+  <div id="M001653_title" class="title">
+    <b>stylesheet_needs_update?</b>(css_file, template_file)
+  </div>
+  <div class="description">
+  <p>
+Returns whether or not a given <a
+href="index.html?a=C00000181&name=CSS">CSS</a> file is out of date and
+needs to be regenerated.
+</p>
+<p>
+The distinction between this method and the instance-level
+\{stylesheet_needs_update?} is that the instance method preserves mtime and
+stale-dependency caches, so it&#8217;s better to use when checking multiple
+stylesheets at once.
+</p>
+<p>
+@param css_file [String] The location of the <a
+href="index.html?a=C00000181&name=CSS">CSS</a> file to check. @param
+template_file [String] The location of the <a
+href="index.html?a=C00000111&name=Sass">Sass</a> or <a
+href="index.html?a=C00000147&name=SCSS">SCSS</a> template
+</p>
+<pre>
+  that is compiled to `css_file`.
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001653_source')" id="l_M001653_source">show source</a> ]</p>
+  <div id="M001653_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/plugin/staleness_checker.rb, line 66</span>
+66:       <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">stylesheet_needs_update?</span>(<span class="ruby-identifier">css_file</span>, <span class="ruby-identifier">template_file</span>)
+67:         <span class="ruby-identifier">new</span>.<span class="ruby-identifier">stylesheet_needs_update?</span>(<span class="ruby-identifier">css_file</span>, <span class="ruby-identifier">template_file</span>)
+68:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M001652" class="method">
+  <div id="M001652_title" class="title">
+    <b>stylesheet_needs_update?</b>(css_file, template_file)
+  </div>
+  <div class="description">
+  <p>
+Returns whether or not a given <a
+href="index.html?a=C00000181&name=CSS">CSS</a> file is out of date and
+needs to be regenerated.
+</p>
+<p>
+@param css_file [String] The location of the <a
+href="index.html?a=C00000181&name=CSS">CSS</a> file to check. @param
+template_file [String] The location of the <a
+href="index.html?a=C00000111&name=Sass">Sass</a> or <a
+href="index.html?a=C00000147&name=SCSS">SCSS</a> template
+</p>
+<pre>
+  that is compiled to `css_file`.
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M001652_source')" id="l_M001652_source">show source</a> ]</p>
+  <div id="M001652_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/sass/plugin/staleness_checker.rb, line 50</span>
+50:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stylesheet_needs_update?</span>(<span class="ruby-identifier">css_file</span>, <span class="ruby-identifier">template_file</span>)
+51:         <span class="ruby-identifier">template_file</span>, <span class="ruby-identifier">css_mtime</span> = <span class="ruby-constant">File</span>.<span class="ruby-identifier">expand_path</span>(<span class="ruby-identifier">template_file</span>), <span class="ruby-identifier">mtime</span>(<span class="ruby-identifier">css_file</span>)
+52: 
+53:         <span class="ruby-identifier">css_mtime</span> <span class="ruby-operator">==</span> <span class="ruby-constant">DELETED</span> <span class="ruby-operator">||</span> <span class="ruby-identifier">dependency_updated?</span>(<span class="ruby-identifier">css_mtime</span>).<span class="ruby-identifier">call</span>(<span class="ruby-identifier">template_file</span>)
+54:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

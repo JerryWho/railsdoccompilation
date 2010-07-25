@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -24,13 +24,34 @@ $:.unshift lib_dir unless $:.include?(lib_dir)
 require 'haml'
 require 'sass'
 
+require 'haml/template'
+Haml::Template.options[:ugly] = false
+Haml::Template.options[:format] = :xhtml
+
 Sass::RAILS_LOADED = true unless defined?(Sass::RAILS_LOADED)
 
+module Sass::Script::Functions
+  module UserFunctions; end
+  include UserFunctions
+
+  def option(name)
+    Sass::Script::String.new(@options[name.value.to_sym].to_s)
+  end
+end
+
 class Test::Unit::TestCase
-  def munge_filename(opts)
-    return if opts[:filename]
-    test_name = caller[1].gsub(/^.*`(?:\w+ )*(\w+)'.*$/, '\1')
-    opts[:filename] = &quot;#{test_name}_inline.sass&quot;
+  def munge_filename(opts = {})
+    return if opts.has_key?(:filename)
+    opts[:filename] = filename_for_test(opts[:syntax] || :sass)
+  end
+
+  def filename_for_test(syntax = :sass)
+    test_name = caller.
+      map {|c| Haml::Util.caller_info(c)[2]}.
+      compact.
+      map {|c| c.sub(/^(block|rescue) in /, '')}.
+      find {|c| c =~ /^test_/}
+    &quot;#{test_name}_inline.#{syntax}&quot;
   end
 
   def clean_up_sassc
@@ -41,13 +62,28 @@ class Test::Unit::TestCase
   def assert_warning(message)
     the_real_stderr, $stderr = $stderr, StringIO.new
     yield
-    assert_equal message.strip, $stderr.string.strip
+
+    if message.is_a?(Regexp)
+      assert_match message, $stderr.string.strip
+    else
+      assert_equal message.strip, $stderr.string.strip
+    end
   ensure
     $stderr = the_real_stderr
   end
 
   def silence_warnings(&amp;block)
     Haml::Util.silence_warnings(&amp;block)
+  end
+
+  def rails_block_helper_char
+    return '=' if Haml::Util.ap_geq_3?
+    return '-'
+  end
+
+  def form_for_calling_convention(name)
+    return &quot;@#{name}, :as =&gt; :#{name}, :html =&gt; {:class =&gt; nil, :id =&gt; nil}&quot; if Haml::Util.ap_geq_3?
+    return &quot;:#{name}, @#{name}&quot;
   end
 end
 </pre>

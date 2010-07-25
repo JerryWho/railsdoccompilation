@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,10 +18,18 @@
     <pre>require 'sass/tree/node'
 
 module Sass::Tree
-  # A dynamic node representing a mixin include.
+  # A static node representing a mixin include.
+  # When in a static tree, the sole purpose is to wrap exceptions
+  # to add the mixin to the backtrace.
   #
   # @see Sass::Tree
   class MixinNode &lt; Node
+    # @see Node#options=
+    def options=(opts)
+      super
+      @args.each {|a| a.context = :equals} if opts[:sass2]
+    end
+
     # @param name [String] The name of the mixin
     # @param args [Array&lt;Script::Node&gt;] The arguments to the mixin
     def initialize(name, args)
@@ -30,36 +38,103 @@ module Sass::Tree
       super()
     end
 
+    # @see Node#cssize
+    def cssize(extends, parent = nil)
+      _cssize(extends, parent) # Pass on the parent even if it's not a MixinNode
+    end
+
     protected
+
+    # Returns an error message if the given child node is invalid,
+    # and false otherwise.
+    #
+    # {ExtendNode}s are valid within {MixinNode}s.
+    #
+    # @param child [Tree::Node] A potential child node
+    # @return [Boolean, String] Whether or not the child node is valid,
+    #   as well as the error message to display if it is invalid
+    def invalid_child?(child)
+      super unless child.is_a?(ExtendNode)
+    end
+
+    # @see Node#to_src
+    def to_src(tabs, opts, fmt)
+      args = '(' + @args.map {|a| a.to_sass(opts)}.join(&quot;, &quot;) + ')' unless @args.empty?
+      &quot;#{'  ' * tabs}#{fmt == :sass ? '+' : '@include '}#{dasherize(@name, opts)}#{args}#{semi fmt}\n&quot;
+    end
+
+    # @see Node#_cssize
+    def _cssize(extends, parent)
+      children.map do |c|
+        parent.check_child! c
+        c.cssize(extends, parent)
+      end.flatten
+    rescue Sass::SyntaxError =&gt; e
+      e.modify_backtrace(:mixin =&gt; @name, :filename =&gt; filename, :line =&gt; line)
+      e.add_backtrace(:filename =&gt; filename, :line =&gt; line)
+      raise e
+    end
 
     # Runs the mixin.
     #
     # @param environment [Sass::Environment] The lexical environment containing
     #   variable and mixin values
-    # @return [Array&lt;Tree::Node&gt;] The resulting static nodes
     # @raise [Sass::SyntaxError] if there is no mixin with the given name
     # @raise [Sass::SyntaxError] if an incorrect number of arguments was passed
     # @see Sass::Tree
-    def _perform(environment)
-      raise Sass::SyntaxError.new(&quot;Undefined mixin '#{@name}'.&quot;, @line) unless mixin = environment.mixin(@name)
+    def perform!(environment)
+      handle_include_loop!(environment) if environment.mixins_in_use.include?(@name)
+
+      original_env = environment
+      original_env.push_frame(:filename =&gt; filename, :line =&gt; line)
+      original_env.prepare_frame(:mixin =&gt; @name)
+      raise Sass::SyntaxError.new(&quot;Undefined mixin '#{@name}'.&quot;) unless mixin = environment.mixin(@name)
 
       raise Sass::SyntaxError.new(&lt;&lt;END.gsub(&quot;\n&quot;, &quot;&quot;)) if mixin.args.size &lt; @args.size
 Mixin #{@name} takes #{mixin.args.size} argument#{'s' if mixin.args.size != 1}
  but #{@args.size} #{@args.size == 1 ? 'was' : 'were'} passed.
 END
-
       environment = mixin.args.zip(@args).
         inject(Sass::Environment.new(mixin.environment)) do |env, ((var, default), value)|
         env.set_local_var(var.name,
           if value
             value.perform(environment)
           elsif default
-            default.perform(env)
+            val = default.perform(env)
+            if default.context == :equals &amp;&amp; val.is_a?(Sass::Script::String)
+              val = Sass::Script::String.new(val.value)
+            end
+            val
           end)
         raise Sass::SyntaxError.new(&quot;Mixin #{@name} is missing parameter #{var.inspect}.&quot;) unless env.var(var.name)
         env
       end
-      mixin.tree.map {|c| c.perform(environment)}.flatten
+
+      self.children = mixin.tree.map {|c| c.perform(environment)}.flatten
+    rescue Sass::SyntaxError =&gt; e
+      if original_env # Don't add backtrace info if this is an @include loop
+        e.modify_backtrace(:mixin =&gt; @name, :line =&gt; @line)
+        e.add_backtrace(:line =&gt; @line)
+      end
+      raise e
+    ensure
+      original_env.pop_frame if original_env
+    end
+
+    private
+
+    def handle_include_loop!(environment)
+      msg = &quot;An @include loop has been found:&quot;
+      mixins = environment.stack.map {|s| s[:mixin]}.compact
+      if mixins.size == 2 &amp;&amp; mixins[0] == mixins[1]
+        raise Sass::SyntaxError.new(&quot;#{msg} #{@name} includes itself&quot;)
+      end
+
+      mixins &lt;&lt; @name
+      msg &lt;&lt; &quot;\n&quot; &lt;&lt; Haml::Util.enum_cons(mixins, 2).map do |m1, m2|
+        &quot;    #{m1} includes #{m2}&quot;
+      end.join(&quot;\n&quot;)
+      raise Sass::SyntaxError.new(msg)
     end
   end
 end

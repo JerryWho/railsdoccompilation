@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -28,15 +28,18 @@ module Sass
     # Returns the {Sass::Tree} for the given file,
     # reading it from the Sass cache if possible.
     #
-    # @param filename [String] The path to the Sass file
+    # @param filename [String] The path to the Sass or SCSS file
     # @param options [{Symbol =&gt; Object}] The options hash.
     #   Only the {file:SASS_REFERENCE.md#cache-option `:cache_location`} option is used
-    # @raise [Sass::SyntaxError] if there's an error in the document
+    # @raise [Sass::SyntaxError] if there's an error in the document.
+    #   The caller has responsibility for setting backtrace information, if necessary
     def tree_for(filename, options)
-      options = Sass::Engine::DEFAULT_OPTIONS.merge(options)
+      default_options = Sass::Engine::DEFAULT_OPTIONS.dup
+      default_options.delete(:syntax)
+      options = default_options.merge!(options)
       text = File.read(filename)
 
-      if options[:cache]
+      if options[:cache] || options[:read_cache]
         compiled_filename = sassc_filename(filename, options)
         sha = Digest::SHA1.hexdigest(text)
 
@@ -46,56 +49,77 @@ module Sass
         end
       end
 
-      engine = Sass::Engine.new(text, options.merge(:filename =&gt; filename))
-
-      begin
-        root = engine.to_tree
-      rescue Sass::SyntaxError =&gt; err
-        err.add_backtrace_entry(filename)
-        raise err
+      options = options.merge(:filename =&gt; filename)
+      if filename =~ /\.scss$/
+        options = {:syntax =&gt; :scss}.merge(options)
+      elsif filename =~ /\.sass$/
+        options = {:syntax =&gt; :sass}.merge(options)
       end
 
-      try_to_write_sassc(root, compiled_filename, sha, options) if options[:cache]
+      engine = Sass::Engine.new(text, options)
 
+      root = engine.to_tree
+      try_to_write_sassc(root, compiled_filename, sha, options) if options[:cache]
       root
     end
 
-    # Find the full filename of a Sass or CSS file to import.
+    # Find the full filename of a Sass, SCSS, or CSS file to import.
     # This follows Sass's import rules:
-    # if the filename given ends in `&quot;.sass&quot;` or `&quot;.css&quot;`,
+    # if the filename given ends in `&quot;.sass&quot;`, `&quot;.scss&quot;`, or `&quot;.css&quot;`,
     # it will try to find that type of file;
-    # otherwise, it will try to find the corresponding Sass file
+    # otherwise, it will try to find the corresponding Sass/SCSS file
     # and fall back on CSS if it's not available.
     #
-    # Any Sass filename returned will correspond to
-    # an actual Sass file on the filesystem.
+    # Any Sass/SCSS filename returned will correspond to
+    # an actual file of the corresponding type on the filesystem.
     # CSS filenames, however, may not;
     # they're expected to be put through directly to the stylesheet
     # as CSS `@import` statements.
     #
     # @param filename [String] The filename to search for
     # @param load_paths [Array&lt;String&gt;] The set of filesystem paths
-    #   to search for Sass files.
+    #   to search for Sass/SCSS files.
     # @return [String] The filename of the imported file.
-    #   This is an absolute path if the file is a `&quot;.sass&quot;` file.
-    # @raise [Sass::SyntaxError] if `filename` ends in ``&quot;.sass&quot;``
-    #   and no corresponding Sass file could be found.
+    #   This is an absolute path if the file is a `&quot;.sass&quot;` or `&quot;.scss&quot;` file.
+    # @raise [Sass::SyntaxError] if `filename` ends in `&quot;.sass&quot;` or `&quot;.scss&quot;`
+    #   and no corresponding Sass/SCSS file could be found.
     def find_file_to_import(filename, load_paths)
-      was_sass = false
+      was_sass = was_scss = false
       original_filename = filename
 
-      if filename[-5..-1] == &quot;.sass&quot;
+      if [&quot;.sass&quot;, &quot;.scss&quot;].include?(filename[-5..-1])
+        was_sass = filename[-5..-1] == &quot;.sass&quot;
+        was_scss = filename[-5..-1] == &quot;.scss&quot;
         filename = filename[0...-5]
-        was_sass = true
       elsif filename[-4..-1] == &quot;.css&quot;
         return filename
       end
 
-      new_filename = find_full_path(&quot;#{filename}.sass&quot;, load_paths)
+      new_filename = nil
+      load_paths = load_paths.uniq
+      load_paths.each do |load_path|
+        new_filename ||= find_full_path(&quot;#{filename}.sass&quot;, load_path) unless was_scss
+        new_filename ||= find_full_path(&quot;#{filename}.scss&quot;, load_path) unless was_sass
+      end
 
       return new_filename if new_filename
-      return filename + '.css' unless was_sass
-      raise SyntaxError.new(&quot;File to import not found or unreadable: #{original_filename}.&quot;, @line)
+      unless was_sass || was_scss
+        Haml::Util.haml_warn &lt;&lt;END
+WARNING: Neither #{filename}.sass nor .scss found. Using #{filename}.css instead.
+This behavior is deprecated and will be removed in a future version.
+If you really need #{filename}.css, import it explicitly.
+END
+        return filename + '.css'
+      end
+
+      message = &quot;File to import not found or unreadable: #{original_filename}.\n&quot;
+      if load_paths.size == 1
+        message &lt;&lt; &quot;Load path: #{load_paths.first}&quot;
+      else
+        message &lt;&lt; &quot;Load paths:\n  &quot; &lt;&lt; load_paths.join(&quot;\n  &quot;)
+      end
+
+      raise SyntaxError.new(message)
     end
 
     private
@@ -114,8 +138,8 @@ module Sass
         return unless f.readline(&quot;\n&quot;).strip == sha
         return Marshal.load(f.read)
       end
-    rescue TypeError, ArgumentError =&gt; e
-      warn &quot;Warning. Error encountered while reading cache #{compiled_filename}: #{e}&quot;
+    rescue EOFError, TypeError, ArgumentError =&gt; e
+      Haml::Util.haml_warn &quot;Warning. Error encountered while reading cache #{compiled_filename}: #{e}&quot;
     end
 
     def try_to_write_sassc(root, compiled_filename, sha, options)
@@ -133,7 +157,7 @@ module Sass
       end
     end
 
-    def find_full_path(filename, load_paths)
+    def find_full_path(filename, load_path)
       partial_name = File.join(File.dirname(filename), &quot;_#{File.basename(filename)}&quot;)
 
       if Pathname.new(filename).absolute?
@@ -143,13 +167,9 @@ module Sass
         return nil
       end
 
-      load_paths.each do |path|
-        [partial_name, filename].each do |name|
-          full_path = File.join(path, name)
-          if File.readable?(full_path)
-            return full_path
-          end
-        end
+      [partial_name, filename].each do |name|
+        full_path = File.join(load_path, name)
+        return full_path if File.readable?(full_path)
       end
       nil
     end

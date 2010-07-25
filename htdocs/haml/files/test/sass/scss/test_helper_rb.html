@@ -1,0 +1,56 @@
+  <div id="fileHeader">
+    <h1>test_helper.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>test/sass/scss/test_helper.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.dirname(__FILE__) + '/../../test_helper'
+require 'sass/engine'
+
+module ScssTestHelper
+  def assert_parses(scss)
+    assert_equal scss.rstrip, render(scss).rstrip
+  end
+
+  def assert_not_parses(expected, scss)
+    raise &quot;Template must include &lt;err&gt; where an error is expected&quot; unless scss.include?(&quot;&lt;err&gt;&quot;)
+
+    after, was = scss.split(&quot;&lt;err&gt;&quot;)
+    line = after.count(&quot;\n&quot;) + 1
+
+    after.gsub!(/\s*\n\s*$/, '')
+    after.gsub!(/.*\n/, '')
+    after = &quot;...&quot; + after[-15..-1] if after.size &gt; 18
+
+    was.gsub!(/^\s*\n\s*/, '')
+    was.gsub!(/\n.*/, '')
+    was = was[0...15] + &quot;...&quot; if was.size &gt; 18
+
+    to_render = scss.sub(&quot;&lt;err&gt;&quot;, &quot;&quot;)
+    render(to_render)
+    assert(false, &quot;Expected syntax error for:\n#{to_render}\n&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(&quot;Invalid CSS after \&quot;#{after}\&quot;: expected #{expected}, was \&quot;#{was}\&quot;&quot;,
+      err.message)
+    assert_equal line, err.sass_line
+  end
+
+  def render(scss, options = {})
+    options[:syntax] ||= :scss
+    munge_filename options
+    Sass::Engine.new(scss, options).render
+  end
+end
+</pre>
+    </div>

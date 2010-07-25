@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -27,21 +27,38 @@
       # @param name [String] See \{#name}
       def initialize(name)
         @name = name
+        super()
       end
 
       # @return [String] A string representation of the variable
-      def inspect
-        &quot;!#{name}&quot;
+      def inspect(opts = {})
+        return &quot;!important&quot; if name == &quot;important&quot;
+        &quot;$#{dasherize(name, opts)}&quot;
       end
+      alias_method :to_sass, :inspect
+
+      # Returns an empty array.
+      #
+      # @return [Array&lt;Node&gt;] empty
+      # @see Node#children
+      def children
+        []
+      end
+
+      protected
 
       # Evaluates the variable.
       #
       # @param environment [Sass::Environment] The environment in which to evaluate the SassScript
       # @return [Literal] The SassScript object that is the value of the variable
       # @raise [Sass::SyntaxError] if the variable is undefined
-      def perform(environment)
-        (val = environment.var(name)) &amp;&amp; (return val)
-        raise SyntaxError.new(&quot;Undefined variable: \&quot;!#{name}\&quot;.&quot;)
+      def _perform(environment)
+        raise SyntaxError.new(&quot;Undefined variable: \&quot;$#{name}\&quot;.&quot;) unless val = environment.var(name)
+        if val.is_a?(Number)
+          val = val.dup
+          val.original = nil
+        end
+        return val
       end
     end
   end

@@ -1,0 +1,101 @@
+  <div id="fileHeader">
+    <h1>comma_sequence.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/selector/comma_sequence.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Sass
+  module Selector
+    # A comma-separated sequence of selectors.
+    class CommaSequence &lt; AbstractSequence
+      # The comma-separated selector sequences
+      # represented by this class.
+      #
+      # @return [Array&lt;Sequence&gt;]
+      attr_reader :members
+
+      # @param seqs [Array&lt;Sequence&gt;] See \{#members}
+      def initialize(seqs)
+        @members = seqs
+      end
+
+      # Resolves the {Parent} selectors within this selector
+      # by replacing them with the given parent selector,
+      # handling commas appropriately.
+      #
+      # @param super_cseq [CommaSequence] The parent selector
+      # @return [CommaSequence] This selector, with parent references resolved
+      # @raise [Sass::SyntaxError] If a parent selector is invalid
+      def resolve_parent_refs(super_cseq)
+        if super_cseq.nil?
+          if @members.any? do |sel|
+              sel.members.any? do |sel_or_op|
+                sel_or_op.is_a?(SimpleSequence) &amp;&amp; sel_or_op.members.any? {|ssel| ssel.is_a?(Parent)}
+              end
+            end
+            raise Sass::SyntaxError.new(&quot;Base-level rules cannot contain the parent-selector-referencing character '&amp;'.&quot;)
+          end
+          return self
+        end
+
+        CommaSequence.new(
+          super_cseq.members.map do |super_seq|
+            @members.map {|seq| seq.resolve_parent_refs(super_seq)}
+          end.flatten)
+      end
+
+      # Non-destrucively extends this selector
+      # with the extensions specified in a hash
+      # (which should be populated via {Sass::Tree::Node#cssize}).
+      #
+      # @todo Link this to the reference documentation on `@extend`
+      #   when such a thing exists.
+      #
+      # @param extends [Haml::Util::SubsetMap{Selector::Simple =&gt; Selector::Sequence}]
+      #   The extensions to perform on this selector
+      # @return [CommaSequence] A copy of this selector,
+      #   with extensions made according to `extends`
+      def do_extend(extends)
+        CommaSequence.new(members.map {|seq| seq.do_extend(extends)}.flatten)
+      end
+
+      # Returns a string representation of the sequence.
+      # This is basically the selector string.
+      #
+      # @return [String]
+      def inspect
+        members.map {|m| m.inspect}.join(&quot;, &quot;)
+      end
+
+      # @see Simple#to_a
+      def to_a
+        arr = Haml::Util.intersperse(@members.map {|m| m.to_a}, &quot;, &quot;).flatten
+        arr.delete(&quot;\n&quot;)
+        arr
+      end
+
+      private
+
+      def _hash
+        members.hash
+      end
+
+      def _eql?(other)
+        other.class == self.class &amp;&amp; other.members.eql?(self.members)
+      end
+    end
+  end
+end
+</pre>
+    </div>

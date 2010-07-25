@@ -1,0 +1,61 @@
+  <div id="fileHeader">
+    <h1>warn_node.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/tree/warn_node.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>module Sass
+  module Tree
+    # A dynamic node representing a Sass `@warn` statement.
+    #
+    # @see Sass::Tree
+    class WarnNode &lt; Node
+      # @param expr [Script::Node] The expression to print
+      def initialize(expr)
+        @expr = expr
+        super()
+      end
+
+      protected
+
+      # @see Node#to_src
+      def to_src(tabs, opts, fmt)
+        &quot;#{'  ' * tabs}@warn #{@expr.to_sass(opts)}#{semi fmt}\n&quot;
+      end
+
+      # Prints the expression to STDERR with a stylesheet trace.
+      #
+      # @param environment [Sass::Environment] The lexical environment containing
+      #   variable and mixin values
+      def _perform(environment)
+        environment.push_frame(:filename =&gt; filename, :line =&gt; line)
+        res = @expr.perform(environment)
+        res = res.value if res.is_a?(Sass::Script::String)
+        msg = &quot;WARNING: #{res}\n&quot;
+        environment.stack.reverse.each_with_index do |entry, i|
+          msg &lt;&lt; &quot;        #{i == 0 ? &quot;on&quot; : &quot;from&quot;} line #{entry[:line]}&quot; &lt;&lt;
+            &quot; of #{entry[:filename] || &quot;an unknown file&quot;}&quot;
+          msg &lt;&lt; &quot;, in `#{entry[:mixin]}'&quot; if entry[:mixin]
+          msg &lt;&lt; &quot;\n&quot;
+        end
+        Haml::Util.haml_warn msg
+        []
+      ensure
+        environment.pop_frame
+      end
+    end
+  end
+end
+</pre>
+    </div>

@@ -1,0 +1,84 @@
+  <div id="fileHeader">
+    <h1>extend_node.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/sass/tree/extend_node.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'sass/tree/node'
+
+module Sass::Tree
+  # A static node reprenting an `@extend` directive.
+  #
+  # @see Sass::Tree
+  class ExtendNode &lt; Node
+    # @param selector [Array&lt;String, Sass::Script::Node&gt;]
+    #   The CSS selector to extend,
+    #   interspersed with {Sass::Script::Node}s
+    #   representing `#{}`-interpolation.
+    def initialize(selector)
+      @selector = selector
+      super()
+    end
+
+    # Registers this extension in the `extends` subset map.
+    #
+    # @param extends [Haml::Util::SubsetMap{Selector::Simple =&gt; Selector::Sequence}]
+    #   The extensions defined for this tree
+    # @param parent [RuleNode] The parent node of this node
+    # @see Node#cssize
+    def cssize(extends, parent)
+      @resolved_selector.members.each do |seq|
+        if seq.members.size &gt; 1
+          raise Sass::SyntaxError.new(&quot;Can't extend #{seq.to_a.join}: can't extend nested selectors&quot;)
+        end
+
+        sseq = seq.members.first
+        if !sseq.is_a?(Sass::Selector::SimpleSequence)
+          raise Sass::SyntaxError.new(&quot;Can't extend #{seq.to_a.join}: invalid selector&quot;)
+        end
+
+        sel = sseq.members
+        parent.resolved_rules.members.each do |seq|
+          if !seq.members.last.is_a?(Sass::Selector::SimpleSequence)
+            raise Sass::SyntaxError.new(&quot;#{seq} can't extend: invalid selector&quot;)
+          end
+
+          extends[sel] = seq
+        end
+      end
+
+      []
+    end
+
+    protected
+
+    # @see Node#to_src
+    def to_src(tabs, opts, fmt)
+      &quot;#{'  ' * tabs}@extend #{selector_to_src(@selector, tabs, opts, fmt).lstrip}#{semi fmt}\n&quot;
+    end
+
+    # Runs SassScript interpolation in the selector,
+    # and then parses the result into a {Sass::Selector::CommaSequence}.
+    #
+    # @param environment [Sass::Environment] The lexical environment containing
+    #   variable and mixin values
+    def perform!(environment)
+      @resolved_selector = Sass::SCSS::CssParser.new(run_interp(@selector, environment), self.line).
+        parse_selector(self.filename)
+      super
+    end
+  end
+end
+</pre>
+    </div>

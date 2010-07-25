@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -21,50 +21,191 @@
   # and the Sass file that was being parsed (if applicable).
   #
   # All Sass errors are raised as {Sass::SyntaxError}s.
+  #
+  # When dealing with SyntaxErrors,
+  # it's important to provide filename and line number information.
+  # This will be used in various error reports to users, including backtraces;
+  # see \{#sass\_backtrace} for details.
+  #
+  # Some of this information is usually provided as part of the constructor.
+  # New backtrace entries can be added with \{#add\_backtrace},
+  # which is called when an exception is raised between files (e.g. with `@import`).
+  #
+  # Often, a chunk of code will all have similar backtrace information -
+  # the same filename or even line.
+  # It may also be useful to have a default line number set.
+  # In those situations, the default values can be used
+  # by omitting the information on the original exception,
+  # and then calling \{#modify\_backtrace} in a wrapper `rescue`.
+  # When doing this, be sure that all exceptions ultimately end up
+  # with the information filled in.
   class SyntaxError &lt; StandardError
+    # The backtrace of the error within Sass files.
+    # This is an array of hashes containing information for a single entry.
+    # The hashes have the following keys:
+    #
+    # `:filename`
+    # : The name of the file in which the exception was raised,
+    #   or `nil` if no filename is available.
+    #
+    # `:mixin`
+    # : The name of the mixin in which the exception was raised,
+    #   or `nil` if it wasn't raised in a mixin.
+    #
+    # `:line`
+    # : The line of the file on which the error occurred. Never nil.
+    #
+    # This information is also included in standard backtrace format
+    # in the output of \{#backtrace}.
+    #
+    # @return [Aray&lt;{Symbol =&gt; Object&gt;}]
+    attr_accessor :sass_backtrace
+
+    # The text of the template where this error was raised.
+    #
+    # @return [String]
+    attr_accessor :sass_template
+
+    # @param msg [String] The error message
+    # @param attrs [{Symbol =&gt; Object}] The information in the backtrace entry.
+    #   See \{#sass\_backtrace}
+    def initialize(msg, attrs = {})
+      @message = msg
+      @sass_backtrace = []
+      add_backtrace(attrs)
+    end
+
+    # The name of the file in which the exception was raised.
+    # This could be `nil` if no filename is available.
+    #
+    # @return [String, nil]
+    def sass_filename
+      sass_backtrace.first[:filename]
+    end
+
+    # The name of the mixin in which the error occurred.
+    # This could be `nil` if the error occurred outside a mixin.
+    #
+    # @return [Fixnum]
+    def sass_mixin
+      sass_backtrace.first[:mixin]
+    end
+
     # The line of the Sass template on which the error occurred.
     #
     # @return [Fixnum]
-    attr_accessor :sass_line
-
-    # The name of the file that was being parsed when the exception was raised.
-    # This could be `nil` if no filename is available.
-    #
-    # @return [String]
-    attr_reader :sass_filename
-
-    # @param msg [String] The error message
-    # @param lineno [Fixnum] See \{#sass\_line}
-    def initialize(msg, lineno = nil)
-      @message = msg
-      @sass_line = lineno
+    def sass_line
+      sass_backtrace.first[:line]
     end
 
-    # Add information about the filename and line on which the error was raised,
-    # and re-raises the exception.
+    # Adds an entry to the exception's Sass backtrace.
     #
-    # @param filename [String] See \{#sass\_filename}
-    # @param line [Fixnum] See \{#sass\_line}
-    # @raise [Sass::SyntaxError] self
-    def add_metadata(filename, line)
-      self.sass_line ||= line
-      add_backtrace_entry(filename) unless sass_filename
-      raise self
+    # @param attrs [{Symbol =&gt; Object}] The information in the backtrace entry.
+    #   See \{#sass\_backtrace}
+    def add_backtrace(attrs)
+      sass_backtrace &lt;&lt; attrs.reject {|k, v| v.nil?}
     end
 
-    # Adds a properly formatted entry to the exception's backtrace.
+    # Modify the top Sass backtrace entries
+    # (that is, the most deeply nested ones)
+    # to have the given attributes.
     #
-    # @param filename [String] The file in which the error occurred,
-    #   if applicable (defaults to &quot;(sass)&quot;)
-    def add_backtrace_entry(filename) # :nodoc:
-      @sass_filename ||= filename
-      self.backtrace ||= []
-      self.backtrace.unshift &quot;#{@sass_filename || '(sass)'}:#{@sass_line}&quot;
+    # Specifically, this goes through the backtrace entries
+    # from most deeply nested to least,
+    # setting the given attributes for each entry.
+    # If an entry already has one of the given attributes set,
+    # the pre-existing attribute takes precedence
+    # and is not used for less deeply-nested entries
+    # (even if they don't have that attribute set).
+    #
+    # @param attrs [{Symbol =&gt; Object}] The information to add to the backtrace entry.
+    #   See \{#sass\_backtrace}
+    def modify_backtrace(attrs)
+      attrs = attrs.reject {|k, v| v.nil?}
+      # Move backwards through the backtrace
+      (0...sass_backtrace.size).to_a.reverse.each do |i|
+        entry = sass_backtrace[i]
+        sass_backtrace[i] = attrs.merge(entry)
+        attrs.reject! {|k, v| entry.include?(k)}
+        break if attrs.empty?
+      end
     end
 
     # @return [String] The error message
     def to_s
       @message
+    end
+
+    # Returns the standard exception backtrace,
+    # including the Sass backtrace.
+    #
+    # @return [Array&lt;String&gt;]
+    def backtrace
+      return nil if super.nil?
+      sass_backtrace.map do |h|
+        &quot;#{h[:filename] || &quot;(sass)&quot;}:#{h[:line]}&quot; +
+          (h[:mixin] ? &quot;:in `#{h[:mixin]}'&quot; : &quot;&quot;)
+      end + super
+    end
+
+    # Returns a string representation of the Sass backtrace.
+    #
+    # @param default_filename [String] The filename to use for unknown files
+    # @see #sass_backtrace
+    # @return [String]
+    def sass_backtrace_str(default_filename = &quot;an unknown file&quot;)
+      lines = self.message.split(&quot;\n&quot;)
+      msg = lines[0] + lines[1..-1].
+        map {|l| &quot;\n&quot; + (&quot; &quot; * &quot;Syntax error: &quot;.size) + l}.join
+      &quot;Syntax error: #{msg}&quot; +
+        Haml::Util.enum_with_index(sass_backtrace).map do |entry, i|
+        &quot;\n        #{i == 0 ? &quot;on&quot; : &quot;from&quot;} line #{entry[:line]}&quot; +
+          &quot; of #{entry[:filename] || default_filename}&quot; +
+          (entry[:mixin] ? &quot;, in `#{entry[:mixin]}'&quot; : &quot;&quot;)
+      end.join
+    end
+
+    class &lt;&lt; self
+      # Returns an error report for an exception in CSS format.
+      #
+      # @param e [Exception]
+      # @param options [{Symbol =&gt; Object}] The options passed to {Sass::Engine#initialize}
+      # @return [String] The error report
+      # @raise [Exception] `e`, if the
+      #   {file:SASS_REFERENCE.md#full_exception-option `:full_exception`} option
+      #   is set to false.
+      def exception_to_css(e, options)
+        raise e unless options[:full_exception]
+
+        header = header_string(e, options)
+
+        &lt;&lt;END
+/*
+#{header}
+
+Backtrace:\n#{e.backtrace.join(&quot;\n&quot;)}
+*/
+body:before {
+  white-space: pre;
+  font-family: monospace;
+  content: &quot;#{header.gsub('&quot;', '\&quot;').gsub(&quot;\n&quot;, '\\A ')}&quot;; }
+END
+      end
+
+      private
+
+      def header_string(e, options)
+        return &quot;#{e.class}: #{e.message}&quot; unless e.is_a? Sass::SyntaxError
+
+        line_offset = options[:line] || 1
+        line_num = e.sass_line + 1 - line_offset
+        min = [line_num - 6, 0].max
+        section = e.sass_template.rstrip.split(&quot;\n&quot;)[min ... line_num + 5]
+        return e.sass_backtrace_str if section.nil? || section.empty?
+
+        e.sass_backtrace_str + &quot;\n\n&quot; + Haml::Util.enum_with_index(section).
+          map {|line, i| &quot;#{line_offset + min + i}: #{line}&quot;}.join(&quot;\n&quot;)
+      end
     end
   end
 

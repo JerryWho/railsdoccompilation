@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,8 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require 'test/unit'
+    <pre>#!/usr/bin/env ruby
+require 'test/unit'
 require File.dirname(__FILE__) + '/../test_helper'
 require 'sass/css'
 
@@ -40,13 +41,10 @@ SASS
     assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
 li
   display: none
-
   a
     text-decoration: none
-
     span
       color: yellow
-
     &amp;:hover
       text-decoration: underline
 SASS
@@ -73,10 +71,8 @@ CSS
 div .warning
   color: #d21a19
 
-
 span .debug
   cursor: crosshair
-
 
 div .debug
   cursor: default
@@ -120,27 +116,34 @@ span.turkey {
 } /* just a line here */
 CSS
     sass = &lt;&lt;SASS
+/* comment
+
 elephant.rawr
   rampages: excessively
 
+/* actual multiline
+ *comment
 
 span.turkey
   isdinner: true
 
-
 .turducken
+  /* Sounds funny
+   * doesn't it
   chimera: not_really
-
 
 #overhere
   bored: sorta
+  /*                  it's for a good
+   * cause
   better_than: thread_pools
-
 
 #one_more
   finally: srsly
+
+/* just a line here
 SASS
-    assert_equal(css2sass(css), sass)
+    assert_equal(sass, css2sass(css))
   end
 
   def test_fold_commas
@@ -161,11 +164,9 @@ CSS
 .one
   color: green
 
-
 .two
   color: green
   color: red
-
 
 .three
   color: red
@@ -184,19 +185,14 @@ CSS
     assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
 hello
   parent: true
-
   there
     parent: false
-
   who
     hoo: false
-
   why
     y: true
-
   when
     wen: nao
-
 
 down_here
   yeah: true
@@ -230,7 +226,6 @@ CSS
   #location-navigation-form .form-submit, #business-listing-form .form-submit, #detailTabs ul, #detailsEnhanced #addTags, #locationSearchList, #moreHoods
     display: none
 
-
 #navListLeft
   display: none
 SASS
@@ -251,13 +246,131 @@ CSS
     assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
 \\:focus
   a: b
-
   \\:foo
     bar: baz
 SASS
 :focus {a: b;}
 :focus :foo {bar: baz;}
 CSS
+  end
+
+  # Regressions
+
+  def test_nesting_within_media
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+@media all
+  .next .vevent
+    padding-left: 0
+    padding-right: 0
+SASS
+@media all {
+  .next .vevent {
+    padding-left: 0;
+    padding-right: 0; } }
+CSS
+  end
+
+  def test_multiline_selector_within_media_and_with_child_selector
+    assert_equal(&lt;&lt;SASS, css2sass(&lt;&lt;CSS))
+@media all
+  foo bar, baz
+    padding-left: 0
+    padding-right: 0
+SASS
+@media all {
+  foo bar,
+  baz {
+    padding-left: 0;
+    padding-right: 0; } }
+CSS
+  end
+
+  # Error reporting
+
+  def test_error_reporting
+    css2sass(&quot;foo&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(1, err.sass_line)
+    assert_equal('Invalid CSS after &quot;foo&quot;: expected &quot;{&quot;, was &quot;&quot;', err.message)
+  end
+
+  def test_error_reporting_in_line
+    css2sass(&quot;foo\nbar }\nbaz&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(2, err.sass_line)
+    assert_equal('Invalid CSS after &quot;bar &quot;: expected &quot;{&quot;, was &quot;}&quot;', err.message)
+  end
+
+  def test_error_truncate_after
+    css2sass(&quot;#{&quot;a&quot; * 16}foo&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(1, err.sass_line)
+    assert_equal('Invalid CSS after &quot;...aaaaaaaaaaaafoo&quot;: expected &quot;{&quot;, was &quot;&quot;', err.message)
+  end
+
+  def test_error_truncate_was
+    css2sass(&quot;foo }foo#{&quot;a&quot; * 15}&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(1, err.sass_line)
+    assert_equal('Invalid CSS after &quot;foo &quot;: expected &quot;{&quot;, was &quot;}fooaaaaaaaaaaa...&quot;', err.message)
+  end
+
+  def test_error_doesnt_truncate_after_when_elipsis_would_add_length
+    css2sass(&quot;#{&quot;a&quot; * 15}foo&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(1, err.sass_line)
+    assert_equal('Invalid CSS after &quot;aaaaaaaaaaaaaaafoo&quot;: expected &quot;{&quot;, was &quot;&quot;', err.message)
+  end
+
+  def test_error_doesnt_truncate_was_when_elipsis_would_add_length
+    css2sass(&quot;foo }foo#{&quot;a&quot; * 14}&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(1, err.sass_line)
+    assert_equal('Invalid CSS after &quot;foo &quot;: expected &quot;{&quot;, was &quot;}fooaaaaaaaaaaaaaa&quot;', err.message)
+  end
+
+  def test_error_gets_rid_of_trailing_newline_for_after
+    css2sass(&quot;foo  \n  &quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(2, err.sass_line)
+    assert_equal('Invalid CSS after &quot;foo&quot;: expected &quot;{&quot;, was &quot;&quot;', err.message)
+  end
+
+  def test_error_gets_rid_of_trailing_newline_for_was
+    css2sass(&quot;foo \n  }foo&quot;)
+    assert(false, &quot;Expected exception&quot;)
+  rescue Sass::SyntaxError =&gt; err
+    assert_equal(2, err.sass_line)
+    assert_equal('Invalid CSS after &quot;foo&quot;: expected &quot;{&quot;, was &quot;}foo&quot;', err.message)
+  end
+
+  # Encodings
+
+  unless Haml::Util.ruby1_8?
+    def test_encoding_error
+      css2sass(&quot;foo\nbar\nb\xFEaz&quot;.force_encoding(&quot;utf-8&quot;))
+      assert(false, &quot;Expected exception&quot;)
+    rescue Sass::SyntaxError =&gt; e
+      assert_equal(3, e.sass_line)
+      assert_equal('Invalid UTF-8 character &quot;\xFE&quot;', e.message)
+    end
+
+    def test_ascii_incompatible_encoding_error
+      template = &quot;foo\nbar\nb_z&quot;.encode(&quot;utf-16le&quot;)
+      template[9] = &quot;\xFE&quot;.force_encoding(&quot;utf-16le&quot;)
+      css2sass(template)
+      assert(false, &quot;Expected exception&quot;)
+    rescue Sass::SyntaxError =&gt; e
+      assert_equal(3, e.sass_line)
+      assert_equal('Invalid UTF-16LE character &quot;\xFE&quot;', e.message)
+    end
   end
 
   private

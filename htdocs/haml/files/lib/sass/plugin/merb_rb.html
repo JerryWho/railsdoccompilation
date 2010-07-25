@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:51:54 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -31,6 +31,7 @@
                               :css_location      =&gt; root + '/public/stylesheets',
                               :cache_location    =&gt; root + '/tmp/sass-cache',
                               :always_check      =&gt; env != &quot;production&quot;,
+                              :quiet             =&gt; env != &quot;production&quot;,
                               :full_exception    =&gt; env != &quot;production&quot;)
   config = Merb::Plugins.config[:sass] || Merb::Plugins.config[&quot;sass&quot;] || {}
 
@@ -40,28 +41,15 @@
 
   Sass::Plugin.options.merge!(config)
 
-  if version[0] &gt; 0 || version[1] &gt;= 9
+  require 'sass/plugin/rack'
+  class Sass::Plugin::MerbBootLoader &lt; Merb::BootLoader
+    after Merb::BootLoader::RackUpApplication
 
-    class Merb::Rack::Application
-      def call_with_sass(env)
-        Sass::Plugin.check_for_updates
-        call_without_sass(env)
-      end
-      alias_method :call_without_sass, :call
-      alias_method :call, :call_with_sass
+    def self.run
+      # Apparently there's no better way than this to add Sass
+      # to Merb's Rack stack.
+      Merb::Config[:app] = Sass::Plugin::Rack.new(Merb::Config[:app])
     end
-
-  else
-
-    class MerbHandler
-      def process_with_sass(request, response)
-        Sass::Plugin.check_for_updates
-        process_without_sass(request, response)
-      end
-      alias_method :process_without_sass, :process
-      alias_method :process, :process_with_sass
-    end
-
   end
 end
 </pre>

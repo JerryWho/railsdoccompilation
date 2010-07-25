@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -37,49 +37,56 @@
       super()
     end
 
+    protected
+
+    # @see Node#to_src
+    def to_src(tabs, opts, fmt)
+      res = &quot;#{'  ' * tabs}#{value}&quot;
+      return res + &quot;#{semi fmt}\n&quot; unless has_children
+      res + children_to_src(tabs, opts, fmt) + &quot;\n&quot;
+    end
+
     # Computes the CSS for the directive.
     #
     # @param tabs [Fixnum] The level of indentation for the CSS
     # @return [String] The resulting CSS
-    def to_s(tabs)
-      if children.empty?
-        value + &quot;;&quot;
-      else
-        result = if style == :compressed
-                   &quot;#{value}{&quot;
-                 else
-                   &quot;#{'  ' * (tabs - 1)}#{value} {&quot; + (style == :compact ? ' ' : &quot;\n&quot;)
-                 end
-        was_prop = false
-        first = true
-        children.each do |child|
-          next if child.invisible?
-          if style == :compact
-            if child.is_a?(PropNode)
-              result &lt;&lt; &quot;#{child.to_s(first || was_prop ? 1 : tabs + 1)} &quot;
-            else
-              if was_prop
-                result[-1] = &quot;\n&quot;
-              end
-              rendered = child.to_s(tabs + 1)
-              rendered.lstrip! if first
-              result &lt;&lt; rendered
-            end
-            was_prop = child.is_a?(PropNode)
-            first = false
-          elsif style == :compressed
-            result &lt;&lt; (was_prop ? &quot;;#{child.to_s(1)}&quot; : child.to_s(1))
-            was_prop = child.is_a?(PropNode)
+    def _to_s(tabs)
+      return value + &quot;;&quot; unless has_children
+      return value + &quot; {}&quot; if children.empty?
+      result = if style == :compressed
+                 &quot;#{value}{&quot;
+               else
+                 &quot;#{'  ' * (tabs - 1)}#{value} {&quot; + (style == :compact ? ' ' : &quot;\n&quot;)
+               end
+      was_prop = false
+      first = true
+      children.each do |child|
+        next if child.invisible?
+        if style == :compact
+          if child.is_a?(PropNode)
+            result &lt;&lt; &quot;#{child.to_s(first || was_prop ? 1 : tabs + 1)} &quot;
           else
-            result &lt;&lt; child.to_s(tabs + 1) + &quot;\n&quot;
+            if was_prop
+              result[-1] = &quot;\n&quot;
+            end
+            rendered = child.to_s(tabs + 1).dup
+            rendered = rendered.lstrip if first
+            result &lt;&lt; rendered.rstrip + &quot;\n&quot;
           end
+          was_prop = child.is_a?(PropNode)
+          first = false
+        elsif style == :compressed
+          result &lt;&lt; (was_prop ? &quot;;#{child.to_s(1)}&quot; : child.to_s(1))
+          was_prop = child.is_a?(PropNode)
+        else
+          result &lt;&lt; child.to_s(tabs + 1) + &quot;\n&quot;
         end
-        result.rstrip + if style == :compressed
-                          &quot;}&quot;
-                        else
-                          (style == :expanded ? &quot;\n&quot; : &quot; &quot;) + &quot;}\n&quot;
-                        end
       end
+      result.rstrip + if style == :compressed
+                        &quot;}&quot;
+                      else
+                        (style == :expanded ? &quot;\n&quot; : &quot; &quot;) + &quot;}\n&quot;
+                      end
     end
   end
 end

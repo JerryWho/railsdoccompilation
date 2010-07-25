@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,7 +17,6 @@
     <h2>Source Code</h2>
     <pre>#!/usr/bin/env ruby
 require File.dirname(__FILE__) + '/../test_helper'
-require 'haml/template'
 
 class ActionView::Base
   def nested_tag
@@ -32,7 +31,18 @@ module Haml::Helpers
 end
 
 class HelperTest &lt; Test::Unit::TestCase
-  Post = Struct.new('Post', :body)
+  Post = Struct.new('Post', :body, :error_field, :errors)
+  class PostErrors
+    def on(name)
+      return unless name == 'error_field'
+      [&quot;Really bad error&quot;]
+    end
+    alias_method :full_messages, :on
+
+    def [](name)
+      on(name) || []
+    end
+  end
   
   def setup
     @base = ActionView::Base.new
@@ -43,7 +53,7 @@ class HelperTest &lt; Test::Unit::TestCase
       @base.controller.response = ActionController::Response.new
     end
 
-    @base.instance_variable_set('@post', Post.new(&quot;Foo bar\nbaz&quot;))
+    @base.instance_variable_set('@post', Post.new(&quot;Foo bar\nbaz&quot;, nil, PostErrors.new))
   end
 
   def render(text, options = {})
@@ -82,7 +92,21 @@ class HelperTest &lt; Test::Unit::TestCase
     assert_equal(&quot;foo\n  bar\nbaz\n&quot;, render(&quot;foo\n- tab_up\nbar\n- tab_down\nbaz&quot;))
     assert_equal(&quot;          &lt;p&gt;tabbed&lt;/p&gt;\n&quot;, render(&quot;- buffer.tabulation=5\n%p tabbed&quot;))
   end
-  
+
+  def test_with_tabs
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+Foo
+    Bar
+    Baz
+Baz
+HTML
+Foo
+- with_tabs 2 do
+  = &quot;Bar\\nBaz&quot;
+Baz
+HAML
+  end
+
   def test_helpers_dont_leak
     # Haml helpers shouldn't be accessible from ERB
     render(&quot;foo&quot;)
@@ -110,9 +134,16 @@ class HelperTest &lt; Test::Unit::TestCase
   def test_form_tag
     # This is usually provided by ActionController::Base.
     def @base.protect_against_forgery?; false; end
-    result = render(&quot;- form_tag 'foo' do\n  %p bar\n  %strong baz&quot;, :action_view)
-    should_be = &quot;&lt;form action=\&quot;foo\&quot; method=\&quot;post\&quot;&gt;\n  &lt;p&gt;bar&lt;/p&gt;\n  &lt;strong&gt;baz&lt;/strong&gt;\n&lt;/form&gt;\n&quot;
-    assert_equal(should_be, result)
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML, :action_view))
+&lt;form action=&quot;foo&quot; method=&quot;post&quot;&gt;
+  &lt;p&gt;bar&lt;/p&gt;
+  &lt;strong&gt;baz&lt;/strong&gt;
+&lt;/form&gt;
+HTML
+#{rails_block_helper_char} form_tag 'foo' do
+  %p bar
+  %strong baz
+HAML
   end
 
   def test_text_area
@@ -127,19 +158,83 @@ class HelperTest &lt; Test::Unit::TestCase
   end
   
   def test_capture_haml
-    assert_equal(&quot;\&quot;&lt;p&gt;13&lt;/p&gt;\\n\&quot;\n&quot;, render(&quot;- foo = capture_haml(13) do |a|\n  %p= a\n= foo.dump&quot;))
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&quot;&lt;p&gt;13&lt;/p&gt;\\n&quot;
+HTML
+- (foo = capture_haml(13) do |a|
+  %p= a
+- end; nil)
+= foo.dump
+HAML
   end
 
   def test_content_tag_block
-    assert_equal(&lt;&lt;HTML.strip, render(&lt;&lt;HAML, :action_view))
+    assert_equal(&lt;&lt;HTML.strip, render(&lt;&lt;HAML, :action_view).strip)
 &lt;div&gt;&lt;p&gt;bar&lt;/p&gt;
 &lt;strong&gt;bar&lt;/strong&gt;
 &lt;/div&gt;
 HTML
-- content_tag :div do
+#{rails_block_helper_char} content_tag :div do
   %p bar
   %strong bar
 HAML
+  end
+
+  def test_content_tag_error_wrapping
+    def @base.protect_against_forgery?; false; end
+    error_class = Haml::Util.ap_geq_3? ? &quot;field_with_errors&quot; : &quot;fieldWithErrors&quot;
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML, :action_view))
+&lt;form action=&quot;&quot; method=&quot;post&quot;&gt;
+  &lt;div class=&quot;#{error_class}&quot;&gt;&lt;label for=&quot;post_error_field&quot;&gt;Error field&lt;/label&gt;&lt;/div&gt;
+&lt;/form&gt;
+HTML
+#{rails_block_helper_char} form_for #{form_for_calling_convention('post')}, :url =&gt; '' do |f|
+  = f.label 'error_field'
+HAML
+  end
+
+  def test_haml_tag_name_attribute_with_id
+    assert_equal(&quot;&lt;p id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#some_id'&quot;))
+  end
+
+  def test_haml_tag_without_name_but_with_id
+    assert_equal(&quot;&lt;div id='some_id'&gt;&lt;/div&gt;\n&quot;, render(&quot;- haml_tag '#some_id'&quot;))
+  end
+
+  def test_haml_tag_without_name_but_with_class
+    assert_equal(&quot;&lt;div class='foo'&gt;&lt;/div&gt;\n&quot;, render(&quot;- haml_tag '.foo'&quot;))
+  end
+
+  def test_haml_tag_name_with_id_and_class
+    assert_equal(&quot;&lt;p class='foo' id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#some_id.foo'&quot;))
+  end
+
+  def test_haml_tag_name_with_class
+    assert_equal(&quot;&lt;p class='foo'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p.foo'&quot;))
+  end
+
+  def test_haml_tag_name_with_class_and_id
+    assert_equal(&quot;&lt;p class='foo' id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p.foo#some_id'&quot;))
+  end
+
+  def test_haml_tag_name_with_id_and_multiple_classes
+    assert_equal(&quot;&lt;p class='foo bar' id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#some_id.foo.bar'&quot;))
+  end
+
+  def test_haml_tag_name_with_multiple_classes_and_id
+    assert_equal(&quot;&lt;p class='foo bar' id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p.foo.bar#some_id'&quot;))
+  end
+
+  def test_haml_tag_name_and_attribute_classes_merging
+    assert_equal(&quot;&lt;p class='foo bar' id='some_id'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#some_id.foo', :class =&gt; 'bar'&quot;))
+  end
+
+  def test_haml_tag_name_and_attribute_classes_merging
+    assert_equal(&quot;&lt;p class='bar foo'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p.foo', :class =&gt; 'bar'&quot;))
+  end
+
+  def test_haml_tag_name_merges_id_and_attribute_id
+    assert_equal(&quot;&lt;p id='foo_bar'&gt;&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#foo', :id =&gt; 'bar'&quot;))
   end
 
   def test_haml_tag_attribute_html_escaping
@@ -148,6 +243,16 @@ HAML
 
   def test_haml_tag_autoclosed_tags_are_closed
     assert_equal(&quot;&lt;br class='foo' /&gt;\n&quot;, render(&quot;- haml_tag :br, :class =&gt; 'foo'&quot;))
+  end
+
+  def test_haml_tag_with_class_array
+    assert_equal(&quot;&lt;p class='a b'&gt;foo&lt;/p&gt;\n&quot;, render(&quot;- haml_tag :p, 'foo', :class =&gt; %w[a b]&quot;))
+    assert_equal(&quot;&lt;p class='a b c d'&gt;foo&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p.c.d', 'foo', :class =&gt; %w[a b]&quot;))
+  end
+
+  def test_haml_tag_with_id_array
+    assert_equal(&quot;&lt;p id='a_b'&gt;foo&lt;/p&gt;\n&quot;, render(&quot;- haml_tag :p, 'foo', :id =&gt; %w[a b]&quot;))
+    assert_equal(&quot;&lt;p id='c_a_b'&gt;foo&lt;/p&gt;\n&quot;, render(&quot;- haml_tag 'p#c', 'foo', :id =&gt; %w[a b]&quot;))
   end
 
   def test_haml_tag_non_autoclosed_tags_arent_closed
@@ -174,6 +279,42 @@ HAML
     assert_raise(Haml::Error) { render(&quot;= haml_tag :p&quot;) }
   end
 
+  def test_haml_tag_with_multiline_string
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;
+  foo
+  bar
+  baz
+&lt;/p&gt;
+HTML
+- haml_tag :p, &quot;foo\\nbar\\nbaz&quot;
+HAML
+  end
+
+  def test_haml_concat_with_multiline_string
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML))
+&lt;p&gt;
+  foo
+  bar
+  baz
+&lt;/p&gt;
+HTML
+%p
+  - haml_concat &quot;foo\\nbar\\nbaz&quot;
+HAML
+  end
+
+  def test_haml_tag_with_ugly
+    assert_equal(&lt;&lt;HTML, render(&lt;&lt;HAML, :ugly =&gt; true))
+&lt;p&gt;
+&lt;strong&gt;Hi!&lt;/strong&gt;
+&lt;/p&gt;
+HTML
+- haml_tag :p do
+  - haml_tag :strong, &quot;Hi!&quot;
+HAML
+  end
+
   def test_is_haml
     assert(!ActionView::Base.new.is_haml?)
     assert_equal(&quot;true\n&quot;, render(&quot;= is_haml?&quot;))
@@ -191,7 +332,8 @@ HAML
   end
 
   def test_indented_capture
-    assert_equal(&quot;  \n  Foo\n  &quot;, @base.render(:inline =&gt; &quot;  &lt;% res = capture do %&gt;\n  Foo\n  &lt;% end %&gt;&lt;%= res %&gt;&quot;))
+    prior = Haml::Util.ap_geq_3? ? &quot;&quot; : &quot;  \n&quot;
+    assert_equal(&quot;#{prior}  Foo\n  &quot;, @base.render(:inline =&gt; &quot;  &lt;% res = capture do %&gt;\n  Foo\n  &lt;% end %&gt;&lt;%= res %&gt;&quot;))
   end
 
   def test_capture_deals_properly_with_collections
@@ -257,14 +399,14 @@ MESSAGE
     render(&quot;%p foo\n= haml_concat 'foo'\n%p bar&quot;)
     assert false, &quot;Expected Haml::Error&quot;
   rescue Haml::Error =&gt; e
-    assert_equal 2, e.backtrace[0].scan(/:(\d+)/).first.first.to_i
+    assert_equal 2, e.backtrace[1].scan(/:(\d+)/).first.first.to_i
   end
 
   def test_error_return_line_in_helper
     render(&quot;- something_that_uses_haml_concat&quot;)
     assert false, &quot;Expected Haml::Error&quot;
   rescue Haml::Error =&gt; e
-    assert_equal 13, e.backtrace[0].scan(/:(\d+)/).first.first.to_i
+    assert_equal 12, e.backtrace[0].scan(/:(\d+)/).first.first.to_i
   end
 
   class ActsLikeTag

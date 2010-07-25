@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Dec 17 19:41:50 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -102,10 +102,17 @@ module Haml
         :format =&gt; :xhtml,
         :escape_html =&gt; false,
       }
-      unless ruby1_8?
-        @options[:encoding] = Encoding.default_internal || &quot;utf-8&quot;
+
+
+      template = check_haml_encoding(template) do |msg, line|
+        raise Haml::Error.new(msg, line)
       end
-      @options.merge! options
+
+      unless ruby1_8?
+        @options[:encoding] = Encoding.default_internal || template.encoding
+        @options[:encoding] = &quot;utf-8&quot; if @options[:encoding].name == &quot;US-ASCII&quot;
+      end
+      @options.merge! options.reject {|k, v| v.nil?}
       @index = 0
 
       unless [:xhtml, :html4, :html5].include?(@options[:format])
@@ -130,7 +137,9 @@ module Haml
 
       precompile
     rescue Haml::Error =&gt; e
-      e.backtrace.unshift &quot;#{@options[:filename]}:#{(e.line ? e.line + 1 : @index) + @options[:line] - 1}&quot; if @index
+      if @index || e.line
+        e.backtrace.unshift &quot;#{@options[:filename]}:#{(e.line ? e.line + 1 : @index) + @options[:line] - 1}&quot;
+      end
       raise
     end
 
@@ -151,7 +160,7 @@ module Haml
     #     Haml::Engine.new(&quot;%p= upcase&quot;).render(s) #=&gt; &quot;&lt;p&gt;FOOBAR&lt;/p&gt;&quot;
     #
     #     # s now extends Haml::Helpers
-    #     s.responds_to?(:html_attrs) #=&gt; true
+    #     s.respond_to?(:html_attrs) #=&gt; true
     #
     # `locals` is a hash of local variables to make available to the template.
     # For example:

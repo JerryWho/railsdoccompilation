@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:23:42 +0100 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -43,7 +43,8 @@
 
       def set_output_buffer_with_haml(new)
         if is_haml?
-          new = String.new(new) if Haml::Util.rails_xss_safe? &amp;&amp; new.is_a?(ActionView::SafeBuffer)
+          new = String.new(new) if Haml::Util.rails_xss_safe? &amp;&amp;
+            new.is_a?(Haml::Util.rails_safe_buffer_class)
           haml_buffer.buffer = new
         else
           set_output_buffer_without_haml new
@@ -101,7 +102,9 @@
       module CaptureHelper
         def capture_with_haml(*args, &amp;block)
           if Haml::Helpers.block_is_haml?(block)
-            capture_haml(*args, &amp;block)
+            str = capture_haml(*args, &amp;block)
+            return ActionView::NonConcattingString.new(str) if defined?(ActionView::NonConcattingString)
+            return str
           else
             capture_without_haml(*args, &amp;block)
           end
@@ -141,19 +144,100 @@
         @template_object.send :is_haml?
       end
 
-      unless defined?(ActionView::Helpers::ActiveRecordInstanceTag)
-        alias_method :content_tag_without_haml, :content_tag
-        alias_method :content_tag, :content_tag_with_haml
+      def content_tag(*args)
+        html_tag = content_tag_with_haml(*args)
+        return html_tag unless respond_to?(:error_wrapping)
+        return error_wrapping(html_tag) if method(:error_wrapping).arity == 1
+        return html_tag unless object.respond_to?(:errors) &amp;&amp; object.errors.respond_to?(:on)
+        return error_wrapping(html_tag, object.errors.on(@method_name))
       end
     end
 
-    module FormTagHelper
-      def form_tag_with_haml(url_for_options = {}, options = {}, *parameters_for_url, &amp;proc)
-        if is_haml?
-          if block_given?
+    if Haml::Util.ap_geq_3?
+      module FormTagHelper
+        def form_tag_with_haml(url_for_options = {}, options = {}, *parameters_for_url, &amp;proc)
+          if is_haml?
+            if block_given?
+              oldproc = proc
+              proc = haml_bind_proc do |*args|
+                concat &quot;\n&quot;
+                with_tabs(1) {oldproc.call(*args)}
+              end
+            end
+            res = form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc) + &quot;\n&quot;
+            res &lt;&lt; &quot;\n&quot; if block_given?
+            res
+          else
+            form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc)
+          end
+        end
+        alias_method :form_tag_without_haml, :form_tag
+        alias_method :form_tag, :form_tag_with_haml
+      end
+
+      module FormHelper
+        def form_for_with_haml(object_name, *args, &amp;proc)
+          if block_given? &amp;&amp; is_haml?
+            oldproc = proc
+            proc = proc {|*args| with_tabs(1) {oldproc.call(*args)}}
+          end
+          res = form_for_without_haml(object_name, *args, &amp;proc)
+          res &lt;&lt; &quot;\n&quot; if block_given? &amp;&amp; is_haml?
+          res
+        end
+        alias_method :form_for_without_haml, :form_for
+        alias_method :form_for, :form_for_with_haml
+      end
+
+      module CacheHelper
+        # This is a workaround for a Rails 3 bug
+        # that's present at least through beta 3.
+        # Their fragment_for assumes that the block
+        # will return its contents as a string,
+        # which is not always the case.
+        # Luckily, it only makes this assumption if caching is disabled,
+        # so we only override that case.
+        def fragment_for_with_haml(*args, &amp;block)
+          return fragment_for_without_haml(*args, &amp;block) if controller.perform_caching
+          capture(&amp;block)
+        end
+        alias_method :fragment_for_without_haml, :fragment_for
+        alias_method :fragment_for, :fragment_for_with_haml
+      end
+    else
+      module FormTagHelper
+        def form_tag_with_haml(url_for_options = {}, options = {}, *parameters_for_url, &amp;proc)
+          if is_haml?
+            if block_given?
+              oldproc = proc
+              proc = haml_bind_proc do |*args|
+                concat &quot;\n&quot;
+                tab_up
+                oldproc.call(*args)
+                tab_down
+                concat haml_indent
+              end
+              concat haml_indent
+            end
+            res = form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc) + &quot;\n&quot;
+            if block_given?
+              concat &quot;\n&quot;
+              return Haml::Helpers::ErrorReturn.new(&quot;form_tag&quot;)
+            end
+            res
+          else
+            form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc)
+          end
+        end
+        alias_method :form_tag_without_haml, :form_tag
+        alias_method :form_tag, :form_tag_with_haml
+      end
+
+      module FormHelper
+        def form_for_with_haml(object_name, *args, &amp;proc)
+          if block_given? &amp;&amp; is_haml?
             oldproc = proc
             proc = haml_bind_proc do |*args|
-              concat &quot;\n&quot;
               tab_up
               oldproc.call(*args)
               tab_down
@@ -161,34 +245,13 @@
             end
             concat haml_indent
           end
-          res = form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc) + &quot;\n&quot;
-          concat &quot;\n&quot; if block_given?
-          res
-        else
-          form_tag_without_haml(url_for_options, options, *parameters_for_url, &amp;proc)
+          form_for_without_haml(object_name, *args, &amp;proc)
+          concat &quot;\n&quot; if block_given? &amp;&amp; is_haml?
+          Haml::Helpers::ErrorReturn.new(&quot;form_for&quot;) if is_haml?
         end
+        alias_method :form_for_without_haml, :form_for
+        alias_method :form_for, :form_for_with_haml
       end
-      alias_method :form_tag_without_haml, :form_tag
-      alias_method :form_tag, :form_tag_with_haml
-    end
-
-    module FormHelper
-      def form_for_with_haml(object_name, *args, &amp;proc)
-        if block_given? &amp;&amp; is_haml?
-          oldproc = proc
-          proc = haml_bind_proc do |*args|
-            tab_up
-            oldproc.call(*args)
-            tab_down
-            concat haml_indent
-          end
-          concat haml_indent
-        end
-        form_for_without_haml(object_name, *args, &amp;proc)
-        concat &quot;\n&quot; if block_given? &amp;&amp; is_haml?
-      end
-      alias_method :form_for_without_haml, :form_for
-      alias_method :form_for, :form_for_with_haml
     end
   end
 end

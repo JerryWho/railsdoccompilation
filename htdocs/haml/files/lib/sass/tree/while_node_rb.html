@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:57:00 +0200 2009</td>
+      <td>Sun Jul 25 20:12:45 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -30,6 +30,11 @@ module Sass::Tree
 
     protected
 
+    # @see Node#to_src
+    def to_src(tabs, opts, fmt)
+      &quot;#{'  ' * tabs}@while #{@expr.to_sass(opts)}&quot; + children_to_src(tabs, opts, fmt)
+    end
+
     # Runs the child nodes until the continue expression becomes false.
     #
     # @param environment [Sass::Environment] The lexical environment containing
@@ -43,6 +48,18 @@ module Sass::Tree
         children += perform_children(new_environment)
       end
       children
+    end
+
+    # Returns an error message if the given child node is invalid,
+    # and false otherwise.
+    #
+    # {ExtendNode}s are valid within {WhileNode}s.
+    #
+    # @param child [Tree::Node] A potential child node.
+    # @return [Boolean, String] Whether or not the child node is valid,
+    #   as well as the error message to display if it is invalid
+    def invalid_child?(child)
+      super unless child.is_a?(ExtendNode)
     end
   end
 end
