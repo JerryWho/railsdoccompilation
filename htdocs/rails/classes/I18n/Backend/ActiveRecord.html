@@ -1,0 +1,219 @@
+  <div id="C00001923">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />ActiveRecord<br/>
+  In:
+<a href="#" onclick="jsHref('files/activesupport/lib/active_support/vendor/i18n-0_3_7/i18n/backend/active_record/missing_rb.html');">activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record/missing.rb</a>
+<a href="#" onclick="jsHref('files/activesupport/lib/active_support/vendor/i18n-0_3_7/i18n/backend/active_record/store_procs_rb.html');">activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record/store_procs.rb</a>
+<a href="#" onclick="jsHref('files/activesupport/lib/active_support/vendor/i18n-0_3_7/i18n/backend/active_record/translation_rb.html');">activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record/translation.rb</a>
+<a href="#" onclick="jsHref('files/activesupport/lib/active_support/vendor/i18n-0_3_7/i18n/backend/active_record_rb.html');">activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+  <div class="description"><p>
+<a href="index.html?a=C00001923&name=ActiveRecord">ActiveRecord</a> model
+used to store actual translations to the database.
+</p>
+<p>
+This model expects a table like the following to be already set up in your
+the database:
+</p>
+<pre>
+  create_table :translations do |t|
+    t.string :locale
+    t.string :key
+    t.text   :value
+    t.text   :interpolations
+    t.boolean :is_proc, :default =&gt; false
+  end
+</pre>
+<p>
+This model supports to named scopes :locale and :lookup. The :locale scope
+simply adds a condition for a given locale:
+</p>
+<pre>
+  I18n::Backend::ActiveRecord::Translation.locale(:en).all
+  # =&gt; all translation records that belong to the :en locale
+</pre>
+<p>
+The :lookup scope adds a condition for looking up all translations that
+either start with the given keys (joined by an optionally given separator
+or I18n.default_separator) or that exactly have this key.
+</p>
+<pre>
+  # with translations present for :&quot;foo.bar&quot; and :&quot;foo.baz&quot;
+  I18n::Backend::ActiveRecord::Translation.lookup(:foo)
+  # =&gt; an array with both translation records :&quot;foo.bar&quot; and :&quot;foo.baz&quot;
+
+  I18n::Backend::ActiveRecord::Translation.lookup([:foo, :bar])
+  I18n::Backend::ActiveRecord::Translation.lookup(:&quot;foo.bar&quot;)
+  # =&gt; an array with the translation record :&quot;foo.bar&quot;
+</pre>
+<p>
+When the <a href="index.html?a=C00001924&name=StoreProcs">StoreProcs</a>
+module was mixed into this model then Procs will be stored to the database
+as Ruby code and evaluated when :value is called.
+</p>
+<pre>
+  Translation = I18n::Backend::ActiveRecord::Translation
+  Translation.create      #     :locale =&gt; 'en'
+    :key    =&gt; 'foo'
+    :value  =&gt; lambda { |key, options| 'FOO' }
+  Translation.find_by_locale_and_key('en', 'foo').value
+  # =&gt; 'FOO'
+</pre>
+</div>
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M010784&name=available_locales" >available_locales</a></li>
+  <li><a href="index.html?a=M010786&name=expand_keys" >expand_keys</a></li>
+  <li><a href="index.html?a=M010785&name=lookup" >lookup</a></li>
+  <li><a href="index.html?a=M010782&name=reload!" >reload!</a></li>
+  <li><a href="index.html?a=M010783&name=store_translations" >store_translations</a></li>
+  </ul>
+
+<div class="sectiontitle">Included Modules</div>
+<ul>
+  <li><a href="#" onclick="jsHref('classes/I18n/Backend/Base.html');">Base</a></li>
+  <li><a href="#" onclick="jsHref('classes/I18n/Backend/Links.html');">Links</a></li>
+</ul>
+
+
+  <div class="sectiontitle">Classes and Modules</div>
+  Module "<a href="#" onclick="jsHref('classes/I18n/Backend/ActiveRecord/Missing.html');" class="link">I18n::Backend::ActiveRecord::Missing</a>"<br />
+Module "<a href="#" onclick="jsHref('classes/I18n/Backend/ActiveRecord/StoreProcs.html');" class="link">I18n::Backend::ActiveRecord::StoreProcs</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/I18n/Backend/ActiveRecord/Translation.html');" class="link">I18n::Backend::ActiveRecord::Translation</a>"<br />
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M010784" class="method">
+  <div id="M010784_title" class="title">
+    <b>available_locales</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M010784_source')" id="l_M010784_source">show source</a> ]</p>
+  <div id="M010784_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb, line 25</span>
+25:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">available_locales</span>
+26:         <span class="ruby-keyword kw">begin</span>
+27:           <span class="ruby-constant">Translation</span>.<span class="ruby-identifier">available_locales</span>
+28:         <span class="ruby-keyword kw">rescue</span> <span class="ruby-operator">::</span><span class="ruby-constant">ActiveRecord</span><span class="ruby-operator">::</span><span class="ruby-constant">StatementInvalid</span>
+29:           []
+30:         <span class="ruby-keyword kw">end</span>
+31:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M010782" class="method">
+  <div id="M010782_title" class="title">
+    <b>reload!</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M010782_source')" id="l_M010782_source">show source</a> ]</p>
+  <div id="M010782_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb, line 13</span>
+13:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reload!</span>
+14:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M010783" class="method">
+  <div id="M010783_title" class="title">
+    <b>store_translations</b>(locale, data, options = {})
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M010783_source')" id="l_M010783_source">show source</a> ]</p>
+  <div id="M010783_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb, line 16</span>
+16:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">store_translations</span>(<span class="ruby-identifier">locale</span>, <span class="ruby-identifier">data</span>, <span class="ruby-identifier">options</span> = {})
+17:         <span class="ruby-identifier">separator</span> = <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:separator</span>] <span class="ruby-operator">||</span> <span class="ruby-constant">I18n</span>.<span class="ruby-identifier">default_separator</span>
+18:         <span class="ruby-identifier">wind_keys</span>(<span class="ruby-identifier">data</span>, <span class="ruby-identifier">separator</span>).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">key</span>, <span class="ruby-identifier">value</span><span class="ruby-operator">|</span>
+19:           <span class="ruby-identifier">store_link</span>(<span class="ruby-identifier">locale</span>, <span class="ruby-identifier">key</span>, <span class="ruby-identifier">value</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">value</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Symbol</span>)
+20:           <span class="ruby-constant">Translation</span>.<span class="ruby-identifier">locale</span>(<span class="ruby-identifier">locale</span>).<span class="ruby-identifier">lookup</span>(<span class="ruby-identifier">expand_keys</span>(<span class="ruby-identifier">key</span>, <span class="ruby-identifier">separator</span>), <span class="ruby-identifier">separator</span>).<span class="ruby-identifier">delete_all</span>
+21:           <span class="ruby-constant">Translation</span>.<span class="ruby-identifier">create</span>(<span class="ruby-identifier">:locale</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">locale</span>.<span class="ruby-identifier">to_s</span>, <span class="ruby-identifier">:key</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">key</span>.<span class="ruby-identifier">to_s</span>, <span class="ruby-identifier">:value</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">value</span>)
+22:         <span class="ruby-keyword kw">end</span>
+23:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Protected Instance methods</div>
+<div id="M010786" class="method">
+  <div id="M010786_title" class="title">
+    <b>expand_keys</b>(key, separator = I18n.default_separator)
+  </div>
+  <div class="description">
+  <p>
+For a key :&#8217;foo.bar.baz&#8217; return [&#8216;foo&#8217;,
+&#8216;foo.bar&#8217;, &#8216;foo.bar.baz&#8217;]
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M010786_source')" id="l_M010786_source">show source</a> ]</p>
+  <div id="M010786_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb, line 59</span>
+59:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">expand_keys</span>(<span class="ruby-identifier">key</span>, <span class="ruby-identifier">separator</span> = <span class="ruby-constant">I18n</span>.<span class="ruby-identifier">default_separator</span>)
+60:           <span class="ruby-identifier">key</span>.<span class="ruby-identifier">to_s</span>.<span class="ruby-identifier">split</span>(<span class="ruby-identifier">separator</span>).<span class="ruby-identifier">inject</span>([]) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">keys</span>, <span class="ruby-identifier">key</span><span class="ruby-operator">|</span>
+61:             <span class="ruby-identifier">keys</span> <span class="ruby-operator">&lt;&lt;</span> [<span class="ruby-identifier">keys</span>.<span class="ruby-identifier">last</span>, <span class="ruby-identifier">key</span>].<span class="ruby-identifier">compact</span>.<span class="ruby-identifier">join</span>(<span class="ruby-identifier">separator</span>)
+62:           <span class="ruby-keyword kw">end</span>
+63:         <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M010785" class="method">
+  <div id="M010785_title" class="title">
+    <b>lookup</b>(locale, key, scope = [], options = {})
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M010785_source')" id="l_M010785_source">show source</a> ]</p>
+  <div id="M010785_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/active_record.rb, line 35</span>
+35:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">lookup</span>(<span class="ruby-identifier">locale</span>, <span class="ruby-identifier">key</span>, <span class="ruby-identifier">scope</span> = [], <span class="ruby-identifier">options</span> = {})
+36:           <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">unless</span> <span class="ruby-identifier">key</span>
+37: 
+38:           <span class="ruby-identifier">separator</span> = <span class="ruby-identifier">options</span>[<span class="ruby-identifier">:separator</span>] <span class="ruby-operator">||</span> <span class="ruby-constant">I18n</span>.<span class="ruby-identifier">default_separator</span>
+39: 
+40:           <span class="ruby-identifier">key</span> = <span class="ruby-identifier">resolve_link</span>(<span class="ruby-identifier">locale</span>, <span class="ruby-identifier">key</span>)
+41:           <span class="ruby-identifier">key</span> = (<span class="ruby-constant">Array</span>(<span class="ruby-identifier">scope</span>) <span class="ruby-operator">+</span> <span class="ruby-constant">Array</span>(<span class="ruby-identifier">key</span>)).<span class="ruby-identifier">join</span>(<span class="ruby-identifier">separator</span>)
+42:           <span class="ruby-identifier">result</span> = <span class="ruby-constant">Translation</span>.<span class="ruby-identifier">locale</span>(<span class="ruby-identifier">locale</span>).<span class="ruby-identifier">lookup</span>(<span class="ruby-identifier">key</span>, <span class="ruby-identifier">separator</span>).<span class="ruby-identifier">all</span>
+43: 
+44:           <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">result</span>.<span class="ruby-identifier">empty?</span>
+45:             <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">nil</span>
+46:           <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">result</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">key</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">key</span>
+47:             <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">result</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">value</span>
+48:           <span class="ruby-keyword kw">else</span>
+49:             <span class="ruby-identifier">chop_range</span> = (<span class="ruby-identifier">key</span>.<span class="ruby-identifier">size</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">separator</span>.<span class="ruby-identifier">size</span>)<span class="ruby-operator">..</span><span class="ruby-value">-1</span>
+50:             <span class="ruby-identifier">result</span> = <span class="ruby-identifier">result</span>.<span class="ruby-identifier">inject</span>({}) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">hash</span>, <span class="ruby-identifier">r</span><span class="ruby-operator">|</span>
+51:               <span class="ruby-identifier">hash</span>[<span class="ruby-identifier">r</span>.<span class="ruby-identifier">key</span>.<span class="ruby-identifier">slice</span>(<span class="ruby-identifier">chop_range</span>)] = <span class="ruby-identifier">r</span>.<span class="ruby-identifier">value</span>
+52:               <span class="ruby-identifier">hash</span>
+53:             <span class="ruby-keyword kw">end</span>
+54:             <span class="ruby-identifier">deep_symbolize_keys</span>(<span class="ruby-identifier">unwind_keys</span>(<span class="ruby-identifier">result</span>, <span class="ruby-identifier">separator</span>))
+55:           <span class="ruby-keyword kw">end</span>
+56:         <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,6 +17,7 @@
     <h2>Source Code</h2>
     <pre>require &quot;date&quot;
 require 'action_view/helpers/tag_helper'
+require 'active_support/core_ext/hash/slice'
 
 module ActionView
   module Helpers
@@ -633,7 +634,7 @@ module ActionView
 
           build_selects_from_types(order)
         else
-          &quot;#{select_date}#{@options[:datetime_separator]}#{select_time}&quot;
+          &quot;#{select_date}#{@options[:datetime_separator]}#{select_time}&quot;.html_safe
         end
       end
 
@@ -832,7 +833,7 @@ module ActionView
             tag_options[:selected] = &quot;selected&quot; if selected == i
             select_options &lt;&lt; content_tag(:option, value, tag_options)
           end
-          select_options.join(&quot;\n&quot;) + &quot;\n&quot;
+          (select_options.join(&quot;\n&quot;) + &quot;\n&quot;).html_safe
         end
 
         # Builds select tag from date type and html select options
@@ -850,9 +851,9 @@ module ActionView
           select_html = &quot;\n&quot;
           select_html &lt;&lt; content_tag(:option, '', :value =&gt; '') + &quot;\n&quot; if @options[:include_blank]
           select_html &lt;&lt; prompt_option_tag(type, @options[:prompt]) + &quot;\n&quot; if @options[:prompt]
-          select_html &lt;&lt; select_options_as_html.to_s
+          select_html &lt;&lt; select_options_as_html
 
-          content_tag(:select, select_html, select_options) + &quot;\n&quot;
+          (content_tag(:select, select_html.html_safe, select_options) + &quot;\n&quot;).html_safe
         end
 
         # Builds a prompt option tag with supplied options or from default options
@@ -877,12 +878,12 @@ module ActionView
         #  build_hidden(:year, 2008)
         #  =&gt; &quot;&lt;input id=&quot;post_written_on_1i&quot; name=&quot;post[written_on(1i)]&quot; type=&quot;hidden&quot; value=&quot;2008&quot; /&gt;&quot;
         def build_hidden(type, value)
-          tag(:input, {
+          (tag(:input, {
             :type =&gt; &quot;hidden&quot;,
             :id =&gt; input_id_from_type(type),
             :name =&gt; input_name_from_type(type),
             :value =&gt; value
-          }) + &quot;\n&quot;
+          }.merge(@html_options.slice(:disabled))) + &quot;\n&quot;).html_safe
         end
 
         # Returns the name attribute for the input tag
@@ -913,7 +914,7 @@ module ActionView
             separator = separator(type) unless type == order.first # don't add on last field
             select.insert(0, separator.to_s + send(&quot;select_#{type}&quot;).to_s)
           end
-          select
+          select.html_safe
         end
 
         # Returns the separator for a given datetime component
@@ -924,7 +925,7 @@ module ActionView
             when :hour
               (@options[:discard_year] &amp;&amp; @options[:discard_day]) ? &quot;&quot; : @options[:datetime_separator]
             when :minute
-              @options[:time_separator]
+              @options[:discard_minute] ? &quot;&quot; : @options[:time_separator]
             when :second
               @options[:include_seconds] ? @options[:time_separator] : &quot;&quot;
           end
@@ -933,15 +934,15 @@ module ActionView
 
     class InstanceTag #:nodoc:
       def to_date_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_date.html_safe!
+        datetime_selector(options, html_options).select_date.html_safe
       end
 
       def to_time_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_time.html_safe!
+        datetime_selector(options, html_options).select_time.html_safe
       end
 
       def to_datetime_select_tag(options = {}, html_options = {})
-        datetime_selector(options, html_options).select_datetime.html_safe!
+        datetime_selector(options, html_options).select_datetime.html_safe
       end
 
       private

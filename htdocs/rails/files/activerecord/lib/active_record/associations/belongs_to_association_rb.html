@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -48,6 +48,8 @@
           @updated = true
         end
 
+        set_inverse_instance(record, @owner)
+
         loaded
         record
       end
@@ -63,13 +65,15 @@
                         else
                           &quot;find&quot;
                         end
-          @reflection.klass.send(find_method,
+          the_target = @reflection.klass.send(find_method,
             @owner[@reflection.primary_key_name],
             :select     =&gt; @reflection.options[:select],
             :conditions =&gt; conditions,
             :include    =&gt; @reflection.options[:include],
             :readonly   =&gt; @reflection.options[:readonly]
           ) if @owner[@reflection.primary_key_name]
+          set_inverse_instance(the_target, @owner)
+          the_target
         end
 
         def foreign_key_present
@@ -87,6 +91,12 @@
                                   else
                                     @owner[@reflection.primary_key_name]
                                   end
+        end
+
+        # NOTE - for now, we're only supporting inverse setting from belongs_to back onto
+        # has_one associations.
+        def we_can_set_the_inverse_on_this?(record)
+          @reflection.has_inverse? &amp;&amp; @reflection.inverse_of.macro == :has_one
         end
     end
   end

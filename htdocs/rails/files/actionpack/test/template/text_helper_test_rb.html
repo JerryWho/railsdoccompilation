@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,8 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require 'abstract_unit'
+    <pre># encoding: us-ascii
+require 'abstract_unit'
 require 'testing_sandbox'
 begin
   require 'redcloth'
@@ -34,7 +35,7 @@ class TextHelperTest &lt; ActionView::TestCase
   end
 
   def test_concat
-    self.output_buffer = 'foo'
+    self.output_buffer = ActiveSupport::SafeBuffer.new('foo')
     assert_equal 'foobar', concat('bar')
     assert_equal 'foobar', output_buffer
   end
@@ -54,6 +55,14 @@ class TextHelperTest &lt; ActionView::TestCase
 
      assert_equal %q(&lt;p class=&quot;test&quot;&gt;This is a classy test&lt;/p&gt;), simple_format(&quot;This is a classy test&quot;, :class =&gt; 'test')
      assert_equal %Q(&lt;p class=&quot;test&quot;&gt;para 1&lt;/p&gt;\n\n&lt;p class=&quot;test&quot;&gt;para 2&lt;/p&gt;), simple_format(&quot;para 1\n\npara 2&quot;, :class =&gt; 'test')
+  end
+
+  def test_simple_format_should_be_html_safe
+    assert simple_format(&quot;&lt;b&gt; test with html tags &lt;/b&gt;&quot;).html_safe?
+  end
+
+  def test_simple_format_should_not_escape_safe_input
+    assert_equal &quot;&lt;p&gt;&lt;b&gt; test with safe string &lt;/b&gt;&lt;/p&gt;&quot;, simple_format(&quot;&lt;b&gt; test with safe string &lt;/b&gt;&quot;.html_safe)
   end
 
   def test_truncate
@@ -241,6 +250,8 @@ class TextHelperTest &lt; ActionView::TestCase
     assert_equal(&quot;2 counts&quot;, pluralize('2', &quot;count&quot;))
     assert_equal(&quot;1,066 counts&quot;, pluralize('1,066', &quot;count&quot;))
     assert_equal(&quot;1.25 counts&quot;, pluralize('1.25', &quot;count&quot;))
+    assert_equal(&quot;1.0 count&quot;, pluralize('1.0', &quot;count&quot;))
+    assert_equal(&quot;1.00 count&quot;, pluralize('1.00', &quot;count&quot;))
     assert_equal(&quot;2 counters&quot;, pluralize(2, &quot;count&quot;, &quot;counters&quot;))
     assert_equal(&quot;0 counters&quot;, pluralize(nil, &quot;count&quot;, &quot;counters&quot;))
     assert_equal(&quot;2 people&quot;, pluralize(2, &quot;person&quot;))
@@ -371,6 +382,20 @@ class TextHelperTest &lt; ActionView::TestCase
     link10_raw    = 'http://www.mail-archive.com/ruby-talk@ruby-lang.org/'
     link10_result = generate_result(link10_raw)
     assert_equal %(&lt;p&gt;#{link10_result} Link&lt;/p&gt;), auto_link(&quot;&lt;p&gt;#{link10_raw} Link&lt;/p&gt;&quot;)
+  end
+
+  def test_auto_link_other_protocols
+    silence_warnings do
+      begin
+        old_re_value = ActionView::Helpers::TextHelper::AUTO_LINK_RE
+        ActionView::Helpers::TextHelper.const_set :AUTO_LINK_RE, %r{(ftp://)[^\s&lt;]+}
+        link_raw = 'ftp://example.com/file.txt'
+        link_result = generate_result(link_raw)
+        assert_equal %(Download #{link_result}), auto_link(&quot;Download #{link_raw}&quot;)
+      ensure
+        ActionView::Helpers::TextHelper.const_set :AUTO_LINK_RE, old_re_value
+      end
+    end
   end
 
   def test_auto_link_already_linked

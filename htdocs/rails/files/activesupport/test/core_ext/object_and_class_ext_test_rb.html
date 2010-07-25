@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:54 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -124,7 +124,7 @@ class ClassExtTest &lt; Test::Unit::TestCase
   end
 end
 
-class ObjectTests &lt; Test::Unit::TestCase
+class ObjectTests &lt; ActiveSupport::TestCase
   def test_suppress_re_raises
     assert_raise(LoadError) { suppress(ArgumentError) {raise LoadError} }
   end
@@ -188,11 +188,23 @@ class ObjectTests &lt; Test::Unit::TestCase
 
   def test_metaclass
     string = &quot;Hello&quot;
-    string.metaclass.instance_eval do
+    string.singleton_class.instance_eval do
       define_method(:foo) { &quot;bar&quot; }
     end
     assert_equal &quot;bar&quot;, string.foo
   end
+
+  def test_singleton_class
+    o = Object.new
+    assert_equal class &lt;&lt; o; self end, o.singleton_class
+  end
+
+  def test_metaclass_deprecated
+    o = Object.new
+    assert_deprecated(/use singleton_class instead/) do
+      assert_equal o.singleton_class, o.metaclass
+    end
+   end
 end
 
 class ObjectInstanceVariableTest &lt; Test::Unit::TestCase

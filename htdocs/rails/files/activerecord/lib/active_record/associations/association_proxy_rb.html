@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -70,6 +70,7 @@
 
       def initialize(owner, reflection)
         @owner, @reflection = owner, reflection
+        reflection.check_validity!
         Array(reflection.options[:extend]).each { |ext| proxy_extend(ext) }
         reset
       end
@@ -225,14 +226,10 @@
 
       private
         # Forwards any missing method call to the \target.
-        def method_missing(method, *args)
+        def method_missing(method, *args, &amp;block)
           if load_target
             if @target.respond_to?(method)
-              if block_given?
-                @target.send(method, *args)  { |*block_args| yield(*block_args) }
-              else
-                @target.send(method, *args)
-              end
+              @target.send(method, *args, &amp;block)
             else
               super
             end
@@ -289,6 +286,19 @@
         # Returns the ID of the owner, quoted if needed.
         def owner_quoted_id
           @owner.quoted_id
+        end
+
+        def set_inverse_instance(record, instance)
+          return if record.nil? || !we_can_set_the_inverse_on_this?(record)
+          inverse_relationship = @reflection.inverse_of
+          unless inverse_relationship.nil?
+            record.send(:&quot;set_#{inverse_relationship.name}_target&quot;, instance)
+          end
+        end
+
+        # Override in subclasses
+        def we_can_set_the_inverse_on_this?(record)
+          false
         end
     end
   end

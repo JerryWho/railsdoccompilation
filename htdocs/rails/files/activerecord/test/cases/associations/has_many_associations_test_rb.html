@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -1146,6 +1146,32 @@ class HasManyAssociationsTest &lt; ActiveRecord::TestCase
     firm = Firm.find(:first)
     client = firm.clients_using_primary_key.create!(:name =&gt; 'test')
     assert_equal firm.name, client.firm_name
+  end
+
+  def test_normal_method_call_in_association_proxy
+    assert_equal 'Welcome to the weblog', Comment.all.map { |comment| comment.post }.sort_by(&amp;:id).first.title
+  end
+
+  def test_instance_eval_in_association_proxy
+    assert_equal 'Welcome to the weblog', Comment.all.map { |comment| comment.post }.sort_by(&amp;:id).first.instance_eval{title}
+  end
+
+  def test_defining_has_many_association_with_delete_all_dependency_lazily_evaluates_target_class
+    ActiveRecord::Reflection::AssociationReflection.any_instance.expects(:class_name).never
+    class_eval &lt;&lt;-EOF
+      class DeleteAllModel &lt; ActiveRecord::Base
+        has_many :nonentities, :dependent =&gt; :delete_all
+      end
+    EOF
+  end
+
+  def test_defining_has_many_association_with_nullify_dependency_lazily_evaluates_target_class
+    ActiveRecord::Reflection::AssociationReflection.any_instance.expects(:class_name).never
+    class_eval &lt;&lt;-EOF
+      class NullifyModel &lt; ActiveRecord::Base
+        has_many :nonentities, :dependent =&gt; :nullify
+      end
+    EOF
   end
 end
 

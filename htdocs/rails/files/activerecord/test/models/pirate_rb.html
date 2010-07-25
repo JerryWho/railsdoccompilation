@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -36,6 +36,7 @@
 
   # These both have :autosave enabled because accepts_nested_attributes_for is used on them.
   has_one :ship
+  has_one :update_only_ship, :class_name =&gt; 'Ship'
   has_one :non_validated_ship, :class_name =&gt; 'Ship'
   has_many :birds
   has_many :birds_with_method_callbacks, :class_name =&gt; &quot;Bird&quot;,
@@ -48,11 +49,14 @@
     :after_add      =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;after_adding_proc_bird_#{b.id || '&lt;new&gt;'}&quot;},
     :before_remove  =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;before_removing_proc_bird_#{b.id}&quot;},
     :after_remove   =&gt; proc {|p,b| p.ship_log &lt;&lt; &quot;after_removing_proc_bird_#{b.id}&quot;}
+  has_many :birds_with_reject_all_blank, :class_name =&gt; &quot;Bird&quot;
 
   accepts_nested_attributes_for :parrots, :birds, :allow_destroy =&gt; true, :reject_if =&gt; proc { |attributes| attributes.empty? }
   accepts_nested_attributes_for :ship, :allow_destroy =&gt; true, :reject_if =&gt; proc { |attributes| attributes.empty? }
+  accepts_nested_attributes_for :update_only_ship, :update_only =&gt; true
   accepts_nested_attributes_for :parrots_with_method_callbacks, :parrots_with_proc_callbacks,
     :birds_with_method_callbacks, :birds_with_proc_callbacks, :allow_destroy =&gt; true
+  accepts_nested_attributes_for :birds_with_reject_all_blank, :reject_if =&gt; :all_blank
 
   validates_presence_of :catchphrase
 
@@ -62,6 +66,12 @@
 
   def reject_empty_ships_on_create(attributes)
     attributes.delete('_reject_me_if_new').present? &amp;&amp; new_record?
+  end
+
+  attr_accessor :cancel_save_from_callback
+  before_save :cancel_save_callback_method, :if =&gt; :cancel_save_from_callback
+  def cancel_save_callback_method
+    false
   end
 
   private

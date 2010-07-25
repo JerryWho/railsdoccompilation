@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -27,8 +27,8 @@
     ##
     # :singleton-method:
     # The connection handler
-    cattr_accessor :connection_handler, :instance_writer =&gt; false
-    @@connection_handler = ConnectionAdapters::ConnectionHandler.new
+    superclass_delegating_accessor :connection_handler
+    self.connection_handler = ConnectionAdapters::ConnectionHandler.new
 
     # Returns the connection currently associated with the class. This can
     # also be used to &quot;borrow&quot; the connection to do database work that isn't
@@ -71,7 +71,7 @@
           raise AdapterNotSpecified unless defined? RAILS_ENV
           establish_connection(RAILS_ENV)
         when ConnectionSpecification
-          @@connection_handler.establish_connection(name, spec)
+          self.connection_handler.establish_connection(name, spec)
         when Symbol, String
           if configuration = configurations[spec.to_s]
             establish_connection(configuration)

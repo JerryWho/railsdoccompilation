@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -73,6 +73,26 @@ class EachTest &lt; ActiveRecord::TestCase
 
     assert_queries(1) do
       Post.find_in_batches(:batch_size =&gt; post_count + 1) {|batch| assert_kind_of Array, batch }
+    end
+  end
+
+  def test_find_in_batches_doesnt_clog_conditions
+    Post.find_in_batches(:conditions =&gt; {:id =&gt; posts(:welcome).id}) do
+      assert_nothing_raised { Post.find(posts(:thinking).id) }
+    end
+  end
+  
+  def test_each_should_raise_if_select_is_set_without_id
+    assert_raise(RuntimeError) do
+      Post.find_each(:select =&gt; :title, :batch_size =&gt; 1) { |post| post }
+    end
+  end
+
+  def test_each_should_execute_if_id_is_in_select
+    assert_queries(4) do
+      Post.find_each(:select =&gt; &quot;id, title, type&quot;, :batch_size =&gt; 2) do |post|
+        assert_kind_of Post, post
+      end
     end
   end
 end</pre>

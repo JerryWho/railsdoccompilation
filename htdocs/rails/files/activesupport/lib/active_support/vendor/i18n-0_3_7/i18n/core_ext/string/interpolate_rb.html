@@ -1,0 +1,117 @@
+  <div id="fileHeader">
+    <h1>interpolate.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/core_ext/string/interpolate.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># encoding: utf-8
+
+=begin
+  heavily based on Masao Mutoh's gettext String interpolation extension
+  http://github.com/mutoh/gettext/blob/f6566738b981fe0952548c421042ad1e0cdfb31e/lib/gettext/core_ext/string.rb
+  Copyright (C) 2005-2009 Masao Mutoh
+  You may redistribute it and/or modify it under the same license terms as Ruby.
+=end
+
+if RUBY_VERSION &lt; '1.9'
+
+  # KeyError is raised by String#% when the string contains a named placeholder
+  # that is not contained in the given arguments hash. Ruby 1.9 includes and
+  # raises this exception natively. We define it to mimic Ruby 1.9's behaviour
+  # in Ruby 1.8.x
+
+  class KeyError &lt; IndexError
+    def initialize(message = nil)
+      super(message || &quot;key not found&quot;)
+    end
+  end unless defined?(KeyError)
+
+  # Extension for String class. This feature is included in Ruby 1.9 or later but not occur TypeError.
+  #
+  # String#% method which accept &quot;named argument&quot;. The translator can know
+  # the meaning of the msgids using &quot;named argument&quot; instead of %s/%d style.
+
+  class String
+    # For older ruby versions, such as ruby-1.8.5
+    alias :bytesize :size unless instance_methods.find {|m| m.to_s == 'bytesize'}
+    alias :interpolate_without_ruby_19_syntax :% # :nodoc:
+
+    INTERPOLATION_PATTERN = Regexp.union(
+      /%\{(\w+)\}/,                               # matches placeholders like &quot;%{foo}&quot;
+      /%&lt;(\w+)&gt;(.*?\d*\.?\d*[bBdiouxXeEfgGcps])/  # matches placeholders like &quot;%&lt;foo&gt;.d&quot;
+    )
+
+    INTERPOLATION_PATTERN_WITH_ESCAPE = Regexp.union(
+      /%%/,
+      INTERPOLATION_PATTERN
+    )
+
+    # % uses self (i.e. the String) as a format specification and returns the
+    # result of applying it to the given arguments. In other words it interpolates
+    # the given arguments to the string according to the formats the string
+    # defines.
+    #
+    # There are three ways to use it:
+    #
+    # * Using a single argument or Array of arguments.
+    #
+    #   This is the default behaviour of the String class. See Kernel#sprintf for
+    #   more details about the format string.
+    #
+    #   Example:
+    #
+    #     &quot;%d %s&quot; % [1, &quot;message&quot;]
+    #     # =&gt; &quot;1 message&quot;
+    #
+    # * Using a Hash as an argument and unformatted, named placeholders.
+    #
+    #   When you pass a Hash as an argument and specify placeholders with %{foo}
+    #   it will interpret the hash values as named arguments.
+    #
+    #   Example:
+    #
+    #     &quot;%{firstname}, %{lastname}&quot; % {:firstname =&gt; &quot;Masao&quot;, :lastname =&gt; &quot;Mutoh&quot;}
+    #     # =&gt; &quot;Masao Mutoh&quot;
+    #
+    # * Using a Hash as an argument and formatted, named placeholders.
+    #
+    #   When you pass a Hash as an argument and specify placeholders with %&lt;foo&gt;d
+    #   it will interpret the hash values as named arguments and format the value
+    #   according to the formatting instruction appended to the closing &gt;.
+    #
+    #   Example:
+    #
+    #     &quot;%&lt;integer&gt;d, %&lt;float&gt;.1f&quot; % { :integer =&gt; 10, :float =&gt; 43.4 }
+    #     # =&gt; &quot;10, 43.3&quot;
+    def %(args)
+      if args.kind_of?(Hash)
+        dup.gsub(INTERPOLATION_PATTERN_WITH_ESCAPE) do |match|
+          if match == '%%'
+            '%'
+          else
+            key = ($1 || $2).to_sym
+            raise KeyError unless args.has_key?(key)
+            $3 ? sprintf(&quot;%#{$3}&quot;, args[key]) : args[key]
+          end
+        end
+      elsif self =~ INTERPOLATION_PATTERN
+        raise ArgumentError.new('one hash required')
+      else
+        result = gsub(/%([{&lt;])/, '%%\1')
+        result.send :'interpolate_without_ruby_19_syntax', args
+      end
+    end
+  end
+end</pre>
+    </div>

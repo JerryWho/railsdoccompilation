@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,6 +18,7 @@
     <pre>require &quot;cases/helper&quot;
 require 'models/post'
 require 'models/author'
+require 'models/event_author'
 require 'models/topic'
 require 'models/reply'
 require 'models/category'
@@ -644,6 +645,16 @@ class BasicsTest &lt; ActiveRecord::TestCase
     assert_equal -2, Topic.find(2).replies_count
   end
 
+  def test_reset_counters
+    assert_equal 1, Topic.find(1).replies_count
+
+    Topic.increment_counter(&quot;replies_count&quot;, 1)
+    assert_equal 2, Topic.find(1).replies_count
+
+    Topic.reset_counters(1, :replies)
+    assert_equal 1, Topic.find(1).replies_count
+  end
+
   def test_update_counter
     category = categories(:general)
     assert_nil category.categorizations_count
@@ -1020,6 +1031,18 @@ class BasicsTest &lt; ActiveRecord::TestCase
     post.reload
     assert_equal &quot;cannot change this&quot;, post.title
     assert_equal &quot;changed&quot;, post.body
+  end
+
+  def test_multiparameter_attribute_assignment_via_association_proxy
+    multiparameter_date_attribute = {
+      &quot;ends_on(1i)&quot; =&gt; &quot;2004&quot;, &quot;ends_on(2i)&quot; =&gt; &quot;6&quot;, &quot;ends_on(3i)&quot; =&gt; &quot;24&quot;,
+      &quot;ends_on(4i)&quot; =&gt; &quot;16&quot;, &quot;ends_on(5i)&quot; =&gt; &quot;24&quot;, &quot;ends_on(6i)&quot; =&gt; &quot;00&quot;
+    }
+
+    author = Author.create(:name =&gt; &quot;dhh&quot;)
+    event  = author.events.create(multiparameter_date_attribute)
+    
+    assert_equal Time.local(2004,6,24,16,24,0),event.ends_on
   end
 
   def test_multiparameter_attributes_on_date
@@ -1637,6 +1660,12 @@ class BasicsTest &lt; ActiveRecord::TestCase
     t1.save
     t2.reload
     assert_equal t1.title, t2.title
+  end
+
+  def test_reload_with_exclusive_scope
+    dev = DeveloperCalledDavid.first
+    dev.update_attributes!( :name =&gt; &quot;NotDavid&quot; )
+    assert_equal dev, dev.reload
   end
 
   def test_define_attr_method_with_value

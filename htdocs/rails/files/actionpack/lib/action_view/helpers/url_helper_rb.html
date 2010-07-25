@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -108,7 +108,7 @@ module ActionView
           polymorphic_path(options)
         end
 
-        escape ? escape_once(url) : url
+        escape ? escape_once(url).html_safe : url
       end
 
       # Creates a link tag of the given +name+ using a URL created by the set
@@ -236,7 +236,7 @@ module ActionView
         if block_given?
           options      = args.first || {}
           html_options = args.second
-          concat(link_to(capture(&amp;block), options, html_options).html_safe!)
+          concat(link_to(capture(&amp;block), options, html_options))
         else
           name         = args.first
           options      = args.second || {}
@@ -254,7 +254,7 @@ module ActionView
           end
 
           href_attr = &quot;href=\&quot;#{url}\&quot;&quot; unless href
-          &quot;&lt;a #{href_attr}#{tag_options}&gt;#{name || url}&lt;/a&gt;&quot;.html_safe!
+          &quot;&lt;a #{href_attr}#{tag_options}&gt;#{name || url}&lt;/a&gt;&quot;.html_safe
         end
       end
 
@@ -325,8 +325,8 @@ module ActionView
 
         html_options.merge!(&quot;type&quot; =&gt; &quot;submit&quot;, &quot;value&quot; =&gt; name)
 
-        &quot;&lt;form method=\&quot;#{form_method}\&quot; action=\&quot;#{escape_once url}\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&quot; +
-          method_tag + tag(&quot;input&quot;, html_options) + request_token_tag + &quot;&lt;/div&gt;&lt;/form&gt;&quot;.html_safe!
+        (&quot;&lt;form method=\&quot;#{form_method}\&quot; action=\&quot;#{escape_once url}\&quot; class=\&quot;button-to\&quot;&gt;&lt;div&gt;&quot; +
+          method_tag + tag(&quot;input&quot;, html_options) + request_token_tag + &quot;&lt;/div&gt;&lt;/form&gt;&quot;).html_safe
       end
 
 
@@ -483,14 +483,12 @@ module ActionView
         extras &lt;&lt; &quot;subject=#{CGI.escape(subject).gsub(&quot;+&quot;, &quot;%20&quot;)}&amp;&quot; unless subject.nil?
         extras = &quot;?&quot; &lt;&lt; extras.gsub!(/&amp;?$/,&quot;&quot;) unless extras.empty?
 
-        email_address = email_address.to_s
-
-        email_address_obfuscated = email_address.dup
+        email_address_obfuscated = html_escape(email_address)
         email_address_obfuscated.gsub!(/@/, html_options.delete(&quot;replace_at&quot;)) if html_options.has_key?(&quot;replace_at&quot;)
         email_address_obfuscated.gsub!(/\./, html_options.delete(&quot;replace_dot&quot;)) if html_options.has_key?(&quot;replace_dot&quot;)
 
         if encode == &quot;javascript&quot;
-          &quot;document.write('#{content_tag(&quot;a&quot;, name || email_address_obfuscated, html_options.merge({ &quot;href&quot; =&gt; &quot;mailto:&quot;+email_address+extras }))}');&quot;.each_byte do |c|
+          &quot;document.write('#{content_tag(&quot;a&quot;, name || email_address_obfuscated.html_safe, html_options.merge({ &quot;href&quot; =&gt; &quot;mailto:&quot;+email_address+extras }))}');&quot;.each_byte do |c|
             string &lt;&lt; sprintf(&quot;%%%x&quot;, c)
           end
           &quot;&lt;script type=\&quot;#{Mime::JS}\&quot;&gt;eval(decodeURIComponent('#{string}'))&lt;/script&gt;&quot;
@@ -507,9 +505,9 @@ module ActionView
             char = c.chr
             string &lt;&lt; (char =~ /\w/ ? sprintf(&quot;%%%x&quot;, c) : char)
           end
-          content_tag &quot;a&quot;, name || email_address_encoded, html_options.merge({ &quot;href&quot; =&gt; &quot;#{string}#{extras}&quot; })
+          content_tag &quot;a&quot;, name || email_address_encoded.html_safe, html_options.merge({ &quot;href&quot; =&gt; &quot;#{string}#{extras}&quot; })
         else
-          content_tag &quot;a&quot;, name || email_address_obfuscated, html_options.merge({ &quot;href&quot; =&gt; &quot;mailto:#{email_address}#{extras}&quot; })
+          content_tag &quot;a&quot;, name || email_address_obfuscated.html_safe, html_options.merge({ &quot;href&quot; =&gt; &quot;mailto:#{email_address}#{extras}&quot; })
         end
       end
 

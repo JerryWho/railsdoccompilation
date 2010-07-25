@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -175,7 +175,7 @@
     # If +message+ is a Symbol, it will be translated, using the appropriate scope (see translate_error).
     #
     def add(attribute, message = nil, options = {})
-      options[:message] = options.delete(:default) if options.has_key?(:default)
+      options[:message] = options.delete(:default) if options[:default].is_a?(Symbol)
       error, message = message, nil if message.is_a?(Error)
 
       @errors[attribute.to_s] ||= []
@@ -256,6 +256,18 @@
       @errors.each_key { |attr| @errors[attr].each { |error| yield attr, error.message } }
     end
 
+    # Yields each attribute and associated error per error added.
+    #
+    #   class Company &lt; ActiveRecord::Base
+    #     validates_presence_of :name, :address, :email
+    #     validates_length_of :name, :in =&gt; 5..30
+    #   end
+    #
+    #   company = Company.create(:address =&gt; '123 First St.')
+    #   company.errors.each_error{|attr,err| puts &quot;#{attr} - #{err.type}&quot; }
+    #   # =&gt; name - :too_short
+    #   #    name - :blank
+    #   #    address - :blank
     def each_error
       @errors.each_key { |attr| @errors[attr].each { |error| yield attr, error } }
     end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -51,6 +51,20 @@ class JsonSerializationTest &lt; ActiveRecord::TestCase
     json = @contact.to_json
 
     assert_match %r{^\{&quot;contact&quot;:\{}, json
+    assert_match %r{&quot;name&quot;:&quot;Konata Izumi&quot;}, json
+    assert_match %r{&quot;age&quot;:16}, json
+    assert json.include?(%(&quot;created_at&quot;:#{ActiveSupport::JSON.encode(Time.utc(2006, 8, 1))}))
+    assert_match %r{&quot;awesome&quot;:true}, json
+    assert_match %r{&quot;preferences&quot;:\{&quot;shows&quot;:&quot;anime&quot;\}}, json
+  ensure
+    Contact.include_root_in_json = false
+  end
+
+  def test_should_include_root_in_json
+    Contact.include_root_in_json = true
+    json = @contact.to_json(:root =&gt; 'json_contact')
+
+    assert_match %r{^\{&quot;json_contact&quot;:\{}, json
     assert_match %r{&quot;name&quot;:&quot;Konata Izumi&quot;}, json
     assert_match %r{&quot;age&quot;:16}, json
     assert json.include?(%(&quot;created_at&quot;:#{ActiveSupport::JSON.encode(Time.utc(2006, 8, 1))}))

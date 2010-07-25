@@ -1,0 +1,223 @@
+  <div id="fileHeader">
+    <h1>libxml_engine_test.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/test/xml_mini/libxml_engine_test.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 11:32:54 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'abstract_unit'
+require 'active_support/xml_mini'
+
+begin
+  gem 'libxml-ruby'
+rescue Gem::LoadError
+  # Skip nokogiri tests
+else
+
+require 'libxml'
+
+class NokogiriEngineTest &lt; Test::Unit::TestCase
+  include ActiveSupport
+
+  def setup
+    @default_backend = XmlMini.backend
+    XmlMini.backend = 'LibXML'
+  end
+
+  def teardown
+    XmlMini.backend = @default_backend
+  end
+
+  def test_file_from_xml
+    hash = Hash.from_xml(&lt;&lt;-eoxml)
+      &lt;blog&gt;
+        &lt;logo type=&quot;file&quot; name=&quot;logo.png&quot; content_type=&quot;image/png&quot;&gt;
+        &lt;/logo&gt;
+      &lt;/blog&gt;
+    eoxml
+    assert hash.has_key?('blog')
+    assert hash['blog'].has_key?('logo')
+
+    file = hash['blog']['logo']
+    assert_equal 'logo.png', file.original_filename
+    assert_equal 'image/png', file.content_type
+  end
+
+  def test_exception_thrown_on_expansion_attack
+    assert_raise LibXML::XML::Error do
+      attack_xml = &lt;&lt;-EOT
+      &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+      &lt;!DOCTYPE member [
+        &lt;!ENTITY a &quot;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&amp;b;&quot;&gt;
+        &lt;!ENTITY b &quot;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&amp;c;&quot;&gt;
+        &lt;!ENTITY c &quot;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&amp;d;&quot;&gt;
+        &lt;!ENTITY d &quot;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&amp;e;&quot;&gt;
+        &lt;!ENTITY e &quot;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&amp;f;&quot;&gt;
+        &lt;!ENTITY f &quot;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&amp;g;&quot;&gt;
+        &lt;!ENTITY g &quot;xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&quot;&gt;
+      ]&gt;
+      &lt;member&gt;
+      &amp;a;
+      &lt;/member&gt;
+      EOT
+      Hash.from_xml(attack_xml)
+    end
+  end
+
+  def test_setting_nokogiri_as_backend
+    XmlMini.backend = 'LibXML'
+    assert_equal XmlMini_LibXML, XmlMini.backend
+  end
+
+  def test_blank_returns_empty_hash
+    assert_equal({}, XmlMini.parse(nil))
+    assert_equal({}, XmlMini.parse(''))
+  end
+
+  def test_array_type_makes_an_array
+    assert_equal_rexml(&lt;&lt;-eoxml)
+      &lt;blog&gt;
+        &lt;posts type=&quot;array&quot;&gt;
+          &lt;post&gt;a post&lt;/post&gt;
+          &lt;post&gt;another post&lt;/post&gt;
+        &lt;/posts&gt;
+      &lt;/blog&gt;
+    eoxml
+  end
+
+  def test_one_node_document_as_hash
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;products/&gt;
+    eoxml
+  end
+
+  def test_one_node_with_attributes_document_as_hash
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;products foo=&quot;bar&quot;/&gt;
+    eoxml
+  end
+
+  def test_products_node_with_book_node_as_hash
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;products&gt;
+      &lt;book name=&quot;awesome&quot; id=&quot;12345&quot; /&gt;
+    &lt;/products&gt;
+    eoxml
+  end
+
+  def test_products_node_with_two_book_nodes_as_hash
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;products&gt;
+      &lt;book name=&quot;awesome&quot; id=&quot;12345&quot; /&gt;
+      &lt;book name=&quot;america&quot; id=&quot;67890&quot; /&gt;
+    &lt;/products&gt;
+    eoxml
+  end
+
+  def test_single_node_with_content_as_hash
+    assert_equal_rexml(&lt;&lt;-eoxml)
+      &lt;products&gt;
+        hello world
+      &lt;/products&gt;
+    eoxml
+  end
+
+  def test_children_with_children
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products&gt;
+        &lt;book name=&quot;america&quot; id=&quot;67890&quot; /&gt;
+      &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_text
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products&gt;
+        hello everyone
+      &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_non_adjacent_text
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      good
+      &lt;products&gt;
+        hello everyone
+      &lt;/products&gt;
+      morning
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_simple_cdata
+     assert_equal_rexml(&lt;&lt;-eoxml)
+     &lt;root&gt;
+       &lt;products&gt;
+         &lt;![CDATA[cdatablock]]&gt;
+      &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_multiple_cdata
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products&gt;
+         &lt;![CDATA[cdatablock1]]&gt;&lt;![CDATA[cdatablock2]]&gt;
+      &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_text_and_cdata
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products&gt;
+        hello &lt;![CDATA[cdatablock]]&gt;
+        morning
+       &lt;/products&gt;
+     &lt;/root&gt;
+     eoxml
+   end
+
+  def test_children_with_blank_text
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products&gt;   &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  def test_children_with_blank_text_and_attribute
+    assert_equal_rexml(&lt;&lt;-eoxml)
+    &lt;root&gt;
+      &lt;products type=&quot;file&quot;&gt;   &lt;/products&gt;
+    &lt;/root&gt;
+    eoxml
+  end
+
+  private
+  def assert_equal_rexml(xml)
+    hash = XmlMini.with_backend('REXML') { XmlMini.parse(xml) }
+    assert_equal(hash, XmlMini.parse(xml))
+  end
+end
+
+end
+</pre>
+    </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 20:16:21 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -1246,6 +1246,23 @@ class DateHelperTest &lt; ActionView::TestCase
     assert_dom_equal expected, date_select(&quot;post&quot;, &quot;written_on&quot;, :order =&gt; [ :month, :year ])
   end
 
+  def test_date_select_without_day_and_with_disabled_html_option
+    @post = Post.new
+    @post.written_on = Date.new(2004, 6, 15)
+
+    expected = &quot;&lt;input type=\&quot;hidden\&quot; id=\&quot;post_written_on_3i\&quot; disabled=\&quot;disabled\&quot; name=\&quot;post[written_on(3i)]\&quot; value=\&quot;1\&quot; /&gt;\n&quot;
+
+    expected &lt;&lt;  %{&lt;select id=&quot;post_written_on_2i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(2i)]&quot;&gt;\n}
+    expected &lt;&lt; %{&lt;option value=&quot;1&quot;&gt;January&lt;/option&gt;\n&lt;option value=&quot;2&quot;&gt;February&lt;/option&gt;\n&lt;option value=&quot;3&quot;&gt;March&lt;/option&gt;\n&lt;option value=&quot;4&quot;&gt;April&lt;/option&gt;\n&lt;option value=&quot;5&quot;&gt;May&lt;/option&gt;\n&lt;option value=&quot;6&quot; selected=&quot;selected&quot;&gt;June&lt;/option&gt;\n&lt;option value=&quot;7&quot;&gt;July&lt;/option&gt;\n&lt;option value=&quot;8&quot;&gt;August&lt;/option&gt;\n&lt;option value=&quot;9&quot;&gt;September&lt;/option&gt;\n&lt;option value=&quot;10&quot;&gt;October&lt;/option&gt;\n&lt;option value=&quot;11&quot;&gt;November&lt;/option&gt;\n&lt;option value=&quot;12&quot;&gt;December&lt;/option&gt;\n}
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    expected &lt;&lt; %{&lt;select id=&quot;post_written_on_1i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(1i)]&quot;&gt;\n}
+    expected &lt;&lt; %{&lt;option value=&quot;1999&quot;&gt;1999&lt;/option&gt;\n&lt;option value=&quot;2000&quot;&gt;2000&lt;/option&gt;\n&lt;option value=&quot;2001&quot;&gt;2001&lt;/option&gt;\n&lt;option value=&quot;2002&quot;&gt;2002&lt;/option&gt;\n&lt;option value=&quot;2003&quot;&gt;2003&lt;/option&gt;\n&lt;option value=&quot;2004&quot; selected=&quot;selected&quot;&gt;2004&lt;/option&gt;\n&lt;option value=&quot;2005&quot;&gt;2005&lt;/option&gt;\n&lt;option value=&quot;2006&quot;&gt;2006&lt;/option&gt;\n&lt;option value=&quot;2007&quot;&gt;2007&lt;/option&gt;\n&lt;option value=&quot;2008&quot;&gt;2008&lt;/option&gt;\n&lt;option value=&quot;2009&quot;&gt;2009&lt;/option&gt;\n}
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    assert_dom_equal expected, date_select(&quot;post&quot;, &quot;written_on&quot;, { :order =&gt; [ :month, :year ] }, :disabled =&gt; true)
+  end
+
   def test_date_select_within_fields_for
     @post = Post.new
     @post.written_on = Date.new(2004, 6, 15)
@@ -1730,6 +1747,25 @@ class DateHelperTest &lt; ActionView::TestCase
     assert_dom_equal expected, time_select(&quot;post&quot;, &quot;written_on&quot;, :prompt =&gt; {:hour =&gt; 'Choose hour', :minute =&gt; 'Choose minute'})
   end
 
+  def test_time_select_with_disabled_html_option
+    @post = Post.new
+    @post.written_on = Time.local(2004, 6, 15, 15, 16, 35)
+
+    expected = %{&lt;input type=&quot;hidden&quot; id=&quot;post_written_on_1i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(1i)]&quot; value=&quot;2004&quot; /&gt;\n}
+    expected &lt;&lt; %{&lt;input type=&quot;hidden&quot; id=&quot;post_written_on_2i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(2i)]&quot; value=&quot;6&quot; /&gt;\n}
+    expected &lt;&lt; %{&lt;input type=&quot;hidden&quot; id=&quot;post_written_on_3i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(3i)]&quot; value=&quot;15&quot; /&gt;\n}
+
+    expected &lt;&lt; %(&lt;select id=&quot;post_written_on_4i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(4i)]&quot;&gt;\n)
+    0.upto(23) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{sprintf(&quot;%02d&quot;, i)}&quot;#{' selected=&quot;selected&quot;' if i == 15}&gt;#{sprintf(&quot;%02d&quot;, i)}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; &quot; : &quot;
+    expected &lt;&lt; %(&lt;select id=&quot;post_written_on_5i&quot; disabled=&quot;disabled&quot; name=&quot;post[written_on(5i)]&quot;&gt;\n)
+    0.upto(59) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{sprintf(&quot;%02d&quot;, i)}&quot;#{' selected=&quot;selected&quot;' if i == 16}&gt;#{sprintf(&quot;%02d&quot;, i)}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    assert_dom_equal expected, time_select(&quot;post&quot;, &quot;written_on&quot;, {}, :disabled =&gt; true)
+  end
+
   def test_datetime_select
     @post = Post.new
     @post.updated_at = Time.local(2004, 6, 15, 16, 35)
@@ -2190,6 +2226,66 @@ class DateHelperTest &lt; ActionView::TestCase
     assert_dom_equal expected, datetime_select(&quot;post&quot;, &quot;updated_at&quot;, :discard_year =&gt; true, :discard_month =&gt; true)
   end
 
+  def test_datetime_select_discard_year_and_month_with_disabled_html_option
+    @post = Post.new
+    @post.updated_at = Time.local(2004, 6, 15, 15, 16, 35)
+
+    expected = %{&lt;input type=&quot;hidden&quot; id=&quot;post_updated_at_1i&quot; disabled=&quot;disabled&quot; name=&quot;post[updated_at(1i)]&quot; value=&quot;2004&quot; /&gt;\n}
+    expected &lt;&lt; %{&lt;input type=&quot;hidden&quot; id=&quot;post_updated_at_2i&quot; disabled=&quot;disabled&quot; name=&quot;post[updated_at(2i)]&quot; value=&quot;6&quot; /&gt;\n}
+    expected &lt;&lt; %{&lt;input type=&quot;hidden&quot; id=&quot;post_updated_at_3i&quot; disabled=&quot;disabled&quot; name=&quot;post[updated_at(3i)]&quot; value=&quot;15&quot; /&gt;\n}
+
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_4i&quot; disabled=&quot;disabled&quot; name=&quot;post[updated_at(4i)]&quot;&gt;\n}
+    0.upto(23) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{sprintf(&quot;%02d&quot;, i)}&quot;#{' selected=&quot;selected&quot;' if i == 15}&gt;#{sprintf(&quot;%02d&quot;, i)}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; &quot; : &quot;
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_5i&quot; disabled=&quot;disabled&quot; name=&quot;post[updated_at(5i)]&quot;&gt;\n}
+    0.upto(59) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{sprintf(&quot;%02d&quot;, i)}&quot;#{' selected=&quot;selected&quot;' if i == 16}&gt;#{sprintf(&quot;%02d&quot;, i)}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    assert_dom_equal expected, datetime_select(&quot;post&quot;, &quot;updated_at&quot;, { :discard_year =&gt; true, :discard_month =&gt; true }, :disabled =&gt; true)
+  end
+
+  def test_datetime_select_discard_hour
+    @post = Post.new
+    @post.updated_at = Time.local(2004, 6, 15, 15, 16, 35)
+
+    expected = %{&lt;select id=&quot;post_updated_at_1i&quot; name=&quot;post[updated_at(1i)]&quot;&gt;\n}
+    1999.upto(2009) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 2004}&gt;#{i}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_2i&quot; name=&quot;post[updated_at(2i)]&quot;&gt;\n}
+    1.upto(12) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 6}&gt;#{Date::MONTHNAMES[i]}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_3i&quot; name=&quot;post[updated_at(3i)]&quot;&gt;\n}
+    1.upto(31) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 15}&gt;#{i}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    assert_dom_equal expected, datetime_select(&quot;post&quot;, &quot;updated_at&quot;, :discard_hour =&gt; true)
+  end
+
+  def test_datetime_select_discard_minute
+    @post = Post.new
+    @post.updated_at = Time.local(2004, 6, 15, 15, 16, 35)
+
+    expected = %{&lt;select id=&quot;post_updated_at_1i&quot; name=&quot;post[updated_at(1i)]&quot;&gt;\n}
+    1999.upto(2009) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 2004}&gt;#{i}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_2i&quot; name=&quot;post[updated_at(2i)]&quot;&gt;\n}
+    1.upto(12) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 6}&gt;#{Date::MONTHNAMES[i]}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_3i&quot; name=&quot;post[updated_at(3i)]&quot;&gt;\n}
+    1.upto(31) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{i}&quot;#{' selected=&quot;selected&quot;' if i == 15}&gt;#{i}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+
+    expected &lt;&lt; &quot; &amp;mdash; &quot;
+
+    expected &lt;&lt; %{&lt;select id=&quot;post_updated_at_4i&quot; name=&quot;post[updated_at(4i)]&quot;&gt;\n}
+    0.upto(23) { |i| expected &lt;&lt; %(&lt;option value=&quot;#{sprintf(&quot;%02d&quot;, i)}&quot;#{' selected=&quot;selected&quot;' if i == 15}&gt;#{sprintf(&quot;%02d&quot;, i)}&lt;/option&gt;\n) }
+    expected &lt;&lt; &quot;&lt;/select&gt;\n&quot;
+    expected &lt;&lt; %{&lt;input type=&quot;hidden&quot; id=&quot;post_updated_at_5i&quot; name=&quot;post[updated_at(5i)]&quot; value=&quot;16&quot; /&gt;\n}
+
+    assert_dom_equal expected, datetime_select(&quot;post&quot;, &quot;updated_at&quot;, :discard_minute =&gt; true)
+  end
+
   def test_datetime_select_invalid_order
     @post = Post.new
     @post.updated_at = Time.local(2004, 6, 15, 15, 16, 35)
@@ -2490,6 +2586,28 @@ class DateHelperTest &lt; ActionView::TestCase
       :ignore_date =&gt; false,
       :include_seconds =&gt; true
     }, options)
+  end
+
+  def test_select_html_safety
+    assert select_day(16).html_safe?
+    assert select_month(8).html_safe?
+    assert select_year(Time.mktime(2003, 8, 16, 8, 4, 18)).html_safe?
+    assert select_minute(Time.mktime(2003, 8, 16, 8, 4, 18)).html_safe?
+    assert select_second(Time.mktime(2003, 8, 16, 8, 4, 18)).html_safe?
+
+    assert select_minute(8, :use_hidden =&gt; true).html_safe?
+    assert select_month(8, :prompt =&gt; 'Choose month').html_safe?
+
+    assert select_time(Time.mktime(2003, 8, 16, 8, 4, 18), {}, :class =&gt; 'selector').html_safe?
+    assert select_date(Time.mktime(2003, 8, 16), :date_separator =&gt; &quot; / &quot;, :start_year =&gt; 2003, :end_year =&gt; 2005, :prefix =&gt; &quot;date[first]&quot;).html_safe?
+  end
+  
+  def test_object_select_html_safety
+    @post = Post.new
+    @post.written_on = Date.new(2004, 6, 15)
+
+    assert date_select(&quot;post&quot;, &quot;written_on&quot;, :default =&gt; Time.local(2006, 9, 19, 15, 16, 35), :include_blank =&gt; true).html_safe?    
+    assert time_select(&quot;post&quot;, &quot;written_on&quot;, :ignore_date =&gt; true).html_safe?    
   end
 
   protected

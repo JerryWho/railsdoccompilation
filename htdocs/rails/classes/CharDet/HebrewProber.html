@@ -1,0 +1,275 @@
+  <div id="C00001510">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />HebrewProber<br/>
+  In:
+<a href="#" onclick="jsHref('files/actionmailer/lib/action_mailer/vendor/tmail-1_2_7/tmail/vendor/rchardet-1_3/lib/rchardet/hebrewprober_rb.html');">actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/CharDet/CharSetProber.html');">
+CharSetProber
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M009303&name=feed" >feed</a></li>
+  <li><a href="index.html?a=M009304&name=get_charset_name" >get_charset_name</a></li>
+  <li><a href="index.html?a=M009305&name=get_state" >get_state</a></li>
+  <li><a href="index.html?a=M009301&name=is_final" >is_final</a></li>
+  <li><a href="index.html?a=M009302&name=is_non_final" >is_non_final</a></li>
+  <li><a href="index.html?a=M009298&name=new" >new</a></li>
+  <li><a href="index.html?a=M009299&name=reset" >reset</a></li>
+  <li><a href="index.html?a=M009300&name=set_model_probers" >set_model_probers</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M009298" class="method">
+  <div id="M009298_title" class="title">
+    <b>new</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009298_source')" id="l_M009298_source">show source</a> ]</p>
+  <div id="M009298_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 151</span>
+151:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+152:       <span class="ruby-keyword kw">super</span>()
+153:       <span class="ruby-ivar">@_mLogicalProber</span> = <span class="ruby-keyword kw">nil</span>
+154:       <span class="ruby-ivar">@_mVisualProber</span> = <span class="ruby-keyword kw">nil</span>
+155:       <span class="ruby-identifier">reset</span>()
+156:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M009303" class="method">
+  <div id="M009303_title" class="title">
+    <b>feed</b>(aBuf)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009303_source')" id="l_M009303_source">show source</a> ]</p>
+  <div id="M009303_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 192</span>
+192:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">feed</span>(<span class="ruby-identifier">aBuf</span>)
+193:       <span class="ruby-comment cmt"># Final letter analysis for logical-visual decision.</span>
+194:       <span class="ruby-comment cmt"># Look for evidence that the received buffer is either logical Hebrew or </span>
+195:       <span class="ruby-comment cmt"># visual Hebrew.</span>
+196:       <span class="ruby-comment cmt"># The following cases are checked:</span>
+197:       <span class="ruby-comment cmt"># 1) A word longer than 1 letter, ending with a final letter. This is an </span>
+198:       <span class="ruby-comment cmt">#    indication that the text is laid out &quot;naturally&quot; since the final letter </span>
+199:       <span class="ruby-comment cmt">#    really appears at the end. +1 for logical score.</span>
+200:       <span class="ruby-comment cmt"># 2) A word longer than 1 letter, ending with a Non-Final letter. In normal</span>
+201:       <span class="ruby-comment cmt">#    Hebrew, words ending with Kaf, Mem, Nun, Pe or Tsadi, should not end with</span>
+202:       <span class="ruby-comment cmt">#    the Non-Final form of that letter. Exceptions to this rule are mentioned</span>
+203:       <span class="ruby-comment cmt">#    above in isNonFinal(). This is an indication that the text is laid out</span>
+204:       <span class="ruby-comment cmt">#    backwards. +1 for visual score</span>
+205:       <span class="ruby-comment cmt"># 3) A word longer than 1 letter, starting with a final letter. Final letters </span>
+206:       <span class="ruby-comment cmt">#    should not appear at the beginning of a word. This is an indication that </span>
+207:       <span class="ruby-comment cmt">#    the text is laid out backwards. +1 for visual score.</span>
+208:       <span class="ruby-comment cmt"># </span>
+209:       <span class="ruby-comment cmt"># The visual score and logical score are accumulated throughout the text and </span>
+210:       <span class="ruby-comment cmt"># are finally checked against each other in GetCharSetName().</span>
+211:       <span class="ruby-comment cmt"># No checking for final letters in the middle of words is done since that case</span>
+212:       <span class="ruby-comment cmt"># is not an indication for either Logical or Visual text.</span>
+213:       <span class="ruby-comment cmt"># </span>
+214:       <span class="ruby-comment cmt"># We automatically filter out all 7-bit characters (replace them with spaces)</span>
+215:       <span class="ruby-comment cmt"># so the word boundary detection works properly. [MAP]</span>
+216: 
+217:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">get_state</span>() <span class="ruby-operator">==</span> <span class="ruby-constant">ENotMe</span>
+218:         <span class="ruby-comment cmt"># Both model probers say it's not them. No reason to continue.</span>
+219:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">ENotMe</span>
+220:       <span class="ruby-keyword kw">end</span>
+221: 
+222:       <span class="ruby-identifier">aBuf</span> = <span class="ruby-identifier">filter_high_bit_only</span>(<span class="ruby-identifier">aBuf</span>)
+223: 
+224:       <span class="ruby-keyword kw">for</span> <span class="ruby-identifier">cur</span> <span class="ruby-keyword kw">in</span> <span class="ruby-identifier">aBuf</span>.<span class="ruby-identifier">split</span>(<span class="ruby-value str">' '</span>)
+225:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">cur</span> <span class="ruby-operator">==</span> <span class="ruby-value str">' '</span>
+226:           <span class="ruby-comment cmt"># We stand on a space - a word just ended</span>
+227:           <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@_mBeforePrev</span> <span class="ruby-operator">!=</span> <span class="ruby-value str">' '</span>
+228:             <span class="ruby-comment cmt"># next-to-last char was not a space so self._mPrev is not a 1 letter word</span>
+229:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">is_final</span>(<span class="ruby-ivar">@_mPrev</span>)
+230:               <span class="ruby-comment cmt"># case (1) [-2:not space][-1:final letter][cur:space]</span>
+231:               <span class="ruby-ivar">@_mFinalCharLogicalScore</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+232:             <span class="ruby-keyword kw">elsif</span> <span class="ruby-identifier">is_non_final</span>(<span class="ruby-ivar">@_mPrev</span>)
+233:               <span class="ruby-comment cmt"># case (2) [-2:not space][-1:Non-Final letter][cur:space]</span>
+234:               <span class="ruby-ivar">@_mFinalCharVisualScore</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+235:             <span class="ruby-keyword kw">end</span>
+236:           <span class="ruby-keyword kw">end</span>
+237:         <span class="ruby-keyword kw">else</span>
+238:           <span class="ruby-comment cmt"># Not standing on a space</span>
+239:           <span class="ruby-keyword kw">if</span> (<span class="ruby-ivar">@_mBeforePrev</span> <span class="ruby-operator">==</span> <span class="ruby-value str">' '</span>) <span class="ruby-keyword kw">and</span> (<span class="ruby-identifier">is_final</span>(<span class="ruby-ivar">@_mPrev</span>)) <span class="ruby-keyword kw">and</span> (<span class="ruby-identifier">cur</span> <span class="ruby-operator">!=</span> <span class="ruby-value str">' '</span>)
+240:             <span class="ruby-comment cmt"># case (3) [-2:space][-1:final letter][cur:not space]</span>
+241:             <span class="ruby-ivar">@_mFinalCharVisualScore</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+242:           <span class="ruby-keyword kw">end</span>
+243:         <span class="ruby-keyword kw">end</span>
+244:         <span class="ruby-ivar">@_mBeforePrev</span> = <span class="ruby-ivar">@_mPrev</span>
+245:         <span class="ruby-ivar">@_mPrev</span> = <span class="ruby-identifier">cur</span>
+246:       <span class="ruby-keyword kw">end</span>
+247: 
+248:       <span class="ruby-comment cmt"># Forever detecting, till the end or until both model probers return eNotMe (handled above)</span>
+249:       <span class="ruby-keyword kw">return</span> <span class="ruby-constant">EDetecting</span>
+250:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009304" class="method">
+  <div id="M009304_title" class="title">
+    <b>get_charset_name</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009304_source')" id="l_M009304_source">show source</a> ]</p>
+  <div id="M009304_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 252</span>
+252:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_charset_name</span>
+253:       <span class="ruby-comment cmt"># Make the decision: is it Logical or Visual?</span>
+254:       <span class="ruby-comment cmt"># If the final letter score distance is dominant enough, rely on it.</span>
+255:       <span class="ruby-identifier">finalsub</span> = <span class="ruby-ivar">@_mFinalCharLogicalScore</span> <span class="ruby-operator">-</span> <span class="ruby-ivar">@_mFinalCharVisualScore</span>
+256:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">finalsub</span> <span class="ruby-operator">&gt;=</span> <span class="ruby-constant">MIN_FINAL_CHAR_DISTANCE</span>
+257:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">LOGICAL_HEBREW_NAME</span>
+258:       <span class="ruby-keyword kw">end</span>
+259:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">finalsub</span> <span class="ruby-operator">&lt;=</span> <span class="ruby-operator">-</span><span class="ruby-constant">MIN_FINAL_CHAR_DISTANCE</span>
+260:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">VISUAL_HEBREW_NAME</span>
+261:       <span class="ruby-keyword kw">end</span>
+262: 
+263:       <span class="ruby-comment cmt"># It's not dominant enough, try to rely on the model scores instead.</span>
+264:       <span class="ruby-identifier">modelsub</span> = <span class="ruby-ivar">@_mLogicalProber</span>.<span class="ruby-identifier">get_confidence</span>() <span class="ruby-operator">-</span> <span class="ruby-ivar">@_mVisualProber</span>.<span class="ruby-identifier">get_confidence</span>()
+265:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">modelsub</span> <span class="ruby-operator">&gt;</span> <span class="ruby-constant">MIN_MODEL_DISTANCE</span>
+266:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">LOGICAL_HEBREW_NAME</span>
+267:       <span class="ruby-keyword kw">end</span>
+268:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">modelsub</span> <span class="ruby-operator">&lt;</span> <span class="ruby-operator">-</span><span class="ruby-constant">MIN_MODEL_DISTANCE</span>
+269:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">VISUAL_HEBREW_NAME</span>
+270:       <span class="ruby-keyword kw">end</span>
+271: 
+272:       <span class="ruby-comment cmt"># Still no good, back to final letter distance, maybe it'll save the day.</span>
+273:       <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">finalsub</span> <span class="ruby-operator">&lt;</span> <span class="ruby-value">0</span><span class="ruby-value">.0</span>
+274:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">VISUAL_HEBREW_NAME</span>
+275:       <span class="ruby-keyword kw">end</span>
+276: 
+277:       <span class="ruby-comment cmt"># (finalsub &gt; 0 - Logical) or (don't know what to do) default to Logical.</span>
+278:       <span class="ruby-keyword kw">return</span> <span class="ruby-constant">LOGICAL_HEBREW_NAME</span>
+279:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009305" class="method">
+  <div id="M009305_title" class="title">
+    <b>get_state</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009305_source')" id="l_M009305_source">show source</a> ]</p>
+  <div id="M009305_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 281</span>
+281:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_state</span>
+282:       <span class="ruby-comment cmt"># Remain active as long as any of the model probers are active.</span>
+283:       <span class="ruby-keyword kw">if</span> (<span class="ruby-ivar">@_mLogicalProber</span>.<span class="ruby-identifier">get_state</span>() <span class="ruby-operator">==</span> <span class="ruby-constant">ENotMe</span>) <span class="ruby-keyword kw">and</span> (<span class="ruby-ivar">@_mVisualProber</span>.<span class="ruby-identifier">get_state</span>() <span class="ruby-operator">==</span> <span class="ruby-constant">ENotMe</span>)
+284:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">ENotMe</span>
+285:       <span class="ruby-keyword kw">end</span>
+286:       <span class="ruby-keyword kw">return</span> <span class="ruby-constant">EDetecting</span>
+287:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009301" class="method">
+  <div id="M009301_title" class="title">
+    <b>is_final</b>(c)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009301_source')" id="l_M009301_source">show source</a> ]</p>
+  <div id="M009301_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 174</span>
+174:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">is_final</span>(<span class="ruby-identifier">c</span>)
+175:       <span class="ruby-keyword kw">return</span> [<span class="ruby-constant">FINAL_KAF</span>, <span class="ruby-constant">FINAL_MEM</span>, <span class="ruby-constant">FINAL_NUN</span>, <span class="ruby-constant">FINAL_PE</span>, <span class="ruby-constant">FINAL_TSADI</span>].<span class="ruby-identifier">include?</span>(<span class="ruby-identifier">c</span>)
+176:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009302" class="method">
+  <div id="M009302_title" class="title">
+    <b>is_non_final</b>(c)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009302_source')" id="l_M009302_source">show source</a> ]</p>
+  <div id="M009302_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 178</span>
+178:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">is_non_final</span>(<span class="ruby-identifier">c</span>)
+179:       <span class="ruby-comment cmt"># The normal Tsadi is not a good Non-Final letter due to words like </span>
+180:       <span class="ruby-comment cmt"># 'lechotet' (to chat) containing an apostrophe after the tsadi. This </span>
+181:       <span class="ruby-comment cmt"># apostrophe is converted to a space in FilterWithoutEnglishLetters causing </span>
+182:       <span class="ruby-comment cmt"># the Non-Final tsadi to appear at an end of a word even though this is not </span>
+183:       <span class="ruby-comment cmt"># the case in the original text.</span>
+184:       <span class="ruby-comment cmt"># The letters Pe and Kaf rarely display a related behavior of not being a </span>
+185:       <span class="ruby-comment cmt"># good Non-Final letter. Words like 'Pop', 'Winamp' and 'Mubarak' for </span>
+186:       <span class="ruby-comment cmt"># example legally end with a Non-Final Pe or Kaf. However, the benefit of </span>
+187:       <span class="ruby-comment cmt"># these letters as Non-Final letters outweighs the damage since these words </span>
+188:       <span class="ruby-comment cmt"># are quite rare.</span>
+189:       <span class="ruby-keyword kw">return</span> [<span class="ruby-constant">NORMAL_KAF</span>, <span class="ruby-constant">NORMAL_MEM</span>, <span class="ruby-constant">NORMAL_NUN</span>, <span class="ruby-constant">NORMAL_PE</span>].<span class="ruby-identifier">include?</span>(<span class="ruby-identifier">c</span>)
+190:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009299" class="method">
+  <div id="M009299_title" class="title">
+    <b>reset</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009299_source')" id="l_M009299_source">show source</a> ]</p>
+  <div id="M009299_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 158</span>
+158:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reset</span>
+159:       <span class="ruby-ivar">@_mFinalCharLogicalScore</span> = <span class="ruby-value">0</span>
+160:       <span class="ruby-ivar">@_mFinalCharVisualScore</span> = <span class="ruby-value">0</span>
+161:       <span class="ruby-comment cmt"># The two last characters seen in the previous buffer,</span>
+162:       <span class="ruby-comment cmt"># mPrev and mBeforePrev are initialized to space in order to simulate a word </span>
+163:       <span class="ruby-comment cmt"># delimiter at the beginning of the data</span>
+164:       <span class="ruby-ivar">@_mPrev</span> = <span class="ruby-value str">' '</span>
+165:       <span class="ruby-ivar">@_mBeforePrev</span> = <span class="ruby-value str">' '</span>
+166:       <span class="ruby-comment cmt"># These probers are owned by the group prober.</span>
+167:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009300" class="method">
+  <div id="M009300_title" class="title">
+    <b>set_model_probers</b>(logicalProber, visualProber)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009300_source')" id="l_M009300_source">show source</a> ]</p>
+  <div id="M009300_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/hebrewprober.rb, line 169</span>
+169:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">set_model_probers</span>(<span class="ruby-identifier">logicalProber</span>, <span class="ruby-identifier">visualProber</span>)
+170:       <span class="ruby-ivar">@_mLogicalProber</span> = <span class="ruby-identifier">logicalProber</span>
+171:       <span class="ruby-ivar">@_mVisualProber</span> = <span class="ruby-identifier">visualProber</span>
+172:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

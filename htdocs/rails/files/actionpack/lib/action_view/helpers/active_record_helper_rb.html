@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -20,7 +20,7 @@ require 'action_view/helpers/form_helper'
 
 module ActionView
   class Base
-    @@field_error_proc = Proc.new{ |html_tag, instance| &quot;&lt;div class=\&quot;fieldWithErrors\&quot;&gt;#{html_tag}&lt;/div&gt;&quot;.html_safe! }
+    @@field_error_proc = Proc.new{ |html_tag, instance| &quot;&lt;div class=\&quot;fieldWithErrors\&quot;&gt;#{html_tag}&lt;/div&gt;&quot;.html_safe }
     cattr_accessor :field_error_proc
   end
 
@@ -99,11 +99,11 @@ module ActionView
         submit_value = options[:submit_value] || options[:action].gsub(/[^\w]/, '').capitalize
 
         contents = form_tag({:action =&gt; action}, :method =&gt;(options[:method] || 'post'), :enctype =&gt; options[:multipart] ? 'multipart/form-data': nil)
-        contents &lt;&lt; hidden_field(record_name, :id) unless record.new_record?
-        contents &lt;&lt; all_input_tags(record, record_name, options)
+        contents.safe_concat hidden_field(record_name, :id) unless record.new_record?
+        contents.safe_concat all_input_tags(record, record_name, options)
         yield contents if block_given?
-        contents &lt;&lt; submit_tag(submit_value)
-        contents &lt;&lt; '&lt;/form&gt;'
+        contents.safe_concat submit_tag(submit_value)
+        contents.safe_concat '&lt;/form&gt;'
       end
 
       # Returns a string containing the error message attached to the +method+ on the +object+ if one exists.
@@ -138,7 +138,7 @@ module ActionView
         if (obj = (object.respond_to?(:errors) ? object : instance_variable_get(&quot;@#{object}&quot;))) &amp;&amp;
           (errors = obj.errors.on(method))
           content_tag(&quot;div&quot;,
-            &quot;#{options[:prepend_text]}#{ERB::Util.html_escape(errors.is_a?(Array) ? errors.first : errors)}#{options[:append_text]}&quot;,
+            &quot;#{options[:prepend_text]}#{ERB::Util.html_escape(errors.is_a?(Array) ? errors.first : errors)}#{options[:append_text]}&quot;.html_safe,
             :class =&gt; options[:css_class]
           )
         else
@@ -210,19 +210,19 @@ module ActionView
             header_message = if options.include?(:header_message)
               options[:header_message]
             else
-              object_name = options[:object_name].to_s.gsub('_', ' ')
-              object_name = I18n.t(object_name, :default =&gt; object_name, :scope =&gt; [:activerecord, :models], :count =&gt; 1)
+              object_name = options[:object_name].to_s
+              object_name = I18n.t(object_name, :default =&gt; object_name.gsub('_', ' '), :scope =&gt; [:activerecord, :models], :count =&gt; 1)
               locale.t :header, :count =&gt; count, :model =&gt; object_name
             end
             message = options.include?(:message) ? options[:message] : locale.t(:body)
-            error_messages = objects.sum {|object| object.errors.full_messages.map {|msg| content_tag(:li, ERB::Util.html_escape(msg)) } }.join
+            error_messages = objects.sum {|object| object.errors.full_messages.map {|msg| content_tag(:li, ERB::Util.html_escape(msg)) } }.join.html_safe
 
             contents = ''
             contents &lt;&lt; content_tag(options[:header_tag] || :h2, header_message) unless header_message.blank?
             contents &lt;&lt; content_tag(:p, message) unless message.blank?
             contents &lt;&lt; content_tag(:ul, error_messages)
 
-            content_tag(:div, contents, html)
+            content_tag(:div, contents.html_safe, html)
           end
         else
           ''
@@ -307,7 +307,7 @@ module ActionView
       end
 
       def error_wrapping(html_tag, has_error)
-        has_error ? Base.field_error_proc.call(html_tag, self).html_safe! : html_tag
+        has_error ? Base.field_error_proc.call(html_tag, self) : html_tag
       end
 
       def error_message

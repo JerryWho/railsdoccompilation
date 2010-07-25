@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:00 +0100 2009</td>
+      <td>Sun Jul 25 11:32:16 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,11 +19,20 @@
   self.record_timestamps = false
 
   belongs_to :pirate
-  has_many :parts, :class_name =&gt; 'ShipPart', :autosave =&gt; true
+  belongs_to :update_only_pirate, :class_name =&gt; 'Pirate'
+  has_many :parts, :class_name =&gt; 'ShipPart'
 
+  accepts_nested_attributes_for :parts, :allow_destroy =&gt; true
   accepts_nested_attributes_for :pirate, :allow_destroy =&gt; true, :reject_if =&gt; proc { |attributes| attributes.empty? }
+  accepts_nested_attributes_for :update_only_pirate, :update_only =&gt; true
 
   validates_presence_of :name
+
+  attr_accessor :cancel_save_from_callback
+  before_save :cancel_save_callback_method, :if =&gt; :cancel_save_from_callback
+  def cancel_save_callback_method
+    false
+  end
 end
 </pre>
     </div>

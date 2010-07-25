@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -109,6 +109,19 @@ class FormHelperTest &lt; ActionView::TestCase
   tests ActionView::Helpers::FormHelper
 
   def setup
+    super
+
+    # Create &quot;label&quot; locale for testing I18n label helpers
+    I18n.backend.store_translations 'label', {
+      :helpers =&gt; {
+        :label =&gt; {
+          :post =&gt; {
+            :body =&gt; &quot;Write entire text here&quot;
+          }
+        }
+      }
+    }
+
     @post = Post.new
     @comment = Comment.new
     def @post.errors()
@@ -128,6 +141,10 @@ class FormHelperTest &lt; ActionView::TestCase
     @post.body        = &quot;Back to the hill and over it again!&quot;
     @post.secret      = 1
     @post.written_on  = Date.new(2004, 6, 15)
+
+    def Post.human_attribute_name(attribute)
+      attribute.to_s == &quot;cost&quot; ? &quot;Total cost&quot; : attribute.to_s.humanize
+    end
 
     @controller = Class.new do
       attr_reader :url_for_options
@@ -152,6 +169,27 @@ class FormHelperTest &lt; ActionView::TestCase
   def test_label_with_symbols
     assert_dom_equal('&lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;', label(:post, :title))
     assert_dom_equal('&lt;label for=&quot;post_secret&quot;&gt;Secret?&lt;/label&gt;', label(:post, :secret?))
+  end
+
+  def test_label_with_locales_strings
+    old_locale, I18n.locale = I18n.locale, :label
+    assert_dom_equal('&lt;label for=&quot;post_body&quot;&gt;Write entire text here&lt;/label&gt;', label(&quot;post&quot;, &quot;body&quot;))
+  ensure
+    I18n.locale = old_locale
+  end
+
+  def test_label_with_human_attribute_name
+    old_locale, I18n.locale = I18n.locale, :label
+    assert_dom_equal('&lt;label for=&quot;post_cost&quot;&gt;Total cost&lt;/label&gt;', label(:post, :cost))
+  ensure
+    I18n.locale = old_locale
+  end
+
+  def test_label_with_locales_symbols
+    old_locale, I18n.locale = I18n.locale, :label
+    assert_dom_equal('&lt;label for=&quot;post_body&quot;&gt;Write entire text here&lt;/label&gt;', label(:post, :body))
+  ensure
+    I18n.locale = old_locale
   end
 
   def test_label_with_for_attribute_as_symbol
@@ -1119,12 +1157,12 @@ class FormHelperTest &lt; ActionView::TestCase
 
   class LabelledFormBuilder &lt; ActionView::Helpers::FormBuilder
     (field_helpers - %w(hidden_field)).each do |selector|
-      src = &lt;&lt;-END_SRC
+      src, line = &lt;&lt;-END_SRC, __LINE__ + 1
         def #{selector}(field, *args, &amp;proc)
-          (&quot;&lt;label for='\#{field}'&gt;\#{field.to_s.humanize}:&lt;/label&gt; &quot; + super + &quot;&lt;br/&gt;&quot;).html_safe!
+          (&quot;&lt;label for='\#{field}'&gt;\#{field.to_s.humanize}:&lt;/label&gt; &quot; + super + &quot;&lt;br/&gt;&quot;).html_safe
         end
       END_SRC
-      class_eval src, __FILE__, __LINE__
+      class_eval src, __FILE__, line
     end
   end
 
@@ -1187,6 +1225,22 @@ class FormHelperTest &lt; ActionView::TestCase
     @post = nil
 
     form_for(:post, post) do |f|
+       concat f.error_message_on('author_name')
+       concat f.error_messages
+    end
+
+    expected = %(&lt;form action='http://www.example.com' method='post'&gt;) +
+               %(&lt;div class='formError'&gt;can't be empty&lt;/div&gt;) +
+               %(&lt;div class=&quot;errorExplanation&quot; id=&quot;errorExplanation&quot;&gt;&lt;h2&gt;1 error prohibited this post from being saved&lt;/h2&gt;&lt;p&gt;There were problems with the following fields:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Author name can't be empty&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;) +
+               %(&lt;/form&gt;)
+
+    assert_dom_equal expected, output_buffer
+
+  end
+  
+  def test_default_form_builder_without_object
+
+    form_for(:post) do |f|
        concat f.error_message_on('author_name')
        concat f.error_messages
     end

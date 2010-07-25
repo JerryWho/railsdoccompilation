@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -30,6 +30,28 @@ class ActiveSchemaTest &lt; ActiveRecord::TestCase
       remove_method :execute
       alias_method :execute, :execute_without_stub
     end
+  end
+
+  def test_add_index
+    # add_index calls index_exists? which can't work since execute is stubbed
+    ActiveRecord::ConnectionAdapters::MysqlAdapter.send(:define_method, :index_exists?) do |*|
+      false
+    end
+    expected = &quot;CREATE  INDEX `index_people_on_last_name` ON `people` (`last_name`)&quot;
+    assert_equal expected, add_index(:people, :last_name, :length =&gt; nil)
+
+    expected = &quot;CREATE  INDEX `index_people_on_last_name` ON `people` (`last_name`(10))&quot;
+    assert_equal expected, add_index(:people, :last_name, :length =&gt; 10)
+
+    expected = &quot;CREATE  INDEX `index_people_on_last_name_and_first_name` ON `people` (`last_name`(15), `first_name`(15))&quot;
+    assert_equal expected, add_index(:people, [:last_name, :first_name], :length =&gt; 15)
+
+    expected = &quot;CREATE  INDEX `index_people_on_last_name_and_first_name` ON `people` (`last_name`(15), `first_name`)&quot;
+    assert_equal expected, add_index(:people, [:last_name, :first_name], :length =&gt; {:last_name =&gt; 15})
+
+    expected = &quot;CREATE  INDEX `index_people_on_last_name_and_first_name` ON `people` (`last_name`(15), `first_name`(10))&quot;
+    assert_equal expected, add_index(:people, [:last_name, :first_name], :length =&gt; {:last_name =&gt; 15, :first_name =&gt; 10})
+    ActiveRecord::ConnectionAdapters::MysqlAdapter.send(:remove_method, :index_exists?)
   end
 
   def test_drop_table

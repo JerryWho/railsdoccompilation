@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -88,6 +88,18 @@ class FlashTest &lt; ActionController::TestCase
       redirect_to :action =&gt; &quot;std_action&quot;
       @flash_copy = {}.update(flash)
     end
+    
+    def redirect_with_alert
+      redirect_to '/nowhere', :alert =&gt; &quot;Beware the nowheres!&quot;
+    end
+    
+    def redirect_with_notice
+      redirect_to '/somewhere', :notice =&gt; &quot;Good luck in the somewheres!&quot;
+    end
+
+    def redirect_with_other_flashes
+      redirect_to '/wonderland', :flash =&gt; { :joyride =&gt; &quot;Horses!&quot; }
+    end
   end
 
   tests TestController
@@ -161,6 +173,20 @@ class FlashTest &lt; ActionController::TestCase
     get :std_action
     assert_nil session[&quot;flash&quot;]
   end
-end
-</pre>
+  
+  def test_redirect_to_with_alert
+    get :redirect_with_alert
+    assert_equal &quot;Beware the nowheres!&quot;, @controller.send(:flash)[:alert]
+  end
+  
+  def test_redirect_to_with_notice
+    get :redirect_with_notice
+    assert_equal &quot;Good luck in the somewheres!&quot;, @controller.send(:flash)[:notice]
+  end
+  
+  def test_redirect_to_with_other_flashes
+    get :redirect_with_other_flashes
+    assert_equal &quot;Horses!&quot;, @controller.send(:flash)[:joyride]
+  end
+end</pre>
     </div>

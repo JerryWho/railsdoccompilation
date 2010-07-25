@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -26,6 +26,8 @@ require 'models/guid'
 require 'models/owner'
 require 'models/pet'
 require 'models/event'
+require 'models/man'
+require 'models/interest'
 
 # The following methods in Topic are used in test_conditional_validation_*
 class Topic
@@ -203,7 +205,7 @@ class ValidationsTest &lt; ActiveRecord::TestCase
     end
   end
 
-  def test_single_error_per_attr_iteration
+  def test_single_error_string_per_attr_iteration
     r = Reply.new
     r.save
 
@@ -212,6 +214,17 @@ class ValidationsTest &lt; ActiveRecord::TestCase
 
     assert errors.include?([&quot;title&quot;, &quot;Empty&quot;])
     assert errors.include?([&quot;content&quot;, &quot;Empty&quot;])
+  end
+
+  def test_single_error_object_per_attr_iteration
+    r = Reply.new
+    r.save
+
+    errors = []
+    r.errors.each_error { |attr, error| errors &lt;&lt; [attr, error.attribute] }
+
+    assert errors.include?([&quot;title&quot;, &quot;title&quot;])
+    assert errors.include?([&quot;content&quot;, &quot;content&quot;])
   end
 
   def test_multiple_errors_per_attr_iteration_with_full_error_composition
@@ -371,6 +384,25 @@ class ValidationsTest &lt; ActiveRecord::TestCase
     t.content = &quot;like stuff&quot;
 
     assert t.save
+  end
+
+  def test_validates_presence_of_belongs_to_association__parent_is_new_record
+    repair_validations(Interest) do
+      # Note that Interest and Man have the :inverse_of option set
+      Interest.validates_presence_of(:man)
+      man = Man.new(:name =&gt; 'John')
+      interest = man.interests.build(:topic =&gt; 'Airplanes')
+      assert interest.valid?, &quot;Expected interest to be valid, but was not. Interest should have a man object associated&quot;
+    end
+  end
+
+  def test_validates_presence_of_belongs_to_association__existing_parent
+    repair_validations(Interest) do
+      Interest.validates_presence_of(:man)
+      man = Man.create!(:name =&gt; 'John')
+      interest = man.interests.build(:topic =&gt; 'Airplanes')
+      assert interest.valid?, &quot;Expected interest to be valid, but was not. Interest should have a man object associated&quot;
+    end
   end
 
   def test_validate_uniqueness

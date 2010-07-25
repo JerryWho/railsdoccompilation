@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:59:08 +0200 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,22 +17,51 @@
     <h2>Source Code</h2>
     <pre>require 'abstract_unit'
 
-class TranslationHelperTest &lt; Test::Unit::TestCase
+class TranslationHelperTest &lt; ActiveSupport::TestCase
   include ActionView::Helpers::TagHelper
   include ActionView::Helpers::TranslationHelper
-  
+
   attr_reader :request
   def setup
   end
-  
+
   def test_delegates_to_i18n_setting_the_raise_option
-    I18n.expects(:translate).with(:foo, :locale =&gt; 'en', :raise =&gt; true)
+    I18n.expects(:translate).with(['foo'], :locale =&gt; 'en', :raise =&gt; true).returns([&quot;&quot;])
     translate :foo, :locale =&gt; 'en'
   end
-  
+
   def test_returns_missing_translation_message_wrapped_into_span
     expected = '&lt;span class=&quot;translation_missing&quot;&gt;en, foo&lt;/span&gt;'
     assert_equal expected, translate(:foo)
+  end
+
+  def test_translation_returning_an_array
+    I18n.expects(:translate).with([&quot;foo&quot;], :raise =&gt; true).returns([&quot;foo&quot;, &quot;bar&quot;])
+    assert_equal [&quot;foo&quot;, &quot;bar&quot;], translate(:foo)
+  end
+
+  def test_translation_of_an_array
+    assert_deprecated do
+      I18n.expects(:translate).with([&quot;foo&quot;, &quot;bar&quot;], :raise =&gt; true).returns([&quot;foo&quot;, &quot;bar&quot;])
+      assert_equal [&quot;foo&quot;, &quot;bar&quot;], translate([&quot;foo&quot;, &quot;bar&quot;])
+    end
+  end
+
+  def test_translation_of_an_array_returning_an_array
+    assert_deprecated do
+      I18n.expects(:translate).with([&quot;foo&quot;, &quot;bar&quot;], :raise =&gt; true).returns([&quot;foo&quot;, [&quot;bar&quot;, &quot;baz&quot;]])
+      assert_equal [&quot;foo&quot;, [&quot;bar&quot;, &quot;baz&quot;]], translate([&quot;foo&quot;, &quot;bar&quot;])
+    end
+  end
+
+  def test_translation_of_an_array_with_html
+    assert_deprecated do
+      translate_expected = ['&lt;a href=&quot;#&quot;&gt;foo&lt;/a&gt;', '&lt;a href=&quot;#&quot;&gt;bar&lt;/a&gt;', '&lt;a href=&quot;#&quot;&gt;baz&lt;/a&gt;']
+      I18n.expects(:translate).with([&quot;foo&quot;, &quot;bar&quot;, &quot;baz_html&quot;], :raise =&gt; true).returns(translate_expected)
+      @view = ActionView::Base.new(ActionController::Base.view_paths, {})
+      expected = '&lt;a href=&quot;#&quot;&gt;foo&lt;/a&gt;, &lt;a href=&quot;#&quot;&gt;bar&lt;/a&gt;, &lt;a href=&quot;#&quot;&gt;baz&lt;/a&gt;'
+      assert_equal expected, @view.render(:file =&gt; &quot;test/array_translation&quot;)
+    end
   end
 
   def test_delegates_localize_to_i18n
@@ -40,11 +69,45 @@ class TranslationHelperTest &lt; Test::Unit::TestCase
     I18n.expects(:localize).with(@time)
     localize @time
   end
-  
+
   def test_scoping_by_partial
-    expects(:template).returns(stub(:path_without_format_and_extension =&gt; &quot;people/index&quot;))
-    I18n.expects(:translate).with(&quot;people.index.foo&quot;, :locale =&gt; 'en', :raise =&gt; true)
-    translate &quot;.foo&quot;, :locale =&gt; 'en'
+    I18n.expects(:translate).with([&quot;test.translation.helper&quot;], :raise =&gt; true).returns([&quot;helper&quot;])
+    @view = ActionView::Base.new(ActionController::Base.view_paths, {})
+    assert_equal &quot;helper&quot;, @view.render(:file =&gt; &quot;test/translation&quot;)
+  end
+
+  def test_scoping_by_partial_of_an_array
+    assert_deprecated do
+      I18n.expects(:translate).with([&quot;test.scoped_array_translation.foo&quot;, &quot;test.scoped_array_translation.bar&quot;], :raise =&gt; true).returns([&quot;foo&quot;, &quot;bar&quot;])
+      @view = ActionView::Base.new(ActionController::Base.view_paths, {})
+      assert_equal &quot;foo, bar&quot;, @view.render(:file =&gt; &quot;test/scoped_array_translation&quot;)
+    end
+  end
+
+  def test_translate_works_with_symbols
+    I18n.expects(:translate).with([&quot;hello&quot;], :raise =&gt; true).returns([&quot;Hello World&quot;])
+    assert_equal &quot;Hello World&quot;, translate(:hello)
+  end
+
+
+  def test_translate_does_not_mark_plain_text_as_safe_html
+    I18n.expects(:translate).with([&quot;hello&quot;], :raise =&gt; true).returns([&quot;Hello World&quot;])
+    assert_equal false, translate(&quot;hello&quot;).html_safe?
+  end
+
+  def test_translate_marks_translations_named_html_as_safe_html
+    I18n.expects(:translate).with([&quot;html&quot;], :raise =&gt; true).returns([&quot;&lt;a&gt;Hello World&lt;/a&gt;&quot;])
+    assert translate(&quot;html&quot;).html_safe?
+  end
+
+  def test_translate_marks_translations_with_a_html_suffix_as_safe_html
+    I18n.expects(:translate).with([&quot;hello_html&quot;], :raise =&gt; true).returns([&quot;&lt;a&gt;Hello World&lt;/a&gt;&quot;])
+    assert translate(&quot;hello_html&quot;).html_safe?
+  end
+
+  def test_translation_returning_an_array_ignores_html_suffix
+    I18n.expects(:translate).with([&quot;foo_html&quot;], :raise =&gt; true).returns([&quot;foo&quot;, &quot;bar&quot;])
+    assert_equal [&quot;foo&quot;, &quot;bar&quot;], translate(:foo_html)
   end
 end
 </pre>

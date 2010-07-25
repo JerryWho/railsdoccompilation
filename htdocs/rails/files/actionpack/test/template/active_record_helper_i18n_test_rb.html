@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,7 +19,7 @@
 
 class ActiveRecordHelperI18nTest &lt; Test::Unit::TestCase
   include ActionView::Helpers::ActiveRecordHelper
-  
+
   attr_reader :request
   def setup
     @object = stub :errors =&gt; stub(:count =&gt; 1, :full_messages =&gt; ['full_messages'])
@@ -52,12 +52,19 @@ class ActiveRecordHelperI18nTest &lt; Test::Unit::TestCase
     I18n.expects(:t).with('', :default =&gt; '', :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns ''
     error_messages_for(:object =&gt; @object, :locale =&gt; 'en')
   end
-  
+
   def test_error_messages_for_given_object_name_it_translates_object_name
     I18n.expects(:t).with(:header, :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; @object_name).returns &quot;1 error prohibited this #{@object_name} from being saved&quot;
     I18n.expects(:t).with(@object_name, :default =&gt; @object_name, :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns @object_name
     error_messages_for(:object =&gt; @object, :locale =&gt; 'en', :object_name =&gt; @object_name)
   end
+
+  def test_error_messages_for_given_object_name_with_underscore_it_translates_object_name
+    I18n.expects(:t).with('bank_account', :default =&gt; 'bank account', :count =&gt; 1, :scope =&gt; [:activerecord, :models]).once.returns 'bank account'
+    I18n.expects(:t).with(:header, :locale =&gt; 'en', :scope =&gt; [:activerecord, :errors, :template], :count =&gt; 1, :model =&gt; 'bank account').returns &quot;1 error prohibited this bank account from being saved&quot;
+    error_messages_for(:object =&gt; @object, :locale =&gt; 'en', :object_name =&gt; 'bank_account')
+  end
 end
+
 </pre>
     </div>

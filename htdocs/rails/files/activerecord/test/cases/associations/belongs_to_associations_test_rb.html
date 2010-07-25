@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -48,6 +48,12 @@ class BelongsToAssociationsTest &lt; ActiveRecord::TestCase
     assert_equal companies(:first_firm).name, client.firm_with_primary_key.name
   end
 
+  def test_belongs_to_with_primary_key_joins_on_correct_column
+    sql = Client.send(:construct_finder_sql, :joins =&gt; :firm_with_primary_key)
+    assert sql !~ /\.id/
+    assert sql =~ /\.name/
+  end
+
   def test_proxy_assignment
     account = Account.find(1)
     assert_nothing_raised { account.firm = account.firm }
@@ -75,6 +81,13 @@ class BelongsToAssociationsTest &lt; ActiveRecord::TestCase
     citibank = Client.create(&quot;name&quot; =&gt; &quot;Primary key client&quot;)
     citibank.firm_with_primary_key = apple
     assert_equal apple.name, citibank.firm_name
+  end
+
+  def test_eager_loading_with_primary_key
+    apple = Firm.create(&quot;name&quot; =&gt; &quot;Apple&quot;)
+    citibank = Client.create(&quot;name&quot; =&gt; &quot;Citibank&quot;, :firm_name =&gt; &quot;Apple&quot;)
+    citibank_result = Client.find(:first, :conditions =&gt; {:name =&gt; &quot;Citibank&quot;}, :include =&gt; :firm_with_primary_key)
+    assert_not_nil citibank_result.instance_variable_get(&quot;@firm_with_primary_key&quot;)
   end
 
   def test_no_unexpected_aliasing

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -667,6 +667,10 @@ class TestController &lt; ActionController::Base
 
   def partial_collection_with_counter
     render :partial =&gt; &quot;customer_counter&quot;, :collection =&gt; [ Customer.new(&quot;david&quot;), Customer.new(&quot;mary&quot;) ]
+  end
+
+  def partial_collection_with_as_and_counter
+    render :partial =&gt; &quot;customer_counter_with_as&quot;, :collection =&gt; [ Customer.new(&quot;david&quot;), Customer.new(&quot;mary&quot;) ], :as =&gt; :client
   end
 
   def partial_collection_with_locals
@@ -1487,6 +1491,11 @@ class RenderTest &lt; ActionController::TestCase
     assert_equal &quot;david0mary1&quot;, @response.body
   end
 
+  def test_partial_collection_with_as_and_counter
+    get :partial_collection_with_as_and_counter
+    assert_equal &quot;david0mary1&quot;, @response.body
+  end
+
   def test_partial_collection_with_locals
     get :partial_collection_with_locals
     assert_equal &quot;Bonjour: davidBonjour: mary&quot;, @response.body
@@ -1607,7 +1616,7 @@ class EtagRenderTest &lt; ActionController::TestCase
 
   def test_render_blank_body_shouldnt_set_etag
     get :blank_response
-    assert !@response.etag?
+    assert !@response.etag?, @response.headers.inspect
   end
 
   def test_render_200_should_set_etag
@@ -1626,7 +1635,7 @@ class EtagRenderTest &lt; ActionController::TestCase
   def test_render_against_etag_request_should_have_no_content_length_when_match
     @request.if_none_match = etag_for(&quot;hello david&quot;)
     get :render_hello_world_from_variable
-    assert !@response.headers.has_key?(&quot;Content-Length&quot;), @response.headers['Content-Length']
+    assert_nil @response.headers[&quot;Content-Length&quot;], @response.headers.inspect
   end
 
   def test_render_against_etag_request_should_200_when_no_match

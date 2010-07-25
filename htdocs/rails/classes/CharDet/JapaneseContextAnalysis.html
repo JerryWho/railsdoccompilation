@@ -1,0 +1,170 @@
+  <div id="C00001498">
+<div class='banner'>
+  <span class="file-title-prefix">Class</span><br />JapaneseContextAnalysis<br/>
+  In:
+<a href="#" onclick="jsHref('files/actionmailer/lib/action_mailer/vendor/tmail-1_2_7/tmail/vendor/rchardet-1_3/lib/rchardet/jpcntx_rb.html');">actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb</a>
+
+Parent:&nbsp;
+        <a href="#" onclick="jsHref('classes/Object.html');">
+Object
+         </a>
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M009257&name=feed" >feed</a></li>
+  <li><a href="index.html?a=M009259&name=get_confidence" >get_confidence</a></li>
+  <li><a href="index.html?a=M009260&name=get_order" >get_order</a></li>
+  <li><a href="index.html?a=M009258&name=got_enough_data" >got_enough_data</a></li>
+  <li><a href="index.html?a=M009255&name=new" >new</a></li>
+  <li><a href="index.html?a=M009256&name=reset" >reset</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Class methods</div>
+<div id="M009255" class="method">
+  <div id="M009255_title" class="title">
+    <b>new</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009255_source')" id="l_M009255_source">show source</a> ]</p>
+  <div id="M009255_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 124</span>
+124:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">initialize</span>
+125:       <span class="ruby-identifier">reset</span>()
+126:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M009257" class="method">
+  <div id="M009257_title" class="title">
+    <b>feed</b>(aBuf, aLen)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009257_source')" id="l_M009257_source">show source</a> ]</p>
+  <div id="M009257_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 136</span>
+136:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">feed</span>(<span class="ruby-identifier">aBuf</span>, <span class="ruby-identifier">aLen</span>)
+137:       <span class="ruby-keyword kw">return</span> <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@_mDone</span>
+138: 
+139:       <span class="ruby-comment cmt"># The buffer we got is byte oriented, and a character may span in more than one</span>
+140:       <span class="ruby-comment cmt"># buffers. In case the last one or two byte in last buffer is not complete, we </span>
+141:       <span class="ruby-comment cmt"># record how many byte needed to complete that character and skip these bytes here.</span>
+142:       <span class="ruby-comment cmt"># We can choose to record those bytes as well and analyse the character once it </span>
+143:       <span class="ruby-comment cmt"># is complete, but since a character will not make much difference, by simply skipping</span>
+144:       <span class="ruby-comment cmt"># this character will simply our logic and improve performance.</span>
+145:       <span class="ruby-identifier">i</span> = <span class="ruby-ivar">@_mNeedToSkipCharNum</span>
+146:       <span class="ruby-keyword kw">while</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&lt;</span> <span class="ruby-identifier">aLen</span>
+147:         <span class="ruby-identifier">order</span>, <span class="ruby-identifier">charLen</span> = <span class="ruby-identifier">get_order</span>(<span class="ruby-identifier">aBuf</span>[<span class="ruby-identifier">i</span><span class="ruby-operator">...</span><span class="ruby-identifier">i</span><span class="ruby-operator">+</span><span class="ruby-value">2</span>])
+148:         <span class="ruby-identifier">i</span> <span class="ruby-operator">+=</span> <span class="ruby-identifier">charLen</span>
+149:         <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">i</span> <span class="ruby-operator">&gt;</span> <span class="ruby-identifier">aLen</span>
+150:           <span class="ruby-ivar">@_mNeedToSkipCharNum</span> = <span class="ruby-identifier">i</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">aLen</span>
+151:           <span class="ruby-ivar">@_mLastCharOrder</span> = <span class="ruby-value">-1</span>
+152:         <span class="ruby-keyword kw">else</span>
+153:           <span class="ruby-keyword kw">if</span> (<span class="ruby-identifier">order</span> <span class="ruby-operator">!=</span> <span class="ruby-value">-1</span>) <span class="ruby-keyword kw">and</span> (<span class="ruby-ivar">@_mLastCharOrder</span> <span class="ruby-operator">!=</span> <span class="ruby-value">-1</span>)
+154:             <span class="ruby-ivar">@_mTotalRel</span> <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+155:             <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@_mTotalRel</span> <span class="ruby-operator">&gt;</span> <span class="ruby-constant">MAX_REL_THRESHOLD</span>
+156:               <span class="ruby-ivar">@_mDone</span> = <span class="ruby-keyword kw">true</span>
+157:               <span class="ruby-keyword kw">break</span>
+158:             <span class="ruby-keyword kw">end</span>
+159:             <span class="ruby-ivar">@_mRelSample</span>[<span class="ruby-identifier">jp2CharContext</span>[<span class="ruby-ivar">@_mLastCharOrder</span>][<span class="ruby-identifier">order</span>]] <span class="ruby-operator">+=</span> <span class="ruby-value">1</span>
+160:           <span class="ruby-keyword kw">end</span>
+161:           <span class="ruby-ivar">@_mLastCharOrder</span> = <span class="ruby-identifier">order</span>
+162:         <span class="ruby-keyword kw">end</span>
+163:       <span class="ruby-keyword kw">end</span>
+164:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009259" class="method">
+  <div id="M009259_title" class="title">
+    <b>get_confidence</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009259_source')" id="l_M009259_source">show source</a> ]</p>
+  <div id="M009259_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 170</span>
+170:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_confidence</span>
+171:       <span class="ruby-comment cmt"># This is just one way to calculate confidence. It works well for me.</span>
+172:       <span class="ruby-keyword kw">if</span> <span class="ruby-ivar">@_mTotalRel</span> <span class="ruby-operator">&gt;</span> <span class="ruby-constant">MINIMUM_DATA_THRESHOLD</span>
+173:         <span class="ruby-keyword kw">return</span> (<span class="ruby-ivar">@_mTotalRel</span> <span class="ruby-operator">-</span> <span class="ruby-ivar">@_mRelSample</span>[<span class="ruby-value">0</span>]) <span class="ruby-operator">/</span> <span class="ruby-ivar">@_mTotalRel</span>
+174:       <span class="ruby-keyword kw">else</span>
+175:         <span class="ruby-keyword kw">return</span> <span class="ruby-constant">DONT_KNOW</span>
+176:       <span class="ruby-keyword kw">end</span>
+177:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009260" class="method">
+  <div id="M009260_title" class="title">
+    <b>get_order</b>(aStr)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009260_source')" id="l_M009260_source">show source</a> ]</p>
+  <div id="M009260_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 179</span>
+179:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">get_order</span>(<span class="ruby-identifier">aStr</span>)
+180:       <span class="ruby-keyword kw">return</span> <span class="ruby-value">-1</span>, <span class="ruby-value">1</span>
+181:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009258" class="method">
+  <div id="M009258_title" class="title">
+    <b>got_enough_data</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009258_source')" id="l_M009258_source">show source</a> ]</p>
+  <div id="M009258_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 166</span>
+166:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">got_enough_data</span>
+167:       <span class="ruby-keyword kw">return</span> <span class="ruby-ivar">@_mTotalRel</span> <span class="ruby-operator">&gt;</span> <span class="ruby-constant">ENOUGH_REL_THRESHOLD</span>
+168:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M009256" class="method">
+  <div id="M009256_title" class="title">
+    <b>reset</b>()
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M009256_source')" id="l_M009256_source">show source</a> ]</p>
+  <div id="M009256_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File actionmailer/lib/action_mailer/vendor/tmail-1.2.7/tmail/vendor/rchardet-1.3/lib/rchardet/jpcntx.rb, line 128</span>
+128:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">reset</span>
+129:       <span class="ruby-ivar">@_mTotalRel</span> = <span class="ruby-value">0</span> <span class="ruby-comment cmt"># total sequence received</span>
+130:       <span class="ruby-ivar">@_mRelSample</span> = [<span class="ruby-value">0</span>] <span class="ruby-operator">*</span> <span class="ruby-constant">NUM_OF_CATEGORY</span> <span class="ruby-comment cmt"># category counters, each interger counts sequence in its category</span>
+131:       <span class="ruby-ivar">@_mNeedToSkipCharNum</span> = <span class="ruby-value">0</span> <span class="ruby-comment cmt"># if last byte in current buffer is not the last byte of a character, we need to know how many bytes to skip in next buffer</span>
+132:       <span class="ruby-ivar">@_mLastCharOrder</span> = <span class="ruby-value">-1</span> <span class="ruby-comment cmt"># The order of previous char</span>
+133:       <span class="ruby-ivar">@_mDone</span> = <span class="ruby-keyword kw">false</span> <span class="ruby-comment cmt"># If this flag is set to constants.True, detection is done and conclusion has been made</span>
+134:     <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

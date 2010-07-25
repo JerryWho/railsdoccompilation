@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,6 +19,8 @@
 
 class CookieTest &lt; ActionController::TestCase
   class TestController &lt; ActionController::Base
+    self.cookie_verifier_secret = &quot;thisISverySECRET123&quot;
+    
     def authenticate
       cookies[&quot;user_name&quot;] = &quot;david&quot;
     end
@@ -55,6 +57,18 @@ class CookieTest &lt; ActionController::TestCase
 
     def authenticate_with_http_only
       cookies[&quot;user_name&quot;] = { :value =&gt; &quot;david&quot;, :httponly =&gt; true }
+    end
+    
+    def set_permanent_cookie
+      cookies.permanent[:user_name] = &quot;Jamie&quot;
+    end
+
+    def set_signed_cookie
+      cookies.signed[:user_id] = 45
+    end
+    
+    def set_permanent_signed_cookie
+      cookies.permanent.signed[:remember_me] = 100
     end
 
     def rescue_action(e)
@@ -148,6 +162,27 @@ class CookieTest &lt; ActionController::TestCase
     cookies = @controller.send(:cookies)
     assert_equal 'david', cookies['user_name']
   end
-end
-</pre>
+  
+  def test_permanent_cookie
+    get :set_permanent_cookie
+    assert_match /Jamie/, @response.headers[&quot;Set-Cookie&quot;].first
+    assert_match %r(#{20.years.from_now.year}), @response.headers[&quot;Set-Cookie&quot;].first
+  end
+  
+  def test_signed_cookie
+    get :set_signed_cookie
+    assert_equal 45, @controller.send(:cookies).signed[:user_id]
+  end
+  
+  def test_accessing_nonexistant_signed_cookie_should_not_raise_an_invalid_signature
+    get :set_signed_cookie
+    assert_nil @controller.send(:cookies).signed[:non_existant_attribute]
+  end
+  
+  def test_permanent_signed_cookie
+    get :set_permanent_signed_cookie
+    assert_match %r(#{20.years.from_now.year}), @response.headers[&quot;Set-Cookie&quot;].first
+    assert_equal 100, @controller.send(:cookies).signed[:remember_me]
+  end
+end</pre>
     </div>

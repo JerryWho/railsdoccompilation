@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -80,6 +80,16 @@ class AssociationsTest &lt; ActiveRecord::TestCase
 
     assert !firm.clients(true).empty?, &quot;New firm should have reloaded client objects&quot;
     assert_equal 1, firm.clients(true).size, &quot;New firm should have reloaded clients count&quot;
+  end
+  
+  def test_force_reload_is_uncached
+    firm = Firm.create!(&quot;name&quot; =&gt; &quot;A New Firm, Inc&quot;)
+    client = Client.create!(&quot;name&quot; =&gt; &quot;TheClient.com&quot;, :firm =&gt; firm)
+    ActiveRecord::Base.cache do
+      firm.clients.each {}
+      assert_queries(0) { assert_not_nil firm.clients.each {} }
+      assert_queries(1) { assert_not_nil firm.clients(true).each {} }
+    end
   end
 
   def test_storing_in_pstore

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -229,6 +229,15 @@
       end
 
       def check_validity!
+        check_validity_of_inverse!
+      end
+
+      def check_validity_of_inverse!
+        unless options[:polymorphic]
+          if has_inverse? &amp;&amp; inverse_of.nil?
+            raise InverseOfAssociationNotFoundError.new(self)
+          end
+        end
       end
 
       def through_reflection
@@ -242,10 +251,64 @@
         nil
       end
 
+      def has_inverse?
+        !@options[:inverse_of].nil?
+      end
+
+      def inverse_of
+        if has_inverse?
+          @inverse_of ||= klass.reflect_on_association(options[:inverse_of])
+        end
+      end
+
+      def polymorphic_inverse_of(associated_class)
+        if has_inverse?
+          if inverse_relationship = associated_class.reflect_on_association(options[:inverse_of])
+            inverse_relationship
+          else
+            raise InverseOfAssociationNotFoundError.new(self, associated_class)
+          end
+        end
+      end
+
+      # Returns whether or not this association reflection is for a collection
+      # association. Returns +true+ if the +macro+ is one of +has_many+ or
+      # +has_and_belongs_to_many+, +false+ otherwise.
+      def collection?
+        if @collection.nil?
+          @collection = [:has_many, :has_and_belongs_to_many].include?(macro)
+        end
+        @collection
+      end
+
+      # Returns whether or not the association should be validated as part of
+      # the parent's validation.
+      #
+      # Unless you explicitely disable validation with
+      # &lt;tt&gt;:validate =&gt; false&lt;/tt&gt;, it will take place when:
+      #
+      # * you explicitely enable validation; &lt;tt&gt;:validate =&gt; true&lt;/tt&gt;
+      # * you use autosave; &lt;tt&gt;:autosave =&gt; true&lt;/tt&gt;
+      # * the association is a +has_many+ association
+      def validate?
+        !options[:validate].nil? ? options[:validate] : (options[:autosave] == true || macro == :has_many)
+      end
+
+      def dependent_conditions(record, base_class, extra_conditions)
+        dependent_conditions = []
+        dependent_conditions &lt;&lt; &quot;#{primary_key_name} = #{record.send(name).send(:owner_quoted_id)}&quot;
+        dependent_conditions &lt;&lt; &quot;#{options[:as]}_type = '#{base_class.name}'&quot; if options[:as]
+        dependent_conditions &lt;&lt; klass.send(:sanitize_sql, options[:conditions]) if options[:conditions]
+        dependent_conditions = dependent_conditions.collect {|where| &quot;(#{where})&quot; }.join(&quot; AND &quot;)
+        dependent_conditions &lt;&lt; extra_conditions if extra_conditions
+        dependent_conditions = dependent_conditions.gsub('@', '\@')
+        dependent_conditions
+      end
+
       private
         def derive_class_name
           class_name = name.to_s.camelize
-          class_name = class_name.singularize if [ :has_many, :has_and_belongs_to_many ].include?(macro)
+          class_name = class_name.singularize if collection?
           class_name
         end
 
@@ -317,6 +380,8 @@
         unless [:belongs_to, :has_many, :has_one].include?(source_reflection.macro) &amp;&amp; source_reflection.options[:through].nil?
           raise HasManyThroughSourceAssociationMacroError.new(self)
         end
+
+        check_validity_of_inverse!
       end
 
       def through_reflection_primary_key

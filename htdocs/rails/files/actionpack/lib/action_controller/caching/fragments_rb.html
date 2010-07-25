@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -54,7 +54,7 @@
       def fragment_for(buffer, name = {}, options = nil, &amp;block) #:nodoc:
         if perform_caching
           if cache = read_fragment(name, options)
-            buffer.concat(cache)
+            buffer.safe_concat(cache.html_safe)
           else
             pos = buffer.length
             block.call
@@ -69,9 +69,9 @@
       def write_fragment(key, content, options = nil)
         return content unless cache_configured?
 
-        key = fragment_cache_key(key)
-
         self.class.benchmark &quot;Cached fragment miss: #{key}&quot; do
+          key = fragment_cache_key(key)
+          content = content.html_safe.to_str if content.respond_to?(:html_safe)
           cache_store.write(key, content, options)
         end
 
@@ -82,10 +82,10 @@
       def read_fragment(key, options = nil)
         return unless cache_configured?
 
-        key = fragment_cache_key(key)
-
         self.class.benchmark &quot;Cached fragment hit: #{key}&quot; do
-          cache_store.read(key, options)
+          key = fragment_cache_key(key)
+          result = cache_store.read(key, options)
+          result.respond_to?(:html_safe) ? result.html_safe : result
         end
       end
 

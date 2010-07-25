@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -66,8 +66,14 @@ class QueryCacheTest &lt; ActiveRecord::TestCase
   end
 
   def test_cache_does_not_wrap_string_results_in_arrays
+    require 'sqlite3/version' if current_adapter?(:SQLite3Adapter)
+
     Task.cache do
-      assert_instance_of String, Task.connection.select_value(&quot;SELECT count(*) AS count_all FROM tasks&quot;)
+      if current_adapter?(:SQLite3Adapter) &amp;&amp; SQLite3::Version::VERSION &gt; '1.2.5'
+        assert_instance_of Fixnum, Task.connection.select_value(&quot;SELECT count(*) AS count_all FROM tasks&quot;)
+      else
+        assert_instance_of String, Task.connection.select_value(&quot;SELECT count(*) AS count_all FROM tasks&quot;)
+      end
     end
   end
 end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -76,19 +76,23 @@
         start = options.delete(:start).to_i
         batch_size = options.delete(:batch_size) || 1000
 
-        with_scope(:find =&gt; options.merge(:order =&gt; batch_order, :limit =&gt; batch_size)) do
-          records = find(:all, :conditions =&gt; [ &quot;#{table_name}.#{primary_key} &gt;= ?&quot;, start ])
+        proxy = scoped(options.merge(:order =&gt; batch_order, :limit =&gt; batch_size))
+        records = proxy.find(:all, :conditions =&gt; [ &quot;#{table_name}.#{primary_key} &gt;= ?&quot;, start ])
 
-          while records.any?
-            yield records
+        while records.any?
+          yield records
 
-            break if records.size &lt; batch_size
-            records = find(:all, :conditions =&gt; [ &quot;#{table_name}.#{primary_key} &gt; ?&quot;, records.last.id ])
-          end
+          break if records.size &lt; batch_size
+          
+          last_value = records.last.id
+          
+          raise &quot;You must include the primary key if you define a select&quot; unless last_value.present?
+          
+          records = proxy.find(:all, :conditions =&gt; [ &quot;#{table_name}.#{primary_key} &gt; ?&quot;, last_value ])
         end
       end
-      
-      
+
+
       private
         def batch_order
           &quot;#{table_name}.#{primary_key} ASC&quot;

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -84,6 +84,19 @@ class BaseErrorsTest &lt; Test::Unit::TestCase
         assert full.include?(&quot;Name can't be blank&quot;)
         assert full.include?(&quot;Name must start with a letter&quot;)
         assert full.include?(&quot;Person quota full for today.&quot;)
+      end
+    end
+  end
+
+  def test_should_mark_as_invalid_when_content_type_is_unavailable_in_response_header
+    ActiveResource::HttpMock.respond_to do |mock|
+      mock.post &quot;/people.xml&quot;, {}, %q(&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;errors&gt;&lt;error&gt;Age can't be blank&lt;/error&gt;&lt;error&gt;Name can't be blank&lt;/error&gt;&lt;error&gt;Name must start with a letter&lt;/error&gt;&lt;error&gt;Person quota full for today.&lt;/error&gt;&lt;/errors&gt;), 422, {}
+      mock.post &quot;/people.json&quot;, {}, %q({&quot;errors&quot;:[&quot;Age can't be blank&quot;,&quot;Name can't be blank&quot;,&quot;Name must start with a letter&quot;,&quot;Person quota full for today.&quot;]}), 422, {}
+    end
+
+    [ :json, :xml ].each do |format|
+      invalid_user_using_format(format) do
+        assert !@person.valid?
       end
     end
   end

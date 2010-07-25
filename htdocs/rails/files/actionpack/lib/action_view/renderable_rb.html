@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -82,16 +82,30 @@ module ActionView
       def compile!(render_symbol, local_assigns)
         locals_code = local_assigns.keys.map { |key| &quot;#{key} = local_assigns[:#{key}];&quot; }.join
 
+        code = compiled_source
+        if code.sub!(/\A(#.*coding.*)\n/, '')
+          encoding_comment = $1
+        elsif defined?(Encoding) &amp;&amp; Encoding.respond_to?(:default_external)
+          encoding_comment = &quot;#coding:#{Encoding.default_external}&quot;
+        end
+
         source = &lt;&lt;-end_src
           def #{render_symbol}(local_assigns)
-            old_output_buffer = output_buffer;#{locals_code};#{compiled_source}
+            old_output_buffer = output_buffer;#{locals_code};#{code}
           ensure
             self.output_buffer = old_output_buffer
           end
         end_src
 
+        if encoding_comment
+          source = &quot;#{encoding_comment}\n#{source}&quot;
+          line = -1
+        else
+          line = 0
+        end
+
         begin
-          ActionView::Base::CompiledTemplates.module_eval(source, filename, 0)
+          ActionView::Base::CompiledTemplates.module_eval(source, filename, line)
         rescue Errno::ENOENT =&gt; e
           raise e # Missing template file, re-raise for Base to rescue
         rescue Exception =&gt; e # errors from template code

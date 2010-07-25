@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -44,6 +44,18 @@ class TestMailer &lt; ActionMailer::Base
     self.from       = &quot;system@loudthinking.com&quot;
     self.sent_on    = Time.local(2004, 12, 12)
     self.body       = &quot;Goodbye, Mr. #{recipient}&quot;
+  end
+
+  def from_with_name
+    from       &quot;System &lt;system@loudthinking.com&gt;&quot;
+    recipients &quot;root@loudthinking.com&quot;
+    body       &quot;Nothing to see here.&quot;
+  end
+
+  def from_without_name
+    from       &quot;system@loudthinking.com&quot;
+    recipients &quot;root@loudthinking.com&quot;
+    body       &quot;Nothing to see here.&quot;
   end
 
   def cc_bcc(recipient)
@@ -471,6 +483,28 @@ class ActionMailerTest &lt; Test::Unit::TestCase
     assert_equal expected.encoded, ActionMailer::Base.deliveries.first.encoded
   end
 
+  def test_from_without_name_for_smtp
+    ActionMailer::Base.delivery_method = :smtp
+    TestMailer.deliver_from_without_name
+
+    mail = MockSMTP.deliveries.first
+    assert_not_nil mail
+    mail, from, to = mail
+
+    assert_equal 'system@loudthinking.com', from.to_s
+  end
+
+  def test_from_with_name_for_smtp
+    ActionMailer::Base.delivery_method = :smtp
+    TestMailer.deliver_from_with_name
+
+    mail = MockSMTP.deliveries.first
+    assert_not_nil mail
+    mail, from, to = mail
+
+    assert_equal 'system@loudthinking.com', from.to_s
+  end
+
   def test_reply_to
     expected = new_mail
 
@@ -717,8 +751,8 @@ EOF
     expected.date    = Time.local 2004, 12, 12
 
     created = TestMailer.create_utf8_body @recipient
-    assert_match(/\nFrom: =\?utf-8\?Q\?Foo_.*?\?= &lt;extended@example.net&gt;\r/, created.encoded)
-    assert_match(/\nTo: =\?utf-8\?Q\?Foo_.*?\?= &lt;extended@example.net&gt;, Example Recipient &lt;me/, created.encoded)
+    assert_match(/From:\ =\?utf\-8\?Q\?Foo_=C3=A1=C3=AB=C3=B4_=C3=AE=C3=BC\?=\ &lt;extended@example\.net&gt;/, created.encoded)
+    assert_match(/To:\ =\?utf\-8\?Q\?Foo_=C3=A1=C3=AB=C3=B4_=C3=AE=C3=BC\?=\ &lt;extended@example\.net&gt;/, created.encoded)
   end
 
   def test_receive_decodes_base64_encoded_mail
@@ -842,6 +876,26 @@ EOF
     assert_equal &quot;text/html&quot;, mail.parts[0].content_type
     assert_equal &quot;text/plain&quot;, mail.parts[1].content_type
     assert_equal &quot;text/yaml&quot;, mail.parts[2].content_type
+  end
+
+  def test_implicitly_path_when_running_from_none_rails_root
+    exected_path = File.expand_path(File.join(File.dirname(__FILE__), &quot;fixtures&quot;, &quot;test_mailer&quot;))
+    with_a_rails_root do
+      Dir.chdir &quot;/&quot; do
+        template_path = TestMailer.allocate.send(:template_path)
+        assert_equal exected_path, File.expand_path(template_path)
+      end
+    end
+  end
+
+
+  def test_implicitly_multipart_messages_run_from_another_location_with_a_rails_root
+    with_a_rails_root do
+      Dir.chdir &quot;/&quot; do
+        mail = TestMailer.create_implicitly_multipart_example(@recipient)
+        assert_equal 3, mail.parts.length
+      end
+    end
   end
 
   def test_implicitly_multipart_messages_with_charset
@@ -991,6 +1045,16 @@ EOF
     TestMailer.deliver_signed_up(@recipient)
   ensure
     ActionMailer::Base.smtp_settings[:enable_starttls_auto] = true
+  end
+
+private
+  def with_a_rails_root
+    old_root = ::RAILS_ROOT if defined? ::RAILS_ROOT
+    Object.const_set(:RAILS_ROOT, File.join(File.dirname(__FILE__)))
+    yield
+  ensure
+    Object.send(:remove_const, :RAILS_ROOT) if defined? ::RAILS_ROOT
+    Object.const_set(:RAILS_ROOT, old_root) if old_root
   end
 end
 

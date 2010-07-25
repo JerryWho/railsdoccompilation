@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -134,11 +134,7 @@ module ActionController # :nodoc:
     end
 
     def etag=(etag)
-      if etag.blank?
-        headers.delete('ETag')
-      else
-        headers['ETag'] = %(&quot;#{Digest::MD5.hexdigest(ActiveSupport::Cache.expand_cache_key(etag))}&quot;)
-      end
+      headers['ETag'] = %(&quot;#{Digest::MD5.hexdigest(ActiveSupport::Cache.expand_cache_key(etag))}&quot;)
     end
 
     def redirect(url, status)
@@ -219,7 +215,7 @@ module ActionController # :nodoc:
 
       def nonempty_ok_response?
         ok = !status || status.to_s[0..2] == '200'
-        ok &amp;&amp; body.is_a?(String) &amp;&amp; !body.empty?
+        ok &amp;&amp; body.is_a?(String) &amp;&amp; !body.blank?
       end
 
       def set_conditional_cache_control!
@@ -250,7 +246,8 @@ module ActionController # :nodoc:
       end
 
       def convert_cookies!
-        headers['Set-Cookie'] = Array(headers['Set-Cookie']).compact
+        cookies = Array(headers['Set-Cookie']).compact
+        headers['Set-Cookie'] = cookies unless cookies.empty?
       end
   end
 end

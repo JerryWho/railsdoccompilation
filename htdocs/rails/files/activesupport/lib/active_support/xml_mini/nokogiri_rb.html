@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:54 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -29,7 +29,7 @@ module ActiveSupport
       if string.blank?
         {}
       else
-        doc = Nokogiri::XML(string) { |cfg| cfg.noblanks }
+        doc = Nokogiri::XML(string)
         raise doc.errors.first if doc.errors.length &gt; 0
         doc.to_hash
       end
@@ -43,39 +43,42 @@ module ActiveSupport
       end
 
       module Node
-        CONTENT_ROOT = '__content__'
+        CONTENT_ROOT = '__content__'.freeze
 
         # Convert XML document to hash
         #
         # hash::
         #   Hash to merge the converted element into.
         def to_hash(hash = {})
-          attributes = attributes_as_hash
-          if hash[name]
-            hash[name] = [hash[name]].flatten
-            hash[name] &lt;&lt; attributes
-          else
-            hash[name] ||= attributes
+          node_hash = {}
+
+          # Insert node hash into parent hash correctly.
+          case hash[name]
+            when Array then hash[name] &lt;&lt; node_hash
+            when Hash  then hash[name] = [hash[name], node_hash]
+            when nil   then hash[name] = node_hash
+            else raise &quot;Unexpected error during hash insertion!&quot;
           end
 
-          children.each { |child|
-            next if child.blank? &amp;&amp; 'file' != self['type']
+          # Handle child elements
+          children.each do |c|
+            if c.element?
+              c.to_hash(node_hash)
+            elsif c.text? || c.cdata?
+              node_hash[CONTENT_ROOT] ||= ''
+              node_hash[CONTENT_ROOT] &lt;&lt; c.content
+             end
+          end
 
-            if child.text? || child.cdata?
-              (attributes[CONTENT_ROOT] ||= '') &lt;&lt; child.content
-              next
-            end
+          # Remove content node if it is blank and there are child tags
+          if node_hash.length &gt; 1 &amp;&amp; node_hash[CONTENT_ROOT].blank?
+            node_hash.delete(CONTENT_ROOT)
+          end
 
-            child.to_hash attributes
-          }
+          # Handle attributes
+          attribute_nodes.each { |a| node_hash[a.node_name] = a.value }
 
           hash
-        end
-
-        def attributes_as_hash
-          Hash[*(attribute_nodes.map { |node|
-            [node.node_name, node.value]
-          }.flatten)]
         end
       end
     end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,8 +19,18 @@
   module CoreExtensions #:nodoc:
     module Array #:nodoc:
       module RandomAccess
+        # This method is deprecated because it masks Kernel#rand within the Array class itself, 
+        # which may be used by a 3rd party library extending Array in turn. See
+        #
+        #   https://rails.lighthouseapp.com/projects/8994-ruby-on-rails/tickets/4555
+        #
+        def rand # :nodoc:
+          ActiveSupport::Deprecation.warn 'Array#rand is deprecated and will be removed in Rails 3. Use &quot;random_element&quot; instead', caller
+          random_element
+        end
+
         # Returns a random element from the array.
-        def rand
+        def random_element
           self[Kernel.rand(length)]
         end
       end

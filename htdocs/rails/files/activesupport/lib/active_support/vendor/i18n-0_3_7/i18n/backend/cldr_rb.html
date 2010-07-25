@@ -1,0 +1,118 @@
+  <div id="fileHeader">
+    <h1>cldr.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>activesupport/lib/active_support/vendor/i18n-0.3.7/i18n/backend/cldr.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># encoding: utf-8
+require 'cldr'
+
+module I18n
+  module Backend
+    module Cldr
+      include ::Cldr::Format
+
+      def localize(locale, object, format = :default, options = {})
+        options[:as] ||= detect_type(object, options)
+        send(:&quot;format_#{options[:as]}&quot;, locale, object, format, options)
+      end
+
+      def format_decimal(locale, object, format = :default, options = {})
+        formatter(locale, :decimal, format).apply(object, options)
+      end
+
+      def format_integer(locale, object, format = :default, options = {})
+        format_object(number, options.merge(:precision =&gt; 0))
+      end
+
+      def format_currency(locale, object, format = :default, options = {})
+        options.merge!(:currency =&gt; lookup_currency(locale, options[:currency], object)) if options[:currency].is_a?(Symbol)
+        formatter(locale, :currency, format).apply(object, options)
+      end
+
+      def format_percent(locale, object, format = :default, options = {})
+        formatter(locale, :percent, format).apply(object, options)
+      end
+
+      def format_date(locale, object, format = :default, options = {})
+        formatter(locale, :date, format).apply(object, options)
+      end
+
+      def format_time(locale, object, format = :default, options = {})
+        formatter(locale, :time, format).apply(object, options)
+      end
+
+      def format_datetime(locale, object, format = :default, options = {})
+        key  = :&quot;calendars.gregorian.formats.datetime.#{format}.pattern&quot;
+        date = I18n.l(object, :format =&gt; options[:date_format] || format, :locale =&gt; locale, :as =&gt; :date)
+        time = I18n.l(object, :format =&gt; options[:time_format] || format, :locale =&gt; locale, :as =&gt; :time)
+        I18n.t(key, :date =&gt; date, :time =&gt; time, :locale =&gt; locale, :raise =&gt; true)
+      end
+
+      protected
+
+        def detect_type(object, options)
+          options.has_key?(:currency) ? :currency : case object
+          when ::Numeric
+            :decimal
+          when ::Date, ::DateTime, ::Time
+            object.class.name.downcase.to_sym
+          else
+            raise_unspecified_format_type!
+          end
+        end
+
+        def formatter(locale, type, format)
+          (@formatters ||= {})[:&quot;#{locale}.#{type}.#{format}&quot;] ||= begin
+            format = lookup_format(locale, type, format)
+            data   = lookup_format_data(locale, type)
+            ::Cldr::Format.const_get(type.to_s.camelize).new(format, data)
+          end
+        end
+
+        def lookup_format(locale, type, format)
+          key = case type
+          when :date, :time, :datetime
+            :&quot;calendars.gregorian.formats.#{type}.#{format}.pattern&quot;
+          else
+            :&quot;numbers.formats.#{type}.patterns.#{format || :default}&quot;
+          end
+          I18n.t(key, :locale =&gt; locale, :raise =&gt; true)
+        end
+
+        def lookup_format_data(locale, type)
+          key = case type
+          when :date, :time, :datetime
+            :'calendars.gregorian'
+          else
+            :'numbers.symbols'
+          end
+          I18n.t(key, :locale =&gt; locale, :raise =&gt; true)
+        end
+
+        def lookup_currency(locale, currency, count)
+          I18n.t(:&quot;currencies.#{currency}&quot;, :locale =&gt; locale, :count =&gt; count)
+        end
+
+        def raise_unspecified_format_type!
+          raise ArgumentError.new(&quot;You have to specify a format type, e.g. :as =&gt; :number.&quot;)
+        end
+
+        def raise_unspecified_currency!
+          raise ArgumentError.new(&quot;You have to specify a currency, e.g. :currency =&gt; 'EUR'.&quot;)
+        end
+    end
+  end
+end</pre>
+    </div>

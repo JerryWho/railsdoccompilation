@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -21,6 +21,7 @@ require 'models/author'
 require 'models/comment'
 require 'models/category'
 require 'models/categorization'
+require 'active_support/core_ext/array/random_access'
 
 module Remembered
   def self.included(base)
@@ -34,7 +35,7 @@ module Remembered
 
   module ClassMethods
     def remembered; @@remembered ||= []; end
-    def rand; @@remembered.rand; end
+    def random_element; @@remembered.random_element; end
   end
 end
 
@@ -98,14 +99,14 @@ class EagerLoadPolyAssocsTest &lt; ActiveRecord::TestCase
       [Circle, Square, Triangle, NonPolyOne, NonPolyTwo].map(&amp;:create!)
     end
     1.upto(NUM_SIMPLE_OBJS) do
-      PaintColor.create!(:non_poly_one_id =&gt; NonPolyOne.rand.id)
-      PaintTexture.create!(:non_poly_two_id =&gt; NonPolyTwo.rand.id)
+      PaintColor.create!(:non_poly_one_id =&gt; NonPolyOne.random_element.id)
+      PaintTexture.create!(:non_poly_two_id =&gt; NonPolyTwo.random_element.id)
     end
     1.upto(NUM_SHAPE_EXPRESSIONS) do
-      shape_type = [Circle, Square, Triangle].rand
-      paint_type = [PaintColor, PaintTexture].rand
-      ShapeExpression.create!(:shape_type =&gt; shape_type.to_s, :shape_id =&gt; shape_type.rand.id,
-                              :paint_type =&gt; paint_type.to_s, :paint_id =&gt; paint_type.rand.id)
+      shape_type = [Circle, Square, Triangle].random_element
+      paint_type = [PaintColor, PaintTexture].random_element
+      ShapeExpression.create!(:shape_type =&gt; shape_type.to_s, :shape_id =&gt; shape_type.random_element.id,
+                              :paint_type =&gt; paint_type.to_s, :paint_id =&gt; paint_type.random_element.id)
     end
   end
 

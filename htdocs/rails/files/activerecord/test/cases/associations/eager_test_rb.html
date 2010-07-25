@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -847,7 +847,13 @@ class EagerAssociationTest &lt; ActiveRecord::TestCase
       assert_equal expected, firm.account_using_primary_key
     end
   end
-  
+
+  def test_preloading_empty_polymorphic_parent
+    t = Tagging.create!(:taggable_type =&gt; 'Post', :taggable_id =&gt; Post.maximum(:id) + 1, :tag =&gt; tags(:general))
+
+    assert_queries(2) { @tagging = Tagging.find(t.id, :include =&gt; :taggable) }
+    assert_no_queries { assert ! @tagging.taggable }
+  end
 end
 </pre>
     </div>

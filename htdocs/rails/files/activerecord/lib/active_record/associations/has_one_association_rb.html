@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:16 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -74,6 +74,7 @@
           @target = (AssociationProxy === obj ? obj.target : obj)
         end
 
+        set_inverse_instance(obj, @owner)
         @loaded = true
 
         unless @owner.new_record? or obj.nil? or dont_save
@@ -94,13 +95,15 @@
 
       private
         def find_target
-          @reflection.klass.find(:first, 
+          the_target = @reflection.klass.find(:first,
             :conditions =&gt; @finder_sql,
             :select     =&gt; @reflection.options[:select],
             :order      =&gt; @reflection.options[:order], 
             :include    =&gt; @reflection.options[:include],
             :readonly   =&gt; @reflection.options[:readonly]
           )
+          set_inverse_instance(the_target, @owner)
+          the_target
         end
 
         def construct_sql
@@ -135,6 +138,7 @@
           else
             record[@reflection.primary_key_name] = @owner.id unless @owner.new_record?
             self.target = record
+            set_inverse_instance(record, @owner)
           end
 
           record
@@ -144,6 +148,11 @@
           attrs ||= {}
           attrs.update(@reflection.options[:conditions]) if @reflection.options[:conditions].is_a?(Hash)
           attrs
+        end
+
+        def we_can_set_the_inverse_on_this?(record)
+          inverse = @reflection.inverse_of
+          return !inverse.nil?
         end
     end
   end

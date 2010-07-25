@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:00 +0100 2009</td>
+      <td>Sun Jul 25 11:32:53 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,13 +15,31 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre># OrderedHash is namespaced to prevent conflicts with other implementations
+    <pre>require 'yaml'
+
+YAML.add_builtin_type(&quot;omap&quot;) do |type, val|
+  ActiveSupport::OrderedHash[val.map(&amp;:to_a).map(&amp;:first)]
+end
+
+# OrderedHash is namespaced to prevent conflicts with other implementations
 module ActiveSupport
-  # Hash is ordered in Ruby 1.9!
-  if RUBY_VERSION &gt;= '1.9'
-    OrderedHash = ::Hash
-  else
-    class OrderedHash &lt; Hash #:nodoc:
+  class OrderedHash &lt; ::Hash #:nodoc:
+    def to_yaml_type
+      &quot;!tag:yaml.org,2002:omap&quot;
+    end
+
+    def to_yaml(opts = {})
+      YAML.quick_emit(self, opts) do |out|
+        out.seq(taguri, to_yaml_style) do |seq|
+          each do |k, v|
+            seq.add(k =&gt; v)
+          end
+        end
+      end
+    end
+
+    # Hash is ordered in Ruby 1.9!
+    if RUBY_VERSION &lt; '1.9'
       def initialize(*args, &amp;block)
         super
         @keys = []
@@ -69,7 +87,7 @@ module ActiveSupport
         end
         super
       end
-      
+
       def delete_if
         super
         sync_keys!
@@ -148,11 +166,10 @@ module ActiveSupport
         &quot;#&lt;OrderedHash #{super}&gt;&quot;
       end
 
-    private
-
-      def sync_keys!
-        @keys.delete_if {|k| !has_key?(k)}
-      end
+      private
+        def sync_keys!
+          @keys.delete_if {|k| !has_key?(k)}
+        end
     end
   end
 end

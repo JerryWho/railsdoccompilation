@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -64,14 +64,22 @@
       each do |load_path|
         if format &amp;&amp; (template = load_path[&quot;#{template_path}.#{I18n.locale}.#{format}&quot;])
           return template
+        # Try the default locale version if the current locale doesn't have one
+        # (i.e. you haven't translated this view to German yet, but you have the English version on hand)
+        elsif format &amp;&amp; (template = load_path[&quot;#{template_path}.#{I18n.default_locale}.#{format}&quot;]) 
+          return template
         elsif format &amp;&amp; (template = load_path[&quot;#{template_path}.#{format}&quot;])
           return template
         elsif template = load_path[&quot;#{template_path}.#{I18n.locale}&quot;]
+          return template
+        elsif template = load_path[&quot;#{template_path}.#{I18n.default_locale}&quot;]
           return template
         elsif template = load_path[template_path]
           return template
         # Try to find html version if the format is javascript
         elsif format == :js &amp;&amp; html_fallback &amp;&amp; template = load_path[&quot;#{template_path}.#{I18n.locale}.html&quot;]
+          return template
+        elsif format == :js &amp;&amp; html_fallback &amp;&amp; template = load_path[&quot;#{template_path}.#{I18n.default_locale}.html&quot;]
           return template
         elsif format == :js &amp;&amp; html_fallback &amp;&amp; template = load_path[&quot;#{template_path}.html&quot;]
           return template

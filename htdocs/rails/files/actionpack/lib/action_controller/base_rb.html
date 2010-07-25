@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -633,15 +633,6 @@ module ActionController #:nodoc:
       # displayed on:
       #
       #   url_for :controller =&gt; 'posts', :action =&gt; nil
-      #
-      # If you explicitly want to create a URL that's almost the same as the current URL, you can do so using the
-      # &lt;tt&gt;:overwrite_params&lt;/tt&gt; options. Say for your posts you have different views for showing and printing them.
-      # Then, in the show view, you get the URL for the print view like this
-      #
-      #   url_for :overwrite_params =&gt; { :action =&gt; 'print' }
-      #
-      # This takes the current URL as is and only exchanges the action. In contrast, &lt;tt&gt;url_for :action =&gt; 'print'&lt;/tt&gt;
-      # would have slashed-off the path components after the changed action.
       def url_for(options = {})
         options ||= {}
         case options
@@ -1109,10 +1100,19 @@ module ActionController #:nodoc:
       # The redirection happens as a &quot;302 Moved&quot; header unless otherwise specified.
       #
       # Examples:
-      #   redirect_to post_url(@post), :status=&gt;:found
-      #   redirect_to :action=&gt;'atom', :status=&gt;:moved_permanently
-      #   redirect_to post_url(@post), :status=&gt;301
-      #   redirect_to :action=&gt;'atom', :status=&gt;302
+      #   redirect_to post_url(@post), :status =&gt; :found
+      #   redirect_to :action=&gt;'atom', :status =&gt; :moved_permanently
+      #   redirect_to post_url(@post), :status =&gt; 301
+      #   redirect_to :action=&gt;'atom', :status =&gt; 302
+      #
+      # It is also possible to assign a flash message as part of the redirection. There are two special accessors for commonly used the flash names
+      # +alert+ and +notice+ as well as a general purpose +flash+ bucket.
+      #
+      # Examples:
+      #   redirect_to post_url(@post), :alert =&gt; &quot;Watch it, mister!&quot;
+      #   redirect_to post_url(@post), :status=&gt; :found, :notice =&gt; &quot;Pay attention to the road&quot;
+      #   redirect_to post_url(@post), :status =&gt; 301, :flash =&gt; { :updated_post_id =&gt; @post.id }
+      #   redirect_to { :action=&gt;'atom' }, :alert =&gt; &quot;Something serious happened&quot;
       #
       # When using &lt;tt&gt;redirect_to :back&lt;/tt&gt;, if there is no referrer,
       # RedirectBackError will be raised. You may specify some fallback
@@ -1429,7 +1429,7 @@ module ActionController #:nodoc:
   end
 
   Base.class_eval do
-    [ Filters, Layout, Benchmarking, Rescue, Flash, MimeResponds, Helpers,
+    [ Filters, Layout, Benchmarking, Rescue, MimeResponds, Helpers, Flash,
       Cookies, Caching, Verification, Streaming, SessionManagement,
       HttpAuthentication::Basic::ControllerMethods, HttpAuthentication::Digest::ControllerMethods,
       RecordIdentifier, RequestForgeryProtection, Translation

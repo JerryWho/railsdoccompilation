@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 16:38:15 +0100 2009</td>
+      <td>Sun Jul 25 11:32:52 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -297,7 +297,7 @@ module ActionView
 
         concat(form_tag(options.delete(:url) || {}, options.delete(:html) || {}))
         fields_for(object_name, *(args &lt;&lt; options), &amp;proc)
-        concat('&lt;/form&gt;'.html_safe!)
+        concat('&lt;/form&gt;'.html_safe)
       end
 
       def apply_form_for_options!(object_or_array, options) #:nodoc:
@@ -408,7 +408,7 @@ module ActionView
       #     accepts_nested_attributes_for :address, :allow_destroy =&gt; true
       #   end
       #
-      # Now, when you use a form element with the &lt;tt&gt;_delete&lt;/tt&gt; parameter,
+      # Now, when you use a form element with the &lt;tt&gt;_destroy&lt;/tt&gt; parameter,
       # with a value that evaluates to +true+, you will destroy the associated
       # model (eg. 1, '1', true, or 'true'):
       #
@@ -416,7 +416,7 @@ module ActionView
       #     ...
       #     &lt;% person_form.fields_for :address do |address_fields| %&gt;
       #       ...
-      #       Delete: &lt;%= address_fields.check_box :_delete %&gt;
+      #       Delete: &lt;%= address_fields.check_box :_destroy %&gt;
       #     &lt;% end %&gt;
       #   &lt;% end %&gt;
       #
@@ -489,14 +489,14 @@ module ActionView
       #   end
       #
       # This will allow you to specify which models to destroy in the
-      # attributes hash by adding a form element for the &lt;tt&gt;_delete&lt;/tt&gt;
+      # attributes hash by adding a form element for the &lt;tt&gt;_destroy&lt;/tt&gt;
       # parameter with a value that evaluates to +true+
       # (eg. 1, '1', true, or 'true'):
       #
       #   &lt;% form_for @person, :url =&gt; { :action =&gt; &quot;update&quot; } do |person_form| %&gt;
       #     ...
       #     &lt;% person_form.fields_for :projects do |project_fields| %&gt;
-      #       Delete: &lt;%= project_fields.check_box :_delete %&gt;
+      #       Delete: &lt;%= project_fields.check_box :_destroy %&gt;
       #     &lt;% end %&gt;
       #   &lt;% end %&gt;
       def fields_for(record_or_name_or_array, *args, &amp;block)
@@ -517,14 +517,38 @@ module ActionView
       end
 
       # Returns a label tag tailored for labelling an input field for a specified attribute (identified by +method+) on an object
-      # assigned to the template (identified by +object+). The text of label will default to the attribute name unless you specify
-      # it explicitly. Additional options on the label tag can be passed as a hash with +options+. These options will be tagged
+      # assigned to the template (identified by +object+). The text of label will default to the attribute name unless a translation
+      # is found in the current I18n locale (through views.labels.&lt;modelname&gt;.&lt;attribute&gt;) or you specify it explicitly. 
+      # Additional options on the label tag can be passed as a hash with +options+. These options will be tagged
       # onto the HTML as an HTML element attribute as in the example shown, except for the &lt;tt&gt;:value&lt;/tt&gt; option, which is designed to
       # target labels for radio_button tags (where the value is used in the ID of the input tag).
       #
       # ==== Examples
       #   label(:post, :title)
       #   # =&gt; &lt;label for=&quot;post_title&quot;&gt;Title&lt;/label&gt;
+      #
+      #   You can localize your labels based on model and attribute names.
+      #   For example you can define the following in your locale (e.g. en.yml)
+      #
+      #   views:
+      #     labels:
+      #       post:
+      #         body: &quot;Write your entire text here&quot;
+      #
+      #   Which then will result in
+      #
+      #   label(:post, :body)
+      #   # =&gt; &lt;label for=&quot;post_body&quot;&gt;Write your entire text here&lt;/label&gt;
+      #
+      #   Localization can also be based purely on the translation of the attribute-name like this:
+      #
+      #   activerecord:
+      #     attribute:
+      #       post:
+      #         cost: &quot;Total cost&quot;
+      #
+      #   label(:post, :cost)
+      #   # =&gt; &lt;label for=&quot;post_cost&quot;&gt;Total cost&lt;/label&gt;
       #
       #   label(:post, :title, &quot;A short title&quot;)
       #   # =&gt; &lt;label for=&quot;post_title&quot;&gt;A short title&lt;/label&gt;
@@ -756,7 +780,20 @@ module ActionView
         add_default_name_and_id_for_value(tag_value, name_and_id)
         options.delete(&quot;index&quot;)
         options[&quot;for&quot;] ||= name_and_id[&quot;id&quot;]
-        content = (text.blank? ? nil : text.to_s) || method_name.humanize
+
+        content = if text.blank?
+          i18n_label = I18n.t(&quot;helpers.label.#{object_name}.#{method_name}&quot;, :default =&gt; &quot;&quot;)
+          i18n_label if i18n_label.present?
+        else
+          text.to_s
+        end
+
+        content ||= if object &amp;&amp; object.class.respond_to?(:human_attribute_name)
+          object.class.human_attribute_name(method_name)
+        end
+
+        content ||= method_name.humanize
+
         label_tag(name_and_id[&quot;id&quot;], content, options)
       end
 
@@ -814,7 +851,7 @@ module ActionView
         add_default_name_and_id(options)
         hidden = tag(&quot;input&quot;, &quot;name&quot; =&gt; options[&quot;name&quot;], &quot;type&quot; =&gt; &quot;hidden&quot;, &quot;value&quot; =&gt; options['disabled'] &amp;&amp; checked ? checked_value : unchecked_value)
         checkbox = tag(&quot;input&quot;, options)
-        (hidden + checkbox).html_safe!
+        (hidden + checkbox).html_safe
       end
 
       def to_boolean_select_tag(options = {})
@@ -957,7 +994,7 @@ module ActionView
       end
 
       (field_helpers - %w(label check_box radio_button fields_for hidden_field)).each do |selector|
-        src = &lt;&lt;-end_src
+        src, line = &lt;&lt;-end_src, __LINE__ + 1
           def #{selector}(method, options = {})  # def text_field(method, options = {})
             @template.send(                      #   @template.send(
               #{selector.inspect},               #     &quot;text_field&quot;,
@@ -966,7 +1003,7 @@ module ActionView
               objectify_options(options))        #     objectify_options(options))
           end                                    # end
         end_src
-        class_eval src, __FILE__, __LINE__
+        class_eval src, __FILE__, line
       end
 
       def fields_for(record_or_name_or_array, *args, &amp;block)
@@ -1022,7 +1059,7 @@ module ActionView
       end
 
       def error_message_on(method, *args)
-        @template.error_message_on(@object, method, *args)
+        @template.error_message_on(@object || @object_name, method, *args)
       end
 
       def error_messages(options = {})
