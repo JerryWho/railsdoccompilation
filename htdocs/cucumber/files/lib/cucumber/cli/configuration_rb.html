@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,6 +18,7 @@
     <pre>require 'logger'
 require 'cucumber/cli/options'
 require 'cucumber/constantize'
+require 'gherkin/tag_expression'
 
 module Cucumber
   module Cli
@@ -27,7 +28,7 @@ module Cucumber
 
     class Configuration
       include Constantize
-      
+
       attr_reader :options, :out_stream
 
       def initialize(out_stream = STDOUT, error_stream = STDERR)
@@ -42,6 +43,7 @@ module Cucumber
         arrange_formats
         raise(&quot;You can't use both --strict and --wip&quot;) if strict? &amp;&amp; wip?
 
+        @options[:tag_expression] = Gherkin::TagExpression.new(@options[:tag_expressions])
         return @args.replace(@options.expanded_args_without_drb) if drb?
 
         set_environment_variables
@@ -63,10 +65,6 @@ module Cucumber
         @options[:guess]
       end
 
-      def diff_enabled?
-        @options[:diff_enabled]
-      end
-
       def drb?
         @options[:drb]
       end
@@ -74,7 +72,7 @@ module Cucumber
       def drb_port
         @options[:drb_port].to_i if @options[:drb_port]
       end
-      
+
       def build_runner(step_mother, io)
         Ast::TreeWalker.new(step_mother, formatters(step_mother), @options, io)
       end
@@ -98,13 +96,13 @@ module Cucumber
         files.reject! {|f| !File.file?(f)}
         files.reject! {|f| File.extname(f) == '.feature' }
         files.reject! {|f| f =~ /^http/}
-        files      
+        files.sort
       end
-      
+
       def step_defs_to_load
         all_files_to_load.reject {|f| f =~ %r{/support/} }
       end
-      
+
       def support_to_load
         support_files = all_files_to_load.select {|f| f =~ %r{/support/} }
         env_files = support_files.select {|f| f =~ %r{/support/env\..*} }
@@ -121,14 +119,14 @@ module Cucumber
           elsif path[0..0] == '@' and # @listfile.txt
               File.file?(path[1..-1]) # listfile.txt is a file
             IO.read(path[1..-1]).split
-          else 
+          else
             path
           end
         end.flatten.uniq
         remove_excluded_files_from(potential_feature_files)
-        potential_feature_files.sort
+        potential_feature_files
       end
-      
+
       def feature_dirs
         paths.map { |f| File.directory?(f) ? f : File.dirname(f) }.uniq
       end
@@ -142,7 +140,7 @@ module Cucumber
       end
 
     private
-    
+
       def formatters(step_mother)
         # TODO: We should remove the autoformat functionality. That
         # can be done with the gherkin CLI.
@@ -196,7 +194,7 @@ module Cucumber
       def require_dirs
         feature_dirs + Dir['vendor/{gems,plugins}/*/cucumber']
       end
-      
+
     end
 
   end

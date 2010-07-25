@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 require 'cucumber'
 require 'cucumber/rb_support/rb_language'
@@ -27,7 +27,7 @@ module Cucumber
       @dsl.extend(RbSupport::RbDsl)
 
       @step_mother = StepMother.new
-      @step_mother.load_natural_language('en')
+
       @rb = @step_mother.load_programming_language('rb')
 
       @visitor = mock('Visitor')
@@ -84,6 +84,16 @@ spec/cucumber/step_mother_spec.rb:48:in `/Three cute (.*)/'
       end.should_not raise_error
     end
     
+    it &quot;should not raise NoMethodError when guessing from multiple step definitions with nil fields&quot; do
+      @step_mother.options = {:guess =&gt; true}
+      @dsl.Given(/Three (.*) mice( cannot find food)?/) {|disability, is_disastrous|}
+      @dsl.Given(/Three (.*)?/) {|animal|}
+      
+      lambda do
+        @step_mother.step_match(&quot;Three blind mice&quot;)
+      end.should_not raise_error
+    end
+    
     it &quot;should pick right step definition when --guess is enabled and equal number of capture groups&quot; do
       @step_mother.options = {:guess =&gt; true}
       right = @dsl.Given(/Three (.*) mice/) {|disability|}
@@ -103,8 +113,8 @@ spec/cucumber/step_mother_spec.rb:48:in `/Three cute (.*)/'
     it &quot;should pick most specific step definition when --guess is enabled and unequal number of capture groups&quot; do
       @step_mother.options = {:guess =&gt; true}
       general       = @dsl.Given(/Three (.*) mice ran (.*)/) {|disability|}
-      specific      = @dsl.Given(/Three blind mice ran far/) {}
-      more_specific = @dsl.Given(/^Three blind mice ran far$/) {}
+      specific      = @dsl.Given(/Three blind mice ran far/) do; end
+      more_specific = @dsl.Given(/^Three blind mice ran far$/) do; end
       
       @step_mother.step_match(&quot;Three blind mice ran far&quot;).step_definition.should == more_specific
     end
@@ -122,15 +132,14 @@ spec/cucumber/step_mother_spec.rb:48:in `/Three cute (.*)/'
     end
 
     it &quot;should raise an error if the world is nil&quot; do
-      @dsl.World do
-      end
+      @dsl.World {}
 
       begin
-        @step_mother.before_and_after(nil) {}
+        @step_mother.before_and_after(nil) do; end
         raise &quot;Should fail&quot;
       rescue RbSupport::NilWorld =&gt; e
         e.message.should == &quot;World procs should never return nil&quot;
-        e.backtrace.should == [&quot;spec/cucumber/step_mother_spec.rb:108:in `World'&quot;]
+        e.backtrace.should == [&quot;spec/cucumber/step_mother_spec.rb:118:in `World'&quot;]
       end
     end
 
@@ -145,10 +154,10 @@ spec/cucumber/step_mother_spec.rb:48:in `/Three cute (.*)/'
 
     it &quot;should implicitly extend world with modules&quot; do
       @dsl.World(ModuleOne, ModuleTwo)
-      @step_mother.before(mock('scenario', :null_object =&gt; true))
+      @step_mother.before(mock('scenario').as_null_object)
       class &lt;&lt; @rb.current_world
-        included_modules.index(ModuleOne).should_not == nil
-        included_modules.index(ModuleTwo).should_not == nil
+        included_modules.inspect.should =~ /ModuleOne/ # Workaround for RSpec/Ruby 1.9 issue with namespaces
+        included_modules.inspect.should =~ /ModuleTwo/
       end
       @rb.current_world.class.should == Object
     end
@@ -160,8 +169,8 @@ spec/cucumber/step_mother_spec.rb:48:in `/Three cute (.*)/'
       end.should raise_error(RbSupport::MultipleWorld, %{You can only pass a proc to #World once, but it's happening
 in 2 places:
 
-spec/cucumber/step_mother_spec.rb:140:in `World'
-spec/cucumber/step_mother_spec.rb:142:in `World'
+spec/cucumber/step_mother_spec.rb:149:in `World'
+spec/cucumber/step_mother_spec.rb:151:in `World'
 
 Use Ruby modules instead to extend your worlds. See the Cucumber::RbSupport::RbDsl#World RDoc
 or http://wiki.github.com/aslakhellesoy/cucumber/a-whole-new-world.
@@ -179,6 +188,20 @@ or http://wiki.github.com/aslakhellesoy/cucumber/a-whole-new-world.
       
       @rb.hooks_for(:before, scenario).should == [fish]
     end
+
+    it &quot;should find around hooks&quot; do
+      a = @dsl.Around do |scenario, block|
+      end
+
+      b = @dsl.Around('@tag') do |scenario, block|
+      end
+
+      scenario = mock('Scenario')
+      scenario.should_receive(:accept_hook?).with(a).and_return(true)
+      scenario.should_receive(:accept_hook?).with(b).and_return(false)
+
+      @rb.hooks_for(:around, scenario).should == [a]
+    end
   end
 
   describe StepMother, &quot;step argument transformations&quot; do
@@ -187,7 +210,7 @@ or http://wiki.github.com/aslakhellesoy/cucumber/a-whole-new-world.
       @dsl.extend(RbSupport::RbDsl)
 
       @step_mother = StepMother.new
-      @step_mother.load_natural_language('en')
+
       @rb = @step_mother.load_programming_language('rb')
     end
 
@@ -284,6 +307,15 @@ or http://wiki.github.com/aslakhellesoy/cucumber/a-whole-new-world.
     end
   end
 
+end
+
+module ModuleOne
+end
+
+module ModuleTwo
+end
+
+class ClassOne
 end
 </pre>
     </div>

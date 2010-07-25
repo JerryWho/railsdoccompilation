@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 require 'cucumber/step_mother'
 require 'cucumber/ast'
 require 'cucumber/core_ext/string'
@@ -25,11 +25,10 @@ module Cucumber
   module Ast
     describe ScenarioOutline do
       before do
-        @step_mother = StepMother.new
+        @step_mother = Cucumber::StepMother.new
         @step_mother.load_programming_language('rb')
-        @step_mother.load_natural_language('en')
         @dsl = Object.new
-        @dsl.extend(RbSupport::RbDsl)
+        @dsl.extend(Cucumber::RbSupport::RbDsl)
 
         @dsl.Given(/^there are (\d+) cucumbers$/) do |n|
           @initial = n.to_i
@@ -76,13 +75,6 @@ module Cucumber
       it &quot;should replace all variables and call outline once for each table row&quot; do
         visitor = TreeWalker.new(@step_mother)
         visitor.should_receive(:visit_table_row).exactly(3).times
-        visitor.visit_feature_element(@scenario_outline)
-      end
-
-      it &quot;should pretty print&quot; do
-        require 'cucumber/formatter/pretty'
-        formatter = Formatter::Pretty.new(@step_mother, STDOUT, {:comment =&gt; true, :tag_names =&gt; {}})
-        visitor = TreeWalker.new(@step_mother, [formatter])
         visitor.visit_feature_element(@scenario_outline)
       end
     end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,9 +17,10 @@
     <h2>Source Code</h2>
     <pre>require 'cucumber/constantize'
 require 'cucumber/core_ext/instance_exec'
-require 'cucumber/parser/natural_language'
 require 'cucumber/language_support/language_methods'
 require 'cucumber/formatter/duration'
+require 'cucumber/cli/options'
+require 'timeout'
 
 module Cucumber
   # Raised when there is no matching StepDefinition for a step.
@@ -55,6 +56,12 @@ module Cucumber
     end
   end
 
+  class TagExcess &lt; StandardError
+    def initialize(messages)
+      super(messages.join(&quot;\n&quot;))
+    end
+  end
+
   # This is the meaty part of Cucumber that ties everything together.
   class StepMother
     include Constantize
@@ -65,18 +72,18 @@ module Cucumber
       @unsupported_programming_languages = []
       @programming_languages = []
       @language_map = {}
-      load_natural_language('en')
       @current_scenario = nil
     end
 
     def load_plain_text_features(feature_files)
       features = Ast::Features.new
 
+      tag_counts = {}
       start = Time.new
       log.debug(&quot;Features:\n&quot;)
       feature_files.each do |f|
         feature_file = FeatureFile.new(f)
-        feature = feature_file.parse(self, options)
+        feature = feature_file.parse(options, tag_counts)
         if feature
           features.add_feature(feature)
           log.debug(&quot;  * #{f}\n&quot;)
@@ -84,7 +91,24 @@ module Cucumber
       end
       duration = Time.now - start
       log.debug(&quot;Parsing feature files took #{format_duration(duration)}\n\n&quot;)
+      
+      check_tag_limits(tag_counts)
+      
       features
+    end
+
+    def check_tag_limits(tag_counts)
+      error_messages = []
+      options[:tag_expression].limits.each do |tag_name, tag_limit|
+        tag_locations = (tag_counts[tag_name] || [])
+        tag_count = tag_locations.length
+        if tag_count &gt; tag_limit
+          error = &quot;#{tag_name} occurred #{tag_count} times, but the limit was set to #{tag_limit}\n  &quot; +
+            tag_locations.join(&quot;\n  &quot;)
+          error_messages &lt;&lt; error
+        end
+      end
+      raise TagExcess.new(error_messages) if error_messages.any?
     end
 
     def load_code_files(step_def_files)
@@ -112,23 +136,14 @@ module Cucumber
       return @language_map[ext] if @language_map[ext]
       programming_language_class = constantize(&quot;Cucumber::#{ext.capitalize}Support::#{ext.capitalize}Language&quot;)
       programming_language = programming_language_class.new(self)
-      programming_language.alias_adverbs(@adverbs || [])
       @programming_languages &lt;&lt; programming_language
       @language_map[ext] = programming_language
       programming_language
     end
 
-    # Loads a natural language. This has the effect of aliasing 
-    # Step Definition keywords for all of the registered programming 
-    # languages (if they support aliasing). See #load_programming_language
-    #
-    def load_natural_language(lang)
-      Parser::NaturalLanguage.get(self, lang)
-    end
-
     # Returns the options passed on the command line.
     def options
-      @options ||= {}
+      @options ||= Cli::Options.new
     end
 
     def step_visited(step) #:nodoc:
@@ -148,12 +163,40 @@ module Cucumber
     # This is an alternative to using Kernel#puts - it will display
     # nicer, and in all outputs (in case you use several formatters)
     #
-    # Beware that the output will be printed *before* the corresponding
-    # step. This is because the step itself will not be printed until
-    # after it has run, so it can be coloured according to its status.
-    #
     def announce(msg)
-      @visitor.announce(msg)
+      msg.respond_to?(:join) ? @visitor.announce(msg.join(&quot;\n&quot;)) : @visitor.announce(msg.to_s)
+    end
+
+    # Suspends execution and prompts +question+ to the console (STDOUT).
+    # An operator (manual tester) can then enter a line of text and hit
+    # &lt;ENTER&gt;. The entered text is returned, and both +question+ and
+    # the result is added to the output using #announce.
+    #
+    # If you want a beep to happen (to grab the manual tester's attention),
+    # just prepend ASCII character 7 to the question:
+    #
+    #   ask(&quot;#{7.chr}How many cukes are in the external system?&quot;)
+    #
+    # If that doesn't issue a beep, you can shell out to something else
+    # that makes a sound before invoking #ask.
+    #
+    def ask(question, timeout_seconds)
+      STDOUT.puts(question)
+      STDOUT.flush
+      announce(question)
+
+      if(Cucumber::JRUBY)
+        answer = jruby_gets(timeout_seconds)
+      else
+        answer = mri_gets(timeout_seconds)
+      end
+      
+      if(answer)
+        announce(answer)
+        answer
+      else
+        raise(&quot;Waited for input for #{timeout_seconds} seconds, then timed out.&quot;)
+      end
     end
 
     # Embed +file+ of MIME type +mime_type+ into the output. This may or may
@@ -187,23 +230,30 @@ module Cucumber
     #     Given I have 8 cukes in my belly
     #     Then I should not be thirsty
     #   })
-    def invoke_steps(steps_text, natural_language)
-      ored_keywords = natural_language.step_keywords.map{|kw| Regexp.escape(kw)}.join(&quot;|&quot;)
-      # TODO Gherkin:
-      # This a bit hacky and fragile. When we move to Gherkin we should replace this entire method body
-      # with a call to the parser - parsing the body of a scenario. We may need to put the parser/policy in the
-      # appropriate state (the same state it's in after parsing a Scenario: line).
-      steps_text.strip.split(/(?=^\s*(?:#{ored_keywords}))/).map { |step| step.strip }.each do |step|
-        output = step.match(/^\s*(#{ored_keywords})([^\n]+)(\n.*)?$/m)
+    def invoke_steps(steps_text, i18n, file_colon_line)
+      file, line = file_colon_line.split(':')
+      parser = Gherkin::Parser::Parser.new(StepInvoker.new(self), true, 'steps')
+      parser.parse(steps_text, file, line.to_i)
+    end
 
-        action, step_name, table_or_string = output[1], output[2], output[3]
-        if table_or_string.to_s.strip =~ /^\|/
-          table_or_string = table(table_or_string) 
-        elsif table_or_string.to_s.strip =~ /^&quot;&quot;&quot;/
-          table_or_string = py_string(table_or_string.gsub(/^\n/, &quot;&quot;))
+    class StepInvoker
+      def initialize(step_mother)
+        @step_mother = step_mother
+      end
+
+      def step(statement, multiline_arg, result)
+        cucumber_multiline_arg = case(multiline_arg)
+        when Gherkin::Formatter::Model::PyString
+          multiline_arg.value
+        when Array
+          Ast::Table.new(multiline_arg.map{|row| row.cells})
+        else
+          nil
         end
-        args = [step_name, table_or_string].compact
-        invoke(*args)
+        @step_mother.invoke(*[statement.name, cucumber_multiline_arg].compact) 
+      end
+
+      def eof
       end
     end
 
@@ -228,8 +278,7 @@ module Cucumber
       if Array === text_or_table
         Ast::Table.new(text_or_table)
       else
-        @table_parser ||= Parser::TableParser.new
-        @table_parser.parse_or_fail(text_or_table.strip, file, line_offset)
+        Ast::Table.parse(text_or_table, file, line_offset)
       end
     end
 
@@ -243,13 +292,12 @@ module Cucumber
     # Is retured as: &quot; hello\nworld&quot;
     #
     def py_string(string_with_triple_quotes, file=nil, line_offset=0)
-      @py_string_parser ||= Parser::PyStringParser.new
-      @py_string_parser.parse_or_fail(string_with_triple_quotes, file, line_offset).to_s
+      Ast::PyString.parse(string_with_triple_quotes)
     end
 
     def step_match(step_name, name_to_report=nil) #:nodoc:
       matches = @programming_languages.map do |programming_language| 
-        programming_language.step_matches(step_name, name_to_report)
+        programming_language.step_matches(step_name, name_to_report).to_a
       end.flatten
       raise Undefined.new(step_name) if matches.empty?
       matches = best_matches(step_name, matches) if matches.size &gt; 1 &amp;&amp; options[:guess]
@@ -266,8 +314,8 @@ module Cucumber
         longest_regexp_length = no_groups.map {|step_match| step_match.text_length }.max
         no_groups.select {|step_match| step_match.text_length == longest_regexp_length }
       elsif top_groups.any?
-        shortest_capture_length = top_groups.map {|step_match| step_match.args.inject(0) {|sum, c| sum + c.length } }.min
-        top_groups.select {|step_match| step_match.args.inject(0) {|sum, c| sum + c.length } == shortest_capture_length }
+        shortest_capture_length = top_groups.map {|step_match| step_match.args.inject(0) {|sum, c| sum + c.to_s.length } }.min
+        top_groups.select {|step_match| step_match.args.inject(0) {|sum, c| sum + c.to_s.length } == shortest_capture_length }
       else
         top_groups
       end
@@ -290,6 +338,28 @@ module Cucumber
       @programming_languages.empty?
     end
 
+    def with_hooks(scenario, skip_hooks=false)
+      around(scenario, skip_hooks) do
+        before_and_after(scenario, skip_hooks) do
+          yield scenario
+        end
+      end
+    end
+
+    def around(scenario, skip_hooks=false, &amp;block) #:nodoc:
+      unless skip_hooks
+        @programming_languages.reverse.inject(block) do |blk, programming_language|
+          proc do
+            programming_language.around(scenario) do
+              blk.call(scenario)
+            end
+          end
+        end.call
+      else
+        yield
+      end
+    end
+
     def before_and_after(scenario, skip_hooks=false) #:nodoc:
       before(scenario) unless skip_hooks
       yield scenario
@@ -297,15 +367,6 @@ module Cucumber
       scenario_visited(scenario)
     end
 
-    def register_adverbs(adverbs) #:nodoc:
-      @adverbs ||= []
-      @adverbs += adverbs
-      @adverbs.uniq!
-      @programming_languages.each do |programming_language|
-        programming_language.alias_adverbs(@adverbs)
-      end
-    end
-    
     def before(scenario) #:nodoc:
       return if options[:dry_run] || @current_scenario
       @current_scenario = scenario
@@ -362,6 +423,26 @@ module Cucumber
 
     def log
       @log ||= Logger.new(STDOUT)
+    end
+
+    def mri_gets(timeout_seconds)
+      begin
+        Timeout.timeout(timeout_seconds) do
+          STDIN.gets
+        end
+      rescue Timeout::Error =&gt; e
+        nil
+      end
+    end
+
+    def jruby_gets(timeout_seconds)
+      answer = nil
+      t = java.lang.Thread.new do
+        answer = STDIN.gets
+      end
+      t.start
+      t.join(timeout_seconds * 1000)
+      answer
     end
   end
 end

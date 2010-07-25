@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -85,8 +85,8 @@ module Cucumber
         @io.print format_string(sprintf(&quot;%.7f&quot;, stepdef_key.mean_duration), :skipped) + &quot; &quot; unless @options[:dry_run]
         @io.print format_string(stepdef_key.regexp_source, stepdef_key.status)
         if @options[:source]
-          indent = max_length - stepdef_key.regexp_source.jlength
-          line_comment = &quot;    # #{stepdef_key.file_colon_line}&quot;.indent(indent)
+          indent = max_length - stepdef_key.regexp_source.unpack('U*').length
+          line_comment = &quot;   # #{stepdef_key.file_colon_line}&quot;.indent(indent)
           @io.print(format_string(line_comment, :comment))
         end
         @io.puts
@@ -98,7 +98,7 @@ module Cucumber
           @io.print format_string(sprintf(&quot;%.7f&quot;, step[:duration]), :skipped) + &quot; &quot; unless @options[:dry_run]
           @io.print format_step(step[:keyword], step[:step_match], step[:status], nil)
           if @options[:source]
-            indent = max_length - (step[:keyword].jlength + step[:step_match].format_args.jlength)
+            indent = max_length - (step[:keyword].unpack('U*').length + step[:step_match].format_args.unpack('U*').length)
             line_comment = &quot; # #{step[:file_colon_line]}&quot;.indent(indent)
             @io.print(format_string(line_comment, :comment))
           end
@@ -111,12 +111,12 @@ module Cucumber
       end
 
       def max_stepdef_length
-        @stepdef_to_match.keys.flatten.map{|key| key.regexp_source.jlength}.max
+        @stepdef_to_match.keys.flatten.map{|key| key.regexp_source.unpack('U*').length}.max
       end
 
       def max_step_length
-        @stepdef_to_match.values.flatten.map do |step|
-          step[:keyword].jlength + step[:step_match].format_args.jlength
+        @stepdef_to_match.values.to_a.flatten.map do |step|
+          step[:keyword].unpack('U*').length + step[:step_match].format_args.unpack('U*').length
         end.max
       end
 

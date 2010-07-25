@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -34,24 +34,45 @@
     # Note how the indentation from the source is stripped away.
     #
     class PyString #:nodoc:
+      class Builder
+        attr_reader :string
+
+        def initialize
+          @string = ''
+        end
+
+        def py_string(string, line_number)
+          @string = string
+        end
+
+        def eof
+        end
+      end
+
       attr_accessor :file
 
       def self.default_arg_name
         &quot;string&quot;
       end
 
-      def initialize(start_line, end_line, string, quotes_indent)
-        @start_line, @end_line = start_line, end_line
-        @string, @quotes_indent = string.gsub(/\\&quot;/, '&quot;'), quotes_indent
+      def self.parse(text)
+        builder = Builder.new
+        lexer = Gherkin::I18nLexer.new(builder)
+        lexer.scan(text)
+        new(builder.string)
       end
 
-      def to_s
-        @string.indent(-@quotes_indent)
+      def initialize(string)
+        @string = string
+      end
+
+      def to_step_definition_arg
+        @string
       end
 
       def accept(visitor)
         return if Cucumber.wants_to_quit
-        visitor.visit_py_string(to_s)
+        visitor.visit_py_string(@string)
       end
       
       def arguments_replaced(arguments) #:nodoc:
@@ -60,7 +81,7 @@
           value ||= ''
           string = string.gsub(name, value)
         end
-        PyString.new(@start_line, @end_line, string, @quotes_indent)
+        PyString.new(string)
       end
 
       def has_text?(text)
@@ -69,7 +90,7 @@
 
       # For testing only
       def to_sexp #:nodoc:
-        [:py_string, to_s]
+        [:py_string, to_step_definition_arg]
       end
     end
   end

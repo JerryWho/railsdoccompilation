@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -36,18 +36,24 @@ module Cucumber
         def step_collection(step_invocations)
           StepCollection.new(step_invocations)
         end
+        
+        def init
+        end
       end
       
-      def initialize(background, comment, tags, line, keyword, name, steps)
+      def initialize(background, comment, tags, line, keyword, name, raw_steps)
         @background = background || EmptyBackground.new
-        @comment, @tags, @line, @keyword, @name = comment, tags, line, keyword, name
-        attach_steps(steps)
-
-        step_invocations = steps.map{|step| step.step_invocation}
-        @steps = @background.step_collection(step_invocations)
-        @background.feature_elements &lt;&lt; self
-        
+        @comment, @tags, @line, @keyword, @name, @raw_steps = comment, tags, line, keyword, name, raw_steps
         @exception = @executed = nil
+      end
+
+      def init
+        return if @steps
+        @background.init
+        @background.feature_elements &lt;&lt; self
+        attach_steps(@raw_steps)
+        step_invocations = @raw_steps.map{|step| step.step_invocation}
+        @steps = @background.step_collection(step_invocations)
       end
 
       def accept(visitor)
@@ -59,7 +65,7 @@ module Cucumber
           visitor.visit_scenario_name(@keyword, @name, file_colon_line(@line), source_indent(first_line_length))
 
           skip_invoke! if @background.failed?
-          visitor.step_mother.before_and_after(self, skip_hooks?) do
+          visitor.step_mother.with_hooks(self, skip_hooks?) do
             skip_invoke! if failed?
             visitor.visit_steps(@steps)
           end

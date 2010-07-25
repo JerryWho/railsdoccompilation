@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,15 +15,40 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 require 'yaml'
 
 module Cucumber
-module Cli
-  describe ProfileLoader do
-    it &quot;should have all of its specs migrated from configuration_spec&quot;
+  module Cli
+    describe ProfileLoader do
+      def given_cucumber_yml_defined_as(hash_or_string)
+        Dir.stub!(:glob).with('{,.config/,config/}cucumber{.yml,.yaml}').and_return(['cucumber.yml'])
+        File.stub!(:exist?).and_return(true)
+        cucumber_yml = hash_or_string.is_a?(Hash) ? hash_or_string.to_yaml : hash_or_string
+        IO.stub!(:read).with('cucumber.yml').and_return(cucumber_yml)
+      end
+
+      def loader
+        ProfileLoader.new
+      end
+
+      it &quot;treats backslashes as literals in rerun.txt when on Windows (JRuby or MRI)&quot; do
+        given_cucumber_yml_defined_as({'default' =&gt; '--format &quot;pretty&quot; features\sync_imap_mailbox.feature:16:22'})
+        if(Cucumber::WINDOWS)
+          loader.args_from('default').should == ['--format','pretty','features\sync_imap_mailbox.feature:16:22']
+        else
+          loader.args_from('default').should == ['--format','pretty','featuressync_imap_mailbox.feature:16:22']
+        end
+
+      end
+
+      it &quot;treats forward slashes as literals&quot; do
+        given_cucumber_yml_defined_as({'default' =&gt; '--format &quot;ugly&quot; features/sync_imap_mailbox.feature:16:22'})
+        loader.args_from('default').should == ['--format','ugly','features/sync_imap_mailbox.feature:16:22']
+      end
+
+    end
   end
-end
 end
 </pre>
     </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 09 15:35:22 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,10 +17,13 @@
     <h2>Source Code</h2>
     <pre>require 'cucumber/step_match'
 require 'cucumber/ast/table'
+require 'gherkin/rubify'
 
 module Cucumber
   module Ast
     class StepInvocation #:nodoc:
+      include Gherkin::Rubify
+
       BACKTRACE_FILTER_PATTERNS = [
         /vendor\/rails|lib\/cucumber|bin\/cucumber:|lib\/rspec|gems\//
       ]
@@ -159,11 +162,11 @@ module Cucumber
       end
 
       def actual_keyword
-        repeat_keywords = [language.but_keywords(false), language.and_keywords(false)].flatten
+        repeat_keywords = rubify([language.keywords('but'), language.keywords('and')]).flatten.uniq.reject{|kw| kw == '* '}
         if repeat_keywords.index(@step.keyword) &amp;&amp; previous
           previous.actual_keyword
         else
-          keyword
+          keyword == '* ' ? language.code_keywords.first : keyword
         end
       end
 

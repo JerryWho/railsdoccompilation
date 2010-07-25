@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,28 +19,47 @@
   module Ast
     # Represents the root node of a parsed feature.
     class Feature #:nodoc:
-      attr_accessor :file, :language
-      attr_writer :features
+      attr_accessor :language
+      attr_writer :features, :background
+      attr_reader :file
       attr_reader :name
 
-      def initialize(background, comment, tags, name, feature_elements)
-        @background, @comment, @tags, @name, @feature_elements = background, comment, tags, name.strip, feature_elements
+      def initialize(background, comment, tags, keyword, name, feature_elements)
+        @background, @comment, @tags, @keyword, @name, @feature_elements = background, comment, tags, keyword, name.strip, feature_elements
+      end
 
-        background.feature = self if background
+      def init
+        @background.feature = self if @background
+        @background.init if @background
         @feature_elements.each do |feature_element|
+          feature_element.init
           feature_element.feature = self
         end
       end
 
+      def add_feature_element(feature_element)
+        @feature_elements &lt;&lt; feature_element
+      end
+
       def accept(visitor)
         return if Cucumber.wants_to_quit
+        init
         visitor.visit_comment(@comment) unless @comment.empty?
         visitor.visit_tags(@tags)
-        visitor.visit_feature_name(@name)
+        visitor.visit_feature_name(@keyword, indented_name)
         visitor.visit_background(@background) if @background
         @feature_elements.each do |feature_element|
           visitor.visit_feature_element(feature_element)
         end
+      end
+
+      def indented_name
+        indent = &quot;&quot;
+        @name.split(&quot;\n&quot;).map do |l|
+          s = &quot;#{indent}#{l}&quot;
+          indent = &quot;  &quot;
+          s
+        end.join(&quot;\n&quot;)
       end
 
       def source_tag_names
@@ -52,6 +71,7 @@
       end
 
       def next_feature_element(feature_element, &amp;proc)
+        init
         index = @feature_elements.index(feature_element)
         next_one = @feature_elements[index+1]
         proc.call(next_one) if next_one
@@ -61,26 +81,18 @@
         &quot;#{file_colon_line(line)}:in `#{step_name}'&quot;
       end
 
+      def file=(file)
+        file = file.gsub(/\//, '\\') if Cucumber::WINDOWS &amp;&amp; file &amp;&amp; !ENV['CUCUMBER_FORWARD_SLASH_PATHS']
+        @file = file
+      end
+      
       def file_colon_line(line)
         &quot;#{@file}:#{line}&quot;
       end
 
-      def tag_count(tag)
-        if @tags.respond_to?(:count)
-          @tags.count(tag) # 1.9
-        else
-          @tags.select{|t| t == tag}.length  # 1.8
-        end
-      end
-
-      def feature_and_children_tag_count(tag)
-        children_tag_count = @feature_elements.inject(0){|count, feature_element| count += feature_element.tag_count(tag)}
-        children_tag_count + tag_count(tag)
-      end
-
       def short_name
         first_line = name.split(/\n/)[0]
-        if first_line =~ /#{language.keywords('feature', true)}:(.*)/
+        if first_line =~ /#{language.keywords('feature')}:(.*)/
           $1.strip
         else
           first_line
@@ -88,6 +100,7 @@
       end
 
       def to_sexp
+        init
         sexp = [:feature, @file, @name]
         comment = @comment.to_sexp
         sexp += [comment] if comment

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 28 12:18:34 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,10 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>module Cucumber
+    <pre>require 'gherkin/rubify'
+require 'gherkin/formatter/escaping'
+
+module Cucumber
   module Ast
     # Step Definitions that match a plain text Step with a multiline argument table
     # will receive it as an instance of Table. A Table object holds the data of a 
@@ -46,7 +49,23 @@
         end
       end
       
+      class Builder
+        attr_reader :rows
+
+        def initialize
+          @rows = []
+        end
+
+        def row(row, line_number)
+          @rows &lt;&lt; row
+        end
+
+        def eof
+        end
+      end
+
       include Enumerable
+      include Gherkin::Rubify
       
       NULL_CONVERSIONS = Hash.new(lambda{ |cell_value| cell_value }).freeze
 
@@ -54,6 +73,13 @@
 
       def self.default_arg_name #:nodoc:
         &quot;table&quot;
+      end
+
+      def self.parse(text, uri, offset)
+        builder = Builder.new
+        lexer = Gherkin::I18nLexer.new(builder)
+        lexer.scan(text)
+        new(builder.rows)
       end
 
       # Creates a new instance. +raw+ should be an Array of Array of String
@@ -65,11 +91,15 @@
         @cells_class = Cells
         @cell_class = Cell
 
-        raw = ensure_array_of_array(raw)
+        raw = ensure_array_of_array(rubify(raw))
         # Verify that it's square
         transposed = raw.transpose
         create_cell_matrix(raw)
         @conversion_procs = conversion_procs
+      end
+
+      def to_step_definition_arg
+        dup
       end
 
       # Creates a copy of this table, inheriting any column mappings.
@@ -427,6 +457,7 @@
       end
 
       def to_s(options = {}) #:nodoc:
+        require 'cucumber/formatter/pretty'
         options = {:color =&gt; true, :indent =&gt; 2, :prefixes =&gt; TO_S_PREFIXES}.merge(options)
         io = StringIO.new
 
@@ -445,8 +476,8 @@
       private
 
       TO_S_PREFIXES = Hash.new('    ')
-      TO_S_PREFIXES[:comment]   = ['(+) ']
-      TO_S_PREFIXES[:undefined] = ['(-) ']
+      TO_S_PREFIXES[:comment]   = '(+) '
+      TO_S_PREFIXES[:undefined] = '(-) '
 
       protected
 
@@ -572,6 +603,8 @@
       # Represents a row of cells or columns of cells
       class Cells #:nodoc:
         include Enumerable
+        include Gherkin::Formatter::Escaping
+
         attr_reader :exception
 
         def initialize(table, cells)
@@ -618,7 +651,7 @@
         end
 
         def width
-          map{|cell| cell.value ? cell.value.to_s.jlength : 0}.max
+          map{|cell| cell.value ? escape_cell(cell.value.to_s).unpack('U*').length : 0}.max
         end
 
         def each(&amp;proc)

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -24,6 +24,7 @@
     # 
     def initialize(step_definition, name_to_match, name_to_report, step_arguments)
       raise &quot;name_to_match can't be nil&quot; if name_to_match.nil?
+      raise &quot;step_arguments can't be nil (but it can be an empty array)&quot; if step_arguments.nil?
       @step_definition, @name_to_match, @name_to_report, @step_arguments = step_definition, name_to_match, name_to_report, step_arguments
     end
 
@@ -36,8 +37,9 @@
     end
 
     def invoke(multiline_arg)
+      multiline_arg = Ast::PyString.new(multiline_arg) if String === multiline_arg
       all_args = args
-      all_args &lt;&lt; multiline_arg.dup if multiline_arg
+      all_args &lt;&lt; multiline_arg.to_step_definition_arg if multiline_arg
       @step_definition.invoke(all_args)
     end
 
@@ -69,14 +71,15 @@
     end
 
     def text_length
-      @step_definition.regexp_source.jlength
+      @step_definition.regexp_source.unpack('U*').length
     end
 
     def replace_arguments(string, step_arguments, format, &amp;proc)
       s = string.dup
-      offset = 0
+      offset = past_offset = 0
       step_arguments.each do |step_argument|
-        next if step_argument.byte_offset.nil?
+        next if step_argument.byte_offset.nil? || step_argument.byte_offset &lt; past_offset
+        
         replacement = if block_given?
           proc.call(step_argument.val)
         elsif Proc === format
@@ -86,7 +89,8 @@
         end
 
         s[step_argument.byte_offset + offset, step_argument.val.length] = replacement
-        offset += replacement.jlength - step_argument.val.jlength
+        offset += replacement.unpack('U*').length - step_argument.val.unpack('U*').length
+        past_offset = step_argument.byte_offset + step_argument.val.length
       end
       s
     end

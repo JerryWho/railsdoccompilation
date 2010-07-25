@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -41,7 +41,7 @@
 
       # See StepMother#invoke_steps
       def steps(steps_text)
-        @__cucumber_step_mother.invoke_steps(steps_text, @__natural_language)
+        @__cucumber_step_mother.invoke_steps(steps_text, @__natural_language, caller[0])
       end
 
       # See StepMother#table
@@ -51,7 +51,7 @@
 
       # See StepMother#py_string
       def py_string(string_with_triple_quotes, file=nil, line_offset=0)
-        @__cucumber_step_mother.py_string(text_or_table, file, line_offset)
+        @__cucumber_step_mother.py_string(string_with_triple_quotes, file, line_offset)
       end
 
       # See StepMother#announce
@@ -59,9 +59,23 @@
         @__cucumber_step_mother.announce(announcement)
       end
 
+      # See StepMother#ask
+      def ask(question, timeout_seconds=60)
+        @__cucumber_step_mother.ask(question, timeout_seconds)
+      end
+
       # See StepMother#embed
       def embed(file, mime_type)
         @__cucumber_step_mother.embed(file, mime_type)
+      end
+
+      # Prints out the world class, followed by all included modules.
+      def announce_world
+        announce &quot;WORLD:\n  #{self.class}&quot;
+        world = self
+        (class &lt;&lt; self; self; end).instance_eval do
+          world.announce &quot;  #{included_modules.join(&quot;\n  &quot;)}&quot;
+        end
       end
 
       # Mark the matched step as pending.

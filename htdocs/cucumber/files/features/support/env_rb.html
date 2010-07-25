@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,30 +17,30 @@
     <h2>Source Code</h2>
     <pre>require 'rubygems'
 require 'tempfile'
-require 'spec/expectations'
+begin
+  require 'rspec/expectations'
+rescue LoadError
+  require 'spec/expectations'
+end
 require 'fileutils'
 require 'forwardable'
-begin
-  require 'spork'
-rescue Gem::LoadError =&gt; ex
-  gem 'spork', '&gt;= 0.7.3' # Ensure correct spork version number to avoid false-negatives.
-end
+require 'cucumber/formatter/unicode'
 
 class CucumberWorld
   extend Forwardable
-  def_delegators CucumberWorld, :examples_dir, :self_test_dir, :working_dir, :cucumber_lib_dir
+  def_delegators CucumberWorld, :fixtures_dir, :self_test_dir, :working_dir, :cucumber_lib_dir
 
-  def self.examples_dir(subdir=nil)
-    @examples_dir ||= File.expand_path(File.join(File.dirname(__FILE__), '../../examples'))
-    subdir ? File.join(@examples_dir, subdir) : @examples_dir
+  def self.fixtures_dir(subdir=nil)
+    @fixtures_dir ||= File.expand_path(File.join(File.dirname(__FILE__), '../../fixtures'))
+    subdir ? File.join(@fixtures_dir, subdir) : @fixtures_dir
   end
 
   def self.self_test_dir
-    @self_test_dir ||= examples_dir('self_test')
+    @self_test_dir ||= fixtures_dir('self_test')
   end
 
   def self.working_dir
-    @working_dir ||= examples_dir('self_test/tmp')
+    @working_dir ||= fixtures_dir('self_test/tmp')
   end
 
   def cucumber_lib_dir
@@ -59,12 +59,16 @@ class CucumberWorld
     strip_1_9_paths(strip_duration(@last_stdout))
   end
 
+  def combined_output
+    last_stdout + &quot;\n&quot; + last_stderr
+  end
+
   def strip_duration(s)
     s.gsub(/^\d+m\d+\.\d+s\n/m, &quot;&quot;)
   end
 
   def strip_1_9_paths(s)
-    s.gsub(/#{Dir.pwd}\/examples\/self_test\/tmp/m, &quot;.&quot;).gsub(/#{Dir.pwd}\/examples\/self_test/m, &quot;.&quot;)
+    s.gsub(/#{Dir.pwd}\/fixtures\/self_test\/tmp/m, &quot;.&quot;).gsub(/#{Dir.pwd}\/fixtures\/self_test/m, &quot;.&quot;)
   end
 
   def replace_duration(s, replacement)
@@ -116,6 +120,8 @@ class CucumberWorld
   end
 
   def run_spork_in_background(port = nil)
+    require 'spork'
+
     pid = fork
     in_current_dir do
       if pid
@@ -153,6 +159,7 @@ Before do
 end
 
 After do
+  FileUtils.rm_rf CucumberWorld.working_dir unless ENV['KEEP_FILES']
   terminate_background_jobs
   restore_original_env_vars
 end

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 09 15:35:22 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,9 +15,10 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require 'cucumber/formatter/console'
+    <pre>require 'fileutils'
+require 'cucumber/formatter/console'
 require 'cucumber/formatter/io'
-require 'fileutils'
+require 'gherkin/formatter/escaping'
 
 module Cucumber
   module Formatter
@@ -32,6 +33,7 @@ module Cucumber
       include FileUtils
       include Console
       include Io
+      include Gherkin::Formatter::Escaping
       attr_writer :indent
       attr_reader :step_mother
 
@@ -77,14 +79,13 @@ module Cucumber
         @indent = 1
       end
 
-      def feature_name(name)
-        @io.puts(name)
+      def feature_name(keyword, name)
+        @io.puts(&quot;#{keyword}: #{name}&quot;)
         @io.puts
         @io.flush
       end
 
       def before_feature_element(feature_element)
-        record_tag_occurrences(feature_element, @options)
         @indent = 2
         @scenario_indent = 2
       end
@@ -120,7 +121,7 @@ module Cucumber
         puts unless @visiting_first_example_name
         @visiting_first_example_name = false
         names = name.strip.empty? ? [name.strip] : name.split(&quot;\n&quot;)
-        @io.puts(&quot;    #{keyword} #{names[0]}&quot;)
+        @io.puts(&quot;    #{keyword}: #{names[0]}&quot;)
         names[1..-1].each {|s| @io.puts &quot;      #{s}&quot; } unless names.empty?
         @io.flush
         @indent = 6
@@ -137,7 +138,7 @@ module Cucumber
       end
       
       def scenario_name(keyword, name, file_colon_line, source_indent)
-        print_feature_element_name keyword, name, file_colon_line, source_indent
+        print_feature_element_name(keyword, name, file_colon_line, source_indent)
       end
 
       def before_step(step)
@@ -216,8 +217,8 @@ module Cucumber
         return if !@table || @hide_this_step
         status ||= @status || :passed
         width = @table.col_width(@col_index)
-        cell_text = value.to_s || ''
-        padded = cell_text + (' ' * (width - cell_text.jlength))
+        cell_text = escape_cell(value.to_s || '')
+        padded = cell_text + (' ' * (width - cell_text.unpack('U*').length))
         prefix = cell_prefix(status)
         @io.print(' ' + format_string(&quot;#{prefix}#{padded}&quot;, status) + ::Term::ANSIColor.reset(&quot; |&quot;))
         @io.flush
@@ -228,7 +229,7 @@ module Cucumber
       def print_feature_element_name(keyword, name, file_colon_line, source_indent)
         @io.puts if @scenario_indent == 6
         names = name.empty? ? [name] : name.split(&quot;\n&quot;)
-        line = &quot;#{keyword} #{names[0]}&quot;.indent(@scenario_indent)
+        line = &quot;#{keyword}: #{names[0]}&quot;.indent(@scenario_indent)
         @io.print(line)
         if @options[:source]
           line_comment = &quot; # #{file_colon_line}&quot;.indent(source_indent)
@@ -244,10 +245,9 @@ module Cucumber
       end
 
       def print_summary(features)
-        print_stats(features)
+        print_stats(features, @options.custom_profiles)
         print_snippets(@options)
         print_passing_wip(@options)
-        print_tag_limit_warnings(@options)
       end
     end
   end

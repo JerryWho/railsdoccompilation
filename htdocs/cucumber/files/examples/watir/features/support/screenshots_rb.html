@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,45 +18,49 @@
     <pre># This is an example of how you can set up screenshots for your
 # browser testing. Just run cucumber with --format html --out report.html
 #
-# This examples currently only works on OS X, but adding support for other
-# platform should be easy - as long as there is a command line tool to take
-# a picture of the desktop.
+# The code below will work on OS X or Windows (with IE Watir only).
+# Adding support for other platforms should be easy - as long as there is a 
+# ruby library or command line tool to take pictures.
+#
 module Screenshots
-  def add_screenshot
-    id = &quot;screenshot-#{Time.new.to_i}&quot;
-    take_screenshot(id)
-    embed(&quot;#{id}.png&quot;, &quot;image/png&quot;)
-  end
-
   if Cucumber::OS_X
-    def take_screenshot(id)
+    def embed_screenshot(id)
       `screencapture -t png #{id}.png`
+      embed(&quot;#{id}.png&quot;, &quot;image/png&quot;)
+    end
+  elsif Cucumber::WINDOWS
+    # http://wtr.rubyforge.org/rdoc/classes/Watir/ScreenCapture.html
+    require 'watir/screen_capture'
+    include Watir::ScreenCapture
+    def embed_screenshot(id)
+      screen_capture(&quot;#{id}.jpg&quot;, true)
+      embed(&quot;#{id}.jpg&quot;, &quot;image/jpeg&quot;)
     end
   else
     # Other platforms...
-    def take_screenshot(id)
+    def embed_screenshot(id)
       STDERR.puts &quot;Sorry - no screenshots on your platform yet.&quot;
     end
   end
 end
+World(Screenshots)
 
 After do
-  add_screenshot
+  embed_screenshot(&quot;screenshot-#{Time.new.to_i}&quot;)
 end
 
-# Other variants
+# Other variants:
 #
 # Only take screenshot on failures
 #
 #   After do |scenario|
-#     add_screenshot if scenario.failed?
+#     embed_screenshot(&quot;screenshot-#{Time.new.to_i}&quot;) if scenario.failed?
 #   end
 #
 # Only take screenshot for scenarios or features tagged @screenshot
 #
 #   After(@screenshot) do
-#     add_screenshot
+#     embed_screenshot(&quot;screenshot-#{Time.new.to_i}&quot;)
 #   end
-
-World(Screenshots)</pre>
+</pre>
     </div>

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 require 'cucumber/ast'
 require 'cucumber/step_mother'
@@ -25,12 +25,11 @@ module Cucumber
   module RbSupport
     describe RbStepDefinition do
       before do      
-        @step_mother = StepMother.new
-        @step_mother.load_natural_language('en')
+        @step_mother = Cucumber::StepMother.new
         @rb = @step_mother.load_programming_language('rb')
         @dsl = Object.new 
-        @dsl.extend RbSupport::RbDsl
-        @step_mother.before(mock('scenario', :null_object =&gt; true))
+        @dsl.extend Cucumber::RbSupport::RbDsl
+        @step_mother.before(mock('scenario').as_null_object)
 
         $inside = nil
       end
@@ -49,7 +48,7 @@ module Cucumber
 
       it &quot;should allow calling of other steps with inline arg&quot; do
         @dsl.Given /Outside/ do
-          Given &quot;Inside&quot;, Ast::Table.new([['inside']])
+          Given &quot;Inside&quot;, Cucumber::Ast::Table.new([['inside']])
         end
         @dsl.Given /Inside/ do |table|
           $inside = table.raw[0][0]
@@ -66,7 +65,7 @@ module Cucumber
 
         lambda do
           @step_mother.step_match('Outside').invoke(nil)
-        end.should raise_error(Undefined, 'Undefined step: &quot;Inside&quot;')
+        end.should raise_error(Cucumber::Undefined, 'Undefined step: &quot;Inside&quot;')
       end
 
       it &quot;should allow forced pending&quot; do
@@ -76,7 +75,7 @@ module Cucumber
 
         lambda do
           @step_mother.step_match(&quot;Outside&quot;).invoke(nil)
-        end.should raise_error(Pending, &quot;Do me!&quot;)
+        end.should raise_error(Cucumber::Pending, &quot;Do me!&quot;)
       end
 
       it &quot;should raise ArityMismatchError when the number of capture groups differs from the number of step arguments&quot; do
@@ -85,7 +84,7 @@ module Cucumber
 
         lambda do
           @step_mother.step_match(&quot;No group: arg&quot;).invoke(nil)
-        end.should raise_error(ArityMismatchError)
+        end.should raise_error(Cucumber::ArityMismatchError)
       end
 
       it &quot;should allow announce&quot; do
@@ -105,44 +104,6 @@ module Cucumber
         end
 
        @step_mother.step_match('capture this: this').invoke(nil)
-      end
-      
-    
-      def unindented(s)
-        s.split(&quot;\n&quot;)[1..-2].join(&quot;\n&quot;).indent(-10)
-      end
-    
-      it &quot;should recognise quotes in name and make according regexp&quot; do
-        @rb.snippet_text('Given', 'A &quot;first&quot; arg', nil).should == unindented(%{
-          Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1|
-            pending # express the regexp above with the code you wish you had
-          end
-        })
-      end
-
-      it &quot;should recognise several quoted words in name and make according regexp and args&quot; do
-        @rb.snippet_text('Given', 'A &quot;first&quot; and &quot;second&quot; arg', nil).should == unindented(%{
-          Given /^A &quot;([^\\&quot;]*)&quot; and &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, arg2|
-            pending # express the regexp above with the code you wish you had
-          end
-        })
-      end
-      
-      it &quot;should not use quote group when there are no quotes&quot; do
-        @rb.snippet_text('Given', 'A first arg', nil).should == unindented(%{
-          Given /^A first arg$/ do
-            pending # express the regexp above with the code you wish you had
-          end
-        })
-      end
-
-      it &quot;should be helpful with tables&quot; do
-        @rb.snippet_text('Given', 'A &quot;first&quot; arg', Cucumber::Ast::Table).should == unindented(%{
-          Given /^A &quot;([^\\&quot;]*)&quot; arg$/ do |arg1, table|
-            # table is a Cucumber::Ast::Table
-            pending # express the regexp above with the code you wish you had
-          end
-        })
       end
     end
   end

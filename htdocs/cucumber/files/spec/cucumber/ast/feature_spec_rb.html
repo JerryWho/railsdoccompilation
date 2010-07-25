@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 require 'cucumber/ast/feature_factory'
 
 module Cucumber
@@ -24,16 +24,20 @@ module Cucumber
       include FeatureFactory
 
       it &quot;should convert to sexp&quot; do
-        step_mother = StepMother.new
-        step_mother.load_natural_language('en')
+        step_mother = Cucumber::StepMother.new
         step_mother.load_programming_language('rb')
         dsl = Object.new 
-        dsl.extend RbSupport::RbDsl
+        dsl.extend Cucumber::RbSupport::RbDsl
 
         feature = create_feature(dsl)
+        if Cucumber::WINDOWS
+          feature_file_path = &quot;features\\pretty_printing.feature&quot;
+        else
+          feature_file_path = &quot;features/pretty_printing.feature&quot;
+        end
         feature.to_sexp.should == 
         [:feature,
-          &quot;features/pretty_printing.feature&quot;,
+          feature_file_path,
           &quot;Pretty printing&quot;, 
           [:comment, &quot;# My feature comment\n&quot;], 
           [:tag, &quot;one&quot;], 
@@ -54,8 +58,23 @@ module Cucumber
                   [:cell, &quot;4444&quot;], [:cell, &quot;55555&quot;], [:cell, &quot;666666&quot;]]]], 
             [:step_invocation, 11, &quot;Given&quot;, &quot;a happy step with an inline arg:&quot;, 
               [:py_string, &quot;\n I like\nCucumber sandwich\n&quot;]], 
-            [:step_invocation, 12, &quot;Given&quot;, &quot;a failing step&quot;]]]
+            [:step_invocation, 12, &quot;Given&quot;, &quot;a failing step&quot;]]]          
       end
+
+      it &quot;should store OS specific file paths&quot; do
+        step_mother = Cucumber::StepMother.new
+        step_mother.load_programming_language('rb')
+        dsl = Object.new 
+        dsl.extend Cucumber::RbSupport::RbDsl
+        feature = create_feature(dsl)
+
+        if Cucumber::WINDOWS
+          feature.file.should == 'features\pretty_printing.feature'
+        else
+          feature.file.should == 'features/pretty_printing.feature'
+        end                
+      end
+
     end
   end
 end

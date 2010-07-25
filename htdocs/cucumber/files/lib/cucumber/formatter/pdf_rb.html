@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,9 +18,15 @@
     <pre>require 'cucumber/formatter/console'
 require 'cucumber/formatter/io'
 require 'fileutils'
-require 'prawn'
-require &quot;prawn/layout&quot;
-require &quot;prawn/format&quot;
+
+begin
+  require 'rubygems'
+  require 'prawn/core'
+  require &quot;prawn/layout&quot;
+rescue LoadError =&gt; e
+  e.message &lt;&lt; &quot;\nYou need the prawn gem. Please do 'gem install prawn'&quot;
+  raise e
+end
 
 module Cucumber
   module Formatter
@@ -39,9 +45,9 @@ module Cucumber
         @file = ensure_file(path_or_io, &quot;pdf&quot;)
 
         if(options[:dry_run])
-          @status_colors = { :passed =&gt; BLACK, :skipped =&gt; BLACK, :undefined =&gt; BLACK, :failed =&gt; BLACK}
+          @status_colors = { :passed =&gt; BLACK, :skipped =&gt; BLACK, :undefined =&gt; BLACK, :failed =&gt; BLACK, :announced =&gt; GREY}
         else
-          @status_colors = { :passed =&gt; '055902', :skipped =&gt; GREY, :undefined =&gt; 'F27405', :failed =&gt; '730202'}
+          @status_colors = { :passed =&gt; '055902', :skipped =&gt; GREY, :undefined =&gt; 'F27405', :failed =&gt; '730202', :announced =&gt; GREY}
         end
 
         @pdf = Prawn::Document.new
@@ -53,8 +59,8 @@ module Cucumber
         @buffer = []
         load_cover_page_image
         @pdf.text &quot;\n\n\nCucumber features&quot;, :align =&gt; :center, :size =&gt; 32
-        @pdf.text &quot;Generated: #{Time.now.strftime(&quot;%Y-%m-%d %H:%M&quot;)}&quot;, :size =&gt; 10, :at =&gt; [0, 24]
-        @pdf.text &quot;Command: &lt;code&gt;cucumber #{ARGV.join(&quot; &quot;)}&lt;/code&gt;&quot;, :size =&gt; 10, :at =&gt; [0,10]
+        @pdf.draw_text &quot;Generated: #{Time.now.strftime(&quot;%Y-%m-%d %H:%M&quot;)}&quot;, :size =&gt; 10, :at =&gt; [0, 24]
+        @pdf.draw_text &quot;$ cucumber #{ARGV.join(&quot; &quot;)}&quot;, :size =&gt; 10, :at =&gt; [0,10]
         unless options[:dry_run]
           @pdf.bounding_box [450,100] , :width =&gt; 100 do  
             @pdf.text 'Legend', :size =&gt; 10
@@ -82,17 +88,23 @@ module Cucumber
         end
       end
 
+      def announce(announcement)
+        @pdf.fill_color(@status_colors[:announced])  
+        @pdf.text announcement, :size =&gt; 10
+        @pdf.fill_color BLACK
+      end
+
+
       def after_features(features)
         @pdf.render_file(@file.path)
         puts &quot;\ndone&quot;
       end
 
-      def feature_name(name)
+      def feature_name(keyword, name)
         @pdf.start_new_page
-        name[&quot;Feature:&quot;] = &quot;&quot; if name[&quot;Feature:&quot;]
         names = name.split(&quot;\n&quot;)
         @pdf.fill_color GREY
-        @pdf.text('Feature', :align =&gt; :center)
+        @pdf.text(keyword, :align =&gt; :center)
         @pdf.fill_color BLACK
         names.each_with_index do |nameline, i|
           case i
@@ -106,10 +118,6 @@ module Cucumber
         @pdf.move_down(30)
       end
 
-      def before_feature_element(feature_element)
-        record_tag_occurrences(feature_element, @options)
-      end
-      
       def after_feature_element(feature_element)
         flush
       end
@@ -151,7 +159,7 @@ module Cucumber
 
       def step_name(keyword, step_match, status, source_indent, background)
         return if @hide_this_step
-        line = &quot;&lt;b&gt;#{keyword}&lt;/b&gt; #{step_match.format_args(&quot;%s&quot;).gsub('&lt;', '&amp;lt;').gsub('&gt;', '&amp;gt;')}&quot;
+        line = &quot;#{keyword} #{step_match.format_args(&quot;%s&quot;)}&quot;
         colorize(line, status)
       end
 
@@ -167,7 +175,7 @@ module Cucumber
         return if @hide_this_step
         if(table.kind_of? Cucumber::Ast::Table)
           keep_with do
-            @doc.table(table.rows &lt;&lt; table.headers , :position =&gt; :center, :row_colors =&gt; ['ffffff', 'f0f0f0'])
+            print_table(table, ['ffffff', 'f0f0f0'])
           end
         end
       end
@@ -177,7 +185,7 @@ module Cucumber
         return if @hide_this_step
         row_colors = table.example_rows.map { |r| @status_colors[r.status] unless r.status == :skipped}
         keep_with do
-          @doc.table(table.rows, :headers =&gt; table.headers, :position =&gt; :center, :row_colors =&gt; row_colors)
+          print_table(table, row_colors)
         end
       end
 
@@ -186,9 +194,7 @@ module Cucumber
         s = %{&quot;&quot;&quot;\n#{string}\n&quot;&quot;&quot;}.indent(10)
         s = s.split(&quot;\n&quot;).map{|l| l =~ /^\s+$/ ? '' : l}
         s.each do |line|
-          line.gsub!('&lt;', '&amp;lt;')
-          line.gsub!('&gt;', '&amp;gt;')
-          keep_with { @doc.text line, :size =&gt; 8 }
+          keep_with { @doc.text(line, :size =&gt; 8) }
         end
       end
 
@@ -211,7 +217,7 @@ module Cucumber
       end
       
       private
-      
+
       def colorize(text, status)
         keep_with do
           @doc.fill_color(@status_colors[status] || BLACK)
@@ -245,6 +251,10 @@ module Cucumber
         render @pdf
         @pdf.move_down(20)
         @buffer = []
+      end
+      
+      def print_table(table, row_colors)
+        @doc.table(table.rows, :headers =&gt; table.headers, :position =&gt; :center, :row_colors =&gt; row_colors)
       end
     end
   end

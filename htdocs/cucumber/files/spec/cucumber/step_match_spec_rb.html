@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -16,7 +16,7 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre># encoding: utf-8
-require File.dirname(__FILE__) + '/../spec_helper'
+require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 require 'cucumber/rb_support/rb_step_definition'
 require 'cucumber/rb_support/rb_language'
 
@@ -46,6 +46,7 @@ module Cucumber
     end
 
     it &quot;should deal with Unicode both inside and outside arguments&quot; do
+      &quot;Jæ vø ålsker døtte løndet&quot;.should =~ /Jæ (\w+) ålsker (\w+) løndet/
       m = step_match(/Jæ (\w+) ålsker (\w+) løndet/, &quot;Jæ vø ålsker døtte løndet&quot;)
       m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;Jæ &lt;span&gt;vø&lt;/span&gt; ålsker &lt;span&gt;døtte&lt;/span&gt; løndet&quot;
     end
@@ -73,6 +74,11 @@ module Cucumber
     it &quot;should format groups even when first group is optional and not matched&quot; do
       m = step_match(/should( not)? be flashed '([^']*?)'$/, &quot;I should be flashed 'Login failed.'&quot;)
       m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;I should be flashed '&lt;span&gt;Login failed.&lt;/span&gt;'&quot;
+    end
+
+    it &quot;should format embedded groups&quot; do
+      m = step_match(/running( (\d+) times)? (\d+) meters/, &quot;running 5 times 10 meters&quot;)
+      m.format_args(&quot;&lt;span&gt;%s&lt;/span&gt;&quot;).should == &quot;running&lt;span&gt; 5 times&lt;/span&gt; &lt;span&gt;10&lt;/span&gt; meters&quot;
     end
   end
 end</pre>

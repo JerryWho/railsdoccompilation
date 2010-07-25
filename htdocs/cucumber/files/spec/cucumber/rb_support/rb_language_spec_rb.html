@@ -1,0 +1,87 @@
+  <div id="fileHeader">
+    <h1>rb_language_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/cucumber/rb_support/rb_language_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+
+require 'cucumber/step_mother'
+require 'cucumber/rb_support/rb_language'
+
+module Cucumber
+  module RbSupport
+    describe RbStepDefinition do
+      before do      
+        @step_mother = Cucumber::StepMother.new
+        @rb = @step_mother.load_programming_language('rb')
+      end
+
+      def unindented(s)
+        s.split(&quot;\n&quot;)[1..-2].join(&quot;\n&quot;).indent(-10)
+      end
+    
+      it &quot;should recognise numbers in name and make according regexp&quot; do
+        @rb.snippet_text('Given', 'Cloud 9 yeah', nil).should == unindented(%{
+          Given /^Cloud (\\d+) yeah$/ do |arg1|
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+
+      it &quot;should recognise a mix of ints, strings and why not a table too&quot; do
+        @rb.snippet_text('Given', 'I have 9 &quot;awesome&quot; cukes in 37 &quot;boxes&quot;', Cucumber::Ast::Table).should == unindented(%{
+          Given /^I have (\\d+) &quot;([^&quot;]*)&quot; cukes in (\\d+) &quot;([^&quot;]*)&quot;$/ do |arg1, arg2, arg3, arg4, table|
+            # table is a Cucumber::Ast::Table
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+
+      it &quot;should recognise quotes in name and make according regexp&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; arg', nil).should == unindented(%{
+          Given /^A &quot;([^&quot;]*)&quot; arg$/ do |arg1|
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+
+      it &quot;should recognise several quoted words in name and make according regexp and args&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; and &quot;second&quot; arg', nil).should == unindented(%{
+          Given /^A &quot;([^&quot;]*)&quot; and &quot;([^&quot;]*)&quot; arg$/ do |arg1, arg2|
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+      
+      it &quot;should not use quote group when there are no quotes&quot; do
+        @rb.snippet_text('Given', 'A first arg', nil).should == unindented(%{
+          Given /^A first arg$/ do
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+
+      it &quot;should be helpful with tables&quot; do
+        @rb.snippet_text('Given', 'A &quot;first&quot; arg', Cucumber::Ast::Table).should == unindented(%{
+          Given /^A &quot;([^&quot;]*)&quot; arg$/ do |arg1, table|
+            # table is a Cucumber::Ast::Table
+            pending # express the regexp above with the code you wish you had
+          end
+        })
+      end
+    end
+  end
+end</pre>
+    </div>

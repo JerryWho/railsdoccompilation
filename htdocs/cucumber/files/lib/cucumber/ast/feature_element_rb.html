@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -16,12 +16,16 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>require 'enumerator'
-require 'cucumber/ast/tags'
+require 'gherkin/tag_expression'
 
 module Cucumber
   module Ast
     module FeatureElement #:nodoc:
       attr_accessor :feature
+
+      def add_step(step)
+        @raw_steps &lt;&lt; step
+      end
 
       def attach_steps(steps)
         steps.each {|step| step.feature_element = self}
@@ -31,20 +35,24 @@ module Cucumber
         @feature.file_colon_line(line) if @feature
       end
 
-      def text_length
-        name_line_lengths.max
-      end
-
       def first_line_length
         name_line_lengths[0]
       end
 
+      def text_length
+        name_line_lengths.max
+      end
+
       def name_line_lengths
         if @name.strip.empty?
-          [@keyword.jlength]
+          [Ast::Step::INDENT + @keyword.unpack('U*').length + ': '.length]
         else
           @name.split(&quot;\n&quot;).enum_for(:each_with_index).map do |line, line_number|
-            line_number == 0 ? @keyword.jlength + line.jlength : line.jlength + Ast::Step::INDENT - 1 # We -1 as names which are not keyword lines are missing a space between keyword and name
+            if line_number == 0
+              Ast::Step::INDENT + @keyword.unpack('U*').length + ': '.length + line.unpack('U*').length
+            else
+              Ast::Step::INDENT + Ast::Step::INDENT + line.unpack('U*').length
+            end
           end
         end
       end
@@ -53,7 +61,7 @@ module Cucumber
         scenario_name_regexps.detect{|name| name =~ @name}
       end
 
-      def backtrace_line(name = &quot;#{@keyword} #{@name}&quot;, line = @line)
+      def backtrace_line(name = &quot;#{@keyword}: #{@name}&quot;, line = @line)
         @feature.backtrace_line(name, line) if @feature
       end
 
@@ -62,19 +70,16 @@ module Cucumber
       end
 
       def max_line_length
+        init
         @steps.max_line_length(self)
       end
 
       def accept_hook?(hook)
-        Tags.matches?(source_tag_names, hook.tag_name_lists)
+        Gherkin::TagExpression.new(hook.tag_expressions).eval(source_tag_names)
       end
 
       def source_tag_names
-        (@tags.tag_names + (@feature ? @feature.source_tag_names : [])).uniq
-      end
-
-      def tag_count(tag)
-        @feature.tag_count(tag) == 0 ? @tags.count(tag) : @feature.tag_count(tag)
+        (@tags.tag_names.to_a + (@feature ? @feature.source_tag_names.to_a : [])).uniq
       end
 
       def language

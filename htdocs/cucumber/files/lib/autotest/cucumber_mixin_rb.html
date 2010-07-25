@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,8 +17,8 @@
     <h2>Source Code</h2>
     <pre>require 'autotest'
 require 'tempfile'
-require 'yaml'
 require 'cucumber'
+require 'cucumber/cli/profile_loader'
 
 module Autotest::CucumberMixin
   def self.included(receiver)
@@ -96,8 +96,12 @@ module Autotest::CucumberMixin
       begin
         open(&quot;| #{cmd}&quot;, &quot;r&quot;) do |f|
           until f.eof? do
-            c = f.getc
-            putc c
+            c = f.getc or break
+            if RUBY_VERSION &gt;= &quot;1.9&quot; then
+              print c
+            else
+              putc c
+            end
             line &lt;&lt; c
             if c == ?\n then
               self.results &lt;&lt; if RUBY_VERSION &gt;= &quot;1.9&quot; then
@@ -121,10 +125,10 @@ module Autotest::CucumberMixin
   def make_cucumber_cmd(features_to_run, dirty_features_filename)
     return '' if features_to_run == ''
     
-    profiles = YAML.load_file(&quot;cucumber.yml&quot;).keys rescue []
+    profile_loader = Cucumber::Cli::ProfileLoader.new
     
-    profile ||= &quot;autotest-all&quot; if profiles.include?(&quot;autotest-all&quot;) and features_to_run == :all
-    profile ||= &quot;autotest&quot;     if profiles.include?(&quot;autotest&quot;)
+    profile ||= &quot;autotest-all&quot; if profile_loader.has_profile?(&quot;autotest-all&quot;) &amp;&amp; features_to_run == :all
+    profile ||= &quot;autotest&quot;     if profile_loader.has_profile?(&quot;autotest&quot;)
     profile ||= nil
     
     if profile
@@ -134,7 +138,7 @@ module Autotest::CucumberMixin
     end
     # No --color option as some IDEs (Netbeans) don't output them very well ([31m1 failed step[0m)
     args += %w{--format rerun --out} &lt;&lt; dirty_features_filename
-    args &lt;&lt; (features_to_run == :all ? &quot;features&quot; : features_to_run)
+    args &lt;&lt; (features_to_run == :all ? &quot;&quot; : features_to_run)
     
     # Unless I do this, all the steps turn up undefined during the rerun...
     unless features_to_run == :all

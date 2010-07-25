@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -39,7 +39,7 @@ module Cucumber
         end
 
         format = format_for(status, :param)
-        line = keyword + &quot; &quot; + step_match.format_args(format) + comment
+        line = keyword + step_match.format_args(format) + comment
         format_string(line, status)
       end
 
@@ -79,14 +79,15 @@ module Cucumber
         print_stats(nil)
       end
 
-      def print_stats(features)
+      def print_stats(features, profiles = [])
+        @failures = step_mother.scenarios(:failed).select { |s| s.is_a?(Cucumber::Ast::Scenario) || s.is_a?(Cucumber::Ast::OutlineTable::ExampleRow) }
+        @failures.collect! { |s| (s.is_a?(Cucumber::Ast::OutlineTable::ExampleRow)) ? s.scenario_outline : s }
 
-        @failures = step_mother.scenarios(:failed).select { |s| s.is_a?(Cucumber::Ast::Scenario) }
-
-        if !@failures.empty?
+        if !@failures.empty?          
           @io.puts format_string(&quot;Failing Scenarios:&quot;, :failed)
           @failures.each do |failure|
-            @io.puts format_string(&quot;cucumber &quot; + failure.file_colon_line, :failed) +
+            profiles_string = profiles.empty? ? '' : (profiles.map{|profile| &quot;-p #{profile}&quot; }).join(' ') + ' '
+            @io.puts format_string(&quot;cucumber #{profiles_string}&quot; + failure.file_colon_line, :failed) +
             format_string(&quot; # Scenario: &quot; + failure.name, :comment)
           end
           @io.puts
@@ -141,37 +142,6 @@ module Cucumber
         end
       end
 
-      def print_tag_limit_warnings(options)
-        if @tag_occurrences
-          first_tag = true
-          options[:tag_names].each do |tag_list|
-            tag_list.each do |tag_name, limit|
-              unless Ast::Tags.exclude_tag?(tag_name)
-                tag_frequency = @tag_occurrences[tag_name].size
-                if limit &amp;&amp; tag_frequency &gt; limit
-                  @io.puts if first_tag
-                  first_tag = false
-                  @io.puts format_string(&quot;#{tag_name} occurred #{tag_frequency} times, but the limit was set to #{limit}&quot;, :failed)
-                  @tag_occurrences[tag_name].each {|location| @io.puts format_string(&quot;  #{location}&quot;, :failed)}
-                  @io.flush
-                end
-              end
-            end
-          end
-        end
-      end
-
-      def record_tag_occurrences(feature_element, options)
-        @tag_occurrences ||= Hash.new{|k,v| k[v] = []}
-        options[:tag_names].each do |tag_list|
-          tag_list.each do |tag_name, limit|
-            if !Ast::Tags.exclude_tag?(tag_name) &amp;&amp; feature_element.tag_count(tag_name) &gt; 0
-              @tag_occurrences[tag_name] &lt;&lt; feature_element.file_colon_line
-            end
-          end
-        end
-      end
-
       def embed(file, mime_type)
         # no-op
       end
@@ -182,9 +152,11 @@ module Cucumber
         if @delayed_announcements
           @delayed_announcements &lt;&lt; announcement
         else
-          @io.puts
-          @io.puts(format_string(announcement, :tag))
-          @io.flush
+          if @io
+            @io.puts
+            @io.puts(format_string(announcement, :tag))
+            @io.flush
+          end
         end
       end
 

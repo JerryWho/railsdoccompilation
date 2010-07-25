@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -39,7 +39,14 @@ Defined profiles in cucumber.yml:
         case(args_from_yml)
           when String
             raise YmlLoadError, &quot;The '#{profile}' profile in cucumber.yml was blank.  Please define the command line arguments for the '#{profile}' profile in cucumber.yml.\n&quot; if args_from_yml =~ /^\s*$/
-            args_from_yml = args_from_yml.split(' ')
+            if(Cucumber::WINDOWS)
+              #Shellwords treats backslash as an escape character so here's a rudimentary approximation of the same code
+              args_from_yml = args_from_yml.split
+              args_from_yml = args_from_yml.collect {|x| x.gsub(/^\&quot;(.*)\&quot;/,'\1') }
+            else
+              require 'shellwords'
+              args_from_yml = Shellwords.shellwords(args_from_yml)
+            end
           when Array
             raise YmlLoadError, &quot;The '#{profile}' profile in cucumber.yml was empty.  Please define the command line arguments for the '#{profile}' profile in cucumber.yml.\n&quot; if args_from_yml.empty?
           else
@@ -62,13 +69,13 @@ Defined profiles in cucumber.yml:
       def cucumber_yml
         return @cucumber_yml if @cucumber_yml
         unless cucumber_yml_defined?
-          raise(ProfilesNotDefinedError,&quot;cucumber.yml was not found.  Please refer to cucumber's documentation on defining profiles in cucumber.yml.  You must define a 'default' profile to use the cucumber command without any arguments.\nType 'cucumber --help' for usage.\n&quot;)
+          raise(ProfilesNotDefinedError,&quot;cucumber.yml was not found.  Current directory is #{Dir.pwd}.  Please refer to cucumber's documentation on defining profiles in cucumber.yml.  You must define a 'default' profile to use the cucumber command without any arguments.\nType 'cucumber --help' for usage.\n&quot;)
         end
 
         require 'erb'
         require 'yaml'
         begin
-          @cucumber_erb = ERB.new(IO.read(cucumber_file)).result
+          @cucumber_erb = ERB.new(IO.read(cucumber_file)).result(binding)
         rescue Exception =&gt; e
           raise(YmlLoadError,&quot;cucumber.yml was found, but could not be parsed with ERB.  Please refer to cucumber's documentation on correct profile usage.\n#{$!.inspect}&quot;)
         end

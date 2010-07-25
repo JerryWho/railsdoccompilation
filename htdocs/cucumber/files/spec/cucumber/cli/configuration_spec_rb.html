@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 require 'yaml'
 
 module Cucumber
@@ -71,14 +71,14 @@ module Cli
     end
 
     it &quot;should require files in vendor/{plugins,gems}/*/cucumber/*.rb&quot; do
-      given_the_following_files(&quot;/vendor/plugins/plugin_a/cucumber/foo.rb&quot;,
-                                &quot;/vendor/gems/gem_a/cucumber/bar.rb&quot;)
+      given_the_following_files(&quot;/vendor/gems/gem_a/cucumber/bar.rb&quot;,
+                                &quot;/vendor/plugins/plugin_a/cucumber/foo.rb&quot;)
 
       config.parse!(%w{--require /features})
 
       config.step_defs_to_load.should == [
-        &quot;/vendor/plugins/plugin_a/cucumber/foo.rb&quot;,
-        &quot;/vendor/gems/gem_a/cucumber/bar.rb&quot;
+        &quot;/vendor/gems/gem_a/cucumber/bar.rb&quot;,
+        &quot;/vendor/plugins/plugin_a/cucumber/foo.rb&quot;
       ]
     end
 
@@ -156,11 +156,28 @@ module Cli
         config.parse!([])
         config.options[:require].should == ['from/yml']
       end
-      
+
+      it &quot;allows --strict to be set by a profile&quot; do
+        given_cucumber_yml_defined_as({'bongo' =&gt; '--strict'})
+
+        config.parse!(%w{--profile bongo})
+        config.options[:strict].should be_true
+      end
+
       it &quot;parses ERB syntax in the cucumber.yml file&quot; do
         given_cucumber_yml_defined_as({'default' =&gt; '&lt;%=&quot;--require some_file&quot;%&gt;'})
 
         config.parse!([])
+        config.options[:require].should include('some_file')
+      end
+
+      it &quot;parses ERB in cucumber.yml that makes uses nested ERB sessions&quot; do
+        given_cucumber_yml_defined_as(&lt;&lt;ERB_YML)
+&lt;%= ERB.new({'standard' =&gt; '--require some_file'}.to_yaml).result %&gt;
+&lt;%= ERB.new({'enhanced' =&gt; '--require other_file'}.to_yaml).result %&gt;
+ERB_YML
+
+        config.parse!(%w(-p standard))
         config.options[:require].should include('some_file')
       end
 
@@ -223,12 +240,12 @@ END_OF_MESSAGE
       it &quot;issues a helpful error message when no YAML file exists and a profile is specified&quot; do
         File.should_receive(:exist?).with('cucumber.yml').and_return(false)
 
-        expected_error = /cucumber.yml was not found.  Please refer to cucumber's documentation on defining profiles in cucumber.yml./
+        expected_error = /cucumber\.yml was not found/
         lambda{config.parse!(%w{--profile i_do_not_exist})}.should raise_error(expected_error)
       end
 
       it &quot;issues a helpful error message when cucumber.yml is blank or malformed&quot; do
-          expected_error_message = /cucumber.yml was found, but was blank or malformed. Please refer to cucumber's documentation on correct profile usage./
+          expected_error_message = /cucumber\.yml was found, but was blank or malformed. Please refer to cucumber's documentation on correct profile usage./
 
         ['', 'sfsadfs', &quot;--- \n- an\n- array\n&quot;, &quot;---dddfd&quot;].each do |bad_input|
           given_cucumber_yml_defined_as(bad_input)
@@ -347,20 +364,6 @@ END_OF_MESSAGE
       end
     end
 
-    describe &quot;diff output&quot; do
-
-      it &quot;is enabled by default&quot; do
-        config.diff_enabled?.should be_true
-      end
-
-      it &quot;is disabled when the --no-diff option is supplied&quot; do
-        config.parse!(%w{--no-diff})
-
-        config.diff_enabled?.should be_false
-      end
-
-    end
-
     it &quot;should accept multiple --name options&quot; do
       config.parse!(['--name', &quot;User logs in&quot;, '--name', &quot;User signs up&quot;])
 
@@ -373,6 +376,12 @@ END_OF_MESSAGE
 
       config.options[:name_regexps].should include(/User logs in/)
       config.options[:name_regexps].should include(/User signs up/)
+    end
+
+    it &quot;should preserve the order of the feature files&quot; do
+      config.parse!(%w{b.feature c.feature a.feature})
+
+      config.feature_files.should == [&quot;b.feature&quot;, &quot;c.feature&quot;, &quot;a.feature&quot;]
     end
 
     it &quot;should search for all features in the specified directory&quot; do

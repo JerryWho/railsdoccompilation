@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 28 12:18:34 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -58,17 +58,20 @@ module Cucumber
       end
       
       def step_matches(step_name, formatted_step_name)
-        @connections.map{ |remote| remote.step_matches(step_name, formatted_step_name)}.flatten
+        @connections.map{ |c| c.step_matches(step_name, formatted_step_name)}.flatten
       end
       
       protected
       
       def begin_scenario(scenario)
-        @connections.each { |remote| remote.begin_scenario(scenario) }
+        @connections.each { |c| c.begin_scenario(scenario) }
+        @current_scenario = scenario
       end
       
       def end_scenario
-        @connections.each { |remote| remote.end_scenario }
+        scenario = @current_scenario
+        @connections.each { |c| c.end_scenario(scenario) }
+        @current_scenario = nil
       end
     end
   end

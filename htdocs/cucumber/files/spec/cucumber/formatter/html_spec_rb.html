@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Dec 28 12:18:45 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,8 +15,8 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
-require File.dirname(__FILE__) + '/spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 require 'cucumber/formatter/html'
 require 'nokogiri'
 require 'cucumber/rb_support/rb_language'
@@ -27,8 +27,10 @@ module Cucumber
     describe Html do
       extend SpecHelperDsl
       include SpecHelper
-    
-      Spec::Matchers.define :have_css_node do |css, regexp|
+
+      matcher = defined?(Spec::Matchers) ? Spec::Matchers : RSpec::Matchers
+
+      matcher.define :have_css_node do |css, regexp|
         match do |doc|
           nodes = doc.css(css)
           nodes.detect{ |node| node.text =~ regexp }
@@ -42,7 +44,7 @@ module Cucumber
       end
     
       it &quot;should not raise an error when visiting a blank feature name&quot; do
-        lambda { @formatter.feature_name(&quot;&quot;) }.should_not raise_error
+        lambda { @formatter.feature_name(&quot;Feature&quot;, &quot;&quot;) }.should_not raise_error
       end
       
       describe &quot;given a single feature&quot; do
@@ -67,6 +69,7 @@ module Cucumber
         describe &quot;with a comment&quot; do
           define_feature &lt;&lt;-FEATURE
             # Healthy
+            Feature: Foo
           FEATURE
         
           it { @out.string.should =~ /^\&lt;!DOCTYPE/ }
@@ -77,6 +80,7 @@ module Cucumber
         describe &quot;with a tag&quot; do
           define_feature &lt;&lt;-FEATURE
             @foo
+            Feature: can't have standalone tag :)
           FEATURE
 
           it { @doc.should have_css_node('.feature .tag', /foo/) }
@@ -107,6 +111,8 @@ module Cucumber
       
         describe &quot;with a scenario&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: Banana party
+
             Scenario: Monkey eats banana
               Given there are bananas
           FEATURE
@@ -117,6 +123,8 @@ module Cucumber
       
         describe &quot;with a scenario outline&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: Fud Pyramid
+
             Scenario Outline: Monkey eats a balanced diet
               Given there are &lt;Things&gt;
           
@@ -139,6 +147,8 @@ module Cucumber
       
         describe &quot;with a step with a py string&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: Traveling circus
+
             Scenario: Monkey goes to town
               Given there is a monkey called:
                &quot;&quot;&quot;
@@ -151,6 +161,8 @@ module Cucumber
 
         describe &quot;with a multiline step arg&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: Traveling circus
+
             Scenario: Monkey goes to town
               Given there are monkeys:
                | name |
@@ -163,6 +175,8 @@ module Cucumber
       
         describe &quot;with a table in the background and the scenario&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: accountant monkey
+
             Background:
               Given table:
                 | a | b |
@@ -178,6 +192,8 @@ module Cucumber
       
         describe &quot;with a py string in the background and the scenario&quot; do
           define_feature &lt;&lt;-FEATURE
+          Feature: py strings
+
             Background:
               Given stuff:
                 &quot;&quot;&quot;
@@ -200,6 +216,8 @@ module Cucumber
           end
         
           define_feature(&lt;&lt;-FEATURE)
+          Feature: Animal Cruelty
+
             Scenario: Monkey gets a fright
               Given boo
             FEATURE
@@ -213,6 +231,7 @@ module Cucumber
           end
         
           define_feature(&lt;&lt;-FEATURE)
+          Feature: shouting
             Background:
               Given boo
             Scenario:
@@ -230,11 +249,23 @@ module Cucumber
           end
 
           define_feature(&lt;&lt;-FEATURE)
+          Feature: 
             Scenario:
               Given snap
             FEATURE
 
           it { @doc.css('.embed img').first.attributes['src'].to_s.should == &quot;snapshot.jpeg&quot; }
+        end
+        
+        describe &quot;with an undefined Given step then an undefined And step&quot; do
+          define_feature(&lt;&lt;-FEATURE)
+          Feature: 
+            Scenario:
+              Given some undefined step
+              And another undefined step
+            FEATURE
+            
+          it { @doc.css('pre').map { |pre| /^(Given|And)/.match(pre.text)[1] }.should == [&quot;Given&quot;, &quot;Given&quot;] }
         end
       
       end

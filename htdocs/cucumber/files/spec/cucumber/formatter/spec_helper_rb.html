@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 14:58:05 +0200 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -44,13 +44,12 @@
       def load_features(content)
         feature_file = FeatureFile.new('spec.feature', content)
         features = Ast::Features.new
-        features.add_feature feature_file.parse(@step_mother, {})
+        feature = feature_file.parse(options, {})
+        features.add_feature(feature) if feature
         features
       end
     
       def run(features)
-        # options = { :verbose =&gt; true }
-        options = {}
         tree_walker = Cucumber::Ast::TreeWalker.new(@step_mother, [@formatter], options, STDOUT)
         tree_walker.visit_features(features)
       end
@@ -62,7 +61,12 @@
         dsl.extend RbSupport::RbDsl
         dsl.instance_exec &amp;step_defs
       end 
+
+      def options
+        @options ||= mock(Cucumber::Cli::Options, :filters =&gt; [], :[] =&gt; nil)
+      end
     end
   end
-end</pre>
+end
+</pre>
     </div>

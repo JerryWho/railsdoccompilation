@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Oct 29 21:26:56 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,15 +15,17 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require 'tempfile'
+    <pre># encoding: utf-8
+require 'tempfile'
 
 Given /^I am in (.*)$/ do |example_dir_relative_path|
-  @current_dir = examples_dir(example_dir_relative_path)
+  @current_dir = fixtures_dir(example_dir_relative_path)
 end
 
 Given /^a standard Cucumber project directory structure$/ do
   @current_dir = working_dir
   in_current_dir do
+    FileUtils.rm_rf 'features' if File.directory?('features')
     FileUtils.mkdir_p 'features/support'
     FileUtils.mkdir 'features/step_definitions'
   end
@@ -36,11 +38,11 @@ Given /^the (.*) directory is empty$/ do |directory|
   end
 end
 
-Given /^a file named &quot;([^\&quot;]*)&quot;$/ do |file_name|
+Given /^a file named &quot;([^&quot;]*)&quot;$/ do |file_name|
   create_file(file_name, '')
 end
 
-Given /^a file named &quot;([^\&quot;]*)&quot; with:$/ do |file_name, file_content|
+Given /^a file named &quot;([^&quot;]*)&quot; with:$/ do |file_name, file_content|
   create_file(file_name, file_content)
 end
 
@@ -60,12 +62,12 @@ Given /^I am not running (?:.*) in the background$/ do
   # no-op
 end
 
-Given /^I have environment variable (\w+) set to &quot;([^\&quot;]*)&quot;$/ do |variable, value|
+Given /^I have environment variable (\w+) set to &quot;([^&quot;]*)&quot;$/ do |variable, value|
   set_env_var(variable, value)
 end
 
 When /^I run cucumber (.*)$/ do |cucumber_opts|
-  run &quot;#{Cucumber::RUBY_BINARY} #{Cucumber::BINARY} --no-color #{cucumber_opts}&quot;
+  run &quot;#{Cucumber::RUBY_BINARY} -r rubygems #{Cucumber::BINARY} --no-color #{cucumber_opts} CUCUMBER_OUTPUT_ENCODING=UTF-8&quot;
 end
 
 When /^I run rake (.*)$/ do |rake_opts|
@@ -83,8 +85,8 @@ Then /^it should (fail|pass)$/ do |success|
 end
 
 Then /^it should (fail|pass) with$/ do |success, output|
+  combined_output.should =~ Regexp.compile(Regexp.escape(output))
   Then(&quot;it should #{success}&quot;)
-  last_stdout.should == output
 end
 
 Then /^the output should contain$/ do |text|
@@ -99,23 +101,27 @@ Then /^the output should be$/ do |text|
   last_stdout.should == text
 end
 
+Then /^it should (fail|pass) with JSON$/ do |success, text|
+  JSON.parse(last_stdout).should == JSON.parse(text)
+  Then(&quot;it should #{success}&quot;)
+end
 
-Then /^&quot;([^\&quot;]*)&quot; should contain$/ do |file, text|
+Then /^&quot;([^&quot;]*)&quot; should contain$/ do |file, text|
   strip_duration(IO.read(file)).should == text
 end
 
-Then /^&quot;([^\&quot;]*)&quot; with junit duration &quot;([^\&quot;]*)&quot; should contain$/ do |actual_file, duration_replacement, text|
+Then /^&quot;([^&quot;]*)&quot; with junit duration &quot;([^&quot;]*)&quot; should contain$/ do |actual_file, duration_replacement, text|
   actual = IO.read(actual_file)
   actual = replace_junit_duration(actual, duration_replacement) 
   actual = strip_ruby186_extra_trace(actual)
   actual.should == text
 end
 
-Then /^&quot;([^\&quot;]*)&quot; should match &quot;([^\&quot;]*)&quot;$/ do |file, text|
-  IO.read(file).should =~ Regexp.new(text)
+Then /^&quot;([^&quot;]*)&quot; should match &quot;(.+?)&quot;$/ do |file, text|
+  File.open(file, Cucumber.file_mode('r')).read.should =~ Regexp.new(text)
 end
 
-Then /^&quot;([^\&quot;]*)&quot; should have the same contents as &quot;([^\&quot;]*)&quot;$/ do |actual_file, expected_file|
+Then /^&quot;([^&quot;]*)&quot; should have the same contents as &quot;([^&quot;]*)&quot;$/ do |actual_file, expected_file|
   actual = IO.read(actual_file)
   actual = replace_duration(actual, '0m30.005s')
   # Comment out to replace expected file. Use with care!
@@ -139,16 +145,16 @@ Then /^STDERR should be empty$/ do
   last_stderr.should == &quot;&quot;
 end
 
-Then /^&quot;([^\&quot;]*)&quot; should exist$/ do |file|
+Then /^&quot;([^&quot;]*)&quot; should exist$/ do |file|
   File.exists?(file).should be_true
   FileUtils.rm(file)
 end
 
-Then /^&quot;([^\&quot;]*)&quot; should not be required$/ do |file_name|
+Then /^&quot;([^&quot;]*)&quot; should not be required$/ do |file_name|
   last_stdout.should_not include(&quot;* #{file_name}&quot;)
 end
 
-Then /^&quot;([^\&quot;]*)&quot; should be required$/ do |file_name|
+Then /^&quot;([^&quot;]*)&quot; should be required$/ do |file_name|
   last_stdout.should include(&quot;* #{file_name}&quot;)
 end
 

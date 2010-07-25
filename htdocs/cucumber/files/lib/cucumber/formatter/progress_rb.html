@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:49:20 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -36,19 +36,33 @@ module Cucumber
         print_summary(features)
       end
 
-      def before_feature_element(feature_element)
-        record_tag_occurrences(feature_element, @options)
+      def before_feature_element(*args)
+        @exception_raised = false
+      end
+
+      def after_feature_element(*args)
+        progress(:failed) if @exception_raised
+        @exception_raised = false
+      end
+
+      def before_steps(*args)
+        progress(:failed) if @exception_raised
+        @exception_raised = false
+      end
+
+      def after_steps(*args)
+        @exception_raised = false
       end
 
       def after_step_result(keyword, step_match, multiline_arg, status, exception, source_indent, background)
         progress(status)
         @status = status
       end
-      
+
       def before_outline_table(outline_table)
         @outline_table = outline_table
       end
-      
+
       def after_outline_table(outline_table)
         @outline_table = nil
       end
@@ -59,15 +73,18 @@ module Cucumber
         progress(status) unless table_header_cell?(status)
       end
 
+      def exception(*args)
+        @exception_raised = true
+      end
+
       private
 
       def print_summary(features)
         print_steps(:pending)
         print_steps(:failed)
-        print_stats(features)
+        print_stats(features, @options.custom_profiles)
         print_snippets(@options)
         print_passing_wip(@options)
-        print_tag_limit_warnings(@options)
       end
 
       CHARS = {

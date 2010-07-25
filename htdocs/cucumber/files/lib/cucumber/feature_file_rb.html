@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,8 +15,11 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require 'cucumber/parser/natural_language'
-require 'cucumber/filter'
+    <pre>require 'cucumber/parser/gherkin_builder'
+require 'gherkin/formatter/filter_formatter'
+require 'gherkin/formatter/tag_count_formatter'
+require 'gherkin/parser/parser'
+require 'gherkin/i18n_lexer'
 
 module Cucumber
   class FeatureFile
@@ -38,12 +41,27 @@ module Cucumber
     # Parses a file and returns a Cucumber::Ast
     # If +options+ contains tags, the result will
     # be filtered.
-    def parse(step_mother, options)
-      filter = Filter.new(@lines, options)
-      language = Parser::NaturalLanguage.get(step_mother, (lang || 'en'))
-      language.parse(source, @path, filter)
+    def parse(options, tag_counts)
+      filters = @lines || options.filters
+
+      builder             = Cucumber::Parser::GherkinBuilder.new
+      filter_formatter    = filters.empty? ? builder : Gherkin::Formatter::FilterFormatter.new(builder, filters)
+      tag_count_formatter = Gherkin::Formatter::TagCountFormatter.new(filter_formatter, tag_counts)
+      parser              = Gherkin::Parser::Parser.new(tag_count_formatter, true, &quot;root&quot;, false)
+
+      begin
+        parser.parse(source, @path, 0)
+        ast = builder.ast
+        return nil if ast.nil? # Filter caused nothing to match
+        ast.language = parser.i18n_language
+        ast.file = @path
+        ast
+      rescue Gherkin::LexingError, Gherkin::Parser::ParseError =&gt; e
+        e.message.insert(0, &quot;#{@path}: &quot;)
+        raise e
+      end
     end
-    
+
     def source
       @source ||= if @path =~ /^http/
         require 'open-uri'
@@ -59,14 +77,12 @@ module Cucumber
       end
     end
     
-    def lang
-      line_one = source.split(/\n/)[0]
-      if line_one =~ LANGUAGE_PATTERN
-        $1.strip
-      else
-        nil
-      end
-    end
+    private
+    
+    # Special PML markup that we want to filter out.
+    CO = %{\\s*&lt;(label|callout)\s+id=&quot;.*?&quot;\s*/&gt;\\s*}
+    C_CALLOUT = %r{/\*#{CO}\*/|//#{CO}}o
   end
-end</pre>
+end
+</pre>
     </div>

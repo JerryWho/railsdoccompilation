@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 09 15:35:22 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -66,15 +66,16 @@ module Cucumber
         @in_background = false
       end
 
-      def feature_name(name)
+      def feature_name(keyword, name)
         raise UnNamedFeatureError.new(@current_feature.file) if name.empty?
         lines = name.split(/\r?\n/)
-        @feature_name = lines[0].sub(/Feature\:/, '').strip
+        @feature_name = lines[0]
       end
 
       def scenario_name(keyword, name, file_colon_line, source_indent)
+        # TODO: What's all this ugly weird code doing? Why not just use keyword and name????
         scenario_name = name.strip.delete(&quot;.\r\n&quot;)
-        scenario_name = &quot;Unnamed scenario&quot; if name.blank?
+        scenario_name = &quot;Unnamed scenario&quot; if name == &quot;&quot;
         @scenario = scenario_name
         description = &quot;Scenario&quot;
         description &lt;&lt; &quot; outline&quot; if keyword.include?('Scenario Outline')
@@ -90,7 +91,7 @@ module Cucumber
         
         duration = Time.now - @steps_start
         if steps.failed?
-          steps.each { |step| @output += &quot;#{step.keyword} #{step.name}\n&quot; }
+          steps.each { |step| @output += &quot;#{step.keyword}#{step.name}\n&quot; }
           @output += &quot;\nMessage:\n&quot;
         end
         build_testcase(duration, steps.status, steps.exception)

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -22,11 +22,21 @@
         super(raw)
         @scenario_outline = scenario_outline
         @cells_class = ExampleRow
-        create_step_invocations_for_example_rows!(scenario_outline)
+        init
+      end
+
+      def init
+        create_step_invocations_for_example_rows!(@scenario_outline)
+      end
+
+      def to_sexp
+        init
+        super
       end
 
       def accept(visitor)
         return if Cucumber.wants_to_quit
+        init
         cells_rows.each_with_index do |row, n|
           if(visitor.options[:expand])
             row.accept(visitor)
@@ -40,14 +50,21 @@
       def accept_hook?(hook)
         @scenario_outline.accept_hook?(hook)
       end
+      
+      def source_tag_names
+        @scenario_outline.source_tag_names
+      end
 
       def skip_invoke!
+        init
         example_rows.each do |cells|
           cells.skip_invoke!
         end
       end
 
       def create_step_invocations_for_example_rows!(scenario_outline)
+        return if @dunit
+        @dunit = true
         example_rows.each do |cells|
           cells.create_step_invocations!(scenario_outline)
         end
@@ -78,6 +95,10 @@
           super
           @scenario_exception = nil
         end
+        
+        def source_tag_names
+          @table.source_tag_names
+        end
 
         def create_step_invocations!(scenario_outline)
           @scenario_outline = scenario_outline
@@ -102,7 +123,7 @@
               visitor.visit_table_cell(cell)
             end
           else
-            visitor.step_mother.before_and_after(self) do
+            visitor.step_mother.with_hooks(self) do
               @step_invocations.each do |step_invocation|
                 step_invocation.invoke(visitor.step_mother, visitor.options)
                 @exception ||= step_invocation.reported_exception
@@ -120,7 +141,7 @@
         def accept_expand(visitor)
           if header?
           else
-            visitor.step_mother.before_and_after(self) do
+            visitor.step_mother.with_hooks(self) do
               @table.visit_scenario_name(visitor, self)
               @step_invocations.each do |step_invocation|
                 step_invocation.invoke(visitor.step_mother, visitor.options)

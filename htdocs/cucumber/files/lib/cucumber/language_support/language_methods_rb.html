@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:02:00 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -23,6 +23,12 @@ module Cucumber
     module LanguageMethods
       def create_step_match(step_definition, step_name, name_to_report, step_arguments)
         StepMatch.new(step_definition, step_name, name_to_report, step_arguments)
+      end
+
+      def around(scenario)
+        execute_around(scenario) do
+          yield
+        end
       end
 
       def before(scenario)
@@ -55,9 +61,12 @@ module Cucumber
       end
 
       def add_hook(phase, hook)
-        hook.tag_name_lists = hook.tag_names.map {|tag_string| Ast::Tags.parse_tags(tag_string)}
         hooks[phase.to_sym] &lt;&lt; hook
         hook
+      end
+
+      def clear_hooks
+        @hooks = nil
       end
 
       def add_transform(transform)
@@ -99,6 +108,16 @@ module Cucumber
         @transforms ||= []
       end
 
+      def execute_around(scenario, &amp;block)
+        hooks_for(:around, scenario).reverse.inject(block) do |blk, hook|
+          proc do
+            invoke(hook, 'Around', scenario, true) do
+              blk.call(scenario)
+            end
+          end
+        end.call
+      end
+
       def execute_before(scenario)
         hooks_for(:before, scenario).each do |hook|
           invoke(hook, 'Before', scenario, true)
@@ -111,9 +130,9 @@ module Cucumber
         end
       end
 
-      def invoke(hook, location, scenario, exception_fails_scenario)
+      def invoke(hook, location, scenario, exception_fails_scenario, &amp;block)
         begin
-          hook.invoke(location, scenario)
+          hook.invoke(location, scenario, &amp;block)
         rescue Exception =&gt; exception
           if exception_fails_scenario
             scenario.fail!(exception)

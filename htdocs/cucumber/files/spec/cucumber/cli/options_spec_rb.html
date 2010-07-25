@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:11:50 +0100 2009</td>
+      <td>Sun Jul 25 18:21:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.dirname(__FILE__) + '/../../spec_helper'
+    <pre>require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 require 'yaml'
 
 module Cucumber
@@ -73,10 +73,10 @@ module Cli
         context &quot;with LANG specified as 'help'&quot; do
           it &quot;lists all known langues&quot; do
             when_parsing '--i18n help' do
-              require 'cucumber/cli/language_help_formatter'
-              LanguageHelpFormatter.should_receive(:list_languages).with(output_stream)
+              Kernel.should_receive(:exit)
             end
           end
+
           it &quot;exits the program&quot; do
             when_parsing('--i18n help') { Kernel.should_receive(:exit) }
           end
@@ -108,11 +108,11 @@ module Cli
 
       context '-t TAGS --tags TAGS' do
         it &quot;designates tags prefixed with ~ as tags to be excluded&quot; do
-          after_parsing('--tags ~@foo,@bar') { options[:tag_names].should == [{'~@foo' =&gt; nil, '@bar' =&gt; nil}] }
+          after_parsing('--tags ~@foo,@bar') { options[:tag_expressions].should == ['~@foo,@bar'] }
         end
 
         it &quot;stores tags passed with different --tags seperately&quot; do
-          after_parsing('--tags @foo --tags @bar') { options[:tag_names].should == [{'@foo' =&gt; nil}, {'@bar' =&gt; nil}] }
+          after_parsing('--tags @foo --tags @bar') { options[:tag_expressions].should == ['@foo', '@bar'] }
         end
       end
 
@@ -179,7 +179,7 @@ module Cli
         it &quot;combines the tag names of both&quot; do
           given_cucumber_yml_defined_as('baz' =&gt; %w[-t @bar])
           options.parse!(%w[--tags @foo -p baz])
-          options[:tag_names].should == [{'@foo' =&gt; nil}, {'@bar' =&gt; nil}]
+          options[:tag_expressions].should == [&quot;@foo&quot;, &quot;@bar&quot;]
         end
 
         it &quot;only takes the paths from the original options, and disgregards the profiles&quot; do
