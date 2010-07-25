@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:46:17 +0200 2009</td>
+      <td>Sun Jul 25 20:07:22 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,9 +19,8 @@
 
 Autotest.add_hook :initialize do |at|
   at.clear_mappings
-  # watch out: Ruby bug (1.8.6):
-  # %r(/) != /\//
-  at.add_mapping(%r%^spec/.*_spec.rb$%) { |filename, _|
+  # watch out for Ruby bug (1.8.6): %r(/) != /\//
+  at.add_mapping(%r%^spec/.*_spec\.rb$%) { |filename, _|
     filename
   }
   at.add_mapping(%r%^lib/(.*)\.rb$%) { |_, m|
@@ -35,6 +34,8 @@ end
 class RspecCommandError &lt; StandardError; end
 
 class Autotest::Rspec &lt; Autotest
+  
+  SPEC_PROGRAM = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'bin', 'spec'))
 
   def initialize
     super
@@ -53,13 +54,19 @@ class Autotest::Rspec &lt; Autotest
   end
 
   def make_test_cmd(files_to_test)
-    return '' if files_to_test.empty?
-    spec_program = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'bin', 'spec'))
-    return &quot;#{ruby} #{spec_program} --autospec #{files_to_test.keys.flatten.join(' ')} #{add_options_if_present}&quot;
+    files_to_test.empty? ? '' :
+      &quot;#{ruby} #{SPEC_PROGRAM} --autospec #{normalize(files_to_test).keys.flatten.join(' ')} #{add_options_if_present}&quot;
+  end
+
+  def normalize(files_to_test)
+    files_to_test.keys.inject({}) do |result, filename|
+      result[File.expand_path(filename)] = []
+      result
+    end
   end
 
   def add_options_if_present # :nodoc:
-    File.exist?(&quot;spec/spec.opts&quot;) ? &quot;-O spec/spec.opts &quot; : &quot;&quot;
+    File.exist?(&quot;spec/spec.opts&quot;) ? &quot;-O #{File.join('spec','spec.opts')} &quot; : &quot;&quot;
   end
 end
 </pre>

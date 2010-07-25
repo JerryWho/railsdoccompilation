@@ -2,6 +2,7 @@
 <div class='banner'>
   <span class="file-title-prefix">Module</span><br />Matchers<br/>
   In:
+<a href="#" onclick="jsHref('files/lib/spec/extensions/instance_exec_rb.html');">lib/spec/extensions/instance_exec.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/be_rb.html');">lib/spec/matchers/be.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/be_close_rb.html');">lib/spec/matchers/be_close.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/be_instance_of_rb.html');">lib/spec/matchers/be_instance_of.rb</a>
@@ -12,7 +13,6 @@
 <a href="#" onclick="jsHref('files/lib/spec/matchers/equal_rb.html');">lib/spec/matchers/equal.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/errors_rb.html');">lib/spec/matchers/errors.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/exist_rb.html');">lib/spec/matchers/exist.rb</a>
-<a href="#" onclick="jsHref('files/lib/spec/matchers/extensions/instance_exec_rb.html');">lib/spec/matchers/extensions/instance_exec.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/generated_descriptions_rb.html');">lib/spec/matchers/generated_descriptions.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/has_rb.html');">lib/spec/matchers/has.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/have_rb.html');">lib/spec/matchers/have.rb</a>
@@ -23,7 +23,7 @@
 <a href="#" onclick="jsHref('files/lib/spec/matchers/method_missing_rb.html');">lib/spec/matchers/method_missing.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/operator_matcher_rb.html');">lib/spec/matchers/operator_matcher.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/pretty_rb.html');">lib/spec/matchers/pretty.rb</a>
-<a href="#" onclick="jsHref('files/lib/spec/matchers/raise_error_rb.html');">lib/spec/matchers/raise_error.rb</a>
+<a href="#" onclick="jsHref('files/lib/spec/matchers/raise_exception_rb.html');">lib/spec/matchers/raise_exception.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/respond_to_rb.html');">lib/spec/matchers/respond_to.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/satisfy_rb.html');">lib/spec/matchers/satisfy.rb</a>
 <a href="#" onclick="jsHref('files/lib/spec/matchers/simple_matcher_rb.html');">lib/spec/matchers/simple_matcher.rb</a>
@@ -78,7 +78,7 @@ href="index.html?a=C00000043&name=Matchers">Matchers</a> on the fly for any
 arbitrary predicate, giving your specs a much more natural language feel.
 </p>
 <p>
-A <a href="index.html?a=C00000088&name=Ruby">Ruby</a> predicate is a method
+A <a href="index.html?a=C00000091&name=Ruby">Ruby</a> predicate is a method
 that ends with a &quot;?&quot; and returns true or false. Common examples
 are +empty?+, +nil?+, and +instance_of?+.
 </p>
@@ -115,7 +115,7 @@ RSpec will call has_key?(:key) on the target. For example:
 <p>
 You can use this feature to invoke any predicate that begins with
 &quot;has_&quot;, whether it is part of the <a
-href="index.html?a=C00000088&name=Ruby">Ruby</a> libraries (like
+href="index.html?a=C00000091&name=Ruby">Ruby</a> libraries (like
 +Hash#has_key?+) or a method you wrote on your own class.
 </p>
 <h2>Custom <a href="index.html?a=C00000043&name=Matchers">Matchers</a></h2>
@@ -185,6 +185,29 @@ failure message methods (<tt>failure_message_for_should</tt> and
 <tt>failure_message_for_should_not</tt>) are passed the actual value (the
 receiver of <tt>should</tt> or <tt>should_not</tt>).
 </p>
+<p>
+You can also create matchers that obey a fluent interface using the
+<tt>chain</tt> method:
+</p>
+<pre>
+  Spec::Matchers.define :tip do |expected_tip|
+    chain :on do |bill|
+      @bill = bill
+    end
+
+    match do |person|
+      person.tip_for(bill) == expected_tip
+    end
+  end
+</pre>
+<p>
+This matcher can be used as follows:
+</p>
+<pre>
+  describe Customer do
+    it { should tip(10).on(50 }
+  end
+</pre>
 <h3>Custom <a href="index.html?a=C00000048&name=Matcher">Matcher</a> from scratch</h3>
 <p>
 You could also write a custom matcher from scratch, as follows:
@@ -250,34 +273,35 @@ from your spec file(s):
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000153&name=be" >be</a></li>
-  <li><a href="index.html?a=M000154&name=be_a" >be_a</a></li>
-  <li><a href="index.html?a=M000159&name=be_a_kind_of" >be_a_kind_of</a></li>
-  <li><a href="index.html?a=M000155&name=be_an" >be_an</a></li>
-  <li><a href="index.html?a=M000157&name=be_an_instance_of" >be_an_instance_of</a></li>
-  <li><a href="index.html?a=M000156&name=be_close" >be_close</a></li>
-  <li><a href="index.html?a=M000158&name=be_instance_of" >be_instance_of</a></li>
-  <li><a href="index.html?a=M000160&name=be_kind_of" >be_kind_of</a></li>
-  <li><a href="index.html?a=M000161&name=change" >change</a></li>
-  <li><a href="index.html?a=M000166&name=clear_generated_description" >clear_generated_description</a></li>
-  <li><a href="index.html?a=M000162&name=eql" >eql</a></li>
-  <li><a href="index.html?a=M000163&name=equal" >equal</a></li>
-  <li><a href="index.html?a=M000165&name=exist" >exist</a></li>
-  <li><a href="index.html?a=M000167&name=generated_description" >generated_description</a></li>
-  <li><a href="index.html?a=M000168&name=have" >have</a></li>
-  <li><a href="index.html?a=M000170&name=have_at_least" >have_at_least</a></li>
-  <li><a href="index.html?a=M000171&name=have_at_most" >have_at_most</a></li>
-  <li><a href="index.html?a=M000169&name=have_exactly" >have_exactly</a></li>
-  <li><a href="index.html?a=M000173&name=helper" >helper</a></li>
-  <li><a href="index.html?a=M000172&name=include" >include</a></li>
-  <li><a href="index.html?a=M000164&name=inspect_object" >inspect_object</a></li>
-  <li><a href="index.html?a=M000174&name=match" >match</a></li>
-  <li><a href="index.html?a=M000175&name=raise_error" >raise_error</a></li>
-  <li><a href="index.html?a=M000176&name=respond_to" >respond_to</a></li>
-  <li><a href="index.html?a=M000177&name=satisfy" >satisfy</a></li>
-  <li><a href="index.html?a=M000178&name=simple_matcher" >simple_matcher</a></li>
-  <li><a href="index.html?a=M000179&name=throw_symbol" >throw_symbol</a></li>
-  <li><a href="index.html?a=M000180&name=wrap_expectation" >wrap_expectation</a></li>
+  <li><a href="index.html?a=M000160&name=be" >be</a></li>
+  <li><a href="index.html?a=M000161&name=be_a" >be_a</a></li>
+  <li><a href="index.html?a=M000166&name=be_a_kind_of" >be_a_kind_of</a></li>
+  <li><a href="index.html?a=M000162&name=be_an" >be_an</a></li>
+  <li><a href="index.html?a=M000164&name=be_an_instance_of" >be_an_instance_of</a></li>
+  <li><a href="index.html?a=M000163&name=be_close" >be_close</a></li>
+  <li><a href="index.html?a=M000165&name=be_instance_of" >be_instance_of</a></li>
+  <li><a href="index.html?a=M000167&name=be_kind_of" >be_kind_of</a></li>
+  <li><a href="index.html?a=M000168&name=change" >change</a></li>
+  <li><a href="index.html?a=M000173&name=clear_generated_description" >clear_generated_description</a></li>
+  <li><a href="index.html?a=M000169&name=eql" >eql</a></li>
+  <li><a href="index.html?a=M000170&name=equal" >equal</a></li>
+  <li><a href="index.html?a=M000172&name=exist" >exist</a></li>
+  <li><a href="index.html?a=M000174&name=generated_description" >generated_description</a></li>
+  <li><a href="index.html?a=M000175&name=have" >have</a></li>
+  <li><a href="index.html?a=M000177&name=have_at_least" >have_at_least</a></li>
+  <li><a href="index.html?a=M000178&name=have_at_most" >have_at_most</a></li>
+  <li><a href="index.html?a=M000176&name=have_exactly" >have_exactly</a></li>
+  <li><a href="index.html?a=M000180&name=helper" >helper</a></li>
+  <li><a href="index.html?a=M000179&name=include" >include</a></li>
+  <li><a href="index.html?a=M000171&name=inspect_object" >inspect_object</a></li>
+  <li><a href="index.html?a=M000181&name=match" >match</a></li>
+  <li><a href="index.html?a=M000183&name=raise_error" >raise_error</a></li>
+  <li><a href="index.html?a=M000182&name=raise_exception" >raise_exception</a></li>
+  <li><a href="index.html?a=M000184&name=respond_to" >respond_to</a></li>
+  <li><a href="index.html?a=M000185&name=satisfy" >satisfy</a></li>
+  <li><a href="index.html?a=M000186&name=simple_matcher" >simple_matcher</a></li>
+  <li><a href="index.html?a=M000187&name=throw_symbol" >throw_symbol</a></li>
+  <li><a href="index.html?a=M000188&name=wrap_expectation" >wrap_expectation</a></li>
   </ul>
 
 
@@ -286,6 +310,9 @@ from your spec file(s):
   Module "<a href="#" onclick="jsHref('classes/Spec/Matchers/DSL.html');" class="link">Spec::Matchers::DSL</a>"<br />
 Module "<a href="#" onclick="jsHref('classes/Spec/Matchers/InstanceExec.html');" class="link">Spec::Matchers::InstanceExec</a>"<br />
 Module "<a href="#" onclick="jsHref('classes/Spec/Matchers/Pretty.html');" class="link">Spec::Matchers::Pretty</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/BeComparedTo.html');" class="link">Spec::Matchers::BeComparedTo</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/BePredicate.html');" class="link">Spec::Matchers::BePredicate</a>"<br />
+Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/BeSameAs.html');" class="link">Spec::Matchers::BeSameAs</a>"<br />
 Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/Has.html');" class="link">Spec::Matchers::Has</a>"<br />
 Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/Matcher.html');" class="link">Spec::Matchers::Matcher</a>"<br />
 Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/MatcherError.html');" class="link">Spec::Matchers::MatcherError</a>"<br />
@@ -296,13 +323,13 @@ Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/SimpleMatcher.html');"
 
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000166" class="method">
-  <div id="M000166_title" class="title">
+<div id="M000173" class="method">
+  <div id="M000173_title" class="title">
     <b>clear_generated_description</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000166_source')" id="l_M000166_source">show source</a> ]</p>
-  <div id="M000166_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000173_source')" id="l_M000173_source">show source</a> ]</p>
+  <div id="M000173_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/generated_descriptions.rb, line 7</span>
  7:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">clear_generated_description</span>
@@ -313,13 +340,13 @@ Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/SimpleMatcher.html');"
   </div>
 </div>
 </div>
-<div id="M000167" class="method">
-  <div id="M000167_title" class="title">
+<div id="M000174" class="method">
+  <div id="M000174_title" class="title">
     <b>generated_description</b>()
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000167_source')" id="l_M000167_source">show source</a> ]</p>
-  <div id="M000167_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000174_source')" id="l_M000174_source">show source</a> ]</p>
+  <div id="M000174_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/generated_descriptions.rb, line 12</span>
 12:     <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">generated_description</span>
@@ -331,8 +358,8 @@ Class "<a href="#" onclick="jsHref('classes/Spec/Matchers/SimpleMatcher.html');"
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000153" class="method">
-  <div id="M000153_title" class="title">
+<div id="M000160" class="method">
+  <div id="M000160_title" class="title">
     <b>should be_true<br />
 should be_false<br />
 should be_nil<br />
@@ -348,7 +375,7 @@ Given true, false, or nil, will pass if actual value is true, false or nil
 condition (to be or not to be).
 </p>
 <p>
-Predicates are any <a href="index.html?a=C00000088&name=Ruby">Ruby</a>
+Predicates are any <a href="index.html?a=C00000091&name=Ruby">Ruby</a>
 method that ends in a &quot;?&quot; and returns true or false. Given be_
 followed by arbitrary_predicate (without the &quot;?&quot;), RSpec will
 match convert that into a query against the target object.
@@ -356,9 +383,9 @@ match convert that into a query against the target object.
 <p>
 The arbitrary_predicate feature will handle any predicate prefixed with
 &quot;be_an_&quot; (e.g. <a
-href="index.html?a=M000157&name=be_an_instance_of">be_an_instance_of</a>),
+href="index.html?a=M000164&name=be_an_instance_of">be_an_instance_of</a>),
 &quot;be_a_&quot; (e.g. <a
-href="index.html?a=M000159&name=be_a_kind_of">be_a_kind_of</a>) or
+href="index.html?a=M000166&name=be_a_kind_of">be_a_kind_of</a>) or
 &quot;be_&quot; (e.g. be_empty), letting you choose the prefix that best
 suits the predicate.
 </p>
@@ -375,19 +402,21 @@ suits the predicate.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000153_source')" id="l_M000153_source">show source</a> ]</p>
-  <div id="M000153_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000160_source')" id="l_M000160_source">show source</a> ]</p>
+  <div id="M000160_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/be.rb, line 200</span>
-200:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
-201:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Be</span>.<span class="ruby-identifier">new</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
-202:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/matchers/be.rb, line 237</span>
+237:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+238:       <span class="ruby-identifier">args</span>.<span class="ruby-identifier">empty?</span> <span class="ruby-value">?
+239: </span>        <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Be</span>.<span class="ruby-identifier">new</span> <span class="ruby-operator">:</span>
+240:         <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">BeSameAs</span>.<span class="ruby-identifier">new</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">args</span>)
+241:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000154" class="method">
-  <div id="M000154_title" class="title">
+<div id="M000161" class="method">
+  <div id="M000161_title" class="title">
     <b>be_a</b>(klass)
   </div>
   <div class="description">
@@ -397,22 +426,22 @@ passes if target.kind_of?(klass)
   </div>
 <div class="aka">
   This method is also aliased as
-  <a href="index.html?a=M000155&name=be_an">be_an</a>
+  <a href="index.html?a=M000162&name=be_an">be_an</a>
 </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000154_source')" id="l_M000154_source">show source</a> ]</p>
-  <div id="M000154_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000161_source')" id="l_M000161_source">show source</a> ]</p>
+  <div id="M000161_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/be.rb, line 205</span>
-205:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be_a</span>(<span class="ruby-identifier">klass</span>)
-206:       <span class="ruby-identifier">be_a_kind_of</span>(<span class="ruby-identifier">klass</span>)
-207:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/matchers/be.rb, line 244</span>
+244:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be_a</span>(<span class="ruby-identifier">klass</span>)
+245:       <span class="ruby-identifier">be_a_kind_of</span>(<span class="ruby-identifier">klass</span>)
+246:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000159" class="method">
-  <div id="M000159_title" class="title">
+<div id="M000166" class="method">
+  <div id="M000166_title" class="title">
     <b>should be_kind_of(expected)<br />
 should be_a_kind_of(expected)<br />
 should_not be_kind_of(expected)<br />
@@ -432,11 +461,11 @@ Passes if actual.kind_of?(expected)
   </div>
 <div class="aka">
   This method is also aliased as
-  <a href="index.html?a=M000160&name=be_kind_of">be_kind_of</a>
+  <a href="index.html?a=M000167&name=be_kind_of">be_kind_of</a>
 </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000159_source')" id="l_M000159_source">show source</a> ]</p>
-  <div id="M000159_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000166_source')" id="l_M000166_source">show source</a> ]</p>
+  <div id="M000166_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/be_kind_of.rb, line 16</span>
 16:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be_a_kind_of</span>(<span class="ruby-identifier">expected</span>)
@@ -450,18 +479,18 @@ Passes if actual.kind_of?(expected)
   </div>
 </div>
 </div>
-<div id="M000155" class="method">
-  <div id="M000155_title" class="title">
+<div id="M000162" class="method">
+  <div id="M000162_title" class="title">
     <b>be_an</b>(klass)
   </div>
   <div class="description">
   <p>
-Alias for <a href="index.html?a=M000154&name=be_a">be_a</a>
+Alias for <a href="index.html?a=M000161&name=be_a">be_a</a>
 </p>
   </div>
 </div>
-<div id="M000157" class="method">
-  <div id="M000157_title" class="title">
+<div id="M000164" class="method">
+  <div id="M000164_title" class="title">
     <b>should be_instance_of(expected)<br />
 should be_an_instance_of(expected)<br />
 should_not be_instance_of(expected)<br />
@@ -481,11 +510,11 @@ Passes if actual.instance_of?(expected)
   </div>
 <div class="aka">
   This method is also aliased as
-  <a href="index.html?a=M000158&name=be_instance_of">be_instance_of</a>
+  <a href="index.html?a=M000165&name=be_instance_of">be_instance_of</a>
 </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000157_source')" id="l_M000157_source">show source</a> ]</p>
-  <div id="M000157_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000164_source')" id="l_M000164_source">show source</a> ]</p>
+  <div id="M000164_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/be_instance_of.rb, line 16</span>
 16:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be_an_instance_of</span>(<span class="ruby-identifier">expected</span>)
@@ -499,8 +528,8 @@ Passes if actual.instance_of?(expected)
   </div>
 </div>
 </div>
-<div id="M000156" class="method">
-  <div id="M000156_title" class="title">
+<div id="M000163" class="method">
+  <div id="M000163_title" class="title">
     <b>should be_close(expected, delta)<br />
 should_not be_close(expected, delta)<br />
 </b>
@@ -509,14 +538,14 @@ should_not be_close(expected, delta)<br />
   <p>
 Passes if actual == expected +/- delta
 </p>
-<h2><a href="index.html?a=C00000062&name=Example">Example</a></h2>
+<h2><a href="index.html?a=C00000065&name=Example">Example</a></h2>
 <pre>
   result.should be_close(3.0, 0.5)
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000156_source')" id="l_M000156_source">show source</a> ]</p>
-  <div id="M000156_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000163_source')" id="l_M000163_source">show source</a> ]</p>
+  <div id="M000163_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/be_close.rb, line 12</span>
 12:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">be_close</span>(<span class="ruby-identifier">expected</span>, <span class="ruby-identifier">delta</span>)
@@ -542,29 +571,29 @@ Passes if actual == expected +/- delta
   </div>
 </div>
 </div>
-<div id="M000158" class="method">
-  <div id="M000158_title" class="title">
+<div id="M000165" class="method">
+  <div id="M000165_title" class="title">
     <b>be_instance_of</b>(expected)
   </div>
   <div class="description">
   <p>
 Alias for <a
-href="index.html?a=M000157&name=be_an_instance_of">be_an_instance_of</a>
+href="index.html?a=M000164&name=be_an_instance_of">be_an_instance_of</a>
 </p>
   </div>
 </div>
-<div id="M000160" class="method">
-  <div id="M000160_title" class="title">
+<div id="M000167" class="method">
+  <div id="M000167_title" class="title">
     <b>be_kind_of</b>(expected)
   </div>
   <div class="description">
   <p>
-Alias for <a href="index.html?a=M000159&name=be_a_kind_of">be_a_kind_of</a>
+Alias for <a href="index.html?a=M000166&name=be_a_kind_of">be_a_kind_of</a>
 </p>
   </div>
 </div>
-<div id="M000161" class="method">
-  <div id="M000161_title" class="title">
+<div id="M000168" class="method">
+  <div id="M000168_title" class="title">
     <b>should change(receiver, message, &block)<br />
 should change(receiver, message, &block).by(value)<br />
 should change(receiver, message, &block).from(old).to(new)<br />
@@ -627,8 +656,8 @@ supported).
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000161_source')" id="l_M000161_source">show source</a> ]</p>
-  <div id="M000161_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000168_source')" id="l_M000168_source">show source</a> ]</p>
+  <div id="M000168_source" class="dyn-source">
 <pre>
      <span class="ruby-comment cmt"># File lib/spec/matchers/change.rb, line 148</span>
 148:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">change</span>(<span class="ruby-identifier">receiver</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-identifier">message</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
@@ -638,8 +667,8 @@ supported).
   </div>
 </div>
 </div>
-<div id="M000162" class="method">
-  <div id="M000162_title" class="title">
+<div id="M000169" class="method">
+  <div id="M000169_title" class="title">
     <b>should eql(expected)<br />
 should_not eql(expected)<br />
 </b>
@@ -653,7 +682,7 @@ same object.
 See <a href="http://www.ruby-doc.org/core/classes/Object.html#M001057"
 target="_blank">http://www.ruby-doc.org/core/classes/Object.html#M001057</a>
 for more information about equality in <a
-href="index.html?a=C00000088&name=Ruby">Ruby</a>.
+href="index.html?a=C00000091&name=Ruby">Ruby</a>.
 </p>
 <h2>Examples</h2>
 <pre>
@@ -662,8 +691,8 @@ href="index.html?a=C00000088&name=Ruby">Ruby</a>.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000162_source')" id="l_M000162_source">show source</a> ]</p>
-  <div id="M000162_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000169_source')" id="l_M000169_source">show source</a> ]</p>
+  <div id="M000169_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/eql.rb, line 15</span>
 15:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">eql</span>(<span class="ruby-identifier">expected</span>)
@@ -685,8 +714,8 @@ href="index.html?a=C00000088&name=Ruby">Ruby</a>.
   </div>
 </div>
 </div>
-<div id="M000163" class="method">
-  <div id="M000163_title" class="title">
+<div id="M000170" class="method">
+  <div id="M000170_title" class="title">
     <b>should equal(expected)<br />
 should_not equal(expected)<br />
 </b>
@@ -699,7 +728,7 @@ Passes if actual and expected are the same object (object identity).
 See <a href="http://www.ruby-doc.org/core/classes/Object.html#M001057"
 target="_blank">http://www.ruby-doc.org/core/classes/Object.html#M001057</a>
 for more information about equality in <a
-href="index.html?a=C00000088&name=Ruby">Ruby</a>.
+href="index.html?a=C00000091&name=Ruby">Ruby</a>.
 </p>
 <h2>Examples</h2>
 <pre>
@@ -708,8 +737,8 @@ href="index.html?a=C00000088&name=Ruby">Ruby</a>.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000163_source')" id="l_M000163_source">show source</a> ]</p>
-  <div id="M000163_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000170_source')" id="l_M000170_source">show source</a> ]</p>
+  <div id="M000170_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/equal.rb, line 16</span>
 16:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">equal</span>(<span class="ruby-identifier">expected</span>)
@@ -735,8 +764,8 @@ href="index.html?a=C00000088&name=Ruby">Ruby</a>.
   </div>
 </div>
 </div>
-<div id="M000165" class="method">
-  <div id="M000165_title" class="title">
+<div id="M000172" class="method">
+  <div id="M000172_title" class="title">
     <b>should exist<br />
 should_not exist<br />
 </b>
@@ -747,8 +776,8 @@ Passes if actual.exist?
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000165_source')" id="l_M000165_source">show source</a> ]</p>
-  <div id="M000165_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000172_source')" id="l_M000172_source">show source</a> ]</p>
+  <div id="M000172_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/exist.rb, line 8</span>
  8:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">exist</span>(<span class="ruby-identifier">arg</span>=<span class="ruby-keyword kw">nil</span>)
@@ -762,8 +791,8 @@ Passes if actual.exist?
   </div>
 </div>
 </div>
-<div id="M000168" class="method">
-  <div id="M000168_title" class="title">
+<div id="M000175" class="method">
+  <div id="M000175_title" class="title">
     <b>should have(number).named_collection__or__sugar<br />
 should_not have(number).named_collection__or__sugar<br />
 </b>
@@ -802,22 +831,22 @@ length
   </div>
 <div class="aka">
   This method is also aliased as
-  <a href="index.html?a=M000169&name=have_exactly">have_exactly</a>
+  <a href="index.html?a=M000176&name=have_exactly">have_exactly</a>
 </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000168_source')" id="l_M000168_source">show source</a> ]</p>
-  <div id="M000168_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000175_source')" id="l_M000175_source">show source</a> ]</p>
+  <div id="M000175_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 124</span>
-124:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have</span>(<span class="ruby-identifier">n</span>)
-125:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>)
-126:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 125</span>
+125:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have</span>(<span class="ruby-identifier">n</span>)
+126:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>)
+127:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000170" class="method">
-  <div id="M000170_title" class="title">
+<div id="M000177" class="method">
+  <div id="M000177_title" class="title">
     <b>should have_at_least(number).items<br />
 </b>
   </div>
@@ -828,24 +857,24 @@ Exactly like have() with &gt;=.
 <h2>Warning</h2>
 <p>
 <tt>should_not</tt> <tt><a
-href="index.html?a=M000170&name=have_at_least">have_at_least</a></tt> is
+href="index.html?a=M000177&name=have_at_least">have_at_least</a></tt> is
 not supported
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000170_source')" id="l_M000170_source">show source</a> ]</p>
-  <div id="M000170_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000177_source')" id="l_M000177_source">show source</a> ]</p>
+  <div id="M000177_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 137</span>
-137:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have_at_least</span>(<span class="ruby-identifier">n</span>)
-138:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>, <span class="ruby-identifier">:at_least</span>)
-139:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 138</span>
+138:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have_at_least</span>(<span class="ruby-identifier">n</span>)
+139:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>, <span class="ruby-identifier">:at_least</span>)
+140:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000171" class="method">
-  <div id="M000171_title" class="title">
+<div id="M000178" class="method">
+  <div id="M000178_title" class="title">
     <b>should have_at_most(number).items<br />
 </b>
   </div>
@@ -856,39 +885,39 @@ Exactly like have() with &lt;=.
 <h2>Warning</h2>
 <p>
 <tt>should_not</tt> <tt><a
-href="index.html?a=M000171&name=have_at_most">have_at_most</a></tt> is not
+href="index.html?a=M000178&name=have_at_most">have_at_most</a></tt> is not
 supported
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000171_source')" id="l_M000171_source">show source</a> ]</p>
-  <div id="M000171_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000178_source')" id="l_M000178_source">show source</a> ]</p>
+  <div id="M000178_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 149</span>
-149:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have_at_most</span>(<span class="ruby-identifier">n</span>)
-150:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>, <span class="ruby-identifier">:at_most</span>)
-151:     <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/matchers/have.rb, line 150</span>
+150:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">have_at_most</span>(<span class="ruby-identifier">n</span>)
+151:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">Have</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">n</span>, <span class="ruby-identifier">:at_most</span>)
+152:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000169" class="method">
-  <div id="M000169_title" class="title">
+<div id="M000176" class="method">
+  <div id="M000176_title" class="title">
     <b>have_exactly</b>(n)
   </div>
   <div class="description">
   <p>
-Alias for <a href="index.html?a=M000168&name=have">have</a>
+Alias for <a href="index.html?a=M000175&name=have">have</a>
 </p>
   </div>
 </div>
-<div id="M000173" class="method">
-  <div id="M000173_title" class="title">
+<div id="M000180" class="method">
+  <div id="M000180_title" class="title">
     <b>helper</b>(actual, *_expected_)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000173_source')" id="l_M000173_source">show source</a> ]</p>
-  <div id="M000173_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000180_source')" id="l_M000180_source">show source</a> ]</p>
+  <div id="M000180_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/include.rb, line 25</span>
 25:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">helper</span>(<span class="ruby-identifier">actual</span>, <span class="ruby-operator">*</span><span class="ruby-identifier">_expected_</span>)
@@ -911,8 +940,8 @@ Alias for <a href="index.html?a=M000168&name=have">have</a>
   </div>
 </div>
 </div>
-<div id="M000172" class="method">
-  <div id="M000172_title" class="title">
+<div id="M000179" class="method">
+  <div id="M000179_title" class="title">
     <b>should include(expected)<br />
 should_not include(expected)<br />
 </b>
@@ -934,8 +963,8 @@ found in collection.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000172_source')" id="l_M000172_source">show source</a> ]</p>
-  <div id="M000172_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000179_source')" id="l_M000179_source">show source</a> ]</p>
+  <div id="M000179_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/include.rb, line 19</span>
 19:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">include</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">expected</span>)
@@ -966,13 +995,13 @@ found in collection.
   </div>
 </div>
 </div>
-<div id="M000164" class="method">
-  <div id="M000164_title" class="title">
+<div id="M000171" class="method">
+  <div id="M000171_title" class="title">
     <b>inspect_object</b>(o)
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000164_source')" id="l_M000164_source">show source</a> ]</p>
-  <div id="M000164_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000171_source')" id="l_M000171_source">show source</a> ]</p>
+  <div id="M000171_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/equal.rb, line 22</span>
 22:         <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">inspect_object</span>(<span class="ruby-identifier">o</span>)
@@ -982,8 +1011,8 @@ found in collection.
   </div>
 </div>
 </div>
-<div id="M000174" class="method">
-  <div id="M000174_title" class="title">
+<div id="M000181" class="method">
+  <div id="M000181_title" class="title">
     <b>should match(pattern)<br />
 should_not match(pattern)<br />
 </b>
@@ -999,8 +1028,8 @@ Given a Regexp or String, passes if actual.match(pattern)
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000174_source')" id="l_M000174_source">show source</a> ]</p>
-  <div id="M000174_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000181_source')" id="l_M000181_source">show source</a> ]</p>
+  <div id="M000181_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/match.rb, line 13</span>
 13:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">match</span>(<span class="ruby-identifier">expected</span>)
@@ -1014,58 +1043,74 @@ Given a Regexp or String, passes if actual.match(pattern)
   </div>
 </div>
 </div>
-<div id="M000175" class="method">
-  <div id="M000175_title" class="title">
-    <b>should raise_error()<br />
-should raise_error(NamedError)<br />
-should raise_error(NamedError, String)<br />
-should raise_error(NamedError, Regexp)<br />
-should raise_error() { |error| ... }<br />
-should raise_error(NamedError) { |error| ... }<br />
-should raise_error(NamedError, String) { |error| ... }<br />
-should raise_error(NamedError, Regexp) { |error| ... }<br />
-should_not raise_error()<br />
-should_not raise_error(NamedError)<br />
-should_not raise_error(NamedError, String)<br />
-should_not raise_error(NamedError, Regexp)<br />
+<div id="M000183" class="method">
+  <div id="M000183_title" class="title">
+    <b>raise_error</b>(exception=Exception, message=nil, &amp;block)
+  </div>
+  <div class="description">
+  <p>
+Alias for <a
+href="index.html?a=M000182&name=raise_exception">raise_exception</a>
+</p>
+  </div>
+</div>
+<div id="M000182" class="method">
+  <div id="M000182_title" class="title">
+    <b>should raise_exception()<br />
+should raise_exception(NamedError)<br />
+should raise_exception(NamedError, String)<br />
+should raise_exception(NamedError, Regexp)<br />
+should raise_exception() { |exception| ... }<br />
+should raise_exception(NamedError) { |exception| ... }<br />
+should raise_exception(NamedError, String) { |exception| ... }<br />
+should raise_exception(NamedError, Regexp) { |exception| ... }<br />
+should_not raise_exception()<br />
+should_not raise_exception(NamedError)<br />
+should_not raise_exception(NamedError, String)<br />
+should_not raise_exception(NamedError, Regexp)<br />
 </b>
   </div>
   <div class="description">
   <p>
-With no args, matches if any error is raised. With a named error, matches
-only if that specific error is raised. With a named error and messsage
-specified as a String, matches only if both match. With a named error and
-messsage specified as a Regexp, matches only if both match. Pass an
-optional block to perform extra verifications on the exception matched
+With no args, matches if any exception is raised. With a named exception,
+matches only if that specific exception is raised. With a named exception
+and messsage specified as a String, matches only if both match. With a
+named exception and messsage specified as a Regexp, matches only if both
+match. Pass an optional block to perform extra verifications on the
+exception matched
 </p>
 <h2>Examples</h2>
 <pre>
-  lambda { do_something_risky }.should raise_error
-  lambda { do_something_risky }.should raise_error(PoorRiskDecisionError)
-  lambda { do_something_risky }.should raise_error(PoorRiskDecisionError) { |error| error.data.should == 42 }
-  lambda { do_something_risky }.should raise_error(PoorRiskDecisionError, &quot;that was too risky&quot;)
-  lambda { do_something_risky }.should raise_error(PoorRiskDecisionError, /oo ri/)
+  lambda { do_something_risky }.should raise_exception
+  lambda { do_something_risky }.should raise_exception(PoorRiskDecisionError)
+  lambda { do_something_risky }.should raise_exception(PoorRiskDecisionError) { |exception| exception.data.should == 42 }
+  lambda { do_something_risky }.should raise_exception(PoorRiskDecisionError, &quot;that was too risky&quot;)
+  lambda { do_something_risky }.should raise_exception(PoorRiskDecisionError, /oo ri/)
 
-  lambda { do_something_risky }.should_not raise_error
-  lambda { do_something_risky }.should_not raise_error(PoorRiskDecisionError)
-  lambda { do_something_risky }.should_not raise_error(PoorRiskDecisionError, &quot;that was too risky&quot;)
-  lambda { do_something_risky }.should_not raise_error(PoorRiskDecisionError, /oo ri/)
+  lambda { do_something_risky }.should_not raise_exception
+  lambda { do_something_risky }.should_not raise_exception(PoorRiskDecisionError)
+  lambda { do_something_risky }.should_not raise_exception(PoorRiskDecisionError, &quot;that was too risky&quot;)
+  lambda { do_something_risky }.should_not raise_exception(PoorRiskDecisionError, /oo ri/)
 </pre>
   </div>
+<div class="aka">
+  This method is also aliased as
+  <a href="index.html?a=M000183&name=raise_error">raise_error</a>
+</div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000175_source')" id="l_M000175_source">show source</a> ]</p>
-  <div id="M000175_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000182_source')" id="l_M000182_source">show source</a> ]</p>
+  <div id="M000182_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/raise_error.rb, line 125</span>
-125:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">raise_error</span>(<span class="ruby-identifier">error</span>=<span class="ruby-constant">Exception</span>, <span class="ruby-identifier">message</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
-126:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">RaiseError</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">error</span>, <span class="ruby-identifier">message</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+     <span class="ruby-comment cmt"># File lib/spec/matchers/raise_exception.rb, line 125</span>
+125:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">raise_exception</span>(<span class="ruby-identifier">exception</span>=<span class="ruby-constant">Exception</span>, <span class="ruby-identifier">message</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
+126:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">RaiseException</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">exception</span>, <span class="ruby-identifier">message</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
 127:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000176" class="method">
-  <div id="M000176_title" class="title">
+<div id="M000184" class="method">
+  <div id="M000184_title" class="title">
     <b>should respond_to(*names)<br />
 should_not respond_to(*names)<br />
 </b>
@@ -1078,8 +1123,8 @@ can be Strings or Symbols.
 <h2>Examples</h2>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000176_source')" id="l_M000176_source">show source</a> ]</p>
-  <div id="M000176_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000184_source')" id="l_M000184_source">show source</a> ]</p>
+  <div id="M000184_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/respond_to.rb, line 67</span>
 67:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">respond_to</span>(<span class="ruby-operator">*</span><span class="ruby-identifier">names</span>)
@@ -1089,8 +1134,8 @@ can be Strings or Symbols.
   </div>
 </div>
 </div>
-<div id="M000177" class="method">
-  <div id="M000177_title" class="title">
+<div id="M000185" class="method">
+  <div id="M000185_title" class="title">
     <b>should satisfy {}<br />
 should_not satisfy {}<br />
 </b>
@@ -1116,8 +1161,8 @@ custom matcher, which would likely make your specs more expressive.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000177_source')" id="l_M000177_source">show source</a> ]</p>
-  <div id="M000177_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000185_source')" id="l_M000185_source">show source</a> ]</p>
+  <div id="M000185_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/satisfy.rb, line 43</span>
 43:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">satisfy</span>(<span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
@@ -1127,13 +1172,13 @@ custom matcher, which would likely make your specs more expressive.
   </div>
 </div>
 </div>
-<div id="M000178" class="method">
-  <div id="M000178_title" class="title">
+<div id="M000186" class="method">
+  <div id="M000186_title" class="title">
     <b>simple_matcher</b>(description=nil, &amp;match_block)
   </div>
   <div class="description">
   <p>
-<a href="index.html?a=M000178&name=simple_matcher">simple_matcher</a> makes
+<a href="index.html?a=M000186&name=simple_matcher">simple_matcher</a> makes
 it easy for you to create your own custom matchers in just a few lines of
 code when you don&#8217;t need all the power of a completely custom matcher
 object.
@@ -1159,7 +1204,7 @@ reverse: fail if you use <tt>should</tt> and pass if you use
 An error in the <tt>match_block</tt> will bubble up, resulting in a
 failure.
 </p>
-<h2><a href="index.html?a=C00000062&name=Example">Example</a> with default messages</h2>
+<h2><a href="index.html?a=C00000065&name=Example">Example</a> with default messages</h2>
 <pre>
   def be_even
     simple_matcher(&quot;an even number&quot;) { |given| given % 2 == 0 }
@@ -1180,7 +1225,7 @@ Unfortunately, if you&#8217;re a fan of auto-generated descriptions, this
 will produce &quot;should an even number.&quot; Not the most desirable
 result. You can control that using custom messages:
 </p>
-<h2><a href="index.html?a=C00000062&name=Example">Example</a> with custom messages</h2>
+<h2><a href="index.html?a=C00000065&name=Example">Example</a> with custom messages</h2>
 <pre>
   def rhyme_with(expected)
     simple_matcher(&quot;rhyme with #{expected.inspect}&quot;) do |given, matcher|
@@ -1237,8 +1282,8 @@ pass.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000178_source')" id="l_M000178_source">show source</a> ]</p>
-  <div id="M000178_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000186_source')" id="l_M000186_source">show source</a> ]</p>
+  <div id="M000186_source" class="dyn-source">
 <pre>
      <span class="ruby-comment cmt"># File lib/spec/matchers/simple_matcher.rb, line 129</span>
 129:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">simple_matcher</span>(<span class="ruby-identifier">description</span>=<span class="ruby-keyword kw">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">match_block</span>)
@@ -1248,8 +1293,8 @@ pass.
   </div>
 </div>
 </div>
-<div id="M000179" class="method">
-  <div id="M000179_title" class="title">
+<div id="M000187" class="method">
+  <div id="M000187_title" class="title">
     <b>should throw_symbol()<br />
 should throw_symbol(:sym)<br />
 should throw_symbol(:sym, arg)<br />
@@ -1281,19 +1326,19 @@ Symbol with the specified arg.
 </pre>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000179_source')" id="l_M000179_source">show source</a> ]</p>
-  <div id="M000179_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000187_source')" id="l_M000187_source">show source</a> ]</p>
+  <div id="M000187_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/matchers/throw_symbol.rb, line 100</span>
-100:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">throw_symbol</span>(<span class="ruby-identifier">sym</span>=<span class="ruby-keyword kw">nil</span>)
-101:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">ThrowSymbol</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">sym</span>)
-102:     <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/spec/matchers/throw_symbol.rb, line 96</span>
+96:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">throw_symbol</span>(<span class="ruby-identifier">sym</span>=<span class="ruby-keyword kw">nil</span>)
+97:       <span class="ruby-constant">Matchers</span><span class="ruby-operator">::</span><span class="ruby-constant">ThrowSymbol</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">sym</span>)
+98:     <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000180" class="method">
-  <div id="M000180_title" class="title">
+<div id="M000188" class="method">
+  <div id="M000188_title" class="title">
     <b>wrap_expectation</b>(matcher, &amp;block)
   </div>
   <div class="description">
@@ -1346,8 +1391,8 @@ you&#8217;re all set!
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000180_source')" id="l_M000180_source">show source</a> ]</p>
-  <div id="M000180_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000188_source')" id="l_M000188_source">show source</a> ]</p>
+  <div id="M000188_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/spec/matchers/wrap_expectation.rb, line 45</span>
 45:     <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">wrap_expectation</span>(<span class="ruby-identifier">matcher</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">block</span>)
