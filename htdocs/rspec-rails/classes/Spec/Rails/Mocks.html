@@ -50,13 +50,14 @@ add_stubs) if <tt>stubs</tt> is passed.
 14:           <span class="ruby-identifier">:id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">id</span>,
 15:           <span class="ruby-identifier">:to_param</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">id</span>.<span class="ruby-identifier">to_s</span>,
 16:           <span class="ruby-identifier">:new_record?</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">false</span>,
-17:           <span class="ruby-identifier">:errors</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">stub</span>(<span class="ruby-value str">&quot;errors&quot;</span>, <span class="ruby-identifier">:count</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>)
-18:         })
-19:         <span class="ruby-identifier">m</span> = <span class="ruby-identifier">mock</span>(<span class="ruby-node">&quot;#{model_class.name}_#{id}&quot;</span>, <span class="ruby-identifier">options_and_stubs</span>)
-20:         <span class="ruby-identifier">m</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:__mock_proxy</span>).<span class="ruby-identifier">instance_eval</span> <span class="ruby-value str">&quot;def @target.as_new_record\nself.stub!(:id).and_return nil\nself.stub!(:to_param).and_return nil\nself.stub!(:new_record?).and_return true\nself\nend\ndef @target.is_a?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.kind_of?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.instance_of?(other)\nother == \#{model_class}\nend\ndef @target.class\n\#{model_class}\nend\n&quot;</span>
-21:         <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">m</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
-22:         <span class="ruby-identifier">m</span>
-23:       <span class="ruby-keyword kw">end</span>
+17:           <span class="ruby-identifier">:destroyed?</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-keyword kw">false</span>,
+18:           <span class="ruby-identifier">:errors</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">stub</span>(<span class="ruby-value str">&quot;errors&quot;</span>, <span class="ruby-identifier">:count</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-value">0</span>)
+19:         })
+20:         <span class="ruby-identifier">m</span> = <span class="ruby-identifier">mock</span>(<span class="ruby-node">&quot;#{model_class.name}_#{id}&quot;</span>, <span class="ruby-identifier">options_and_stubs</span>)
+21:         <span class="ruby-identifier">m</span>.<span class="ruby-identifier">__send__</span>(<span class="ruby-identifier">:__mock_proxy</span>).<span class="ruby-identifier">instance_eval</span> <span class="ruby-value str">&quot;def @target.as_new_record\nself.stub!(:id).and_return nil\nself.stub!(:to_param).and_return nil\nself.stub!(:new_record?).and_return true\nself\nend\ndef @target.is_a?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.kind_of?(other)\n\#{model_class}.ancestors.include?(other)\nend\ndef @target.instance_of?(other)\nother == \#{model_class}\nend\ndef @target.class\n\#{model_class}\nend\n&quot;</span>
+22:         <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">m</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+23:         <span class="ruby-identifier">m</span>
+24:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
@@ -114,21 +115,21 @@ the database, take a look at libraries like unit_record or NullDB.
   <p class="source-link">[ <a href="javascript:toggleSource('M000013_source')" id="l_M000013_source">show source</a> ]</p>
   <div id="M000013_source" class="dyn-source">
 <pre>
-     <span class="ruby-comment cmt"># File lib/spec/rails/mocks.rb, line 98</span>
- 98:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stub_model</span>(<span class="ruby-identifier">model_class</span>, <span class="ruby-identifier">stubs</span>={})
- 99:         <span class="ruby-identifier">stubs</span> = {<span class="ruby-identifier">:id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">next_id</span>}.<span class="ruby-identifier">merge</span>(<span class="ruby-identifier">stubs</span>)
-100:         <span class="ruby-identifier">returning</span> <span class="ruby-identifier">model_class</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">model</span><span class="ruby-operator">|</span>
-101:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">id</span> = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">:id</span>)
-102:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">extend</span> <span class="ruby-constant">ModelStubber</span>
-103:           <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">k</span>,<span class="ruby-identifier">v</span><span class="ruby-operator">|</span>
-104:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">model</span>.<span class="ruby-identifier">has_attribute?</span>(<span class="ruby-identifier">k</span>)
-105:               <span class="ruby-identifier">model</span>[<span class="ruby-identifier">k</span>] = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">k</span>)
-106:             <span class="ruby-keyword kw">end</span>
-107:           <span class="ruby-keyword kw">end</span>
-108:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">stub!</span>(<span class="ruby-identifier">stubs</span>)
-109:           <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">model</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
-110:         <span class="ruby-keyword kw">end</span>
-111:       <span class="ruby-keyword kw">end</span>
+     <span class="ruby-comment cmt"># File lib/spec/rails/mocks.rb, line 99</span>
+ 99:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">stub_model</span>(<span class="ruby-identifier">model_class</span>, <span class="ruby-identifier">stubs</span>={})
+100:         <span class="ruby-identifier">stubs</span> = {<span class="ruby-identifier">:id</span> =<span class="ruby-operator">&gt;</span> <span class="ruby-identifier">next_id</span>}.<span class="ruby-identifier">merge</span>(<span class="ruby-identifier">stubs</span>)
+101:         <span class="ruby-identifier">returning</span> <span class="ruby-identifier">model_class</span>.<span class="ruby-identifier">new</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">model</span><span class="ruby-operator">|</span>
+102:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">id</span> = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">:id</span>)
+103:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">extend</span> <span class="ruby-constant">ModelStubber</span>
+104:           <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">k</span>,<span class="ruby-identifier">v</span><span class="ruby-operator">|</span>
+105:             <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">model</span>.<span class="ruby-identifier">has_attribute?</span>(<span class="ruby-identifier">k</span>)
+106:               <span class="ruby-identifier">model</span>[<span class="ruby-identifier">k</span>] = <span class="ruby-identifier">stubs</span>.<span class="ruby-identifier">delete</span>(<span class="ruby-identifier">k</span>)
+107:             <span class="ruby-keyword kw">end</span>
+108:           <span class="ruby-keyword kw">end</span>
+109:           <span class="ruby-identifier">model</span>.<span class="ruby-identifier">stub!</span>(<span class="ruby-identifier">stubs</span>)
+110:           <span class="ruby-keyword kw">yield</span> <span class="ruby-identifier">model</span> <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">block_given?</span>
+111:         <span class="ruby-keyword kw">end</span>
+112:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
