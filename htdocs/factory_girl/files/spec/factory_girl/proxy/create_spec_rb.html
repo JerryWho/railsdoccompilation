@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'spec_helper'))
+    <pre>require 'spec_helper'
 
 describe Factory::Proxy::Create do
   before do
@@ -61,6 +61,12 @@ describe Factory::Proxy::Create do
 
   describe &quot;when asked for the result&quot; do
     before do
+      @build_spy = Object.new
+      @create_spy = Object.new
+      stub(@build_spy).foo
+      stub(@create_spy).foo
+      @proxy.add_callback(:after_build,  proc{ @build_spy.foo })
+      @proxy.add_callback(:after_create, proc{ @create_spy.foo })
       @result = @proxy.result
     end
 
@@ -70,6 +76,11 @@ describe Factory::Proxy::Create do
 
     it &quot;should return the built instance&quot; do
       @result.should == @instance
+    end
+
+    it &quot;should run both the build and the create callbacks&quot; do
+      @build_spy.should have_received.foo
+      @create_spy.should have_received.foo
     end
   end
 

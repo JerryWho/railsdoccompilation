@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,7 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'spec_helper'))
+    <pre>require 'spec_helper'
 
 describe Factory::Proxy::Stub do
   before do
@@ -62,8 +62,18 @@ describe Factory::Proxy::Stub do
       @stub.association(:user).should == @user
     end
 
-    it &quot;should return the actual instance when asked for the result&quot; do
-      @stub.result.should == @instance
+    describe &quot;when asked for the result&quot; do
+      it &quot;should return the actual instance&quot; do
+        @stub.result.should == @instance
+      end
+
+      it &quot;should run the :after_stub callback&quot; do
+        @spy = Object.new
+        stub(@spy).foo
+        @stub.add_callback(:after_stub, proc{ @spy.foo })
+        @stub.result
+        @spy.should have_received.foo
+      end
     end
   end
 

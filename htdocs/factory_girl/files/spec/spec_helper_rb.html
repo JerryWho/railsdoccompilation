@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Nov 27 19:50:25 +0100 2009</td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,23 +15,47 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>$: &lt;&lt; File.join(File.dirname(__FILE__), '..', 'lib')
-$: &lt;&lt; File.join(File.dirname(__FILE__))
+    <pre>$LOAD_PATH &lt;&lt; File.join(File.dirname(__FILE__), '..', 'lib')
+$LOAD_PATH &lt;&lt; File.join(File.dirname(__FILE__))
 
 require 'rubygems'
-
-require 'activerecord'
-
 require 'spec'
 require 'spec/autorun'
 require 'rr'
-
-require 'models'
 
 require 'factory_girl'
 
 Spec::Runner.configure do |config|
   config.mock_with RR::Adapters::Rspec
+end
+
+share_as :DefinesConstants do
+  before do
+    @defined_constants = []
+  end
+
+  after do
+    @defined_constants.reverse.each do |path|
+      namespace, class_name = *constant_path(path)
+      namespace.send(:remove_const, class_name)
+    end
+  end
+
+  def define_constant(path, base = Object, &amp;block)
+    namespace, class_name = *constant_path(path)
+    klass = Class.new(base)
+    namespace.const_set(class_name, klass)
+    klass.class_eval(&amp;block) if block_given?
+    @defined_constants &lt;&lt; path
+    klass
+  end
+
+  def constant_path(constant_name)
+    names = constant_name.split('::')
+    class_name = names.pop
+    namespace = names.inject(Object) { |result, name| result.const_get(name) }
+    [namespace, class_name]
+  end
 end
 </pre>
     </div>

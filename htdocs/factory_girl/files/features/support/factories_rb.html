@@ -1,0 +1,81 @@
+  <div id="fileHeader">
+    <h1>factories.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>features/support/factories.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:16:43 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>ActiveRecord::Base.establish_connection(
+  :adapter  =&gt; 'sqlite3',
+  :database =&gt; File.join(File.dirname(__FILE__), 'test.db')
+)
+
+class CreateSchema &lt; ActiveRecord::Migration
+  def self.up
+    create_table :posts, :force =&gt; true do |t|
+      t.integer :author_id
+      t.integer :category_id
+      t.string  :title
+      t.string  :body
+    end
+
+    create_table :categories, :force =&gt; true do |t|
+      t.string :name
+    end
+
+    create_table :users, :force =&gt; true do |t|
+      t.string  :name
+      t.boolean :admin, :default =&gt; false, :null =&gt; false
+    end
+  end
+end
+
+CreateSchema.suppress_messages { CreateSchema.migrate(:up) }
+
+class User &lt; ActiveRecord::Base
+end
+
+class Category &lt; ActiveRecord::Base
+end
+
+class Post &lt; ActiveRecord::Base
+  belongs_to :author, :class_name =&gt; 'User'
+  belongs_to :category
+end
+
+class NonActiveRecord
+end
+
+Factory.define :user do |f|
+end
+
+Factory.define :admin_user, :parent =&gt; :user do |f|
+  f.admin true
+end
+
+Factory.define :category do |f|
+  f.name &quot;programming&quot;
+end
+
+Factory.define :post do |f|
+  f.association :author, :factory =&gt; :user
+  f.association :category
+end
+
+# This is here to ensure that factory step definitions don't raise for a non-AR factory
+Factory.define :non_active_record do |f|
+end
+
+require 'factory_girl/step_definitions'
+</pre>
+    </div>

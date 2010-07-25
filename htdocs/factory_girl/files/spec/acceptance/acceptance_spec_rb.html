@@ -1,0 +1,324 @@
+  <div id="fileHeader">
+    <h1>acceptance_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/acceptance/acceptance_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'spec_helper'
+require 'acceptance/acceptance_helper'
+
+describe &quot;integration&quot; do
+  before do
+    Factory.define :user, :class =&gt; 'user' do |f|
+      f.first_name 'Jimi'
+      f.last_name  'Hendrix'
+      f.admin       false
+      f.email {|a| &quot;#{a.first_name}.#{a.last_name}@example.com&quot;.downcase }
+    end
+
+    Factory.define Post, :default_strategy =&gt; :attributes_for do |f|
+      f.name   'Test Post'
+      f.association :author, :factory =&gt; :user
+    end
+
+    Factory.define :admin, :class =&gt; User do |f|
+      f.first_name 'Ben'
+      f.last_name  'Stein'
+      f.admin       true
+      f.sequence(:username) { |n| &quot;username#{n}&quot; }
+      f.email { Factory.next(:email) }
+    end
+
+    Factory.define :sequence_abuser, :class =&gt; User do |f|
+      f.first_name { Factory.sequence(:email) }
+    end
+
+    Factory.define :guest, :parent =&gt; :user do |f|
+      f.last_name 'Anonymous'
+      f.username  'GuestUser'
+    end
+
+    Factory.define :user_with_callbacks, :parent =&gt; :user do |f|
+      f.after_stub   {|u| u.first_name = 'Stubby' }
+      f.after_build  {|u| u.first_name = 'Buildy' }
+      f.after_create {|u| u.last_name  = 'Createy' }
+    end
+
+    Factory.define :user_with_inherited_callbacks, :parent =&gt; :user_with_callbacks do |f|
+      f.callback(:after_stub) {|u| u.last_name = 'Double-Stubby' }
+    end
+
+    Factory.define :business do |f|
+      f.name 'Supplier of Awesome'
+      f.association :owner, :factory =&gt; :user
+    end
+
+    Factory.sequence :email do |n|
+      &quot;somebody#{n}@example.com&quot;
+    end
+  end
+
+  after do
+    Factory.factories.clear
+  end
+
+  describe &quot;a generated attributes hash&quot; do
+
+    before do
+      @attrs = Factory.attributes_for(:user, :first_name =&gt; 'Bill')
+    end
+
+    it &quot;should assign all attributes&quot; do
+      expected_attrs = [:admin, :email, :first_name, :last_name]
+      actual_attrs = @attrs.keys.sort {|a, b| a.to_s &lt;=&gt; b.to_s }
+      actual_attrs.should == expected_attrs
+    end
+
+    it &quot;should correctly assign lazy, dependent attributes&quot; do
+      @attrs[:email].should == &quot;bill.hendrix@example.com&quot;
+    end
+
+    it &quot;should override attrbutes&quot; do
+      @attrs[:first_name].should == 'Bill'
+    end
+
+    it &quot;should not assign associations&quot; do
+      Factory.attributes_for(:post)[:author].should be_nil
+    end
+
+  end
+
+  describe &quot;a built instance&quot; do
+
+    before do
+      @instance = Factory.build(:post)
+    end
+
+    it &quot;should not be saved&quot; do
+      @instance.should be_new_record
+    end
+
+    it &quot;should assign associations&quot; do
+      @instance.author.should be_kind_of(User)
+    end
+
+    it &quot;should save associations&quot; do
+      @instance.author.should_not be_new_record
+    end
+
+    it &quot;should not assign both an association and its foreign key&quot; do
+      Factory.build(:post, :author_id =&gt; 1).author_id.should == 1
+    end
+
+  end
+
+  describe &quot;a created instance&quot; do
+
+    before do
+      @instance = Factory.create('post')
+    end
+
+    it &quot;should be saved&quot; do
+      @instance.should_not be_new_record
+    end
+
+    it &quot;should assign associations&quot; do
+      @instance.author.should be_kind_of(User)
+    end
+
+    it &quot;should save associations&quot; do
+      @instance.author.should_not be_new_record
+    end
+
+  end
+
+  describe &quot;a generated stub instance&quot; do
+
+    before do
+      @stub = Factory.stub(:user, :first_name =&gt; 'Bill')
+    end
+
+    it &quot;should assign all attributes&quot; do
+      [:admin, :email, :first_name, :last_name].each do |attr|
+        @stub.send(attr).should_not be_nil
+      end
+    end
+
+    it &quot;should correctly assign attributes&quot; do
+      @stub.email.should == &quot;bill.hendrix@example.com&quot;
+    end
+
+    it &quot;should override attributes&quot; do
+      @stub.first_name.should == 'Bill'
+    end
+
+    it &quot;should assign associations&quot; do
+      Factory.stub(:post).author.should_not be_nil
+    end
+
+    it &quot;should have an id&quot; do
+      @stub.id.should &gt; 0
+    end
+
+    it &quot;should have unique IDs&quot; do
+      @other_stub = Factory.stub(:user)
+      @stub.id.should_not == @other_stub.id
+    end
+
+    it &quot;should not be considered a new record&quot; do
+      @stub.should_not be_new_record
+    end
+
+    it &quot;should raise exception if connection to the database is attempted&quot; do
+      lambda { @stub.connection }.should raise_error(RuntimeError)
+      lambda { @stub.update_attribute(:first_name, &quot;Nick&quot;) }.should raise_error(RuntimeError)
+      lambda { @stub.reload }.should raise_error(RuntimeError)
+      lambda { @stub.destroy }.should raise_error(RuntimeError)
+      lambda { @stub.save }.should raise_error(RuntimeError)
+      lambda { @stub.increment!(:age) }.should raise_error(RuntimeError)
+    end
+  end
+
+  describe &quot;an instance generated by a factory with a custom class name&quot; do
+
+    before do
+      @instance = Factory.create(:admin)
+    end
+
+    it &quot;should use the correct class name&quot; do
+      @instance.should be_kind_of(User)
+    end
+
+    it &quot;should use the correct factory definition&quot; do
+      @instance.should be_admin
+    end
+
+  end
+
+  describe &quot;an instance generated by a factory that inherits from another factory&quot; do
+    before do
+      @instance = Factory.create(:guest)
+    end
+
+    it &quot;should use the class name of the parent factory&quot; do
+      @instance.should be_kind_of(User)
+    end
+
+    it &quot;should have attributes of the parent&quot; do
+      @instance.first_name.should == 'Jimi'
+    end
+
+    it &quot;should have attributes defined in the factory itself&quot; do
+      @instance.username.should == 'GuestUser'
+    end
+
+    it &quot;should have attributes that have been overriden&quot; do
+      @instance.last_name.should == 'Anonymous'
+    end
+  end
+
+  describe &quot;an attribute generated by a sequence&quot; do
+
+    before do
+      @email = Factory.attributes_for(:admin)[:email]
+    end
+
+    it &quot;should match the correct format&quot; do
+      @email.should =~ /^somebody\d+@example\.com$/
+    end
+
+    describe &quot;after the attribute has already been generated once&quot; do
+
+      before do
+        @another_email = Factory.attributes_for(:admin)[:email]
+      end
+
+      it &quot;should match the correct format&quot; do
+        @email.should =~ /^somebody\d+@example\.com$/
+      end
+
+      it &quot;should not be the same as the first generated value&quot; do
+        @another_email.should_not == @email
+      end
+
+    end
+
+  end
+
+  describe &quot;an attribute generated by an in-line sequence&quot; do
+
+    before do
+      @username = Factory.attributes_for(:admin)[:username]
+    end
+
+    it &quot;should match the correct format&quot; do
+      @username.should =~ /^username\d+$/
+    end
+
+    describe &quot;after the attribute has already been generated once&quot; do
+
+      before do
+        @another_username = Factory.attributes_for(:admin)[:username]
+      end
+
+      it &quot;should match the correct format&quot; do
+        @username.should =~ /^username\d+$/
+      end
+
+      it &quot;should not be the same as the first generated value&quot; do
+        @another_username.should_not == @username
+      end
+
+    end
+
+  end
+
+  describe &quot;a factory with a default strategy specified&quot; do
+    it &quot;should generate instances according to the strategy&quot; do
+      Factory(:post).should be_kind_of(Hash)
+    end
+  end
+
+  it &quot;should raise Factory::SequenceAbuseError&quot; do
+    lambda {
+      Factory(:sequence_abuser)
+    }.should raise_error(Factory::SequenceAbuseError)
+  end
+
+  describe &quot;an instance with callbacks&quot; do
+    it &quot;should run the after_stub callback when stubbing&quot; do
+      @user = Factory.stub(:user_with_callbacks)
+      @user.first_name.should == 'Stubby'
+    end
+
+    it &quot;should run the after_build callback when building&quot; do
+      @user = Factory.build(:user_with_callbacks)
+      @user.first_name.should == 'Buildy'
+    end
+
+    it &quot;should run both the after_build and after_create callbacks when creating&quot; do
+      @user = Factory(:user_with_callbacks)
+      @user.first_name.should == 'Buildy'
+      @user.last_name.should == 'Createy'
+    end
+
+    it &quot;should run both the after_stub callback on the factory and the inherited after_stub callback&quot; do
+      @user = Factory.stub(:user_with_inherited_callbacks)
+      @user.first_name.should == 'Stubby'
+      @user.last_name.should == 'Double-Stubby'
+    end
+  end
+end
+</pre>
+    </div>

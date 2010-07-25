@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:04:57 +0100 2009</td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,9 +15,18 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
+    <pre>require 'spec_helper'
 
 describe Factory do
+  include DefinesConstants
+
+  before do
+    define_constant('User')
+    define_constant('Admin', User)
+    define_constant('Business')
+    define_constant('Admin::Settings')
+  end
+
   describe &quot;defining a factory&quot; do
     before do
       @name    = :user
@@ -26,6 +35,8 @@ describe Factory do
       @options = { :class =&gt; 'magic' }
       stub(Factory).new { @factory }
     end
+
+    after { Factory.factories.clear }
 
     it &quot;should create a new factory using the specified name and options&quot; do
       mock(Factory).new(@name, @options) { @factory }
@@ -44,6 +55,18 @@ describe Factory do
       Factory.define(@name) {|f| }
       @factory.should == Factory.factories[@name]
     end
+
+    it &quot;should allow a factory to be found by name&quot; do
+      Factory.define(@name) {|f| }
+      Factory.factory_by_name(@name).should == @factory
+    end
+
+    it &quot;should not allow a duplicate factory definition&quot; do
+      lambda {
+        2.times { Factory.define(@name) {|f| } }
+      }.should raise_error(Factory::DuplicateDefinitionError)
+    end
+
   end
 
   describe &quot;a factory&quot; do
@@ -63,6 +86,36 @@ describe Factory do
 
     it &quot;should have a default strategy&quot; do
       @factory.default_strategy.should == :create
+    end
+
+    it &quot;should return static attribute  when asked for a type&quot; do
+      result = @factory.type
+      result.should be_kind_of(Array)
+      result.first.should be_kind_of(Factory::Attribute::Static)
+      result.first.name.should == :type
+    end
+
+    it &quot;should define type as an attribute&quot; do
+      @factory.type { &quot;it's a type&quot; }
+      attributes = @factory.attributes
+      attributes.should be_kind_of(Array)
+      attributes.size.should == 1
+      attributes.first.name.should == :type
+    end
+
+    it &quot;should return static attribute when asked for the id&quot; do
+      result = @factory.id
+      result.should be_kind_of(Array)
+      result.first.should be_kind_of(Factory::Attribute::Static)
+      result.first.name.should == :id
+    end
+
+    it &quot;should define id as an attribute&quot; do
+      @factory.id { &quot;it's an id&quot; }
+      attributes = @factory.attributes
+      attributes.should be_kind_of(Array)
+      attributes.size.should == 1
+      attributes.first.name.should == :id
     end
 
     it &quot;should not allow the same attribute to be added twice&quot; do
@@ -107,6 +160,38 @@ describe Factory do
       end
     end
 
+    describe &quot;adding a callback&quot; do
+      it &quot;should add a callback attribute when the after_build attribute is defined&quot; do
+        mock(Factory::Attribute::Callback).new(:after_build, is_a(Proc)) { 'after_build callback' }
+        @factory.after_build {}
+        @factory.attributes.should include('after_build callback')
+      end
+
+      it &quot;should add a callback attribute when the after_create attribute is defined&quot; do
+        mock(Factory::Attribute::Callback).new(:after_create, is_a(Proc)) { 'after_create callback' }
+        @factory.after_create {}
+        @factory.attributes.should include('after_create callback')
+      end
+
+      it &quot;should add a callback attribute when the after_stub attribute is defined&quot; do
+        mock(Factory::Attribute::Callback).new(:after_stub, is_a(Proc)) { 'after_stub callback' }
+        @factory.after_stub {}
+        @factory.attributes.should include('after_stub callback')
+      end
+
+      it &quot;should add a callback attribute when defining a callback&quot; do
+        mock(Factory::Attribute::Callback).new(:after_create, is_a(Proc)) { 'after_create callback' }
+        @factory.callback(:after_create) {}
+        @factory.attributes.should include('after_create callback')
+      end
+
+      it &quot;should raise an InvalidCallbackNameError when defining a callback with an invalid name&quot; do
+        lambda{
+          @factory.callback(:invalid_callback_name) {}
+        }.should raise_error(Factory::InvalidCallbackNameError)
+      end
+    end
+
     describe &quot;after adding an attribute&quot; do
       before do
         @attribute = &quot;attribute&quot;
@@ -145,6 +230,16 @@ describe Factory do
       mock(Factory::Attribute::Association).new(name, name, {}) { attr }
       factory.association(name)
       factory.attributes.should include(attr)
+    end
+
+    it &quot;should return associations&quot; do
+      factory = Factory.new(:post)
+      factory.association(:author)
+      factory.association(:editor)
+      factory.associations.each do |association|
+        association.should be_a(Factory::Attribute::Association)
+      end
+      factory.associations.size.should == 2
     end
 
     it &quot;should add an association with overrides&quot; do
@@ -187,6 +282,21 @@ describe Factory do
       mock(Factory::Attribute::Static).new(:name, 'value') { attribute }
       @factory.send(:name, 'value')
       @factory.attributes.should include(attribute)
+    end
+
+    it &quot;should allow human_name as a static attribute name&quot; do
+      attribute = 'attribute'
+      stub(attribute).name { :name }
+      mock(Factory::Attribute::Static).new(:human_name, 'value') { attribute}
+      @factory.human_name 'value'
+    end
+
+    it &quot;should allow human_name as a dynamic attribute name&quot; do
+      attribute = 'attribute'
+      stub(attribute).name { :name }
+      block     = lambda {}
+      mock(Factory::Attribute::Dynamic).new(:human_name, block) { attribute }
+      @factory.human_name(&amp;block)
     end
 
     describe &quot;when overriding generated attributes with a hash&quot; do
@@ -314,6 +424,24 @@ describe Factory do
     end
   end
 
+  describe &quot;a factory for namespaced class&quot; do
+    before do
+      Factory.factories = {}
+      @name  = :settings
+      @class = Admin::Settings
+    end
+
+    it &quot;should build namespaced class passed by string&quot; do
+      factory = Factory.define(@name.to_s, :class =&gt; @class.name) {}
+      factory.build_class.should == @class
+    end
+
+    it &quot;should build Admin::Settings class from Admin::Settings string&quot; do
+      factory = Factory.define(@name.to_s, :class =&gt; 'admin/settings') {}
+      factory.build_class.should == @class
+    end
+  end
+
   describe &quot;after defining a factory&quot; do
     before do
       @name    = :user
@@ -376,6 +504,8 @@ describe Factory do
       end
     end
 
+    after { Factory.factories.clear }
+
     it &quot;should raise an ArgumentError when trying to use a non-existent factory as parent&quot; do
       lambda {
         Factory.define(:child, :parent =&gt; :nonexsitent) {}
@@ -414,6 +544,20 @@ describe Factory do
       child.attributes.size.should == 1
       child.attributes.first.should be_kind_of(Factory::Attribute::Dynamic)
     end
+
+    it &quot;inherit all callbacks&quot; do
+      Factory.define(:child, :parent =&gt; :object) do |f|
+        f.after_stub {|o| o.name = 'Stubby' }
+      end
+
+      grandchild = Factory.define(:grandchild, :parent =&gt; :child) do |f|
+        f.after_stub {|o| o.name = &quot;#{o.name} McStubby&quot; }
+      end
+
+      grandchild.attributes.size.should == 3
+      grandchild.attributes.first.should be_kind_of(Factory::Attribute::Callback)
+      grandchild.attributes[1].should be_kind_of(Factory::Attribute::Callback)
+    end
   end
 
   describe 'defining a factory with a default strategy parameter' do
@@ -426,6 +570,26 @@ describe Factory do
     it &quot;should create a new factory with a specified default strategy&quot; do
       factory = Factory.define(:object, :default_strategy =&gt; :stub) {}
       factory.default_strategy.should == :stub
+    end
+
+    describe 'defining a child factory without setting default strategy' do
+      before do
+        @child = Factory.define(:child_object, :parent =&gt; :object) {}
+      end
+
+      it &quot;should inherit default strategy from its parent&quot; do
+        @child.default_strategy.should == :stub
+      end
+    end
+
+    describe 'defining a child factory with a default strategy' do
+      before do
+        @child2 = Factory.define(:child_object2, :parent =&gt; :object, :default_strategy =&gt; :build) {}
+      end
+
+      it &quot;should not inherit default strategy from parent&quot; do
+        @child2.default_strategy.should == :build
+      end
     end
   end
 
@@ -451,7 +615,7 @@ describe Factory do
 
   def require_definitions_from(file)
     simple_matcher do |given, matcher|
-      has_received = have_received.require(file)
+      has_received = have_received.method_missing(:require, file)
       result = has_received.matches?(given)
       matcher.description = &quot;require definitions from #{file}&quot;
       matcher.failure_message = has_received.failure_message
@@ -504,6 +668,12 @@ describe Factory do
       it { should require_definitions_from(&quot;#{dir}/factories/person_factory.rb&quot;) }
     end
   end
+
+  it &quot;should return the factory name without underscores for the human name&quot; do
+    factory = Factory.new(:name_with_underscores)
+    factory.human_name.should == 'name with underscores'
+  end
+
 end
 </pre>
     </div>

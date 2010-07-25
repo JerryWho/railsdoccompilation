@@ -1,0 +1,76 @@
+  <div id="fileHeader">
+    <h1>generate_spec.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>spec/acceptance/syntax/generate_spec.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:17:10 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'spec_helper'
+
+require 'factory_girl/syntax/generate'
+
+describe &quot;a factory using generate syntax&quot; do
+  before do
+    Factory.define :user do |factory|
+      factory.first_name 'Bill'
+      factory.last_name  'Nye'
+      factory.email      'science@guys.net'
+    end
+  end
+
+  after do
+    Factory.factories.clear
+  end
+
+  it &quot;should not raise an error when generating an invalid instance&quot; do
+    lambda { User.generate(:first_name =&gt; nil) }.should_not raise_error
+  end
+
+  it &quot;should raise an error when forcefully generating an invalid instance&quot; do
+    lambda { User.generate!(:first_name =&gt; nil) }.should raise_error(ActiveRecord::RecordInvalid)
+  end
+
+  %w(generate generate! spawn).each do |method|
+    it &quot;should yield a generated instance when using #{method} with a block&quot; do
+      saved_instance = nil
+      User.send(method) {|instance| saved_instance = instance }
+      saved_instance.should be_kind_of(User)
+    end
+
+    describe &quot;after generating an instance using #{method}&quot; do
+      before do
+        @instance = User.send(method, :last_name =&gt; 'Rye')
+      end
+
+      it &quot;should use attributes from the factory&quot; do
+        @instance.first_name.should == 'Bill'
+      end
+
+      it &quot;should use attributes passed to generate&quot; do
+        @instance.last_name.should == 'Rye'
+      end
+
+      if method == 'spawn'
+        it &quot;should not save the record&quot; do
+          @instance.should be_new_record
+        end
+      else
+        it &quot;should save the record&quot; do
+          @instance.should_not be_new_record
+        end
+      end
+    end
+  end
+end
+</pre>
+    </div>
