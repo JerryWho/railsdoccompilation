@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Wed Dec 16 18:19:07 +0100 2009</td>
+      <td>Sun Jul 25 18:23:21 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,9 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require File.expand_path(File.dirname(__FILE__) + &quot;/../../spec_helper&quot;)
+    <pre># -*- encoding: utf-8 -*-
+
+require File.expand_path(File.dirname(__FILE__) + &quot;/../../spec_helper&quot;)
 
 def World(*a); end
 require 'cucumber/web/tableish'
@@ -24,7 +26,7 @@ module Cucumber
   module Web
     describe Tableish do
       include Tableish
-      
+
       unless RUBY_PLATFORM =~ /java/
         it &quot;should convert a table&quot; do
           html = &lt;&lt;-HTML
@@ -73,9 +75,9 @@ module Cucumber
           HTML
 
           _tableish(html, 'table#tools tr', 'td,th').should == [
-            %w{tool dude},
-            %w{webrat bryan},
-            %w{cucumber aslak}
+            ['tool',     'dude',],
+            ['webrat',   'bryan'],
+            ['cucumber', 'aslak']
           ]
         end
 
@@ -101,6 +103,36 @@ module Cucumber
             %w{webrat bryan},
             ['cucumber', '']
           ]
+        end
+
+        it &quot;should handle colspan and rowspan&quot; do
+          html = &lt;&lt;-HTML
+            &lt;table id=&quot;tools&quot;&gt;
+              &lt;tr&gt;
+                &lt;td rowspan=&quot;4&quot;&gt;a&lt;/td&gt;
+                &lt;td&gt;b&lt;/td&gt;
+                &lt;td&gt;c&lt;/td&gt;
+                &lt;td&gt;d&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td colspan=&quot;3&quot;&gt;e&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td rowspan=&quot;2&quot; colspan=&quot;2&quot;&gt;f&lt;/td&gt;
+                &lt;td&gt;g&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr&gt;
+                &lt;td&gt;h&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/table&gt;
+          HTML
+
+          _tableish(html, 'table#tools tr', 'td,th').should == [
+            ['a', 'b', 'c', 'd'],
+            ['',  'e', '',  '' ],
+            ['',  'f', '',  'g' ],
+            ['',  '',  '',  'h' ],
+           ]
         end
 
         it &quot;should convert a dl&quot; do
@@ -140,8 +172,40 @@ module Cucumber
             %w{aslak},
           ]
         end
+
+        it &quot;should do complex shit&quot; do
+          html = &lt;&lt;-HTML
+            &lt;form method=&quot;post&quot; action=&quot;/invoices/10/approve&quot; class=&quot;button-to&quot;&gt;
+              &lt;div&gt;
+                &lt;input id=&quot;approve_invoice_10&quot; type=&quot;submit&quot; value=&quot;Approve&quot; /&gt;
+                &lt;input name=&quot;authenticity_token&quot; type=&quot;hidden&quot; value=&quot;WxKGVy3Y5zcvFEiFe66D/odoc3CicfMdAup4vzQfiZ0=&quot; /&gt;
+                &lt;span&gt;Hello&amp;nbsp;World&lt;span&gt;
+              &lt;/div&gt;
+            &lt;/form&gt;
+            &lt;form method=&quot;post&quot; action=&quot;/invoices/10/delegate&quot; class=&quot;button-to&quot;&gt;
+              &lt;div&gt;
+                &lt;input id=&quot;delegate_invoice_10&quot; type=&quot;submit&quot; value=&quot;Delegate&quot; /&gt;
+                &lt;input name=&quot;authenticity_token&quot; type=&quot;hidden&quot; value=&quot;WxKGVy3Y5zcvFEiFe66D/odoc3CicfMdAup4vzQfiZ0=&quot; /&gt;
+                &lt;span&gt;Hi There&lt;span&gt;
+              &lt;/div&gt;
+            &lt;/form&gt;
+          HTML
+
+          selectors = lambda do |form|
+            [
+              form.css('div input:nth-child(1)').first.attributes['value'],
+              form.css('span').first.text.gsub(/\302\240/, ' ')
+            ]
+          end
+
+          _tableish(html, 'form', selectors).should == [
+            ['Approve', &quot;Hello World&quot;],
+            ['Delegate', 'Hi There']
+          ]
+        end
       end
     end
   end
-end</pre>
+end
+</pre>
     </div>

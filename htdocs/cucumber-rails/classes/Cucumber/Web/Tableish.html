@@ -1,0 +1,182 @@
+  <div id="C00000020">
+<div class='banner'>
+  <span class="file-title-prefix">Module</span><br />Tableish<br/>
+  In:
+<a href="#" onclick="jsHref('files/lib/cucumber/web/tableish_rb.html');">lib/cucumber/web/tableish.rb</a>
+
+</div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+      <div id="content">
+
+
+
+
+  <div class="sectiontitle">Methods</div>
+  <ul>
+  <li><a href="index.html?a=M000049&name=_parse_spans" >_parse_spans</a></li>
+  <li><a href="index.html?a=M000048&name=_tableish" >_tableish</a></li>
+  <li><a href="index.html?a=M000047&name=tableish" >tableish</a></li>
+  </ul>
+
+
+
+
+
+
+<div class="sectiontitle">Public Instance methods</div>
+<div id="M000049" class="method">
+  <div id="M000049_title" class="title">
+    <b>_parse_spans</b>(cell)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000049_source')" id="l_M000049_source">show source</a> ]</p>
+  <div id="M000049_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/cucumber/web/tableish.rb, line 109</span>
+109:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">_parse_spans</span>(<span class="ruby-identifier">cell</span>)
+110:         <span class="ruby-identifier">cell</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Node</span>) <span class="ruby-operator">?</span>
+111:           [<span class="ruby-identifier">cell</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'rowspan'</span>].<span class="ruby-identifier">to_s</span>.<span class="ruby-identifier">to_i</span> <span class="ruby-operator">||</span> <span class="ruby-value">1</span>, <span class="ruby-identifier">cell</span>.<span class="ruby-identifier">attributes</span>[<span class="ruby-value str">'colspan'</span>].<span class="ruby-identifier">to_s</span>.<span class="ruby-identifier">to_i</span> <span class="ruby-operator">||</span> <span class="ruby-value">1</span>] <span class="ruby-operator">:</span>
+112:           [<span class="ruby-value">1</span>, <span class="ruby-value">1</span>]
+113:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000048" class="method">
+  <div id="M000048_title" class="title">
+    <b>_tableish</b>(html, row_selector, column_selectors)
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000048_source')" id="l_M000048_source">show source</a> ]</p>
+  <div id="M000048_source" class="dyn-source">
+<pre>
+     <span class="ruby-comment cmt"># File lib/cucumber/web/tableish.rb, line 52</span>
+ 52:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">_tableish</span>(<span class="ruby-identifier">html</span>, <span class="ruby-identifier">row_selector</span>, <span class="ruby-identifier">column_selectors</span>) <span class="ruby-comment cmt">#:nodoc</span>
+ 53:         <span class="ruby-identifier">doc</span> = <span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">HTML</span>(<span class="ruby-identifier">html</span>)
+ 54:         <span class="ruby-identifier">spans</span> = <span class="ruby-keyword kw">nil</span>
+ 55:         <span class="ruby-identifier">max_cols</span> = <span class="ruby-value">0</span>
+ 56: 
+ 57:         <span class="ruby-comment cmt"># Parse the table.</span>
+ 58:         <span class="ruby-identifier">rows</span> = <span class="ruby-identifier">doc</span>.<span class="ruby-identifier">search</span>(<span class="ruby-identifier">row_selector</span>).<span class="ruby-identifier">map</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">row</span><span class="ruby-operator">|</span>
+ 59:           <span class="ruby-identifier">cells</span> = <span class="ruby-keyword kw">case</span>(<span class="ruby-identifier">column_selectors</span>)
+ 60:           <span class="ruby-keyword kw">when</span> <span class="ruby-constant">String</span>
+ 61:             <span class="ruby-identifier">row</span>.<span class="ruby-identifier">search</span>(<span class="ruby-identifier">column_selectors</span>)
+ 62:           <span class="ruby-keyword kw">when</span> <span class="ruby-constant">Proc</span>
+ 63:             <span class="ruby-identifier">column_selectors</span>.<span class="ruby-identifier">call</span>(<span class="ruby-identifier">row</span>)
+ 64:           <span class="ruby-keyword kw">end</span>
+ 65: 
+ 66:           <span class="ruby-comment cmt"># TODO: max_cols should be sum of colspans</span>
+ 67:           <span class="ruby-identifier">max_cols</span> = [<span class="ruby-identifier">max_cols</span>, <span class="ruby-identifier">cells</span>.<span class="ruby-identifier">length</span>].<span class="ruby-identifier">max</span>
+ 68: 
+ 69:           <span class="ruby-identifier">spans</span> <span class="ruby-operator">||=</span> <span class="ruby-constant">Array</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">max_cols</span>, <span class="ruby-value">1</span>)
+ 70: 
+ 71:           <span class="ruby-identifier">cell_index</span> = <span class="ruby-value">0</span>
+ 72: 
+ 73:           <span class="ruby-identifier">cells</span> = (<span class="ruby-value">0</span><span class="ruby-operator">...</span><span class="ruby-identifier">spans</span>.<span class="ruby-identifier">length</span>).<span class="ruby-identifier">inject</span>([]) <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">array</span>, <span class="ruby-identifier">n</span><span class="ruby-operator">|</span>
+ 74:             <span class="ruby-identifier">span</span> = <span class="ruby-identifier">spans</span>[<span class="ruby-identifier">n</span>]
+ 75: 
+ 76:             <span class="ruby-identifier">cell</span> = <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">span</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span>
+ 77:               <span class="ruby-identifier">row_span</span>, <span class="ruby-identifier">col_span</span> = <span class="ruby-value">1</span>, <span class="ruby-value">1</span>
+ 78:               <span class="ruby-keyword kw">nil</span>
+ 79:             <span class="ruby-keyword kw">else</span>
+ 80:               <span class="ruby-identifier">cell</span> = <span class="ruby-identifier">cells</span>[<span class="ruby-identifier">cell_index</span>]
+ 81: 
+ 82:               <span class="ruby-identifier">row_span</span>, <span class="ruby-identifier">col_span</span> = <span class="ruby-identifier">_parse_spans</span>(<span class="ruby-identifier">cell</span>)
+ 83: 
+ 84:               <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">col_span</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span>
+ 85:                 ((<span class="ruby-identifier">n</span> <span class="ruby-operator">+</span> <span class="ruby-value">1</span>)<span class="ruby-operator">...</span>(<span class="ruby-identifier">n</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">col_span</span>)).<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">m</span><span class="ruby-operator">|</span>
+ 86:                   <span class="ruby-identifier">spans</span>[<span class="ruby-identifier">m</span>] = <span class="ruby-identifier">row_span</span> <span class="ruby-operator">+</span> <span class="ruby-value">1</span>
+ 87:                 <span class="ruby-keyword kw">end</span>
+ 88:               <span class="ruby-keyword kw">end</span>
+ 89: 
+ 90:               <span class="ruby-identifier">cell_index</span> <span class="ruby-operator">+=</span><span class="ruby-value">1</span>
+ 91:               <span class="ruby-identifier">cell</span>
+ 92:             <span class="ruby-keyword kw">end</span>
+ 93: 
+ 94:             <span class="ruby-identifier">spans</span>[<span class="ruby-identifier">n</span>] = <span class="ruby-identifier">row_span</span> <span class="ruby-operator">&gt;</span> <span class="ruby-value">1</span> <span class="ruby-operator">?</span> <span class="ruby-identifier">row_span</span> <span class="ruby-operator">:</span> ([<span class="ruby-identifier">span</span> <span class="ruby-operator">-</span> <span class="ruby-value">1</span>, <span class="ruby-value">1</span>].<span class="ruby-identifier">max</span>)
+ 95: 
+ 96:             <span class="ruby-identifier">array</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-keyword kw">case</span> <span class="ruby-identifier">cell</span>
+ 97:               <span class="ruby-keyword kw">when</span> <span class="ruby-constant">String</span> <span class="ruby-keyword kw">then</span> <span class="ruby-identifier">cell</span>.<span class="ruby-identifier">strip</span>
+ 98:               <span class="ruby-keyword kw">when</span> <span class="ruby-keyword kw">nil</span> <span class="ruby-keyword kw">then</span> <span class="ruby-value str">''</span>
+ 99:               <span class="ruby-keyword kw">else</span> <span class="ruby-identifier">cell</span>.<span class="ruby-identifier">text</span>.<span class="ruby-identifier">strip</span>
+100:             <span class="ruby-keyword kw">end</span>
+101: 
+102:             <span class="ruby-identifier">array</span>
+103:           <span class="ruby-keyword kw">end</span>
+104: 
+105:           <span class="ruby-identifier">cells</span>
+106:         <span class="ruby-keyword kw">end</span>
+107:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000047" class="method">
+  <div id="M000047_title" class="title">
+    <b>tableish</b>(row_selector, column_selectors)
+  </div>
+  <div class="description">
+  <p>
+This method returns an Array of Array of String, using CSS3 selectors. This
+is particularly handy when using Cucumber&#8217;s Table#diff! method.
+</p>
+<p>
+The <tt>row_selector</tt> argument must be a String, and picks out all the
+rows from the web page&#8217;s DOM. If the number of cells in each row
+differs, it will be constrained by (or padded with) the number of cells in
+the first row
+</p>
+<p>
+The <tt>column_selectors</tt> argument must be a String or a Proc, picking
+out cells from each row. If you pass a Proc, it will be yielded an instance
+of Nokogiri::HTML::Element.
+</p>
+<h2>Example with a table</h2>
+<pre>
+  &lt;table id=&quot;tools&quot;&gt;
+    &lt;tr&gt;
+      &lt;th&gt;tool&lt;/th&gt;
+      &lt;th&gt;dude&lt;/th&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;webrat&lt;/td&gt;
+      &lt;td&gt;bryan&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;cucumber&lt;/td&gt;
+      &lt;td&gt;aslak&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/table&gt;
+
+  t = tableish('table#tools tr', 'td,th')
+</pre>
+<h2>Example with a dl</h2>
+<pre>
+  &lt;dl id=&quot;tools&quot;&gt;
+    &lt;dt&gt;webrat&lt;/dt&gt;
+    &lt;dd&gt;bryan&lt;/dd&gt;
+    &lt;dt&gt;cucumber&lt;/dt&gt;
+    &lt;dd&gt;aslak&lt;/dd&gt;
+  &lt;/dl&gt;
+
+  t = tableish('dl#tools dt', lambda{|dt| [dt, dt.next.next]})
+</pre>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000047_source')" id="l_M000047_source">show source</a> ]</p>
+  <div id="M000047_source" class="dyn-source">
+<pre>
+    <span class="ruby-comment cmt"># File lib/cucumber/web/tableish.rb, line 47</span>
+47:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">tableish</span>(<span class="ruby-identifier">row_selector</span>, <span class="ruby-identifier">column_selectors</span>)
+48:         <span class="ruby-identifier">html</span> = <span class="ruby-keyword kw">defined?</span>(<span class="ruby-constant">Capybara</span>) <span class="ruby-operator">?</span> <span class="ruby-identifier">body</span> <span class="ruby-operator">:</span> <span class="ruby-identifier">response_body</span>
+49:         <span class="ruby-identifier">_tableish</span>(<span class="ruby-identifier">html</span>, <span class="ruby-identifier">row_selector</span>, <span class="ruby-identifier">column_selectors</span>)
+50:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+</div>
+
+  </div>

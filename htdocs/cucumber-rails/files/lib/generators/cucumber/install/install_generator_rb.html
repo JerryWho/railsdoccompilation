@@ -1,0 +1,82 @@
+  <div id="fileHeader">
+    <h1>install_generator.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/generators/cucumber/install/install_generator.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 18:23:07 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require File.join(File.dirname(__FILE__), 'install_base')
+
+module Cucumber
+  class InstallGenerator &lt; Rails::Generators::Base
+
+    include Cucumber::Generators::InstallBase
+
+    DEFAULT_SHEBANG = File.join(Config::CONFIG['bindir'], Config::CONFIG['ruby_install_name'])
+
+    argument     :language,      :type =&gt; :string,  :banner =&gt; &quot;LANG&quot;, :optional =&gt; true
+
+    class_option :webrat,        :type =&gt; :boolean, :desc =&gt; &quot;Use Webrat&quot;
+    class_option :capybara,      :type =&gt; :boolean, :desc =&gt; &quot;Use Capybara&quot;
+    class_option :rspec,         :type =&gt; :boolean, :desc =&gt; &quot;Use RSpec&quot;
+    class_option :testunit,      :type =&gt; :boolean, :desc =&gt; &quot;Use Test::Unit&quot;
+    class_option :spork,         :type =&gt; :boolean, :desc =&gt; &quot;Use Spork&quot;
+    class_option :skip_database, :type =&gt; :boolean, :desc =&gt; &quot;Skip modification of database.yml&quot;, :aliases =&gt; '-D', :default =&gt; false
+
+    attr_reader :framework, :driver
+
+    def configure_defaults
+      @language ||= 'en'
+      @framework  = framework_from_options || detect_current_framework || detect_default_framework
+      @driver     = driver_from_options    || detect_current_driver    || detect_default_driver
+    end
+
+    def generate
+      check_upgrade_limitations
+      create_templates
+      create_scripts
+      create_step_definitions
+      create_feature_support
+      create_tasks
+      create_database unless options[:skip_database]
+    end
+  
+    def self.gem_root
+      File.expand_path(&quot;../../../../../&quot;, __FILE__)
+    end
+  
+    def self.source_root
+      File.join(gem_root, 'templates/install')
+    end
+
+    def cucumber_rails_env
+      'test'
+    end
+
+    private
+  
+    def framework_from_options
+      return :rspec if options[:rspec]
+      return :testunit if options[:testunit]
+      return nil
+    end
+
+    def driver_from_options
+      return :webrat if options[:webrat]
+      return :capybara if options[:capybara]
+      return nil
+    end
+  
+  end
+end</pre>
+    </div>
