@@ -1,0 +1,177 @@
+  <div id="fileHeader">
+    <h1>cross_compile.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>tasks/cross_compile.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre>require 'rake/extensioncompiler'
+HOST = Rake::ExtensionCompiler.mingw_host
+TARGET = 'i386-pc-mingw32'
+
+ZLIB    = 'zlib-1.2.5'
+ICONV   = 'libiconv-1.13.1'
+LIBXML  = 'libxml2-2.7.7'
+LIBXSLT = 'libxslt-1.1.26'
+
+### Build zlib ###
+file &quot;tmp/cross/download/#{ZLIB}&quot; do |t|
+  FileUtils.mkdir_p('tmp/cross/download')
+
+  file = ZLIB
+  url  = &quot;http://zlib.net/#{file}.tar.gz&quot;
+
+  Dir.chdir('tmp/cross/download') do
+    sh &quot;wget #{url} || curl -O #{url}&quot;
+    sh &quot;tar zxvf #{file}.tar.gz&quot;
+  end
+
+  Dir.chdir t.name do
+    mk = File.read('win32/Makefile.gcc')
+    File.open('win32/Makefile.gcc', 'wb') do |f|
+      f.puts &quot;BINARY_PATH = #{CROSS_DIR}/bin&quot;
+      f.puts &quot;LIBRARY_PATH = #{CROSS_DIR}/lib&quot;
+      f.puts &quot;INCLUDE_PATH = #{CROSS_DIR}/include&quot;
+
+      # FIXME: need to make the cross compiler dynamic
+      f.puts mk.sub(/^PREFIX\s*=\s*$/, &quot;PREFIX = #{HOST}-&quot;) #.
+        #sub(/^SHARED_MODE=0$/, 'SHARED_MODE=1').
+        #sub(/^IMPLIB\s*=.*$/, 'IMPLIB=libz.dll.a')
+    end
+  end
+end
+
+file 'tmp/cross/lib/libz.a' =&gt; &quot;tmp/cross/download/#{ZLIB}&quot; do |t|
+  Dir.chdir t.prerequisites.first do
+    sh 'make -f win32/Makefile.gcc'
+    sh 'make -f win32/Makefile.gcc install'
+  end
+end
+### End build zlib ###
+
+### Build iconv ###
+file &quot;tmp/cross/download/#{ICONV}&quot; do |t|
+  FileUtils.mkdir_p('tmp/cross/download')
+
+  file = ICONV
+  url  = &quot;http://ftp.gnu.org/pub/gnu/libiconv/#{file}.tar.gz&quot;
+
+  Dir.chdir('tmp/cross/download') do
+    sh &quot;wget #{url} || curl -O #{url}&quot;
+    sh &quot;tar zxvf #{file}.tar.gz&quot;
+  end
+
+  Dir.chdir t.name do
+    # FIXME: need to make the host dynamic
+    sh &quot;./configure --disable-shared --enable-static --host=#{HOST} --target=#{TARGET} --prefix=#{CROSS_DIR} CPPFLAGS='-mno-cygwin -Wall' CFLAGS='-mno-cygwin -O2 -g' CXXFLAGS='-mno-cygwin -O2 -g' LDFLAGS=-mno-cygwin&quot;
+  end
+end
+
+file 'tmp/cross/bin/iconv.exe' =&gt; &quot;tmp/cross/download/#{ICONV}&quot; do |t|
+  Dir.chdir t.prerequisites.first do
+    sh 'make'
+    sh 'make install'
+  end
+end
+### End build iconv ###
+
+### Build libxml2 ###
+file &quot;tmp/cross/download/#{LIBXML}&quot; do |t|
+  FileUtils.mkdir_p('tmp/cross/download')
+
+  file = LIBXML
+  url  = &quot;ftp://ftp.xmlsoft.org/libxml2/#{file}.tar.gz&quot;
+
+  Dir.chdir('tmp/cross/download') do
+    sh &quot;wget #{url} || curl -O #{url}&quot;
+    sh &quot;tar zxvf #{file}.tar.gz&quot;
+  end
+
+  Dir.chdir t.name do
+    # FIXME: need to make the host dynamic
+    sh &quot;CFLAGS='-DIN_LIBXML' ./configure --host=#{HOST} --target=#{TARGET} --enable-static --disable-shared --prefix=#{CROSS_DIR} --with-zlib=#{CROSS_DIR} --with-iconv=#{CROSS_DIR} --without-python --without-readline&quot;
+  end
+end
+
+file 'tmp/cross/bin/xml2-config' =&gt; &quot;tmp/cross/download/#{LIBXML}&quot; do |t|
+  Dir.chdir t.prerequisites.first do
+    sh 'make LDFLAGS=&quot;-avoid-version&quot;'
+    sh 'make install'
+  end
+end
+### End build libxml2 ###
+
+### Build libxslt ###
+file &quot;tmp/cross/download/#{LIBXSLT}&quot; do |t|
+  FileUtils.mkdir_p('tmp/cross/download')
+
+  file = LIBXSLT
+  url  = &quot;ftp://ftp.xmlsoft.org/libxml2/#{file}.tar.gz&quot;
+
+  Dir.chdir('tmp/cross/download') do
+    sh &quot;wget #{url} || curl -O #{url}&quot;
+    sh &quot;tar zxvf #{file}.tar.gz&quot;
+  end
+
+  Dir.chdir t.name do
+    # FIXME: need to make the host dynamic
+    sh &quot;CFLAGS='-DIN_LIBXML' ./configure --host=#{HOST} --target=#{TARGET} --enable-static --disable-shared --prefix=#{CROSS_DIR} --with-libxml-prefix=#{CROSS_DIR} --without-python&quot;
+  end
+end
+
+file 'tmp/cross/bin/xslt-config' =&gt; &quot;tmp/cross/download/#{LIBXSLT}&quot; do |t|
+  Dir.chdir t.prerequisites.first do
+    sh 'make LDFLAGS=&quot;-avoid-version&quot;'
+    sh 'make install'
+  end
+end
+### End build libxslt ###
+
+file 'lib/nokogiri/nokogiri.rb' =&gt; 'cross:libxslt' do
+  File.open(&quot;lib/#{HOE.name}/#{HOE.name}.rb&quot;, 'wb') do |f|
+    f.write &lt;&lt;-eoruby
+require &quot;#{HOE.name}/\#{RUBY_VERSION.sub(/\\.\\d+$/, '')}/#{HOE.name}&quot;
+    eoruby
+  end
+end
+
+namespace :cross do
+  task :iconv   =&gt; 'tmp/cross/bin/iconv.exe'
+  task :zlib    =&gt; 'tmp/cross/lib/libz.a'
+  task :libxml2 =&gt; ['cross:zlib', 'cross:iconv', 'tmp/cross/bin/xml2-config']
+  task :libxslt =&gt; ['cross:libxml2', 'tmp/cross/bin/xslt-config']
+
+  task :copy_dlls do
+    Dir['tmp/cross/bin/*.dll'].each do |file|
+      cp file, &quot;ext/nokogiri&quot;
+    end
+  end
+
+  task :file_list =&gt; 'cross:copy_dlls' do
+    HOE.spec.extensions = []
+    HOE.spec.files += Dir[&quot;lib/#{HOE.name}/#{HOE.name}.rb&quot;]
+    HOE.spec.files += Dir[&quot;lib/#{HOE.name}/1.{8,9}/#{HOE.name}.so&quot;]
+    HOE.spec.files += Dir[&quot;ext/nokogiri/*.dll&quot;]
+  end
+end
+
+CLOBBER.include(&quot;lib/nokogiri/nokogiri.{so,dylib,rb,bundle}&quot;)
+CLOBBER.include(&quot;lib/nokogiri/1.{8,9}&quot;)
+CLOBBER.include(&quot;ext/nokogiri/*.dll&quot;)
+
+if Rake::Task.task_defined?(:cross)
+  Rake::Task[:cross].prerequisites &lt;&lt; &quot;lib/nokogiri/nokogiri.rb&quot;
+  Rake::Task[:cross].prerequisites &lt;&lt; &quot;cross:file_list&quot;
+end
+</pre>
+    </div>

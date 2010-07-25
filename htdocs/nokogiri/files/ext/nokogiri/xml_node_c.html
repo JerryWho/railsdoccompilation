@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -31,42 +31,61 @@ static void debug_node_dealloc(xmlNodePtr x)
 
 static void mark(xmlNodePtr node)
 {
-  // it's OK if the document isn't fully realized (as in XML::Reader).
-  // see http://github.com/tenderlove/nokogiri/issues/closed/#issue/95
+  /* it's OK if the document isn't fully realized (as in XML::Reader). */
+  /* see http://github.com/tenderlove/nokogiri/issues/closed/#issue/95 */
   if (DOC_RUBY_OBJECT_TEST(node-&gt;doc) &amp;&amp; DOC_RUBY_OBJECT(node-&gt;doc))
     rb_gc_mark(DOC_RUBY_OBJECT(node-&gt;doc));
 }
 
 /* :nodoc: */
-typedef xmlNodePtr (*node_other_func)(xmlNodePtr, xmlNodePtr);
+typedef xmlNodePtr (*pivot_reparentee_func)(xmlNodePtr, xmlNodePtr);
 
 /* :nodoc: */
 static void relink_namespace(xmlNodePtr reparented)
 {
-  // Avoid segv when relinking against unlinked nodes.
+  xmlNodePtr child;
+
+  /* Avoid segv when relinking against unlinked nodes. */
   if(!reparented-&gt;parent) return;
 
-  // Make sure that our reparented node has the correct namespaces
+  /* Make sure that our reparented node has the correct namespaces */
   if(!reparented-&gt;ns &amp;&amp; reparented-&gt;doc != (xmlDocPtr)reparented-&gt;parent)
     xmlSetNs(reparented, reparented-&gt;parent-&gt;ns);
 
-  // Search our parents for an existing definition
+  /* Search our parents for an existing definition */
   if(reparented-&gt;nsDef) {
-    xmlNsPtr ns = xmlSearchNsByHref(
-        reparented-&gt;doc,
-        reparented-&gt;parent,
-        reparented-&gt;nsDef-&gt;href
-    );
-    if(ns &amp;&amp; ns != reparented-&gt;nsDef) reparented-&gt;nsDef = NULL;
+    xmlNsPtr curr = reparented-&gt;nsDef;
+    xmlNsPtr prev = NULL;
+
+    while(curr) {
+      xmlNsPtr ns = xmlSearchNsByHref(
+          reparented-&gt;doc,
+          reparented-&gt;parent,
+          curr-&gt;href
+      );
+      /* If we find the namespace is already declared, remove it from this
+       * definition list. */
+      if(ns &amp;&amp; ns != curr) {
+        if (prev) {
+          prev-&gt;next = curr-&gt;next;
+        } else {
+          reparented-&gt;nsDef = curr-&gt;next;
+        }
+        NOKOGIRI_ROOT_NSDEF(curr, reparented-&gt;doc);
+      } else {
+        prev = curr;
+      }
+      curr = curr-&gt;next;
+    }
   }
 
-  // Only walk all children if there actually is a namespace we need to
-  // reparent.
+  /* Only walk all children if there actually is a namespace we need to */
+  /* reparent. */
   if(NULL == reparented-&gt;ns) return;
 
-  // When a node gets reparented, walk it's children to make sure that
-  // their namespaces are reparented as well.
-  xmlNodePtr child = reparented-&gt;children;
+  /* When a node gets reparented, walk it's children to make sure that */
+  /* their namespaces are reparented as well. */
+  child = reparented-&gt;children;
   while(NULL != child) {
     relink_namespace(child);
     child = child-&gt;next;
@@ -74,72 +93,88 @@ static void relink_namespace(xmlNodePtr reparented)
 }
 
 /* :nodoc: */
-static xmlNodePtr xmlReplaceNodeWrapper(xmlNodePtr old, xmlNodePtr cur)
+static xmlNodePtr xmlReplaceNodeWrapper(xmlNodePtr pivot, xmlNodePtr new_node)
 {
   xmlNodePtr retval ;
-  retval = xmlReplaceNode(old, cur) ;
-  if (retval == old) {
-    return cur ; // return semantics for reparent_node_with
+
+  retval = xmlReplaceNode(pivot, new_node) ;
+
+  if (retval == pivot) {
+    retval = new_node ; /* return semantics for reparent_node_with */
   }
+
+  /* work around libxml2 issue: https://bugzilla.gnome.org/show_bug.cgi?id=615612 */
+  if (retval-&gt;type == XML_TEXT_NODE) {
+    if (retval-&gt;prev &amp;&amp; retval-&gt;prev-&gt;type == XML_TEXT_NODE) {
+      retval = xmlTextMerge(retval-&gt;prev, retval);
+    }
+    if (retval-&gt;next &amp;&amp; retval-&gt;next-&gt;type == XML_TEXT_NODE) {
+      retval = xmlTextMerge(retval, retval-&gt;next);
+    }
+  }
+
   return retval ;
 }
 
 /* :nodoc: */
-static VALUE reparent_node_with(VALUE node_obj, VALUE other_obj, node_other_func func)
+static VALUE reparent_node_with(VALUE pivot_obj, VALUE reparentee_obj, pivot_reparentee_func prf)
 {
   VALUE reparented_obj ;
-  xmlNodePtr node, other, reparented ;
+  xmlNodePtr reparentee, pivot, reparented ;
 
-  if(!rb_obj_is_kind_of(node_obj, cNokogiriXmlNode))
+  if(!rb_obj_is_kind_of(reparentee_obj, cNokogiriXmlNode))
+    rb_raise(rb_eArgError, &quot;node must be a Nokogiri::XML::Node&quot;);
+  if(rb_obj_is_kind_of(reparentee_obj, cNokogiriXmlDocument))
     rb_raise(rb_eArgError, &quot;node must be a Nokogiri::XML::Node&quot;);
 
-  Data_Get_Struct(node_obj, xmlNode, node);
-  Data_Get_Struct(other_obj, xmlNode, other);
+  Data_Get_Struct(reparentee_obj, xmlNode, reparentee);
+  Data_Get_Struct(pivot_obj, xmlNode, pivot);
 
-  if(XML_DOCUMENT_NODE == node-&gt;type || XML_HTML_DOCUMENT_NODE == node-&gt;type)
+  if(XML_DOCUMENT_NODE == reparentee-&gt;type || XML_HTML_DOCUMENT_NODE == reparentee-&gt;type)
     rb_raise(rb_eArgError, &quot;cannot reparent a document node&quot;);
 
-  if(node-&gt;type == XML_TEXT_NODE) {
-    NOKOGIRI_ROOT_NODE(node);
-    node = xmlDocCopyNode(node, other-&gt;doc, 1);
-  }
+  xmlUnlinkNode(reparentee);
 
-  if (node-&gt;doc == other-&gt;doc) {
-    xmlUnlinkNode(node) ;
-
-    // TODO: I really want to remove this.  We shouldn't support 2.6.16 anymore
-    if ( node-&gt;type == XML_TEXT_NODE
-         &amp;&amp; other-&gt;type == XML_TEXT_NODE
-         &amp;&amp; is_2_6_16() ) {
-
-      // we'd rather leak than segfault.
-      other-&gt;content = xmlStrdup(other-&gt;content);
-
-    }
-
-    if(!(reparented = (*func)(other, node))) {
-      rb_raise(rb_eRuntimeError, &quot;Could not reparent node (1)&quot;);
-    }
-  } else {
-    xmlNodePtr duped_node ;
-    // recursively copy to the new document
-    if (!(duped_node = xmlDocCopyNode(node, other-&gt;doc, 1))) {
+  if (reparentee-&gt;doc != pivot-&gt;doc || reparentee-&gt;type == XML_TEXT_NODE) {
+    /*
+     *  if the reparentee is a text node, there's a very good chance it will be
+     *  merged with an adjacent text node after being reparented, and in that case
+     *  libxml will free the underlying C struct.
+     *
+     *  since we clearly have a ruby object which references the underlying
+     *  memory, we can't let the C struct get freed. let's pickle the original
+     *  reparentee by rooting it; and then we'll reparent a duplicate of the
+     *  node that we don't care about preserving.
+     *
+     *  alternatively, if the reparentee is from a different document than the
+     *  pivot node, libxml2 is going to get confused about which document's
+     *  &quot;dictionary&quot; the node's strings belong to (this is an otherwise
+     *  uninteresting libxml2 implementation detail). as a result, we cannot
+     *  reparent the actual reparentee, so we reparent a duplicate.
+     */
+    NOKOGIRI_ROOT_NODE(reparentee);
+    if (!(reparentee = xmlDocCopyNode(reparentee, pivot-&gt;doc, 1))) {
       rb_raise(rb_eRuntimeError, &quot;Could not reparent node (xmlDocCopyNode)&quot;);
     }
-    if(!(reparented = (*func)(other, duped_node))) {
-      rb_raise(rb_eRuntimeError, &quot;Could not reparent node (2)&quot;);
-    }
-    xmlUnlinkNode(node);
-    NOKOGIRI_ROOT_NODE(node);
   }
 
-  // the child was a text node that was coalesced. we need to have the object
-  // point at SOMETHING, or we'll totally bomb out.
-  if (reparented != node) {
-    DATA_PTR(node_obj) = reparented ;
+  /* TODO: I really want to remove this.  We shouldn't support 2.6.16 anymore */
+  if ( reparentee-&gt;type == XML_TEXT_NODE &amp;&amp; pivot-&gt;type == XML_TEXT_NODE &amp;&amp; is_2_6_16() ) {
+    /* work around a string-handling bug in libxml 2.6.16. we'd rather leak than segfault. */
+    pivot-&gt;content = xmlStrdup(pivot-&gt;content);
   }
 
-  // Appropriately link in namespaces
+  if(!(reparented = (*prf)(pivot, reparentee))) {
+    rb_raise(rb_eRuntimeError, &quot;Could not reparent node&quot;);
+  }
+
+  /*
+   *  make sure the ruby object is pointed at the just-reparented node, which
+   *  might be a duplicate (see above) or might be the result of merging
+   *  adjacent text nodes.
+   */
+  DATA_PTR(reparentee_obj) = reparented ;
+
   relink_namespace(reparented);
 
   reparented_obj = Nokogiri_wrap_xml_node(Qnil, reparented);
@@ -186,13 +221,16 @@ static VALUE pointer_id(VALUE self)
 static VALUE encode_special_chars(VALUE self, VALUE string)
 {
   xmlNodePtr node;
+  xmlChar *encoded;
+  VALUE encoded_str;
+
   Data_Get_Struct(self, xmlNode, node);
-  xmlChar * encoded = xmlEncodeSpecialChars(
+  encoded = xmlEncodeSpecialChars(
       node-&gt;doc,
       (const xmlChar *)StringValuePtr(string)
   );
 
-  VALUE encoded_str = NOKOGIRI_STR_NEW2(encoded);
+  encoded_str = NOKOGIRI_STR_NEW2(encoded);
   xmlFree(encoded);
 
   return encoded_str;
@@ -208,6 +246,8 @@ static VALUE create_internal_subset(VALUE self, VALUE name, VALUE external_id, V
 {
   xmlNodePtr node;
   xmlDocPtr doc;
+  xmlDtdPtr dtd;
+
   Data_Get_Struct(self, xmlNode, node);
 
   doc = node-&gt;doc;
@@ -215,8 +255,8 @@ static VALUE create_internal_subset(VALUE self, VALUE name, VALUE external_id, V
   if(xmlGetIntSubset(doc))
     rb_raise(rb_eRuntimeError, &quot;Document already has an internal subset&quot;);
 
-  xmlDtdPtr dtd = xmlCreateIntSubset(
-      doc, 
+  dtd = xmlCreateIntSubset(
+      doc,
       NIL_P(name)        ? NULL : (const xmlChar *)StringValuePtr(name),
       NIL_P(external_id) ? NULL : (const xmlChar *)StringValuePtr(external_id),
       NIL_P(system_id)   ? NULL : (const xmlChar *)StringValuePtr(system_id)
@@ -237,6 +277,8 @@ static VALUE create_external_subset(VALUE self, VALUE name, VALUE external_id, V
 {
   xmlNodePtr node;
   xmlDocPtr doc;
+  xmlDtdPtr dtd;
+
   Data_Get_Struct(self, xmlNode, node);
 
   doc = node-&gt;doc;
@@ -244,8 +286,8 @@ static VALUE create_external_subset(VALUE self, VALUE name, VALUE external_id, V
   if(doc-&gt;extSubset)
     rb_raise(rb_eRuntimeError, &quot;Document already has an external subset&quot;);
 
-  xmlDtdPtr dtd = xmlNewDtd(
-      doc, 
+  dtd = xmlNewDtd(
+      doc,
       NIL_P(name)        ? NULL : (const xmlChar *)StringValuePtr(name),
       NIL_P(external_id) ? NULL : (const xmlChar *)StringValuePtr(external_id),
       NIL_P(system_id)   ? NULL : (const xmlChar *)StringValuePtr(system_id)
@@ -266,12 +308,14 @@ static VALUE external_subset(VALUE self)
 {
   xmlNodePtr node;
   xmlDocPtr doc;
+  xmlDtdPtr dtd;
+
   Data_Get_Struct(self, xmlNode, node);
 
   if(!node-&gt;doc) return Qnil;
 
   doc = node-&gt;doc;
-  xmlDtdPtr dtd = doc-&gt;extSubset;
+  dtd = doc-&gt;extSubset;
 
   if(!dtd) return Qnil;
 
@@ -288,12 +332,14 @@ static VALUE internal_subset(VALUE self)
 {
   xmlNodePtr node;
   xmlDocPtr doc;
+  xmlDtdPtr dtd;
+
   Data_Get_Struct(self, xmlNode, node);
 
   if(!node-&gt;doc) return Qnil;
 
   doc = node-&gt;doc;
-  xmlDtdPtr dtd = xmlGetIntSubset(doc);
+  dtd = xmlGetIntSubset(doc);
 
   if(!dtd) return Qnil;
 
@@ -310,11 +356,11 @@ static VALUE internal_subset(VALUE self)
 static VALUE duplicate_node(int argc, VALUE *argv, VALUE self)
 {
   VALUE level;
+  xmlNodePtr node, dup;
 
   if(rb_scan_args(argc, argv, &quot;01&quot;, &amp;level) == 0)
     level = INT2NUM((long)1);
 
-  xmlNodePtr node, dup;
   Data_Get_Struct(self, xmlNode, node);
 
   dup = xmlDocCopyNode(node, node-&gt;doc, (int)NUM2INT(level));
@@ -348,9 +394,7 @@ static VALUE blank_eh(VALUE self)
 {
   xmlNodePtr node;
   Data_Get_Struct(self, xmlNode, node);
-  if(1 == xmlIsBlankNode(node))
-    return Qtrue;
-  return Qfalse;
+  return (1 == xmlIsBlankNode(node)) ? Qtrue : Qfalse ;
 }
 
 /*
@@ -398,13 +442,10 @@ static VALUE next_element(VALUE self)
   xmlNodePtr node, sibling;
   Data_Get_Struct(self, xmlNode, node);
 
-  sibling = node-&gt;next;
+  sibling = xmlNextElementSibling(node);
   if(!sibling) return Qnil;
 
-  while(sibling &amp;&amp; sibling-&gt;type != XML_ELEMENT_NODE)
-    sibling = sibling-&gt;next;
-
-  return sibling ? Nokogiri_wrap_xml_node(Qnil, sibling) : Qnil ;
+  return Nokogiri_wrap_xml_node(Qnil, sibling);
 }
 
 /*
@@ -418,6 +459,9 @@ static VALUE previous_element(VALUE self)
   xmlNodePtr node, sibling;
   Data_Get_Struct(self, xmlNode, node);
 
+  /*
+   *  note that we don't use xmlPreviousElementSibling here because it's buggy pre-2.7.7.
+   */
   sibling = node-&gt;prev;
   if(!sibling) return Qnil;
 
@@ -428,10 +472,9 @@ static VALUE previous_element(VALUE self)
 }
 
 /* :nodoc: */
-static VALUE replace(VALUE self, VALUE _new_node)
+static VALUE replace(VALUE self, VALUE new_node)
 {
-  reparent_node_with(_new_node, self, xmlReplaceNodeWrapper) ;
-  return self ;
+  return reparent_node_with(self, new_node, xmlReplaceNodeWrapper) ;
 }
 
 /*
@@ -443,21 +486,66 @@ static VALUE replace(VALUE self, VALUE _new_node)
 static VALUE children(VALUE self)
 {
   xmlNodePtr node;
+  xmlNodePtr child;
+  xmlNodeSetPtr set;
+  VALUE document;
+  VALUE node_set;
+
   Data_Get_Struct(self, xmlNode, node);
 
-  xmlNodePtr child = node-&gt;children;
-  xmlNodeSetPtr set = xmlXPathNodeSetCreate(child);
+  child = node-&gt;children;
+  set = xmlXPathNodeSetCreate(child);
 
-  if(!child) return Nokogiri_wrap_xml_node_set(set);
+  document = DOC_RUBY_OBJECT(node-&gt;doc);
+
+  if(!child) return Nokogiri_wrap_xml_node_set(set, document);
 
   child = child-&gt;next;
   while(NULL != child) {
-    xmlXPathNodeSetAdd(set, child);
+    xmlXPathNodeSetAddUnique(set, child);
     child = child-&gt;next;
   }
 
-  VALUE node_set = Nokogiri_wrap_xml_node_set(set);
-  rb_iv_set(node_set, &quot;@document&quot;, DOC_RUBY_OBJECT(node-&gt;doc));
+  node_set = Nokogiri_wrap_xml_node_set(set, document);
+
+  return node_set;
+}
+
+/*
+ * call-seq:
+ *  element_children
+ *
+ * Get the list of children for this node as a NodeSet.  All nodes will be
+ * element nodes.
+ *
+ * Example:
+ *
+ *   @doc.root.element_children.all? { |x| x.element? } # =&gt; true
+ */
+static VALUE element_children(VALUE self)
+{
+  xmlNodePtr node;
+  xmlNodePtr child;
+  xmlNodeSetPtr set;
+  VALUE document;
+  VALUE node_set;
+
+  Data_Get_Struct(self, xmlNode, node);
+
+  child = xmlFirstElementChild(node);
+  set = xmlXPathNodeSetCreate(child);
+
+  document = DOC_RUBY_OBJECT(node-&gt;doc);
+
+  if(!child) return Nokogiri_wrap_xml_node_set(set, document);
+
+  child = xmlNextElementSibling(child);
+  while(NULL != child) {
+    xmlXPathNodeSetAddUnique(set, child);
+    child = xmlNextElementSibling(child);
+  }
+
+  node_set = Nokogiri_wrap_xml_node_set(set, document);
 
   return node_set;
 }
@@ -474,6 +562,48 @@ static VALUE child(VALUE self)
   Data_Get_Struct(self, xmlNode, node);
 
   child = node-&gt;children;
+  if(!child) return Qnil;
+
+  return Nokogiri_wrap_xml_node(Qnil, child);
+}
+
+/*
+ * call-seq:
+ *  first_element_child
+ *
+ * Returns the first child node of this node that is an element.
+ *
+ * Example:
+ *
+ *   @doc.root.first_element_child.element? # =&gt; true
+ */
+static VALUE first_element_child(VALUE self)
+{
+  xmlNodePtr node, child;
+  Data_Get_Struct(self, xmlNode, node);
+
+  child = xmlFirstElementChild(node);
+  if(!child) return Qnil;
+
+  return Nokogiri_wrap_xml_node(Qnil, child);
+}
+
+/*
+ * call-seq:
+ *  last_element_child
+ *
+ * Returns the last child node of this node that is an element.
+ *
+ * Example:
+ *
+ *   @doc.root.last_element_child.element? # =&gt; true
+ */
+static VALUE last_element_child(VALUE self)
+{
+  xmlNodePtr node, child;
+  Data_Get_Struct(self, xmlNode, node);
+
+  child = xmlLastElementChild(node);
   if(!child) return Qnil;
 
   return Nokogiri_wrap_xml_node(Qnil, child);
@@ -561,10 +691,12 @@ static VALUE get(VALUE self, VALUE attribute)
 static VALUE set_namespace(VALUE self, VALUE namespace)
 {
   xmlNodePtr node;
-  xmlNsPtr ns;
+  xmlNsPtr ns = NULL;
 
   Data_Get_Struct(self, xmlNode, node);
-  Data_Get_Struct(namespace, xmlNs, ns);
+
+  if(!NIL_P(namespace))
+    Data_Get_Struct(namespace, xmlNs, ns);
 
   xmlSetNs(node, ns);
 
@@ -616,10 +748,11 @@ static VALUE attribute_nodes(VALUE self)
 {
     /* this code in the mode of xmlHasProp() */
     xmlNodePtr node;
+    VALUE attr;
 
     Data_Get_Struct(self, xmlNode, node);
 
-    VALUE attr = rb_ary_new();
+    attr = rb_ary_new();
     Nokogiri_xml_node_properties(node, attr);
 
     return attr ;
@@ -653,12 +786,14 @@ static VALUE namespace_definitions(VALUE self)
 {
   /* this code in the mode of xmlHasProp() */
   xmlNodePtr node ;
+  VALUE list;
+  xmlNsPtr ns;
 
   Data_Get_Struct(self, xmlNode, node);
 
-  VALUE list = rb_ary_new();
+  list = rb_ary_new();
 
-  xmlNsPtr ns = node-&gt;nsDef;
+  ns = node-&gt;nsDef;
 
   if(!ns) return list;
 
@@ -667,6 +802,35 @@ static VALUE namespace_definitions(VALUE self)
     ns = ns-&gt;next;
   }
 
+  return list;
+}
+
+/*
+ *  call-seq:
+ *    namespace_scopes()
+ *
+ *  returns a list of Namespace nodes in scope for _self_. this is all
+ *  namespaces defined in the node, or in any ancestor node.
+ */
+static VALUE namespace_scopes(VALUE self)
+{
+  xmlNodePtr node ;
+  VALUE list;
+  xmlNsPtr *ns_list;
+  int j;
+
+  Data_Get_Struct(self, xmlNode, node);
+
+  list = rb_ary_new();
+  ns_list = xmlGetNsList(node-&gt;doc, node);
+
+  if(!ns_list) return list;
+
+  for (j = 0 ; ns_list[j] != NULL ; ++j) {
+    rb_ary_push(list, Nokogiri_wrap_xml_namespace(node-&gt;doc, ns_list[j]));
+  }
+
+  xmlFree(ns_list);
   return list;
 }
 
@@ -691,8 +855,17 @@ static VALUE node_type(VALUE self)
  */
 static VALUE set_content(VALUE self, VALUE content)
 {
-  xmlNodePtr node;
+  xmlNodePtr node, child, next ;
   Data_Get_Struct(self, xmlNode, node);
+
+  child = node-&gt;children;
+  while (NULL != child) {
+    next = child-&gt;next ;
+    xmlUnlinkNode(child) ;
+    NOKOGIRI_ROOT_NODE(child) ;
+    child = next ;
+  }
+
   xmlNodeSetContent(node, (xmlChar *)StringValuePtr(content));
   return content;
 }
@@ -706,9 +879,11 @@ static VALUE set_content(VALUE self, VALUE content)
 static VALUE get_content(VALUE self)
 {
   xmlNodePtr node;
+  xmlChar * content;
+
   Data_Get_Struct(self, xmlNode, node);
 
-  xmlChar * content = xmlNodeGetContent(node);
+  content = xmlNodeGetContent(node);
   if(content) {
     VALUE rval = NOKOGIRI_STR_NEW2(content);
     xmlFree(content);
@@ -718,9 +893,9 @@ static VALUE get_content(VALUE self)
 }
 
 /* :nodoc: */
-static VALUE add_child(VALUE self, VALUE child)
+static VALUE add_child(VALUE self, VALUE new_child)
 {
-  return reparent_node_with(child, self, xmlAddChild);
+  return reparent_node_with(self, new_child, xmlAddChild);
 }
 
 /*
@@ -779,24 +954,26 @@ static VALUE path(VALUE self)
 {
   xmlNodePtr node;
   xmlChar *path ;
+  VALUE rval;
+
   Data_Get_Struct(self, xmlNode, node);
-  
+
   path = xmlGetNodePath(node);
-  VALUE rval = NOKOGIRI_STR_NEW2(path);
+  rval = NOKOGIRI_STR_NEW2(path);
   xmlFree(path);
   return rval ;
 }
 
 /* :nodoc: */
-static VALUE add_next_sibling(VALUE self, VALUE rb_node)
+static VALUE add_next_sibling(VALUE self, VALUE new_sibling)
 {
-  return reparent_node_with(rb_node, self, xmlAddNextSibling) ;
+  return reparent_node_with(self, new_sibling, xmlAddNextSibling) ;
 }
 
 /* :nodoc: */
-static VALUE add_previous_sibling(VALUE self, VALUE rb_node)
+static VALUE add_previous_sibling(VALUE self, VALUE new_sibling)
 {
-  return reparent_node_with(rb_node, self, xmlAddPrevSibling) ;
+  return reparent_node_with(self, new_sibling, xmlAddPrevSibling) ;
 }
 
 /*
@@ -813,16 +990,18 @@ static VALUE native_write_to(
     VALUE options
 ) {
   xmlNodePtr node;
+  const char * before_indent;
+  xmlSaveCtxtPtr savectx;
 
   Data_Get_Struct(self, xmlNode, node);
 
   xmlIndentTreeOutput = 1;
 
-  const char * before_indent = xmlTreeIndentString;
+  before_indent = xmlTreeIndentString;
 
   xmlTreeIndentString = StringValuePtr(indent_string);
 
-  xmlSaveCtxtPtr savectx = xmlSaveToIO(
+  savectx = xmlSaveToIO(
       (xmlOutputWriteCallback)io_write_callback,
       (xmlOutputCloseCallback)io_close_callback,
       (void *)io,
@@ -860,10 +1039,11 @@ static VALUE line(VALUE self)
 static VALUE add_namespace_definition(VALUE self, VALUE prefix, VALUE href)
 {
   xmlNodePtr node;
+  xmlNsPtr ns;
+
   Data_Get_Struct(self, xmlNode, node);
 
-
-  xmlNsPtr ns = xmlNewNs(
+  ns = xmlNewNs(
       node,
       (const xmlChar *)StringValuePtr(href),
       (const xmlChar *)(NIL_P(prefix) ? NULL : StringValuePtr(prefix))
@@ -891,19 +1071,21 @@ static VALUE add_namespace_definition(VALUE self, VALUE prefix, VALUE href)
 static VALUE new(int argc, VALUE *argv, VALUE klass)
 {
   xmlDocPtr doc;
+  xmlNodePtr node;
   VALUE name;
   VALUE document;
   VALUE rest;
+  VALUE rb_node;
 
   rb_scan_args(argc, argv, &quot;2*&quot;, &amp;name, &amp;document, &amp;rest);
 
   Data_Get_Struct(document, xmlDoc, doc);
 
-  xmlNodePtr node = xmlNewNode(NULL, (xmlChar *)StringValuePtr(name));
+  node = xmlNewNode(NULL, (xmlChar *)StringValuePtr(name));
   node-&gt;doc = doc-&gt;doc;
   NOKOGIRI_ROOT_NODE(node);
 
-  VALUE rb_node = Nokogiri_wrap_xml_node(
+  rb_node = Nokogiri_wrap_xml_node(
       klass == cNokogiriXmlNode ? (VALUE)NULL : klass,
       node
   );
@@ -924,11 +1106,13 @@ static VALUE dump_html(VALUE self)
 {
   xmlBufferPtr buf ;
   xmlNodePtr node ;
+  VALUE html;
+
   Data_Get_Struct(self, xmlNode, node);
 
   buf = xmlBufferCreate() ;
   htmlNodeDump(buf, node-&gt;doc, node);
-  VALUE html = NOKOGIRI_STR_NEW2(buf-&gt;content);
+  html = NOKOGIRI_STR_NEW2(buf-&gt;content);
   xmlBufferFree(buf);
   return html ;
 }
@@ -948,13 +1132,63 @@ static VALUE compare(VALUE self, VALUE _other)
   return INT2NUM((long)xmlXPathCmpNodes(other, node));
 }
 
+
+/* TODO: DOCUMENT ME */
+static VALUE in_context(VALUE self, VALUE _str, VALUE _options)
+{
+  xmlNodePtr node;
+  xmlNodePtr list;
+  xmlNodeSetPtr set;
+  VALUE doc, err;
+
+  Data_Get_Struct(self, xmlNode, node);
+
+  if(!node-&gt;parent)
+    rb_raise(rb_eRuntimeError, &quot;no contextual parsing on unlinked nodes&quot;);
+
+  doc = DOC_RUBY_OBJECT(node-&gt;doc);
+  err = rb_iv_get(doc, &quot;@errors&quot;);
+
+  xmlSetStructuredErrorFunc((void *)err, Nokogiri_error_array_pusher);
+
+  /* Twiddle global variable because of a bug in libxml2.
+   * http://git.gnome.org/browse/libxml2/commit/?id=e20fb5a72c83cbfc8e4a8aa3943c6be8febadab7
+   */
+#ifndef HTML_PARSE_NOIMPLIED
+  htmlHandleOmittedElem(0);
+#endif
+
+  xmlParseInNodeContext(
+      node,
+      StringValuePtr(_str),
+      (int)RSTRING_LEN(_str),
+      (int)NUM2INT(_options),
+      &amp;list);
+
+#ifndef HTML_PARSE_NOIMPLIED
+  htmlHandleOmittedElem(1);
+#endif
+
+  xmlSetStructuredErrorFunc(NULL, NULL);
+
+  set = xmlXPathNodeSetCreate(NULL);
+
+  while(list) {
+    xmlXPathNodeSetAddUnique(set, list);
+    list = list-&gt;next;
+  }
+
+  return Nokogiri_wrap_xml_node_set(set, doc);
+}
+
+
 VALUE Nokogiri_wrap_xml_node(VALUE klass, xmlNodePtr node)
 {
-  assert(node);
-
   VALUE document = Qnil ;
   VALUE node_cache = Qnil ;
   VALUE rb_node = Qnil ;
+
+  assert(node);
 
   if(node-&gt;type == XML_DOCUMENT_NODE || node-&gt;type == XML_HTML_DOCUMENT_NODE)
       return DOC_RUBY_OBJECT(node-&gt;doc);
@@ -1011,8 +1245,8 @@ VALUE Nokogiri_wrap_xml_node(VALUE klass, xmlNodePtr node)
   node-&gt;_private = (void *)rb_node;
 
   if (DOC_RUBY_OBJECT_TEST(node-&gt;doc) &amp;&amp; DOC_RUBY_OBJECT(node-&gt;doc)) {
-    // it's OK if the document isn't fully realized (as in XML::Reader).
-    // see http://github.com/tenderlove/nokogiri/issues/closed/#issue/95
+    /* it's OK if the document isn't fully realized (as in XML::Reader). */
+    /* see http://github.com/tenderlove/nokogiri/issues/closed/#issue/95 */
     document = DOC_RUBY_OBJECT(node-&gt;doc);
     node_cache = DOC_NODE_CACHE(node-&gt;doc);
     rb_ary_push(node_cache, rb_node);
@@ -1054,7 +1288,10 @@ void init_xml_node()
   rb_define_method(klass, &quot;node_name=&quot;, set_name, 1);
   rb_define_method(klass, &quot;parent&quot;, get_parent, 0);
   rb_define_method(klass, &quot;child&quot;, child, 0);
+  rb_define_method(klass, &quot;first_element_child&quot;, first_element_child, 0);
+  rb_define_method(klass, &quot;last_element_child&quot;, last_element_child, 0);
   rb_define_method(klass, &quot;children&quot;, children, 0);
+  rb_define_method(klass, &quot;element_children&quot;, element_children, 0);
   rb_define_method(klass, &quot;next_sibling&quot;, next_sibling, 0);
   rb_define_method(klass, &quot;previous_sibling&quot;, previous_sibling, 0);
   rb_define_method(klass, &quot;next_element&quot;, next_element, 0);
@@ -1071,6 +1308,7 @@ void init_xml_node()
   rb_define_method(klass, &quot;attribute_with_ns&quot;, attribute_with_ns, 2);
   rb_define_method(klass, &quot;namespace&quot;, namespace, 0);
   rb_define_method(klass, &quot;namespace_definitions&quot;, namespace_definitions, 0);
+  rb_define_method(klass, &quot;namespace_scopes&quot;, namespace_scopes, 0);
   rb_define_method(klass, &quot;encode_special_chars&quot;, encode_special_chars, 1);
   rb_define_method(klass, &quot;dup&quot;, duplicate_node, -1);
   rb_define_method(klass, &quot;unlink&quot;, unlink_node, 0);
@@ -1081,6 +1319,7 @@ void init_xml_node()
   rb_define_method(klass, &quot;pointer_id&quot;, pointer_id, 0);
   rb_define_method(klass, &quot;line&quot;, line, 0);
 
+  rb_define_private_method(klass, &quot;in_context&quot;, in_context, 2);
   rb_define_private_method(klass, &quot;add_child_node&quot;, add_child, 1);
   rb_define_private_method(klass, &quot;add_previous_sibling_node&quot;, add_previous_sibling, 1);
   rb_define_private_method(klass, &quot;add_next_sibling_node&quot;, add_next_sibling, 1);

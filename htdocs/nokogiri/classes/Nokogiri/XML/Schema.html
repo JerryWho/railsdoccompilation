@@ -1,4 +1,4 @@
-  <div id="C00000039">
+  <div id="C00000023">
 <div class='banner'>
   <span class="file-title-prefix">Class</span><br />Schema<br/>
   In:
@@ -16,14 +16,14 @@ Object
 
   <div class="description"><p>
 <a
-href="index.html?a=C00000039&name=Nokogiri::XML::Schema">Nokogiri::XML::Schema</a>
-is used for validating <a href="index.html?a=C00000009&name=XML">XML</a>
+href="index.html?a=C00000023&name=Nokogiri::XML::Schema">Nokogiri::XML::Schema</a>
+is used for validating <a href="index.html?a=C00000006&name=XML">XML</a>
 against a schema (usually from an xsd file).
 </p>
 <h2>Synopsis</h2>
 <p>
-Validate an <a href="index.html?a=C00000009&name=XML">XML</a> document
-against a <a href="index.html?a=C00000039&name=Schema">Schema</a>. Loop
+Validate an <a href="index.html?a=C00000006&name=XML">XML</a> document
+against a <a href="index.html?a=C00000023&name=Schema">Schema</a>. Loop
 over the errors that are returned and print them out:
 </p>
 <pre>
@@ -36,7 +36,7 @@ over the errors that are returned and print them out:
 </pre>
 <p>
 The list of errors are <a
-href="index.html?a=C00000069&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
+href="index.html?a=C00000044&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
 objects.
 </p>
 </div>
@@ -45,11 +45,12 @@ objects.
 
   <div class="sectiontitle">Methods</div>
   <ul>
-  <li><a href="index.html?a=M000313&name=from_document" >from_document</a></li>
-  <li><a href="index.html?a=M000314&name=new" >new</a></li>
-  <li><a href="index.html?a=M000312&name=read_memory" >read_memory</a></li>
-  <li><a href="index.html?a=M000316&name=valid?" >valid?</a></li>
-  <li><a href="index.html?a=M000315&name=validate" >validate</a></li>
+  <li><a href="index.html?a=M000339&name=from_document" >from_document</a></li>
+  <li><a href="index.html?a=M000341&name=new" >new</a></li>
+  <li><a href="index.html?a=M000338&name=read_memory" >read_memory</a></li>
+  <li><a href="index.html?a=M000343&name=valid?" >valid?</a></li>
+  <li><a href="index.html?a=M000342&name=validate" >validate</a></li>
+  <li><a href="index.html?a=M000340&name=validate_file" >validate_file</a></li>
   </ul>
 
 
@@ -71,22 +72,22 @@ Errors while parsing the schema file
   </table>
 
 <div class="sectiontitle">Public Class methods</div>
-<div id="M000313" class="method">
-  <div id="M000313_title" class="title">
+<div id="M000339" class="method">
+  <div id="M000339_title" class="title">
     <b>from_document(doc)<br />
 </b>
   </div>
   <div class="description">
   <p>
-Create a new <a href="index.html?a=C00000039&name=Schema">Schema</a> from
+Create a new <a href="index.html?a=C00000023&name=Schema">Schema</a> from
 the <a
-href="index.html?a=C00000079&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
+href="index.html?a=C00000054&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
 <tt>doc</tt>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000313_source')" id="l_M000313_source">show source</a> ]</p>
-  <div id="M000313_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000339_source')" id="l_M000339_source">show source</a> ]</p>
+  <div id="M000339_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -97,14 +98,19 @@ href="index.html?a=C00000079&name=Nokogiri::XML::Document">Nokogiri::XML::Docume
 static VALUE from_document(VALUE klass, VALUE document)
 {
   xmlDocPtr doc;
+  xmlSchemaParserCtxtPtr ctx;
+  xmlSchemaPtr schema;
+  VALUE errors;
+  VALUE rb_schema;
+
   Data_Get_Struct(document, xmlDoc, doc);
 
-  // In case someone passes us a node. ugh.
+  /* In case someone passes us a node. ugh. */
   doc = doc-&gt;doc;
 
-  xmlSchemaParserCtxtPtr ctx = xmlSchemaNewDocParserCtxt(doc);
+  ctx = xmlSchemaNewDocParserCtxt(doc);
 
-  VALUE errors = rb_ary_new();
+  errors = rb_ary_new();
   xmlSetStructuredErrorFunc((void *)errors, Nokogiri_error_array_pusher);
 
 #ifdef HAVE_XMLSCHEMASETPARSERSTRUCTUREDERRORS
@@ -115,7 +121,7 @@ static VALUE from_document(VALUE klass, VALUE document)
   );
 #endif
 
-  xmlSchemaPtr schema = xmlSchemaParse(ctx);
+  schema = xmlSchemaParse(ctx);
 
   xmlSetStructuredErrorFunc(NULL, NULL);
   xmlSchemaFreeParserCtxt(ctx);
@@ -130,7 +136,7 @@ static VALUE from_document(VALUE klass, VALUE document)
     return Qnil;
   }
 
-  VALUE rb_schema = Data_Wrap_Struct(klass, 0, dealloc, schema);
+  rb_schema = Data_Wrap_Struct(klass, 0, dealloc, schema);
   rb_iv_set(rb_schema, &quot;@errors&quot;, errors);
 
   return rb_schema;
@@ -141,20 +147,20 @@ static VALUE from_document(VALUE klass, VALUE document)
   </div>
 </div>
 </div>
-<div id="M000314" class="method">
-  <div id="M000314_title" class="title">
+<div id="M000341" class="method">
+  <div id="M000341_title" class="title">
     <b>new</b>(string_or_io)
   </div>
   <div class="description">
   <p>
 Create a new <a
-href="index.html?a=C00000039&name=Nokogiri::XML::Schema">Nokogiri::XML::Schema</a>
+href="index.html?a=C00000023&name=Nokogiri::XML::Schema">Nokogiri::XML::Schema</a>
 object using a <tt>string_or_io</tt> object.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000314_source')" id="l_M000314_source">show source</a> ]</p>
-  <div id="M000314_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000341_source')" id="l_M000341_source">show source</a> ]</p>
+  <div id="M000341_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/nokogiri/xml/schema.rb, line 36</span>
 36:       <span class="ruby-keyword kw">def</span> <span class="ruby-keyword kw">self</span>.<span class="ruby-identifier">new</span> <span class="ruby-identifier">string_or_io</span>
@@ -164,20 +170,20 @@ object using a <tt>string_or_io</tt> object.
   </div>
 </div>
 </div>
-<div id="M000312" class="method">
-  <div id="M000312_title" class="title">
+<div id="M000338" class="method">
+  <div id="M000338_title" class="title">
     <b>read_memory(string)<br />
 </b>
   </div>
   <div class="description">
   <p>
-Create a new <a href="index.html?a=C00000039&name=Schema">Schema</a> from
+Create a new <a href="index.html?a=C00000023&name=Schema">Schema</a> from
 the contents of <tt>string</tt>
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000312_source')" id="l_M000312_source">show source</a> ]</p>
-  <div id="M000312_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000338_source')" id="l_M000338_source">show source</a> ]</p>
+  <div id="M000338_source" class="dyn-source">
 <pre>
 /*
  * call-seq:
@@ -187,12 +193,12 @@ the contents of <tt>string</tt>
  */
 static VALUE read_memory(VALUE klass, VALUE content)
 {
-
+  xmlSchemaPtr schema;
   xmlSchemaParserCtxtPtr ctx = xmlSchemaNewMemParserCtxt(
       (const char *)StringValuePtr(content),
-      RSTRING_LEN(content)
+      (int)RSTRING_LEN(content)
   );
-
+  VALUE rb_schema;
   VALUE errors = rb_ary_new();
   xmlSetStructuredErrorFunc((void *)errors, Nokogiri_error_array_pusher);
 
@@ -204,7 +210,7 @@ static VALUE read_memory(VALUE klass, VALUE content)
   );
 #endif
 
-  xmlSchemaPtr schema = xmlSchemaParse(ctx);
+   schema = xmlSchemaParse(ctx);
 
   xmlSetStructuredErrorFunc(NULL, NULL);
   xmlSchemaFreeParserCtxt(ctx);
@@ -219,7 +225,7 @@ static VALUE read_memory(VALUE klass, VALUE content)
     return Qnil;
   }
 
-  VALUE rb_schema = Data_Wrap_Struct(klass, 0, dealloc, schema);
+  rb_schema = Data_Wrap_Struct(klass, 0, dealloc, schema);
   rb_iv_set(rb_schema, &quot;@errors&quot;, errors);
 
   return rb_schema;
@@ -229,54 +235,108 @@ static VALUE read_memory(VALUE klass, VALUE content)
 </div>
 </div>
 <div class="sectiontitle">Public Instance methods</div>
-<div id="M000316" class="method">
-  <div id="M000316_title" class="title">
+<div id="M000343" class="method">
+  <div id="M000343_title" class="title">
     <b>valid?</b>(thing)
   </div>
   <div class="description">
   <p>
 Returns true if <tt>thing</tt> is a valid <a
-href="index.html?a=C00000079&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
+href="index.html?a=C00000054&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
 or file.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000316_source')" id="l_M000316_source">show source</a> ]</p>
-  <div id="M000316_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000343_source')" id="l_M000343_source">show source</a> ]</p>
+  <div id="M000343_source" class="dyn-source">
 <pre>
-    <span class="ruby-comment cmt"># File lib/nokogiri/xml/schema.rb, line 56</span>
-56:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">valid?</span> <span class="ruby-identifier">thing</span>
-57:         <span class="ruby-identifier">validate</span>(<span class="ruby-identifier">thing</span>).<span class="ruby-identifier">length</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span>
-58:       <span class="ruby-keyword kw">end</span>
+    <span class="ruby-comment cmt"># File lib/nokogiri/xml/schema.rb, line 52</span>
+52:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">valid?</span> <span class="ruby-identifier">thing</span>
+53:         <span class="ruby-identifier">validate</span>(<span class="ruby-identifier">thing</span>).<span class="ruby-identifier">length</span> <span class="ruby-operator">==</span> <span class="ruby-value">0</span>
+54:       <span class="ruby-keyword kw">end</span>
 </pre>
   </div>
 </div>
 </div>
-<div id="M000315" class="method">
-  <div id="M000315_title" class="title">
+<div id="M000342" class="method">
+  <div id="M000342_title" class="title">
     <b>validate</b>(thing)
   </div>
   <div class="description">
   <p>
 Validate <tt>thing</tt> against this schema. <tt>thing</tt> can be a <a
-href="index.html?a=C00000079&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
+href="index.html?a=C00000054&name=Nokogiri::XML::Document">Nokogiri::XML::Document</a>
 object, or a filename. An Array of <a
-href="index.html?a=C00000069&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
+href="index.html?a=C00000044&name=Nokogiri::XML::SyntaxError">Nokogiri::XML::SyntaxError</a>
 objects found while validating the <tt>thing</tt> is returned.
 </p>
   </div>
 <div class="sourcecode">
-  <p class="source-link">[ <a href="javascript:toggleSource('M000315_source')" id="l_M000315_source">show source</a> ]</p>
-  <div id="M000315_source" class="dyn-source">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000342_source')" id="l_M000342_source">show source</a> ]</p>
+  <div id="M000342_source" class="dyn-source">
 <pre>
     <span class="ruby-comment cmt"># File lib/nokogiri/xml/schema.rb, line 45</span>
 45:       <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">validate</span> <span class="ruby-identifier">thing</span>
-46:         <span class="ruby-keyword kw">return</span> <span class="ruby-identifier">validate_document</span>(<span class="ruby-identifier">thing</span>) <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">thing</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Document</span>)
-47: 
-48:         <span class="ruby-comment cmt"># FIXME libxml2 has an api for validating files.  We should switch</span>
-49:         <span class="ruby-comment cmt"># to that because it will probably save memory.</span>
-50:         <span class="ruby-identifier">validate_document</span>(<span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span>(<span class="ruby-constant">File</span>.<span class="ruby-identifier">read</span>(<span class="ruby-identifier">thing</span>)))
-51:       <span class="ruby-keyword kw">end</span>
+46:         <span class="ruby-identifier">thing</span>.<span class="ruby-identifier">is_a?</span>(<span class="ruby-constant">Nokogiri</span><span class="ruby-operator">::</span><span class="ruby-constant">XML</span><span class="ruby-operator">::</span><span class="ruby-constant">Document</span>) <span class="ruby-operator">?</span> <span class="ruby-identifier">validate_document</span>(<span class="ruby-identifier">thing</span>) <span class="ruby-operator">:</span> <span class="ruby-identifier">validate_file</span>(<span class="ruby-identifier">thing</span>)
+47:       <span class="ruby-keyword kw">end</span>
+</pre>
+  </div>
+</div>
+</div>
+<div id="M000340" class="method">
+  <div id="M000340_title" class="title">
+    <b>validate_file(filename)<br />
+</b>
+  </div>
+  <div class="description">
+  <p>
+Validate a file against this <a
+href="index.html?a=C00000023&name=Schema">Schema</a>.
+</p>
+  </div>
+<div class="sourcecode">
+  <p class="source-link">[ <a href="javascript:toggleSource('M000340_source')" id="l_M000340_source">show source</a> ]</p>
+  <div id="M000340_source" class="dyn-source">
+<pre>
+/*
+ * call-seq:
+ *  validate_file(filename)
+ *
+ * Validate a file against this Schema.
+ */
+static VALUE validate_file(VALUE self, VALUE rb_filename)
+{
+  xmlSchemaPtr schema;
+  xmlSchemaValidCtxtPtr valid_ctxt;
+  const char *filename ;
+  VALUE errors;
+
+  Data_Get_Struct(self, xmlSchema, schema);
+  filename = (const char*)StringValuePtr(rb_filename) ;
+
+  errors = rb_ary_new();
+
+  valid_ctxt = xmlSchemaNewValidCtxt(schema);
+
+  if(NULL == valid_ctxt) {
+    /* we have a problem */
+    rb_raise(rb_eRuntimeError, &quot;Could not create a validation context&quot;);
+  }
+
+#ifdef HAVE_XMLSCHEMASETVALIDSTRUCTUREDERRORS
+  xmlSchemaSetValidStructuredErrors(
+    valid_ctxt,
+    Nokogiri_error_array_pusher,
+    (void *)errors
+  );
+#endif
+
+  xmlSchemaValidateFile(valid_ctxt, filename, 0);
+
+  xmlSchemaFreeValidCtxt(valid_ctxt);
+
+  return errors;
+}
 </pre>
   </div>
 </div>

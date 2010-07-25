@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:40:25 +0200 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,24 +18,36 @@
     <pre>module Nokogiri
   module LibXML # :nodoc:
     module CommonNode # :nodoc:
-
       def document
         p = self[:doc]
         p.null? ? nil : LibXML::XmlDocumentCast.new(p)
       end
 
+      def ruby_node_pointer
+        self[:_private]
+      end
+
+      def ruby_node_pointer=(value)
+        self[:_private] = value
+      end
+
       def ruby_node
-        self[:_private] != 0 ? ObjectSpace._id2ref(self[:_private]) : nil
+        Nokogiri::WeakBucket.get_object(self)
       end
 
       def ruby_node= object
-        self[:_private] = object.object_id
+        Nokogiri::WeakBucket.set_object(self, object)
       end
 
       def keep_reference_from_document! # equivalent to NOKOGIRI_ROOT_NODE
         doc = self.document
         raise &quot;no document to add reference to&quot; unless doc
         LibXML.xmlXPathNodeSetAdd(doc.unlinked_nodes, self)
+      end
+
+      def keep_reference_from!(document) # equivalent to NOKOGIRI_ROOT_NSDEF
+        raise &quot;no document to add reference to&quot; unless document
+        LibXML.xmlXPathNodeSetAdd(document.unlinked_nodes, self)
       end
     end
   end

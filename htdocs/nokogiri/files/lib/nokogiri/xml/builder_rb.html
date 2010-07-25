@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -211,6 +211,36 @@
     #   &lt;/root&gt;
     #
     # Note the &quot;foo:object&quot; tag.
+    #
+    # == Document Types
+    #
+    # To create a document type (DTD), access use the Builder#doc method to get
+    # the current context document.  Then call Node#create_internal_subset to
+    # create the DTD node.
+    #
+    # For example, this Ruby:
+    #
+    #   builder = Nokogiri::XML::Builder.new do |xml|
+    #     xml.doc.create_internal_subset(
+    #       'html',
+    #       &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot;,
+    #       &quot;http://www.w3.org/TR/html4/loose.dtd&quot;
+    #     )
+    #     xml.root do
+    #       xml.foo
+    #     end
+    #   end
+    #   
+    #   puts builder.to_xml
+    #
+    # Will output this xml:
+    #
+    #   &lt;?xml version=&quot;1.0&quot;?&gt;
+    #   &lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot; &quot;http://www.w3.org/TR/html4/loose.dtd&quot;&gt;
+    #   &lt;root&gt;
+    #     &lt;foo/&gt;
+    #   &lt;/root&gt;
+    #
     class Builder
       # The current Document object being built
       attr_accessor :doc
@@ -292,8 +322,7 @@
       ###
       # Create a CDATA Node with content of +string+
       def cdata string
-        node = Nokogiri::XML::CDATA.new(@doc, string.to_s)
-        insert(node)
+        insert(doc.create_cdata(string))
       end
 
       ###
@@ -328,28 +357,11 @@
         if @context &amp;&amp; @context.respond_to?(method)
           @context.send(method, *args, &amp;block)
         else
-          node = @doc.create_element(method.to_s.sub(/[_!]$/, '')) { |n|
+          node = @doc.create_element(method.to_s.sub(/[_!]$/, ''),*args) { |n|
             # Set up the namespace
             if @ns
               n.namespace = @ns
               @ns = nil
-            end
-
-            args.each do |arg|
-              case arg
-              when Hash
-                arg.each { |k,v|
-                  key = k.to_s
-                  if key =~ /^xmlns(:\w+)?$/
-                    ns_name = key.split(&quot;:&quot;, 2)[1]
-                    n.add_namespace_definition ns_name, v
-                    next
-                  end
-                  n[k.to_s] = v.to_s
-                }
-              else
-                n.content = arg
-              end
             end
           }
           insert(node, &amp;block)
@@ -362,14 +374,15 @@
       def insert(node, &amp;block)
         node.parent = @parent
         if block_given?
-          @parent = node
+          old_parent = @parent
+          @parent    = node
           @arity ||= block.arity
           if @arity &lt;= 0
             instance_eval(&amp;block)
           else
             block.call(self)
           end
-          @parent = node.parent
+          @parent = old_parent
         end
         NodeBuilder.new(node, self)
       end

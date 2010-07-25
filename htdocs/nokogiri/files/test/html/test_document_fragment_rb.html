@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:21:01 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -24,6 +24,18 @@ module Nokogiri
       def setup
         super
         @html = Nokogiri::HTML.parse(File.read(HTML_FILE), HTML_FILE)
+      end
+
+      def test_no_contextual_parsing_on_unlinked_nodes
+        node = @html.css('body').first
+        node.unlink
+        assert_raises(RuntimeError) do
+          node.parse('&lt;br /&gt;')
+        end
+      end
+
+      def test_parse_in_context
+        assert_equal('&lt;br&gt;', @html.root.parse('&lt;br /&gt;').to_s)
       end
 
       def test_ancestors_search
@@ -108,9 +120,9 @@ module Nokogiri
       end
 
       def test_html_fragment_case_insensitivity
-        doc = &quot;&lt;crazyDiv&gt;b&lt;/crazyDiv&gt;&quot;
+        doc = &quot;&lt;Div&gt;b&lt;/Div&gt;&quot;
         fragment = Nokogiri::HTML::Document.new.fragment(doc)
-        assert_equal &quot;&lt;crazydiv&gt;b&lt;/crazydiv&gt;&quot;, fragment.to_s
+        assert_equal &quot;&lt;div&gt;b&lt;/div&gt;&quot;, fragment.to_s
       end
 
       def test_html_fragment_with_leading_whitespace

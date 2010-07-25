@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -18,18 +18,22 @@
     <pre>module Nokogiri
   module XML
     class DocumentFragment &lt; Nokogiri::XML::Node
-      def initialize document, tags=nil
-        if tags
-          if self.kind_of?(Nokogiri::HTML::DocumentFragment)
-            HTML::SAX::Parser.new(FragmentHandler.new(self, tags)).parse(tags)
-          else
-            wrapped = &quot;&lt;div&gt;#{tags.strip}&lt;/div&gt;&quot;
-            XML::SAX::Parser.new(FragmentHandler.new(self, wrapped)).parse(wrapped)
-            div = self.child
-            div.children.each { |child| child.parent = self }
-            div.unlink
-          end
-        end
+      ##
+      #  Create a new DocumentFragment from +tags+.
+      #
+      #  If +ctx+ is present, it is used as a context node for the
+      #  subtree created, e.g., namespaces will be resolved relative
+      #  to +ctx+.
+      def initialize document, tags = nil, ctx = nil
+        return self unless tags
+
+        children = if ctx
+                     ctx.parse(tags.strip)
+                   else
+                     XML::Document.parse(&quot;&lt;root&gt;#{tags.strip}&lt;/root&gt;&quot;) \
+                       .xpath(&quot;/root/node()&quot;)
+                   end
+        children.each { |child| child.parent = self }
       end
 
       ###

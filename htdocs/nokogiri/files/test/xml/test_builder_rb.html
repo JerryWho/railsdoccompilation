@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:53:40 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -20,6 +20,43 @@
 module Nokogiri
   module XML
     class TestBuilder &lt; Nokogiri::TestCase
+      def test_builder_namespace
+        doc = Nokogiri::XML::Builder.new { |xml|
+          xml.a(&quot;xmlns:a&quot; =&gt; &quot;x&quot;) do
+            xml.b(&quot;xmlns:a&quot; =&gt; &quot;x&quot;, &quot;xmlns:b&quot; =&gt; &quot;y&quot;)
+          end
+        }.doc
+
+        b = doc.at('b')
+        assert b
+        assert_equal({&quot;xmlns:a&quot;=&gt;&quot;x&quot;, &quot;xmlns:b&quot;=&gt;&quot;y&quot;}, b.namespaces)
+        assert_equal({&quot;xmlns:b&quot;=&gt;&quot;y&quot;}, namespaces_defined_on(b))
+      end
+
+      def test_builder_namespace_part_deux
+        doc = Nokogiri::XML::Builder.new { |xml|
+          xml.a(&quot;xmlns:b&quot; =&gt; &quot;y&quot;) do
+            xml.b(&quot;xmlns:a&quot; =&gt; &quot;x&quot;, &quot;xmlns:b&quot; =&gt; &quot;y&quot;, &quot;xmlns:c&quot; =&gt; &quot;z&quot;)
+          end
+        }.doc
+
+        b = doc.at('b')
+        assert b
+        assert_equal({&quot;xmlns:a&quot;=&gt;&quot;x&quot;, &quot;xmlns:b&quot;=&gt;&quot;y&quot;, &quot;xmlns:c&quot;=&gt;&quot;z&quot;}, b.namespaces)
+        assert_equal({&quot;xmlns:a&quot;=&gt;&quot;x&quot;, &quot;xmlns:c&quot;=&gt;&quot;z&quot;}, namespaces_defined_on(b))
+      end
+
+      def test_builder_with_unlink
+        assert_nothing_raised do
+          Nokogiri::XML::Builder.new do |xml|
+            xml.foo do
+              xml.bar { xml.parent.unlink }
+              xml.bar2
+            end
+          end
+        end
+      end
+
       def test_with_root
         doc = Nokogiri::XML(File.read(XML_FILE))
         Nokogiri::XML::Builder.with(doc.at('employee')) do |xml|
@@ -178,6 +215,12 @@ module Nokogiri
           cdata string
         }
         assert_equal(&quot;&lt;?xml version=\&quot;1.0\&quot;?&gt;&lt;root&gt;&lt;![CDATA[hello world]]&gt;&lt;/root&gt;&quot;, builder.to_xml.gsub(/\n/, ''))
+      end
+
+    private
+
+      def namespaces_defined_on(node)
+        Hash[*node.namespace_definitions.collect{|n| [&quot;xmlns:&quot; + n.prefix, n.href]}.flatten]
       end
     end
   end

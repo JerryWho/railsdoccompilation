@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,7 +17,7 @@
     <h2>Source Code</h2>
     <pre>module Nokogiri
   module XML
-    ####
+    ##
     # Nokogiri::XML::Document is the main entry point for dealing with
     # XML documents.  The Document is created by parsing an XML document.
     # See Nokogiri.XML()
@@ -25,7 +25,7 @@
     # For searching a Document, see Nokogiri::XML::Node#css and
     # Nokogiri::XML::Node#xpath
     class Document &lt; Node
-      ###
+      ##
       # Parse an XML file.  +thing+ may be a String, or any object that
       # responds to _read_ and _close_ such as an IO, or StringIO.
       # +url+ is resource where this document is located.  +encoding+ is the
@@ -53,18 +53,49 @@
       # A list of Nokogiri::XML::SyntaxError found when parsing a document
       attr_accessor :errors
 
-      def initialize *args
+      def initialize *args # :nodoc:
+        @errors     = []
         @decorators = nil
       end
 
-      # Create an element with +name+
-      def create_element name, &amp;block
-        Nokogiri::XML::Element.new(name, self, &amp;block)
+      ##
+      # Create an element with +name+, and optionally setting the content and attributes.
+      #
+      #   doc.create_element &quot;div&quot; # &lt;div&gt;&lt;/div&gt;
+      #   doc.create_element &quot;div&quot;, :class =&gt; &quot;container&quot; # &lt;div class='container'&gt;&lt;/div&gt;
+      #   doc.create_element &quot;div&quot;, &quot;contents&quot; # &lt;div&gt;contents&lt;/div&gt;
+      #   doc.create_element &quot;div&quot;, &quot;contents&quot;, :class =&gt; &quot;container&quot; # &lt;div class='container'&gt;contents&lt;/div&gt;
+      #   doc.create_element &quot;div&quot; { |node| node['class'] = &quot;container&quot; } # &lt;div class='container'&gt;&lt;/div&gt;
+      #
+      def create_element name, *args, &amp;block
+        elm = Nokogiri::XML::Element.new(name, self, &amp;block)
+        args.each do |arg|
+          case arg
+          when Hash
+            arg.each { |k,v|
+              key = k.to_s
+              if key =~ /^xmlns(:\w+)?$/
+                ns_name = key.split(&quot;:&quot;, 2)[1]
+                elm.add_namespace_definition ns_name, v
+                next
+              end
+              elm[k.to_s] = v.to_s
+            }
+          else
+            elm.content = arg
+          end
+        end
+        elm
       end
 
       # Create a text node with +text+
       def create_text_node text, &amp;block
         Nokogiri::XML::Text.new(text.to_s, self, &amp;block)
+      end
+
+      # Create a CDATA element containing +text+
+      def create_cdata text
+        Nokogiri::XML::CDATA.new(self, text.to_s)
       end
 
       # The name of this document.  Always returns &quot;document&quot;
@@ -77,7 +108,7 @@
         self
       end
 
-      ###
+      ##
       # Recursively get all namespaces from this node and its subtree and
       # return them as a hash.
       #
@@ -111,7 +142,7 @@
         @decorators[key] ||= []
       end
 
-      ###
+      ##
       # Validate this Document against it's DTD.  Returns a list of errors on
       # the document or +nil+ when there is no DTD.
       def validate
@@ -119,7 +150,7 @@
         internal_subset.validate self
       end
 
-      ###
+      ##
       # Explore a document with shortcut methods.
       def slop!
         unless decorators(XML::Node).include? Nokogiri::Decorators::Slop
@@ -130,7 +161,7 @@
         self
       end
 
-      ###
+      ##
       # Apply any decorators to +node+
       def decorate node
         return unless @decorators
@@ -148,16 +179,17 @@
         root ? root.namespaces : {}
       end
 
-      ####
+      ##
       # Create a Nokogiri::XML::DocumentFragment from +tags+
       # Returns an empty fragment if +tags+ is nil.
       def fragment tags = nil
-        DocumentFragment.new(self, tags)
+        DocumentFragment.new(self, tags, self.root)
       end
 
       undef_method :swap, :parent, :namespace, :default_namespace=
       undef_method :add_namespace_definition, :attributes
       undef_method :namespace_definitions, :line, :add_namespace
+      undef_method :parse, :in_context
 
       def add_child child
         raise &quot;Document already has a root node&quot; if root

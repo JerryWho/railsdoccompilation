@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -30,25 +30,31 @@ void Nokogiri_error_raise(void * ctx, xmlErrorPtr error)
 
 VALUE Nokogiri_wrap_xml_syntax_error(VALUE klass, xmlErrorPtr error)
 {
+  VALUE msg, e;
+
   if(!klass) klass = cNokogiriXmlSyntaxError;
 
-  VALUE msg = error-&gt;message ? NOKOGIRI_STR_NEW2(error-&gt;message) : Qnil;
+  msg = (error &amp;&amp; error-&gt;message) ? NOKOGIRI_STR_NEW2(error-&gt;message) : Qnil;
 
-  VALUE e = rb_class_new_instance(
+  e = rb_class_new_instance(
       1,
       &amp;msg,
       klass
   );
-  rb_iv_set(e, &quot;@domain&quot;, INT2NUM(error-&gt;domain));
-  rb_iv_set(e, &quot;@code&quot;, INT2NUM(error-&gt;code));
-  rb_iv_set(e, &quot;@level&quot;, INT2NUM((short)error-&gt;level));
-  rb_iv_set(e, &quot;@file&quot;, RBSTR_OR_QNIL(error-&gt;file));
-  rb_iv_set(e, &quot;@line&quot;, INT2NUM(error-&gt;line));
-  rb_iv_set(e, &quot;@str1&quot;, RBSTR_OR_QNIL(error-&gt;str1));
-  rb_iv_set(e, &quot;@str2&quot;, RBSTR_OR_QNIL(error-&gt;str2));
-  rb_iv_set(e, &quot;@str3&quot;, RBSTR_OR_QNIL(error-&gt;str3));
-  rb_iv_set(e, &quot;@int1&quot;, INT2NUM(error-&gt;int1));
-  rb_iv_set(e, &quot;@column&quot;, INT2NUM(error-&gt;int2));
+
+  if (error)
+  {
+    rb_iv_set(e, &quot;@domain&quot;, INT2NUM(error-&gt;domain));
+    rb_iv_set(e, &quot;@code&quot;, INT2NUM(error-&gt;code));
+    rb_iv_set(e, &quot;@level&quot;, INT2NUM((short)error-&gt;level));
+    rb_iv_set(e, &quot;@file&quot;, RBSTR_OR_QNIL(error-&gt;file));
+    rb_iv_set(e, &quot;@line&quot;, INT2NUM(error-&gt;line));
+    rb_iv_set(e, &quot;@str1&quot;, RBSTR_OR_QNIL(error-&gt;str1));
+    rb_iv_set(e, &quot;@str2&quot;, RBSTR_OR_QNIL(error-&gt;str2));
+    rb_iv_set(e, &quot;@str3&quot;, RBSTR_OR_QNIL(error-&gt;str3));
+    rb_iv_set(e, &quot;@int1&quot;, INT2NUM(error-&gt;int1));
+    rb_iv_set(e, &quot;@column&quot;, INT2NUM(error-&gt;int2));
+  }
 
   return e;
 }

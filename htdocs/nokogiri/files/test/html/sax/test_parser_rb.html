@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:40:25 +0200 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -15,7 +15,8 @@
 
   <div id="bodyContent" >
     <h2>Source Code</h2>
-    <pre>require &quot;helper&quot;
+    <pre># -*- coding: utf-8 -*-
+require &quot;helper&quot;
 
 module Nokogiri
   module HTML
@@ -51,7 +52,7 @@ module Nokogiri
 
         def test_parse_file_non_existant
           assert_raise Errno::ENOENT do
-            @parser.parse_file('foo')
+            @parser.parse_file('there_is_no_reasonable_way_this_file_exists')
           end
         end
 
@@ -65,6 +66,15 @@ module Nokogiri
           assert_raise ArgumentError do
             @parser.parse_memory(nil)
           end
+        end
+
+        def test_parse_force_encoding
+          @parser.parse_memory(&lt;&lt;-HTML, 'UTF-8')
+          &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=windows-1251&quot;&gt;
+          Информация
+          HTML
+          assert_equal(&quot;Информация&quot;,
+                       @parser.document.data.join.strip)
         end
 
         def test_parse_document

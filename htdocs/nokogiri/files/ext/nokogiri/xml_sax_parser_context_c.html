@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -38,7 +38,7 @@ static void deallocate(xmlParserCtxtPtr ctxt)
  */
 static VALUE parse_io(VALUE klass, VALUE io, VALUE encoding)
 {
-  xmlCharEncoding enc = (xmlCharEncoding)NUM2INT(encoding); 
+  xmlCharEncoding enc = (xmlCharEncoding)NUM2INT(encoding);
 
   xmlParserCtxtPtr ctxt = xmlCreateIOParserCtxt(
       NULL,
@@ -72,11 +72,13 @@ static VALUE parse_file(VALUE klass, VALUE filename)
  */
 static VALUE parse_memory(VALUE klass, VALUE data)
 {
+  xmlParserCtxtPtr ctxt;
+
   if(NIL_P(data)) rb_raise(rb_eArgError, &quot;data cannot be nil&quot;);
   if(!(int)RSTRING_LEN(data))
     rb_raise(rb_eRuntimeError, &quot;data cannot be empty&quot;);
 
-  xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt(
+  ctxt = xmlCreateMemoryParserCtxt(
       StringValuePtr(data),
       (int)RSTRING_LEN(data)
   );
@@ -92,16 +94,16 @@ static VALUE parse_memory(VALUE klass, VALUE data)
  */
 static VALUE parse_with(VALUE self, VALUE sax_handler)
 {
+  xmlParserCtxtPtr ctxt;
+  xmlSAXHandlerPtr sax;
+
   if(!rb_obj_is_kind_of(sax_handler, cNokogiriXmlSaxParser))
     rb_raise(rb_eArgError, &quot;argument must be a Nokogiri::XML::SAX::Parser&quot;);
 
-  xmlParserCtxtPtr ctxt;
   Data_Get_Struct(self, xmlParserCtxt, ctxt);
-
-  xmlSAXHandlerPtr sax;
   Data_Get_Struct(sax_handler, xmlSAXHandler, sax);
 
-  // Free the sax handler since we'll assign our own
+  /* Free the sax handler since we'll assign our own */
   if(ctxt-&gt;sax &amp;&amp; ctxt-&gt;sax != (xmlSAXHandlerPtr)&amp;xmlDefaultSAXHandler)
     xmlFree(ctxt-&gt;sax);
 

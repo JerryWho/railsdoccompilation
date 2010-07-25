@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -25,6 +25,99 @@ module Nokogiri
       def setup
         super
         @xml = Nokogiri::XML(File.read(XML_FILE), XML_FILE)
+      end
+
+      def test_first_element_child
+        node = @xml.root.first_element_child
+        assert_equal 'employee', node.name
+        assert node.element?, 'node is an element'
+      end
+
+      def test_element_children
+        nodes = @xml.root.element_children
+        assert_equal @xml.root.first_element_child, nodes.first
+        assert nodes.all? { |node| node.element? }, 'all nodes are elements'
+      end
+
+      def test_last_element_child
+        nodes = @xml.root.element_children
+        assert_equal nodes.last, @xml.root.element_children.last
+      end
+
+      def test_bad_xpath
+        bad_xpath = '//foo['
+
+        begin
+          @xml.xpath(bad_xpath)
+        rescue Nokogiri::XML::XPath::SyntaxError =&gt; e
+          assert_match(bad_xpath, e.to_s)
+        end
+      end
+
+      def test_namespace_type_error
+        assert_raises(TypeError) do
+          @xml.root.namespace = Object.new
+        end
+      end
+
+      def test_remove_namespace
+        @xml = Nokogiri::XML('&lt;r xmlns=&quot;v&quot;&gt;&lt;s /&gt;&lt;/r&gt;')
+        tag = @xml.at('s')
+        assert tag.namespace
+        tag.namespace = nil
+        assert_nil tag.namespace
+      end
+
+      def test_parse_needs_doc
+        list = @xml.root.parse('fooooooo &lt;hello /&gt;')
+        assert_equal 1, list.css('hello').length
+      end
+
+      def test_parse
+        list = @xml.root.parse('fooooooo &lt;hello /&gt;')
+        assert_equal 2, list.length
+      end
+
+      def test_parse_with_block
+        called = false
+        list = @xml.root.parse('&lt;hello /&gt;') { |cfg|
+          called = true
+          assert_instance_of Nokogiri::XML::ParseOptions, cfg
+        }
+        assert called, 'config block called'
+        assert_equal 1, list.length
+      end
+
+      def test_parse_with_io
+        list = @xml.root.parse(StringIO.new('&lt;hello /&gt;'))
+        assert_equal 1, list.length
+        assert_equal 'hello', list.first.name
+      end
+
+      def test_parse_with_empty_string
+        list = @xml.root.parse('')
+        assert_equal 0, list.length
+      end
+
+      # descriptive, not prescriptive.
+      def test_parse_invalid_html_markup_results_in_empty_nodeset
+        doc = Nokogiri::HTML(&quot;&lt;html&gt;&lt;/html&gt;&quot;)
+        nodeset = doc.root.parse &quot;&lt;div&gt;&lt;div&gt;a&lt;/div&gt;&lt;snippet&gt;b&lt;/snippet&gt;&lt;/div&gt;&quot;
+        assert_equal 1, doc.errors.length # &quot;Tag snippet invalid&quot;
+        assert_equal 0, nodeset.length
+      end
+
+      def test_parse_error_list
+        error_count = @xml.errors.length
+        list = @xml.root.parse('&lt;hello&gt;')
+        assert_equal 0, list.length
+        assert(error_count &lt; @xml.errors.length, &quot;errors should have increased&quot;)
+      end
+
+      def test_subclass_dup
+        subclass = Class.new(Nokogiri::XML::Node)
+        node = subclass.new('foo', @xml).dup
+        assert_instance_of subclass, node
       end
 
       def test_gt_string_arg
@@ -128,32 +221,24 @@ module Nokogiri
         end
       end
 
-      def test_namespace_nodes
+      def test_namespace_definitions_when_some_exist
         xml = Nokogiri::XML &lt;&lt;-eoxml
           &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;bar&quot;&gt;
             &lt;awesome/&gt;
           &lt;/root&gt;
         eoxml
-        awesome = xml.root
-        namespaces = awesome.namespace_definitions
-        assert_equal 2, namespaces.length
+        namespace_definitions = xml.root.namespace_definitions
+        assert_equal 2, namespace_definitions.length
       end
 
-      def test_no_definitions
+      def test_namespace_definitions_when_no_exist
         xml = Nokogiri::XML &lt;&lt;-eoxml
           &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;bar&quot;&gt;
             &lt;awesome/&gt;
           &lt;/root&gt;
         eoxml
-        awesome = xml.at('//xmlns:awesome')
-        namespaces = awesome.namespace_definitions
-        assert_equal 0, namespaces.length
-      end
-
-      def test_subclass_dup
-        subclass = Class.new(Nokogiri::XML::Node)
-        node = subclass.new('foo', @xml).dup
-        assert_instance_of subclass, node
+        namespace_definitions = xml.at_xpath('//xmlns:awesome').namespace_definitions
+        assert_equal 0, namespace_definitions.length
       end
 
       def test_namespace_goes_to_children
@@ -624,6 +709,17 @@ module Nokogiri
 
         node.content = 'hello world!'
         assert_equal('hello world!', node.content)
+
+        node.content = '&amp; &lt;foo&gt; &amp;amp;'
+        assert_equal('&amp; &lt;foo&gt; &amp;amp;', node.content)
+        assert_equal('&lt;form&gt;&amp;amp; &amp;lt;foo&amp;gt; &amp;amp;amp;&lt;/form&gt;', node.to_xml)
+      end
+
+      def test_set_content_should_unlink_existing_content
+        node     = @xml.at_css(&quot;employee&quot;)
+        children = node.children
+        node.content = &quot;hello&quot;
+        children.each { |child| assert_nil child.parent }
       end
 
       def test_whitespace_nodes
@@ -646,16 +742,16 @@ module Nokogiri
         assert_equal address1_1, address1_2 # two references to the exact same node
       end
 
-      def test_namespace_as_hash
+      def test_namespace_search_with_xpath_and_hash
         xml = Nokogiri::XML.parse(&lt;&lt;-eoxml)
-&lt;root&gt;
- &lt;car xmlns:part=&quot;http://general-motors.com/&quot;&gt;
-  &lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;
- &lt;/car&gt;
- &lt;bicycle xmlns:part=&quot;http://schwinn.com/&quot;&gt;
-  &lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;
- &lt;/bicycle&gt;
-&lt;/root&gt;
+        &lt;root&gt;
+          &lt;car xmlns:part=&quot;http://general-motors.com/&quot;&gt;
+            &lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;
+          &lt;/car&gt;
+          &lt;bicycle xmlns:part=&quot;http://schwinn.com/&quot;&gt;
+            &lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;
+          &lt;/bicycle&gt;
+        &lt;/root&gt;
         eoxml
 
         tires = xml.xpath('//bike:tire', {'bike' =&gt; 'http://schwinn.com/'})
@@ -664,58 +760,70 @@ module Nokogiri
 
       def test_namespace_search_with_css
         xml = Nokogiri::XML.parse(&lt;&lt;-eoxml)
-&lt;root&gt;
- &lt;car xmlns:part=&quot;http://general-motors.com/&quot;&gt;
-  &lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;
- &lt;/car&gt;
- &lt;bicycle xmlns:part=&quot;http://schwinn.com/&quot;&gt;
-  &lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;
- &lt;/bicycle&gt;
-&lt;/root&gt;
+        &lt;root&gt;
+          &lt;car xmlns:part=&quot;http://general-motors.com/&quot;&gt;
+            &lt;part:tire&gt;Michelin Model XGV&lt;/part:tire&gt;
+          &lt;/car&gt;
+          &lt;bicycle xmlns:part=&quot;http://schwinn.com/&quot;&gt;
+            &lt;part:tire&gt;I'm a bicycle tire!&lt;/part:tire&gt;
+          &lt;/bicycle&gt;
+        &lt;/root&gt;
         eoxml
 
         tires = xml.css('bike|tire', 'bike' =&gt; 'http://schwinn.com/')
         assert_equal 1, tires.length
       end
 
-      def test_namespaces
+      def test_namespaces_should_include_all_namespace_definitions
         xml = Nokogiri::XML.parse(&lt;&lt;-EOF)
-&lt;x xmlns:a='http://foo.com/' xmlns:b='http://bar.com/'&gt;
-  &lt;y xmlns:c='http://bazz.com/'&gt;
-    &lt;a:div&gt;hello a&lt;/a:div&gt;
-    &lt;b:div&gt;hello b&lt;/b:div&gt;
-    &lt;c:div&gt;hello c&lt;/c:div&gt;
-  &lt;/y&gt;  
-&lt;/x&gt;
-EOF
-        assert namespaces = xml.root.namespaces
-        assert namespaces.key?('xmlns:a')
-        assert_equal 'http://foo.com/', namespaces['xmlns:a']
-        assert namespaces.key?('xmlns:b')
-        assert_equal 'http://bar.com/', namespaces['xmlns:b']
-        assert ! namespaces.key?('xmlns:c')
+        &lt;x xmlns=&quot;http://quux.com/&quot; xmlns:a=&quot;http://foo.com/&quot; xmlns:b=&quot;http://bar.com/&quot;&gt;
+          &lt;y xmlns:c=&quot;http://bazz.com/&quot;&gt;
+            &lt;z&gt;hello&lt;/z&gt;
+            &lt;a xmlns:c=&quot;http://newc.com/&quot; /&gt;
+          &lt;/y&gt;
+        &lt;/x&gt;
+        EOF
 
-        assert namespaces = xml.namespaces
-        assert namespaces.key?('xmlns:a')
-        assert_equal 'http://foo.com/', namespaces['xmlns:a']
-        assert namespaces.key?('xmlns:b')
-        assert_equal 'http://bar.com/', namespaces['xmlns:b']
+        namespaces = xml.namespaces # Document#namespace
+        assert_equal({&quot;xmlns&quot;   =&gt; &quot;http://quux.com/&quot;,
+                      &quot;xmlns:a&quot; =&gt; &quot;http://foo.com/&quot;,
+                      &quot;xmlns:b&quot; =&gt; &quot;http://bar.com/&quot;}, namespaces)
 
-        assert_equal &quot;hello a&quot;, xml.search(&quot;//a:div&quot;, xml.namespaces).first.inner_text
-        assert_equal &quot;hello b&quot;, xml.search(&quot;//b:div&quot;, xml.namespaces).first.inner_text
+        namespaces = xml.root.namespaces
+        assert_equal({&quot;xmlns&quot;   =&gt; &quot;http://quux.com/&quot;,
+                      &quot;xmlns:a&quot; =&gt; &quot;http://foo.com/&quot;,
+                      &quot;xmlns:b&quot; =&gt; &quot;http://bar.com/&quot;}, namespaces)
+
+        namespaces = xml.at_xpath(&quot;//xmlns:y&quot;).namespaces
+        assert_equal({&quot;xmlns&quot;   =&gt; &quot;http://quux.com/&quot;,
+                      &quot;xmlns:a&quot; =&gt; &quot;http://foo.com/&quot;,
+                      &quot;xmlns:b&quot; =&gt; &quot;http://bar.com/&quot;,
+                      &quot;xmlns:c&quot; =&gt; &quot;http://bazz.com/&quot;}, namespaces)
+
+        namespaces = xml.at_xpath(&quot;//xmlns:z&quot;).namespaces
+        assert_equal({&quot;xmlns&quot;   =&gt; &quot;http://quux.com/&quot;,
+                      &quot;xmlns:a&quot; =&gt; &quot;http://foo.com/&quot;,
+                      &quot;xmlns:b&quot; =&gt; &quot;http://bar.com/&quot;,
+                      &quot;xmlns:c&quot; =&gt; &quot;http://bazz.com/&quot;}, namespaces)
+
+        namespaces = xml.at_xpath(&quot;//xmlns:a&quot;).namespaces
+        assert_equal({&quot;xmlns&quot;   =&gt; &quot;http://quux.com/&quot;,
+                      &quot;xmlns:a&quot; =&gt; &quot;http://foo.com/&quot;,
+                      &quot;xmlns:b&quot; =&gt; &quot;http://bar.com/&quot;,
+                      &quot;xmlns:c&quot; =&gt; &quot;http://newc.com/&quot;}, namespaces)
       end
 
       def test_namespace
         xml = Nokogiri::XML.parse(&lt;&lt;-EOF)
-&lt;x xmlns:a='http://foo.com/' xmlns:b='http://bar.com/'&gt;
-  &lt;y xmlns:c='http://bazz.com/'&gt;
-    &lt;a:div&gt;hello a&lt;/a:div&gt;
-    &lt;b:div&gt;hello b&lt;/b:div&gt;
-    &lt;c:div&gt;hello c&lt;/c:div&gt;
-    &lt;div&gt;hello moon&lt;/div&gt;
-  &lt;/y&gt;  
-&lt;/x&gt;
-EOF
+        &lt;x xmlns:a='http://foo.com/' xmlns:b='http://bar.com/'&gt;
+          &lt;y xmlns:c='http://bazz.com/'&gt;
+            &lt;a:div&gt;hello a&lt;/a:div&gt;
+            &lt;b:div&gt;hello b&lt;/b:div&gt;
+            &lt;c:div&gt;hello c&lt;/c:div&gt;
+            &lt;div&gt;hello moon&lt;/div&gt;
+          &lt;/y&gt;  
+        &lt;/x&gt;
+        EOF
         set = xml.search(&quot;//y/*&quot;)
         assert_equal &quot;a&quot;, set[0].namespace.prefix
         assert_equal &quot;b&quot;, set[1].namespace.prefix
@@ -726,7 +834,7 @@ EOF
       def test_namespace_without_an_href_on_html_node
         # because microsoft word's HTML formatting does this. ick.
         xml = Nokogiri::HTML.parse &lt;&lt;-EOF
-&lt;div&gt;&lt;o:p&gt;foo&lt;/o:p&gt;&lt;/div&gt;
+          &lt;div&gt;&lt;o:p&gt;foo&lt;/o:p&gt;&lt;/div&gt;
         EOF
 
         assert_not_nil(node = xml.at('p'))
@@ -750,6 +858,25 @@ EOF
         assert_equal 2, node.line
       end
 
+      def test_xpath_results_have_document_and_are_decorated
+        x = Module.new do
+          def awesome! ; end
+        end
+        util_decorate(@xml, x)
+        node_set = @xml.xpath(&quot;//employee&quot;)
+        assert_equal @xml, node_set.document
+        assert node_set.respond_to?(:awesome!)
+      end
+
+      def test_css_results_have_document_and_are_decorated
+        x = Module.new do
+          def awesome! ; end
+        end
+        util_decorate(@xml, x)
+        node_set = @xml.css(&quot;employee&quot;)
+        assert_equal @xml, node_set.document
+        assert node_set.respond_to?(:awesome!)
+      end
     end
   end
 end

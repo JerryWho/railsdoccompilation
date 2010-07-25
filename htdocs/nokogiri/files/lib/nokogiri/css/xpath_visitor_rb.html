@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:21:01 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -57,7 +57,12 @@
       end
 
       def visit_not node
-        'not(' + node.value.first.accept(self) + ')'
+        child = node.value.first
+        if :ELEMENT_NAME == child.type
+          &quot;not(self::#{child.accept(self)})&quot;
+        else
+          &quot;not(#{child.accept(self)})&quot;
+        end
       end
 
       def visit_preceding_selector node
@@ -117,8 +122,8 @@
           return self.send(msg, node) if self.respond_to?(msg)
 
           case node.value.first
-          when &quot;first&quot; then &quot;position() = 1&quot;
-          when &quot;last&quot; then &quot;position() = last()&quot;
+          when &quot;first&quot;, &quot;first-child&quot; then &quot;position() = 1&quot;
+          when &quot;last&quot;, &quot;last-child&quot; then &quot;position() = last()&quot;
           when &quot;first-of-type&quot; then &quot;position() = 1&quot;
           when &quot;last-of-type&quot; then &quot;position() = last()&quot;
           when &quot;only-of-type&quot; then &quot;last() = 1&quot;

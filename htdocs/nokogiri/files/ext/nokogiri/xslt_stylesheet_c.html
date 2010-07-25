@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:53:40 +0100 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -22,13 +22,16 @@
 #include &lt;libxslt/transform.h&gt;
 #include &lt;libexslt/exslt.h&gt;
 
+int vasprintf (char **strp, const char *fmt, va_list ap);
+
 static void dealloc(xsltStylesheetPtr doc)
 {
     NOKOGIRI_DEBUG_START(doc);
-    xsltFreeStylesheet(doc); // commented out for now.
+    xsltFreeStylesheet(doc); /* commented out for now. */
     NOKOGIRI_DEBUG_END(doc);
 }
 
+NORETURN(static void xslt_generic_error_handler(void * ctx, const char *msg, ...));
 static void xslt_generic_error_handler(void * ctx, const char *msg, ...)
 {
   char * message;
@@ -108,10 +111,18 @@ static VALUE transform(int argc, VALUE* argv, VALUE self)
     xmlDocPtr result ;
     xsltStylesheetPtr ss ;
     const char** params ;
-    int param_len, j ;
+    long param_len, j ;
 
     rb_scan_args(argc, argv, &quot;11&quot;, &amp;xmldoc, &amp;paramobj);
     if (NIL_P(paramobj)) { paramobj = rb_ary_new2(0) ; }
+
+    /* handle hashes as arguments. */
+    if(T_HASH == TYPE(paramobj)) {
+      paramobj = rb_funcall(paramobj, rb_intern(&quot;to_a&quot;), 0);
+      paramobj = rb_funcall(paramobj, rb_intern(&quot;flatten&quot;), 0);
+    }
+
+    Check_Type(paramobj, T_ARRAY);
 
     Data_Get_Struct(xmldoc, xmlDoc, xml);
     Data_Get_Struct(self, xsltStylesheet, ss);
@@ -141,7 +152,7 @@ void init_xslt_stylesheet()
   VALUE klass = rb_define_class_under(xslt, &quot;Stylesheet&quot;, rb_cObject);
 
   cNokogiriXsltStylesheet = klass;
-    
+
   rb_define_singleton_method(klass, &quot;parse_stylesheet_doc&quot;, parse_stylesheet_doc, 1);
   rb_define_method(klass, &quot;serialize&quot;, serialize, 1);
   rb_define_method(klass, &quot;transform&quot;, transform, -1);

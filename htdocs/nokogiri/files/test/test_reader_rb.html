@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:53:40 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -347,6 +347,34 @@ class TestReader &lt; Nokogiri::TestCase
     assert_nil reader.name
     assert_equal([&quot;x&quot;, &quot;#text&quot;, &quot;edi:foo&quot;, &quot;#text&quot;, &quot;edi:foo&quot;, &quot;#text&quot;, &quot;x&quot;],
                  reader.map { |n| n.name })
+  end
+
+  def test_base_uri
+    reader = Nokogiri::XML::Reader.from_memory(&lt;&lt;-eoxml)
+      &lt;x xml:base=&quot;http://base.example.org/base/&quot;&gt;
+        &lt;link href=&quot;link&quot;/&gt;
+        &lt;other xml:base=&quot;http://other.example.org/&quot;/&gt;
+        &lt;relative xml:base=&quot;relative&quot;&gt;
+          &lt;link href=&quot;stuff&quot; /&gt;
+        &lt;/relative&gt;
+      &lt;/x&gt;
+    eoxml
+
+    assert_nil reader.base_uri
+    assert_equal([&quot;http://base.example.org/base/&quot;,
+                  &quot;http://base.example.org/base/&quot;,
+                  &quot;http://base.example.org/base/&quot;,
+                  &quot;http://base.example.org/base/&quot;,
+                  &quot;http://other.example.org/&quot;,
+                  &quot;http://base.example.org/base/&quot;,
+                  &quot;http://base.example.org/base/relative&quot;,
+                  &quot;http://base.example.org/base/relative&quot;,
+                  &quot;http://base.example.org/base/relative&quot;,
+                  &quot;http://base.example.org/base/relative&quot;,
+                  &quot;http://base.example.org/base/relative&quot;,
+                  &quot;http://base.example.org/base/&quot;,
+                  &quot;http://base.example.org/base/&quot;],
+                  reader.map {|n| n.base_uri })
   end
 
   def test_read_from_memory

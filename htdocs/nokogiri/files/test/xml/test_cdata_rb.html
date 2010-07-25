@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:40:25 +0200 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -49,6 +49,18 @@ module Nokogiri
         100.times {
           node = CDATA.new(@xml, &quot;asdfasdf&quot;)
         }
+      end
+
+      def test_content=
+        node = CDATA.new(@xml, 'foo')
+        assert_equal('foo', node.content)
+
+        node.content = '&amp; &lt;foo&gt; &amp;amp;'
+        assert_equal('&amp; &lt;foo&gt; &amp;amp;', node.content)
+        assert_equal('&lt;![CDATA[&amp; &lt;foo&gt; &amp;amp;]]&gt;', node.to_xml)
+
+        node.content = 'foo ]]&gt; bar'
+        assert_equal('foo ]]&gt; bar', node.content)
       end
     end
   end

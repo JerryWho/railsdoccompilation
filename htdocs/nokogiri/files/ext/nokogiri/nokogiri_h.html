@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -19,8 +19,22 @@
 #define NOKOGIRI_NATIVE
 
 #include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
 #include &lt;assert.h&gt;
+#include &lt;stdarg.h&gt;
+
+#ifdef USE_INCLUDED_VASPRINTF
+int vasprintf (char **strp, const char *fmt, va_list ap);
+#else
+
+#define _GNU_SOURCE
+#  include &lt;stdio.h&gt;
+#undef _GNU_SOURCE
+
+#endif
+
 #include &lt;libxml/parser.h&gt;
+#include &lt;libxml/entities.h&gt;
 #include &lt;libxml/parserInternals.h&gt;
 #include &lt;libxml/xpath.h&gt;
 #include &lt;libxml/xpathInternals.h&gt;
@@ -32,16 +46,10 @@
 #include &lt;libxml/relaxng.h&gt;
 #include &lt;ruby.h&gt;
 
-#ifdef USE_INCLUDED_VASPRINTF
-int vasprintf (char **strp, const char *fmt, va_list ap);
+#ifdef HAVE_RUBY_ENCODING_H
+#include &lt;ruby/st.h&gt;
 #else
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#  include &lt;stdio.h&gt;
-
+#include &lt;st.h&gt;
 #endif
 
 int is_2_6_16(void) ;
@@ -56,33 +64,31 @@ int is_2_6_16(void) ;
 # endif
 #endif
 
+#ifndef NORETURN
+# if defined(__GNUC__)
+#  define NORETURN(name) __attribute__((noreturn)) name
+# else
+#  define NORETURN(name) name
+# endif
+#endif
+
 #ifdef HAVE_RUBY_ENCODING_H
 
 #include &lt;ruby/encoding.h&gt;
 
 #define NOKOGIRI_STR_NEW2(str) \
-  ({ \
-    VALUE _string = rb_str_new2((const char *)str); \
-    int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
-    rb_enc_associate_index(_string, _enc); \
-    _string; \
-  })
+  NOKOGIRI_STR_NEW(str, strlen((const char *)(str)))
 
 #define NOKOGIRI_STR_NEW(str, len) \
-  ({ \
-    VALUE _string = rb_str_new((const char *)str, (long)len); \
-    int _enc = rb_enc_find_index(&quot;UTF-8&quot;); \
-    rb_enc_associate_index(_string, _enc); \
-    _string; \
-  })
+  rb_external_str_new_with_enc((const char *)(str), (long)(len), rb_utf8_encoding())
 
 #else
 
 #define NOKOGIRI_STR_NEW2(str) \
-  rb_str_new2((const char *)str)
+  rb_str_new2((const char *)(str))
 
 #define NOKOGIRI_STR_NEW(str, len) \
-  rb_str_new((const char *)str, (long)len)
+  rb_str_new((const char *)(str), (long)(len))
 #endif
 
 #define RBSTR_OR_QNIL(_str) \
@@ -101,7 +107,6 @@ int is_2_6_16(void) ;
 #include &lt;xml_document_fragment.h&gt;
 #include &lt;xml_comment.h&gt;
 #include &lt;xml_node_set.h&gt;
-#include &lt;xml_xpath.h&gt;
 #include &lt;xml_dtd.h&gt;
 #include &lt;xml_attribute_decl.h&gt;
 #include &lt;xml_element_decl.h&gt;
@@ -129,10 +134,10 @@ extern VALUE mNokogiriHtmlSax ;
 extern VALUE mNokogiriXslt ;
 
 #define NOKOGIRI_ROOT_NODE(_node) \
-  ({ \
-    nokogiriTuplePtr tuple = (nokogiriTuplePtr)(_node-&gt;doc-&gt;_private);       \
-    st_insert(tuple-&gt;unlinkedNodes, (st_data_t)_node, (st_data_t)_node);     \
-  })
+  st_insert(((nokogiriTuplePtr)(_node)-&gt;doc-&gt;_private)-&gt;unlinkedNodes, (st_data_t)(_node), (st_data_t)(_node))
+
+#define NOKOGIRI_ROOT_NSDEF(_nsDef, _doc)     \
+  st_insert(((nokogiriTuplePtr)(_doc)-&gt;_private)-&gt;unlinkedNodes, (st_data_t)(_nsDef), (st_data_t)(_nsDef))
 
 #ifdef DEBUG
 

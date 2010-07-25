@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -32,6 +32,10 @@ module Nokogiri
           &lt;/body&gt;
         &lt;/html&gt;
         eohtml
+      end
+
+      def test_to_a
+        assert_equal [['class', 'bar'], ['href', 'foo']],@html.at('a').to_a.sort
       end
 
       def test_attr
@@ -79,18 +83,6 @@ module Nokogiri
       def test_description
         assert desc = @html.at('a.bar').description
         assert_equal 'a', desc.name
-      end
-
-      def test_add_next_sibling_with_empty_nodeset
-        assert_raises(ArgumentError) {
-          @html.at('a').add_next_sibling(@html.at('head').children)
-        }
-      end
-
-      def test_add_next_sibling_with_non_empty_nodeset
-        assert_raises(ArgumentError) {
-          @html.at('head').add_next_sibling(@html.at('div').children)
-        }
       end
 
       def test_ancestors_with_selector
@@ -152,35 +144,9 @@ module Nokogiri
         assert_equal 'foo&amp;bar&amp;baz', node['href']
       end
 
-
-      def test_before_will_prepend_text_nodes
-        assert node = @html.at('//body').children.first
-        node.before &quot;some text&quot;
-        assert_equal 'some text', @html.at('//body').children[0].content.strip
-      end
-
-      def test_before
-        @html.at('//div').before('&lt;a href=&quot;awesome&quot;&gt;town&lt;/a&gt;')
-        assert_equal 'awesome', @html.at('//div').previous['href']
-      end
-
       def test_fragment_handler_does_not_regurge_on_invalid_attributes
         iframe = %Q{&lt;iframe style=&quot;width: 0%; height: 0px&quot; src=&quot;http://someurl&quot; allowtransparency&gt;&lt;/iframe&gt;}
-        assert_nothing_raised { @html.at('div').before(iframe) }
-        assert_nothing_raised { @html.at('div').after(iframe) }
-        assert_nothing_raised { @html.at('div').inner_html=(iframe) }
-      end
-
-      def test_inner_html=
-        assert div = @html.at('//div')
-        div.inner_html = '1&lt;span&gt;2&lt;/span&gt;3'
-        assert_equal '1',    div.children[0].to_s
-        assert_equal 'span', div.children[1].name
-        assert_equal '2',    div.children[1].inner_text
-        assert_equal '3',    div.children[2].to_s
-
-        div.inner_html = 'testing'
-        assert_equal 'testing', div.content
+        assert_nothing_raised { @html.at('div').fragment(iframe) }
       end
 
       def test_fragment
@@ -205,33 +171,6 @@ module Nokogiri
         assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.inner_html
         assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.to_html
         assert_equal &quot;&lt;div&gt;foo&lt;/div&gt;&quot;, fragment.to_s
-      end
-
-      def test_after_will_append_text_nodes
-        assert node = @html.at('//body/div')
-        node.after &quot;some text&quot;
-        assert_equal 'some text', node.next.text.strip
-      end
-
-      def test_after
-        @html.at('//div').after('&lt;a href=&quot;awesome&quot;&gt;town&lt;/a&gt;')
-        assert_equal 'awesome', @html.at('//div').next['href']
-      end
-
-      def test_replace
-        doc = Nokogiri::HTML(&lt;&lt;-eohtml)
-          &lt;html&gt;
-            &lt;head&gt;&lt;/head&gt;
-            &lt;body&gt;
-              &lt;center&gt;&lt;img src='logo.gif' /&gt;&lt;/center&gt;
-            &lt;/body&gt;
-          &lt;/html&gt;
-        eohtml
-        center = doc.at(&quot;//center&quot;)
-        img = center.search(&quot;//img&quot;)
-        assert_raises ArgumentError do
-          center.replace img
-        end
       end
 
       def test_to_html_does_not_contain_entities

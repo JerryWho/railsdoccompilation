@@ -1,0 +1,59 @@
+  <div id="fileHeader">
+    <h1>weak_bucket.rb</h1>
+    <table class="header-table">
+    <tr class="top-aligned-row">
+      <td><strong>Path:</strong></td>
+      <td>lib/nokogiri/ffi/weak_bucket.rb</td>
+    </tr>
+    <tr class="top-aligned-row">
+      <td><strong>Last Update:</strong></td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
+    </tr>
+    </table>
+  </div>
+ <!-- banner header -->
+
+  <div id="bodyContent" >
+    <h2>Source Code</h2>
+    <pre># :stopdoc:
+if ENV['NOKOGIRI_ID2REF'] || RUBY_PLATFORM !~ /java/
+  Nokogiri::VERSION_INFO['refs'] = &quot;id2ref&quot;
+else
+  require 'weakling'
+  Nokogiri::VERSION_INFO['refs'] = &quot;weakling&quot;
+end
+require 'singleton'
+
+module Nokogiri
+  class WeakBucket
+    include Singleton
+
+    if Nokogiri::VERSION_INFO['refs'] == &quot;weakling&quot;
+      attr_accessor :bucket
+
+      def initialize
+        @bucket = Weakling::IdHash.new
+      end
+
+      def WeakBucket.get_object(cstruct)
+        instance.bucket[cstruct.ruby_node_pointer]
+      end
+
+      def WeakBucket.set_object(cstruct, object)
+        cstruct.ruby_node_pointer = instance.bucket.add(object)
+      end
+    else
+      def WeakBucket.get_object(cstruct)
+        ptr = cstruct.ruby_node_pointer
+        ptr != 0 ? ObjectSpace._id2ref(ptr) : nil
+      end
+
+      def WeakBucket.set_object(cstruct, object)
+        cstruct.ruby_node_pointer = object.object_id
+      end
+    end
+  end
+end
+# :startdoc:
+</pre>
+    </div>

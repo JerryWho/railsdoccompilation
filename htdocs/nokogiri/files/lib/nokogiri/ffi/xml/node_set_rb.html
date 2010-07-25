@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -23,7 +23,7 @@
 
       def dup # :nodoc:
         dup = LibXML.xmlXPathNodeSetMerge(nil, self.cstruct)
-        NodeSet.wrap(dup)
+        NodeSet.wrap(dup, self.document)
       end
 
       def length # :nodoc:
@@ -41,9 +41,7 @@
         new_set_ptr = LibXML::xmlXPathNodeSetMerge(nil, self.cstruct)
         new_set_ptr = LibXML::xmlXPathNodeSetMerge(new_set_ptr, node_set.cstruct)
 
-        new_set = NodeSet.wrap(new_set_ptr)
-        new_set.document = document
-        new_set
+        NodeSet.wrap(new_set_ptr, self.document)
       end
 
       def -(node_set) # :nodoc:
@@ -54,7 +52,7 @@
         node_set.cstruct[:nodeNr].times do |j|
           LibXML.xmlXPathNodeSetDel(new_set_ptr, other_nodetab[j])
         end        
-        NodeSet.wrap(new_set_ptr)
+        NodeSet.wrap(new_set_ptr, self.document)
       end
 
       def delete(node) # :nodoc:
@@ -86,7 +84,7 @@
       def &amp;(node_set) # :nodoc:
         raise(ArgumentError, &quot;node_set must be a Nokogiri::XML::NodeSet&quot;) unless node_set.is_a?(XML::NodeSet)
         new_set_ptr = LibXML.xmlXPathIntersection(cstruct, node_set.cstruct)
-        NodeSet.wrap(new_set_ptr)
+        NodeSet.wrap(new_set_ptr, self.document)
       end
 
       def include?(node) # :nodoc:
@@ -120,20 +118,24 @@
       end
 
       def self.new document, list = [] # :nodoc:
-        set = NodeSet.wrap(LibXML.xmlXPathNodeSetCreate(nil))
+        set = NodeSet.wrap(LibXML.xmlXPathNodeSetCreate(nil), document)
         set.document = document
         list.each { |x| set &lt;&lt; x }
         yield set if block_given?
         set
       end
 
-      private
-
-      def self.wrap(ptr) # :nodoc:
+      def self.wrap(ptr, document) # :nodoc:
         set = allocate
         set.cstruct = LibXML::XmlNodeSet.new(ptr)
+        if document
+          set.document = document
+          document.decorate(set)
+        end
         set
       end
+
+      private
 
       def index_at(number) # :nodoc:
         return nil if (number &gt;= cstruct[:nodeNr] || number.abs &gt; cstruct[:nodeNr])
@@ -150,10 +152,11 @@
       def subseq(beg, len) # :nodoc:
         return nil if beg &gt; cstruct[:nodeNr]
         return nil if beg &lt; 0 || len &lt; 0
+        len = cstruct[:nodeNr] - beg if beg + len &gt; cstruct[:nodeNr]
 
-        set = NodeSet.wrap(LibXML.xmlXPathNodeSetCreate(nil))
+        set = NodeSet.wrap(LibXML.xmlXPathNodeSetCreate(nil), self.document)
         beg.upto(beg+len-1) do |j|
-          LibXML.xmlXPathNodeSetAdd(set.cstruct, cstruct.nodeAt(j));
+          LibXML.xmlXPathNodeSetAddUnique(set.cstruct, cstruct.nodeAt(j));
         end
         set
       end

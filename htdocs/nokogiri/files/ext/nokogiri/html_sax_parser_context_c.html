@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Thu Nov 26 17:53:40 +0100 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -32,19 +32,21 @@ static void deallocate(xmlParserCtxtPtr ctxt)
 
 static VALUE parse_memory(VALUE klass, VALUE data, VALUE encoding)
 {
+  htmlParserCtxtPtr ctxt;
+
   if(NIL_P(data)) rb_raise(rb_eArgError, &quot;data cannot be nil&quot;);
   if(!(int)RSTRING_LEN(data))
     rb_raise(rb_eRuntimeError, &quot;data cannot be empty&quot;);
 
-  htmlParserCtxtPtr ctxt = htmlCreateMemoryParserCtxt(
+  ctxt = htmlCreateMemoryParserCtxt(
       StringValuePtr(data),
       (int)RSTRING_LEN(data)
   );
 
   if(RTEST(encoding)) {
-    xmlCharEncoding enc = xmlParseCharEncoding(StringValuePtr(encoding));
-    if(enc != XML_CHAR_ENCODING_ERROR) {
-      xmlSwitchEncoding(ctxt, enc);
+    xmlCharEncodingHandlerPtr enc = xmlFindCharEncodingHandler(StringValuePtr(encoding));
+    if(enc != NULL) {
+      xmlSwitchToEncoding(ctxt, enc);
       if(ctxt-&gt;errNo == XML_ERR_UNSUPPORTED_ENCODING) {
         rb_raise(rb_eRuntimeError, &quot;Unsupported encoding %s&quot;,
             StringValuePtr(encoding));
@@ -66,16 +68,16 @@ static VALUE parse_file(VALUE klass, VALUE filename, VALUE encoding)
 
 static VALUE parse_with(VALUE self, VALUE sax_handler)
 {
+  htmlParserCtxtPtr ctxt;
+  htmlSAXHandlerPtr sax;
+
   if(!rb_obj_is_kind_of(sax_handler, cNokogiriXmlSaxParser))
     rb_raise(rb_eArgError, &quot;argument must be a Nokogiri::XML::SAX::Parser&quot;);
 
-  htmlParserCtxtPtr ctxt;
   Data_Get_Struct(self, htmlParserCtxt, ctxt);
-
-  htmlSAXHandlerPtr sax;
   Data_Get_Struct(sax_handler, htmlSAXHandler, sax);
 
-  // Free the sax handler since we'll assign our own
+  /* Free the sax handler since we'll assign our own */
   if(ctxt-&gt;sax &amp;&amp; ctxt-&gt;sax != (xmlSAXHandlerPtr)&amp;xmlDefaultSAXHandler)
     xmlFree(ctxt-&gt;sax);
 

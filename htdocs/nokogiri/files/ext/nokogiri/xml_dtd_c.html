@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:40:25 +0200 2009</td>
+      <td>Sun Jul 25 20:14:47 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -23,13 +23,13 @@ static void notation_copier(void *payload, void *data, xmlChar *name)
   VALUE klass = rb_const_get(mNokogiriXml, rb_intern(&quot;Notation&quot;));
 
   xmlNotationPtr c_notation = (xmlNotationPtr)payload;
-
+  VALUE notation;
   VALUE argv[3];
   argv[0] = (c_notation-&gt;name ? NOKOGIRI_STR_NEW2(c_notation-&gt;name) : Qnil);
   argv[1] = (c_notation-&gt;PublicID ? NOKOGIRI_STR_NEW2(c_notation-&gt;PublicID) : Qnil);
   argv[2] = (c_notation-&gt;SystemID ? NOKOGIRI_STR_NEW2(c_notation-&gt;SystemID) : Qnil);
 
-  VALUE notation = rb_class_new_instance(3, argv, klass);
+  notation = rb_class_new_instance(3, argv, klass);
 
   rb_hash_aset(hash, NOKOGIRI_STR_NEW2(name),notation);
 }
@@ -53,11 +53,13 @@ static void element_copier(void *_payload, void *data, xmlChar *name)
 static VALUE entities(VALUE self)
 {
   xmlDtdPtr dtd;
+  VALUE hash;
+
   Data_Get_Struct(self, xmlDtd, dtd);
 
   if(!dtd-&gt;entities) return Qnil;
 
-  VALUE hash = rb_hash_new();
+  hash = rb_hash_new();
 
   xmlHashScan((xmlHashTablePtr)dtd-&gt;entities, element_copier, (void *)hash);
 
@@ -73,11 +75,13 @@ static VALUE entities(VALUE self)
 static VALUE notations(VALUE self)
 {
   xmlDtdPtr dtd;
+  VALUE hash;
+
   Data_Get_Struct(self, xmlDtd, dtd);
 
   if(!dtd-&gt;notations) return Qnil;
 
-  VALUE hash = rb_hash_new();
+  hash = rb_hash_new();
 
   xmlHashScan((xmlHashTablePtr)dtd-&gt;notations, notation_copier, (void *)hash);
 
@@ -93,11 +97,13 @@ static VALUE notations(VALUE self)
 static VALUE attributes(VALUE self)
 {
   xmlDtdPtr dtd;
+  VALUE hash;
+
   Data_Get_Struct(self, xmlDtd, dtd);
 
   if(!dtd-&gt;attributes) return Qnil;
 
-  VALUE hash = rb_hash_new();
+  hash = rb_hash_new();
 
   xmlHashScan((xmlHashTablePtr)dtd-&gt;attributes, element_copier, (void *)hash);
 
@@ -113,11 +119,13 @@ static VALUE attributes(VALUE self)
 static VALUE elements(VALUE self)
 {
   xmlDtdPtr dtd;
+  VALUE hash;
+
   Data_Get_Struct(self, xmlDtd, dtd);
 
   if(!dtd-&gt;elements) return Qnil;
 
-  VALUE hash = rb_hash_new();
+  hash = rb_hash_new();
 
   xmlHashScan((xmlHashTablePtr)dtd-&gt;elements, element_copier, (void *)hash);
 
@@ -134,12 +142,14 @@ static VALUE validate(VALUE self, VALUE document)
 {
   xmlDocPtr doc;
   xmlDtdPtr dtd;
+  xmlValidCtxtPtr ctxt;
+  VALUE error_list;
 
   Data_Get_Struct(self, xmlDtd, dtd);
   Data_Get_Struct(document, xmlDoc, doc);
-  VALUE error_list      = rb_ary_new();
+  error_list = rb_ary_new();
 
-  xmlValidCtxtPtr ctxt = xmlNewValidCtxt();
+  ctxt = xmlNewValidCtxt();
 
   xmlSetStructuredErrorFunc((void *)error_list, Nokogiri_error_array_pusher);
 

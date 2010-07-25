@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -17,7 +17,7 @@
     <h2>Source Code</h2>
     <pre>#Process.setrlimit(Process::RLIMIT_CORE, Process::RLIM_INFINITY) unless RUBY_PLATFORM =~ /(java|mswin|mingw)/i
 $VERBOSE = true
-require 'test/unit'
+require 'minitest/autorun'
 require 'fileutils'
 require 'tempfile'
 require 'pp'
@@ -27,7 +27,7 @@ require 'nokogiri'
 warn &quot;#{__FILE__}:#{__LINE__}: libxml version info: #{Nokogiri::VERSION_INFO.inspect}&quot;
 
 module Nokogiri
-  class TestCase &lt; Test::Unit::TestCase
+  class TestCase &lt; MiniTest::Spec
     ASSETS_DIR      = File.expand_path File.join(File.dirname(__FILE__), 'files')
     XML_FILE        = File.join(ASSETS_DIR, 'staff.xml')
     XSLT_FILE       = File.join(ASSETS_DIR, 'staff.xslt')
@@ -43,18 +43,15 @@ module Nokogiri
     ADDRESS_XML_FILE = File.join(ASSETS_DIR, 'address_book.xml')
     SNUGGLES_FILE   = File.join(ASSETS_DIR, 'snuggles.xml')
 
-    unless RUBY_VERSION &gt;= '1.9'
-      undef :default_test
-    end
-
-    def setup
-      warn &quot;#{name}&quot; if ENV['TESTOPTS'] == '-v'
-    end
-
     def teardown
       if ENV['NOKOGIRI_GC']
         STDOUT.putc '!'
-        GC.start
+        if RUBY_PLATFORM =~ /java/
+          require 'java'
+          java.lang.System.gc
+        else
+          GC.start
+        end
       end
     end
 
@@ -68,6 +65,47 @@ module Nokogiri
         len = node.content.gsub(/[\r\n]/, '').length
         assert_equal(0, len % amount, message)
       end
+    end
+
+    def util_decorate(document, decorator_module)
+      document.decorators(XML::Node) &lt;&lt; decorator_module
+      document.decorators(XML::NodeSet) &lt;&lt; decorator_module
+      document.decorate!
+    end
+
+    #
+    #  Test::Unit backwards compatibility section
+    #
+    alias :assert_no_match      :refute_match
+    alias :assert_not_nil       :refute_nil
+    alias :assert_raise         :assert_raises
+    alias :assert_not_equal     :refute_equal
+
+    def assert_nothing_raised(*args)
+      self._assertions += 1
+      if Module === args.last
+        msg = nil
+      else
+        msg = args.pop
+      end
+      begin
+        line = __LINE__; yield
+      rescue Exception =&gt; e
+        bt = e.backtrace
+        as = e.instance_of?(MiniTest::Assertion)
+        if as
+          ans = /\A#{Regexp.quote(__FILE__)}:#{line}:in /o
+          bt.reject! {|ln| ans =~ ln}
+        end
+        if ((args.empty? &amp;&amp; !as) ||
+            args.any? {|a| a.instance_of?(Module) ? e.is_a?(a) : e.class == a })
+          msg = message(msg) { &quot;Exception raised:\n&lt;#{mu_pp(e)}&gt;&quot; }
+          raise MiniTest::Assertion, msg.call, bt
+        else
+          raise
+        end
+      end
+      nil
     end
   end
 

@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:21:01 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -21,258 +21,275 @@ module Nokogiri
   module XML
     class TestNodeReparenting &lt; Nokogiri::TestCase
 
-      def setup
-        super
-        @xml = Nokogiri::XML &quot;&lt;root&gt;&lt;a1&gt;First node&lt;/a1&gt;&lt;a2&gt;Second node&lt;/a2&gt;&lt;a3&gt;Third node&lt;/a3&gt;&lt;/root&gt;&quot;
-      end
+      describe &quot;standard node reparenting behavior&quot; do
+        # describe &quot;namespace handling during reparenting&quot; do
+        #   describe &quot;given a Node&quot; do
+        #     describe &quot;with a Namespace&quot; do
+        #       it &quot;keeps the Namespace&quot;
+        #     end
+        #     describe &quot;given a parent Node with a default and a non-default Namespace&quot; do
+        #       describe &quot;passed an Node without a namespace&quot; do
+        #         it &quot;inserts an Node that inherits the default Namespace&quot;
+        #       end
+        #       describe &quot;passed a Node with a Namespace that matches the parent's non-default Namespace&quot; do
+        #         it &quot;inserts a Node that inherits the matching parent Namespace&quot;
+        #       end
+        #     end
+        #   end
+        #   describe &quot;given a markup string&quot; do
+        #     describe &quot;parsed relative to the document&quot; do
+        #       describe &quot;with a Namespace&quot; do
+        #         it &quot;keeps the Namespace&quot;
+        #       end
+        #       describe &quot;given a parent Node with a default and a non-default Namespace&quot; do
+        #         describe &quot;passed an Node without a namespace&quot; do
+        #           it &quot;inserts an Node that inherits the default Namespace&quot;
+        #         end
+        #         describe &quot;passed a Node with a Namespace that matches the parent's non-default Namespace&quot; do
+        #           it &quot;inserts a Node that inherits the matching parent Namespace&quot;
+        #         end
+        #       end
+        #     end
+        #     describe &quot;parsed relative to a specific node&quot; do
+        #       describe &quot;with a Namespace&quot; do
+        #         it &quot;keeps the Namespace&quot;
+        #       end
+        #       describe &quot;given a parent Node with a default and a non-default Namespace&quot; do
+        #         describe &quot;passed an Node without a namespace&quot; do
+        #           it &quot;inserts an Node that inherits the default Namespace&quot;
+        #         end
+        #         describe &quot;passed a Node with a Namespace that matches the parent's non-default Namespace&quot; do
+        #           it &quot;inserts a Node that inherits the matching parent Namespace&quot;
+        #         end
+        #       end
+        #     end
+        #   end
+        # end
 
-      def test_add_child_should_insert_at_end_of_children
-        node = Nokogiri::XML::Node.new('x', @xml)
-        @xml.root.add_child node
-        assert_equal [&quot;a1&quot;, &quot;a2&quot;, &quot;a3&quot;, &quot;x&quot;], @xml.root.children.collect {|n| n.name}
-      end
+        {
+          :add_child            =&gt; {:target =&gt; &quot;/root/a1&quot;,        :returns =&gt; :reparented, :children_tags =&gt; %w[text b1 b2]},
+          :&lt;&lt;                   =&gt; {:target =&gt; &quot;/root/a1&quot;,        :returns =&gt; :reparented, :children_tags =&gt; %w[text b1 b2]},
 
-      def test_add_child_fragment_should_insert_fragment_roots_at_end_of_children
-        fragment = Nokogiri::XML.fragment(&quot;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&quot;)
-        @xml.root.add_child fragment
-        assert_equal [&quot;a1&quot;, &quot;a2&quot;, &quot;a3&quot;, &quot;b1&quot;, &quot;b2&quot;], @xml.root.children.collect {|n| n.name}
-      end
+          :replace              =&gt; {:target =&gt; &quot;/root/a1/node()&quot;, :returns =&gt; :reparented, :children_tags =&gt; %w[b1 b2]},
+          :swap                 =&gt; {:target =&gt; &quot;/root/a1/node()&quot;, :returns =&gt; :self,       :children_tags =&gt; %w[b1 b2]},
 
-      def test_chevron_works_as_add_child
-        text_node = Nokogiri::XML::Text.new('hello', @xml)
-        assert_equal Nokogiri::XML::Node::TEXT_NODE, text_node.type
+          :inner_html=          =&gt; {:target =&gt; &quot;/root/a1&quot;,        :returns =&gt; :self,       :children_tags =&gt; %w[b1 b2]},
 
-        @xml.root &lt;&lt; text_node
+          :add_previous_sibling =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :reparented, :children_tags =&gt; %w[b1 b2 text]},
+          :previous=            =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :reparented, :children_tags =&gt; %w[b1 b2 text]},
+          :before               =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :self,       :children_tags =&gt; %w[b1 b2 text]},
 
-        assert_equal @xml.root.children.last.content, 'hello'
-      end
+          :add_next_sibling     =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :reparented, :children_tags =&gt; %w[text b1 b2]},
+          :next=                =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :reparented, :children_tags =&gt; %w[text b1 b2]},
+          :after                =&gt; {:target =&gt; &quot;/root/a1/text()&quot;, :returns =&gt; :self,       :children_tags =&gt; %w[text b1 b2]}
+        }.each do |method, params|
 
-      def test_add_child_already_in_the_document_should_move_the_node
-        third_node = @xml.root.children.last
-        first_node = @xml.root.children.first
-
-        @xml.root.add_child(first_node)
-
-        assert_equal 2, @xml.root.children.index(first_node)
-        assert_equal 1, @xml.root.children.index(third_node)
-      end
-
-      def test_add_child_from_other_document_should_remove_from_old_document
-        d1 = Nokogiri::XML(&quot;&lt;root&gt;&lt;item&gt;1&lt;/item&gt;&lt;item&gt;2&lt;/item&gt;&lt;/root&gt;&quot;)
-        d2 = Nokogiri::XML(&quot;&lt;root&gt;&lt;item&gt;3&lt;/item&gt;&lt;item&gt;4&lt;/item&gt;&lt;/root&gt;&quot;)
-
-        d2.at('root').search('item').each do |item|
-          d1.at('root').add_child item
-        end
-
-        assert_equal 0, d2.search('item').size
-        assert_equal 4, d1.search('item').size
-      end
-
-      def test_add_child_text_node_should_merge_with_adjacent_text_nodes
-        node = @xml.root.children.first
-        old_child = node.children.first
-        new_child = Nokogiri::XML::Text.new('text', @xml)
-
-        node.add_child new_child
-
-        assert_equal &quot;First nodetext&quot;, node.children.first.content
-        assert_equal &quot;First nodetext&quot;, new_child.content
-        assert_equal &quot;First nodetext&quot;, old_child.content
-      end
-
-      def test_add_child_node_following_sequential_text_nodes_should_have_right_path
-        node = @xml.root.children.first
-        node.add_child(Nokogiri::XML::Text.new('text', @xml))
-
-        item = node.add_child(Nokogiri::XML::Element.new('item', @xml))
-
-        assert_equal '/root/a1/item', item.path
-      end
-
-      def test_add_child_node_with_namespace_should_keep_namespace
-        doc   = Nokogiri::XML::Document.new
-        item  = Nokogiri::XML::Element.new('item', doc)
-        doc.root = item
-
-        entry = Nokogiri::XML::Element.new('entry', doc)
-        entry.add_namespace('tlm', 'http://tenderlovemaking.com')
-        assert_equal 'http://tenderlovemaking.com', entry.namespaces['xmlns:tlm']
-        item.add_child(entry)
-        assert_equal 'http://tenderlovemaking.com', entry.namespaces['xmlns:tlm']
-      end
-
-      def test_add_child_node_should_inherit_namespace
-        doc = Nokogiri::XML(&lt;&lt;-eoxml)
-          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot;&gt;
-            &lt;first&gt;
-            &lt;/first&gt;
-          &lt;/root&gt;
-        eoxml
-        assert node = doc.at('//xmlns:first')
-        child = Nokogiri::XML::Node.new('second', doc)
-        node.add_child(child)
-        assert doc.at('//xmlns:second')
-      end
-
-      def test_add_child_node_should_not_inherit_namespace_if_it_has_one
-        doc = Nokogiri::XML(&lt;&lt;-eoxml)
-          &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;http://flavorjon.es/&quot;&gt;
-            &lt;first&gt;
-            &lt;/first&gt;
-          &lt;/root&gt;
-        eoxml
-        assert node = doc.at('//xmlns:first')
-        child = Nokogiri::XML::Node.new('second', doc)
-
-        ns = doc.root.namespace_definitions.detect { |x| x.prefix == &quot;foo&quot; }
-        child.namespace = ns
-
-        node.add_child(child)
-        assert doc.at('//foo:second', &quot;foo&quot; =&gt; &quot;http://flavorjon.es/&quot;)
-      end
-
-      def test_replace_node_should_remove_previous_node_and_insert_new_node
-        second_node = @xml.root.children[1]
-
-        new_node = Nokogiri::XML::Node.new('foo', @xml)
-        second_node.replace(new_node)
-
-        assert_equal @xml.root.children[1], new_node
-        assert_nil second_node.parent
-      end
-
-      def test_replace_fragment_should_replace_node_with_fragment_roots
-        node = @xml.root.children[1]
-        fragment = Nokogiri::XML.fragment(&quot;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&quot;)
-        fc1 = fragment.children[0]
-        fc2 = fragment.children[1]
-
-        node.replace fragment
-
-        assert_equal 4, @xml.root.children.length
-        assert_equal fc1, @xml.root.children[1]
-        assert_equal fc2, @xml.root.children[2]
-      end
-
-      def test_replace_with_default_namespaces
-        fruits = Nokogiri::XML(&lt;&lt;-eoxml)
-          &lt;fruit xmlns=&quot;http://fruits.org&quot;&gt;
-            &lt;apple /&gt;
-          &lt;/fruit&gt;
-        eoxml
-
-        apple = fruits.css('apple').first
-
-        orange = Nokogiri::XML::Node.new('orange', fruits)
-        apple.replace(orange)
-
-        assert_equal orange, fruits.css('orange').first
-      end
-
-      def test_illegal_replace_of_node_with_doc
-        new_node = Nokogiri::XML.parse('&lt;foo&gt;bar&lt;/foo&gt;')
-        old_node = @xml.at_css('a1')
-        assert_raises(ArgumentError){ old_node.replace new_node }
-      end
-
-      def test_replace_with_node_from_different_docs
-        xml1 = &quot;&lt;test&gt; &lt;caption&gt;Original caption&lt;/caption&gt; &lt;/test&gt;&quot;
-        xml2 = &quot;&lt;test&gt; &lt;caption&gt;Replacement caption&lt;/caption&gt; &lt;/test&gt;&quot;
-        doc1 = Nokogiri::XML(xml1)
-        doc2 = Nokogiri::XML(xml2)
-        caption1 = doc1.xpath(&quot;//caption&quot;)[0]
-        caption2 = doc2.xpath(&quot;//caption&quot;)[0]
-        caption1.replace(caption2) # this segfaulted under 1.4.0 and earlier
-        assert_equal &quot;Replacement caption&quot;, doc1.css(&quot;caption&quot;).inner_text
-      end
-
-      def test_add_next_sibling_should_insert_after
-        node = Nokogiri::XML::Node.new('x', @xml)
-        @xml.root.children[1].add_next_sibling node
-        assert_equal [&quot;a1&quot;, &quot;a2&quot;, &quot;x&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_next_equals_should_insert_after
-        node = Nokogiri::XML::Node.new('x', @xml)
-        @xml.root.children[1].next = node
-        assert_equal [&quot;a1&quot;, &quot;a2&quot;, &quot;x&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_add_next_sibling_fragment_should_insert_fragment_roots_after
-        fragment = Nokogiri::XML.fragment(&quot;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&quot;)
-        @xml.root.children[1].add_next_sibling fragment
-        assert_equal [&quot;a1&quot;, &quot;a2&quot;, &quot;b1&quot;, &quot;b2&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_add_next_sibling_text_node_should_merge_with_adjacent_text_nodes
-        node = @xml.root.children.first
-        text = node.children.first
-        new_text = Nokogiri::XML::Text.new('text', @xml)
-
-        text.add_next_sibling new_text
-
-        assert_equal &quot;First nodetext&quot;, node.children.first.content
-        assert_equal &quot;First nodetext&quot;, text.content
-        assert_equal &quot;First nodetext&quot;, new_text.content
-      end
-
-      def test_add_previous_sibling_should_insert_before
-        node = Nokogiri::XML::Node.new('x', @xml)
-        @xml.root.children[1].add_previous_sibling node
-        assert_equal [&quot;a1&quot;, &quot;x&quot;, &quot;a2&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_previous_equals_should_insert_before
-        node = Nokogiri::XML::Node.new('x', @xml)
-        @xml.root.children[1].previous = node
-        assert_equal [&quot;a1&quot;, &quot;x&quot;, &quot;a2&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_add_previous_sibling_fragment_should_insert_fragment_roots_before
-        fragment = Nokogiri::XML.fragment(&quot;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&quot;)
-        @xml.root.children[1].add_previous_sibling fragment
-        assert_equal [&quot;a1&quot;, &quot;b1&quot;, &quot;b2&quot;, &quot;a2&quot;, &quot;a3&quot;], @xml.root.children.collect {|n| n.name}
-      end
-
-      def test_add_previous_sibling_text_node_should_merge_with_adjacent_text_nodes
-        node = @xml.root.children.first
-        text = node.children.first
-        new_text = Nokogiri::XML::Text.new('text', @xml)
-
-        text.add_previous_sibling new_text
-
-        assert_equal &quot;textFirst node&quot;, node.children.first.content
-        assert_equal &quot;textFirst node&quot;, text.content
-        assert_equal &quot;textFirst node&quot;, new_text.content
-      end
-
-      def test_unlink_then_reparent
-        # see http://github.com/tenderlove/nokogiri/issues#issue/22
-        10.times do
-          STDOUT.putc &quot;.&quot;
-          STDOUT.flush
-          begin
-            doc = Nokogiri::XML &lt;&lt;-EOHTML
-              &lt;root&gt;
-                &lt;a&gt;
-                  &lt;b/&gt;
-                  &lt;c/&gt;
-                &lt;/a&gt;
-              &lt;/root&gt;
-            EOHTML
-
-            root = doc.at(&quot;root&quot;)
-            a = root.at(&quot;a&quot;)
-            b = a.at(&quot;b&quot;)
-            c = a.at(&quot;c&quot;)
-            a.add_next_sibling(b.unlink)
-            c.unlink
+          before do
+            @doc  = Nokogiri::XML &quot;&lt;root&gt;&lt;a1&gt;First node&lt;/a1&gt;&lt;a2&gt;Second node&lt;/a2&gt;&lt;a3&gt;Third &lt;bx /&gt;node&lt;/a3&gt;&lt;/root&gt;&quot;
+            @doc2 = @doc.dup
+            @fragment_string = &quot;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&quot;
+            @fragment        = Nokogiri::XML::DocumentFragment.parse @fragment_string
+            @node_set        = Nokogiri::XML(&quot;&lt;root&gt;&lt;b1&gt;foo&lt;/b1&gt;&lt;b2&gt;bar&lt;/b2&gt;&lt;/root&gt;&quot;).xpath(&quot;/root/node()&quot;)
           end
-          GC.start
+
+          describe &quot;##{method}&quot; do
+            describe &quot;passed a Node&quot; do
+              [:current, :another].each do |which|
+                describe &quot;passed a Node in the #{which} document&quot; do
+                  before do
+                    @other_doc = which == :current ? @doc : @doc2
+                    @other_node = @other_doc.at_xpath(&quot;/root/a2&quot;)
+                  end
+
+                  it &quot;unlinks the Node from its previous position&quot; do
+                    @doc.at_xpath(params[:target]).send(method, @other_node)
+                    @other_doc.at_xpath(&quot;/root/a2&quot;).must_be_nil
+                  end
+
+                  it &quot;inserts the Node in the proper position&quot; do
+                    @doc.at_xpath(params[:target]).send(method, @other_node)
+                    @doc.at_xpath(&quot;/root/a1/a2&quot;).wont_be_nil
+                  end
+
+                  it &quot;returns the expected value&quot; do
+                    if params[:returns] == :self
+                      sendee = @doc.at_xpath(params[:target])
+                      sendee.send(method, @other_node).must_equal sendee
+                    else
+                      @doc.at_xpath(params[:target]).send(method, @other_node).must_equal @other_node
+                    end
+                  end
+                end
+              end
+            end
+            describe &quot;passed a markup string&quot; do
+              it &quot;inserts the fragment roots in the proper position&quot; do
+                @doc.at_xpath(params[:target]).send(method, @fragment_string)
+                @doc.xpath(&quot;/root/a1/node()&quot;).collect {|n| n.name}.must_equal params[:children_tags]
+              end
+            end
+            describe &quot;passed a fragment&quot; do
+              it &quot;inserts the fragment roots in the proper position&quot; do
+                @doc.at_xpath(params[:target]).send(method, @fragment)
+                @doc.xpath(&quot;/root/a1/node()&quot;).collect {|n| n.name}.must_equal params[:children_tags]
+              end
+            end
+            describe &quot;passed a document&quot; do
+              it &quot;raises an exception&quot; do
+                proc { @doc.at_xpath(&quot;/root/a1&quot;).send(method, @doc2) }.must_raise(ArgumentError)
+              end
+            end
+            describe &quot;passed a non-Node&quot; do
+              it &quot;raises an exception&quot; do
+                proc { @doc.at_xpath(&quot;/root/a1&quot;).send(method, 42) }.must_raise(ArgumentError)
+              end
+            end
+            describe &quot;passed a NodeSet&quot; do
+              it &quot;inserts each member of the NodeSet in the proper order&quot; do
+                @doc.at_xpath(params[:target]).send(method, @node_set)
+                @doc.xpath(&quot;/root/a1/node()&quot;).collect {|n| n.name}.must_equal params[:children_tags]
+              end
+            end
+          end
+
+          describe &quot;text node merging&quot; do
+            describe &quot;#add_child&quot; do
+              it &quot;merges the Text node with adjacent Text nodes&quot; do
+                @doc.at_xpath(&quot;/root/a1&quot;).add_child Nokogiri::XML::Text.new('hello', @doc)
+                @doc.at_xpath(&quot;/root/a1/text()&quot;).content.must_equal &quot;First nodehello&quot;
+              end
+            end
+            describe &quot;#replace&quot; do
+              it &quot;merges the Text node with adjacent Text nodes&quot; do
+                @doc.at_xpath(&quot;/root/a3/bx&quot;).replace Nokogiri::XML::Text.new('hello', @doc)
+                @doc.at_xpath(&quot;/root/a3/text()&quot;).content.must_equal &quot;Third hellonode&quot;
+              end
+            end
+          end
         end
       end
 
+      describe &quot;ad hoc node reparenting behavior&quot; do
+        before do
+          @xml = Nokogiri::XML &quot;&lt;root&gt;&lt;a1&gt;First node&lt;/a1&gt;&lt;a2&gt;Second node&lt;/a2&gt;&lt;a3&gt;Third node&lt;/a3&gt;&lt;/root&gt;&quot;
+          @html = Nokogiri::HTML(&lt;&lt;-eohtml)
+            &lt;html&gt;
+              &lt;head&gt;&lt;/head&gt;
+              &lt;body&gt;
+                &lt;div class='baz'&gt;&lt;a href=&quot;foo&quot; class=&quot;bar&quot;&gt;first&lt;/a&gt;&lt;/div&gt;
+              &lt;/body&gt;
+            &lt;/html&gt;
+          eohtml
+        end
+
+        describe &quot;#add_child&quot; do
+          describe &quot;given a new node with a namespace&quot; do
+            it &quot;keeps the namespace&quot; do
+              doc   = Nokogiri::XML::Document.new
+              item  = Nokogiri::XML::Element.new('item', doc)
+              doc.root = item
+
+              entry = Nokogiri::XML::Element.new('entry', doc)
+              entry.add_namespace('tlm', 'http://tenderlovemaking.com')
+              assert_equal 'http://tenderlovemaking.com', entry.namespaces['xmlns:tlm']
+              item.add_child(entry)
+              assert_equal 'http://tenderlovemaking.com', entry.namespaces['xmlns:tlm']
+            end
+          end
+
+          describe &quot;given a parent node with a default namespace&quot; do
+            before do
+              @doc = Nokogiri::XML(&lt;&lt;-eoxml)
+                &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot;&gt;
+                  &lt;first&gt;
+                  &lt;/first&gt;
+                &lt;/root&gt;
+              eoxml
+            end
+
+            it &quot;inserts a node that inherits the default namespace&quot; do
+              assert node = @doc.at('//xmlns:first')
+              child = Nokogiri::XML::Node.new('second', @doc)
+              node.add_child(child)
+              assert @doc.at('//xmlns:second')
+            end
+          end
+
+          describe &quot;given a parent node with a non-default namespace&quot; do
+            before do
+              @doc = Nokogiri::XML(&lt;&lt;-eoxml)
+                &lt;root xmlns=&quot;http://tenderlovemaking.com/&quot; xmlns:foo=&quot;http://flavorjon.es/&quot;&gt;
+                  &lt;first&gt;
+                  &lt;/first&gt;
+                &lt;/root&gt;
+              eoxml
+            end
+
+            describe &quot;and a child node with a namespace matching the parent's non-default namespace&quot; do
+              it &quot;inserts a node that inherits the matching parent namespace&quot; do
+                assert node = @doc.at('//xmlns:first')
+                child = Nokogiri::XML::Node.new('second', @doc)
+
+                ns = @doc.root.namespace_definitions.detect { |x| x.prefix == &quot;foo&quot; }
+                child.namespace = ns
+
+                node.add_child(child)
+                assert @doc.at('//foo:second', &quot;foo&quot; =&gt; &quot;http://flavorjon.es/&quot;)
+              end
+            end
+          end
+        end
+
+        describe &quot;#replace&quot; do
+          describe &quot;when a document has a default namespace&quot; do
+            before do
+              @fruits = Nokogiri::XML(&lt;&lt;-eoxml)
+                &lt;fruit xmlns=&quot;http://fruits.org&quot;&gt;
+                  &lt;apple /&gt;
+                &lt;/fruit&gt;
+              eoxml
+            end
+
+            it &quot;inserts a node with default namespaces&quot; do
+              apple = @fruits.css('apple').first
+
+              orange = Nokogiri::XML::Node.new('orange', @fruits)
+              apple.replace(orange)
+
+              assert_equal orange, @fruits.css('orange').first
+            end
+          end
+        end
+
+        describe &quot;unlinking a node and then reparenting it&quot; do
+          it &quot;not blow up&quot; do
+            # see http://github.com/tenderlove/nokogiri/issues#issue/22
+            10.times do
+              STDOUT.putc &quot;.&quot;
+              STDOUT.flush
+              begin
+                doc = Nokogiri::XML &lt;&lt;-EOHTML
+                  &lt;root&gt;
+                    &lt;a&gt;
+                      &lt;b/&gt;
+                      &lt;c/&gt;
+                    &lt;/a&gt;
+                  &lt;/root&gt;
+                EOHTML
+
+                root = doc.at(&quot;root&quot;)
+                a = root.at(&quot;a&quot;)
+                b = a.at(&quot;b&quot;)
+                c = a.at(&quot;c&quot;)
+                a.add_next_sibling(b.unlink)
+                c.unlink
+              end
+              GC.start
+            end
+          end
+        end
+
+      end
     end
   end
 end

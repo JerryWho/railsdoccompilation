@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Fri Dec 11 22:20:49 +0100 2009</td>
+      <td>Sun Jul 25 20:15:09 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -22,9 +22,26 @@ require 'uri'
 module Nokogiri
   module XML
     class TestDocument &lt; Nokogiri::TestCase
+      URI = if URI.const_defined?(:DEFAULT_PARSER)
+              ::URI::DEFAULT_PARSER
+            else
+              ::URI
+            end
+
       def setup
         super
         @xml = Nokogiri::XML.parse(File.read(XML_FILE), XML_FILE)
+      end
+
+      def test_root_set_to_nil
+        @xml.root = nil
+        assert_equal nil, @xml.root
+      end
+
+      def test_parse_should_not_exist
+        assert_raises(NoMethodError) do
+          @xml.parse(&quot;foo&quot;)
+        end
       end
 
       def test_collect_namespaces
@@ -62,6 +79,29 @@ module Nokogiri
         assert_instance_of Nokogiri::XML::Element, elm
         assert_equal 'foo', elm.name
         assert_equal @xml, elm.document
+      end
+
+      def test_create_element_with_attributes
+        elm = @xml.create_element('foo',:a =&gt; &quot;1&quot;)
+        assert_instance_of Nokogiri::XML::Element, elm
+        assert_instance_of Nokogiri::XML::Attr, elm.attributes[&quot;a&quot;]
+        assert_equal &quot;1&quot;, elm[&quot;a&quot;]
+      end
+
+      def test_create_element_with_namespace
+        elm = @xml.create_element('foo',:'xmlns:foo' =&gt; 'http://tenderlovemaking.com')
+        assert_equal 'http://tenderlovemaking.com', elm.namespaces['xmlns:foo']
+      end
+
+      def test_create_element_with_content
+        elm = @xml.create_element('foo',&quot;needs more xml/violence&quot;)
+        assert_equal &quot;needs more xml/violence&quot;, elm.content
+      end
+
+      def test_create_cdata
+        cdata = @xml.create_cdata(&quot;abc&quot;)
+        assert_instance_of Nokogiri::XML::CDATA, cdata
+        assert_equal &quot;abc&quot;, cdata.content
       end
 
       def test_pp
@@ -484,21 +524,21 @@ module Nokogiri
 
         ctx = Nokogiri::XML::XPathContext.new(doc)
         ctx.register_ns 'tenderlove', 'http://tenderlovemaking.com/'
-        set = ctx.evaluate('//tenderlove:foo').node_set
+        set = ctx.evaluate('//tenderlove:foo')
         assert_equal 1, set.length
         assert_equal 'foo', set.first.name
 
         # It looks like only the URI is important:
         ctx = Nokogiri::XML::XPathContext.new(doc)
         ctx.register_ns 'america', 'http://tenderlovemaking.com/'
-        set = ctx.evaluate('//america:foo').node_set
+        set = ctx.evaluate('//america:foo')
         assert_equal 1, set.length
         assert_equal 'foo', set.first.name
 
         # Its so important that a missing slash will cause it to return nothing
         ctx = Nokogiri::XML::XPathContext.new(doc)
         ctx.register_ns 'america', 'http://tenderlovemaking.com'
-        set = ctx.evaluate('//america:foo').node_set
+        set = ctx.evaluate('//america:foo')
         assert_equal 0, set.length
       end
 
@@ -557,38 +597,6 @@ module Nokogiri
         assert dup.xml?, 'duplicate should be xml'
       end
 
-      def test_subset_is_decorated
-        x = Module.new do
-          def awesome!
-          end
-        end
-        util_decorate(@xml, x)
-
-        assert @xml.respond_to?(:awesome!)
-        assert node_set = @xml.search('//staff')
-        assert node_set.respond_to?(:awesome!)
-        assert subset = node_set.search('.//employee')
-        assert subset.respond_to?(:awesome!)
-        assert sub_subset = node_set.search('.//name')
-        assert sub_subset.respond_to?(:awesome!)
-      end
-
-      def test_decorator_is_applied
-        x = Module.new do
-          def awesome!
-          end
-        end
-        util_decorate(@xml, x)
-
-        assert @xml.respond_to?(:awesome!)
-        assert node_set = @xml.search('//employee')
-        assert node_set.respond_to?(:awesome!)
-        node_set.each do |node|
-          assert node.respond_to?(:awesome!), node.class
-        end
-        assert @xml.root.respond_to?(:awesome!)
-      end
-
       def test_new
         doc = nil
         assert_nothing_raised {
@@ -640,10 +648,37 @@ module Nokogiri
         assert_equal 0, doc.xpath(&quot;//x:foo&quot;, &quot;x&quot; =&gt; &quot;http://c.flavorjon.es/&quot;).length
       end
 
-      def util_decorate(document, x)
-        document.decorators(XML::Node) &lt;&lt; x
-        document.decorators(XML::NodeSet) &lt;&lt; x
-        document.decorate!
+      def test_subset_is_decorated
+        x = Module.new do
+          def awesome!
+          end
+        end
+        util_decorate(@xml, x)
+
+        assert @xml.respond_to?(:awesome!)
+        assert node_set = @xml.search('//staff')
+        assert node_set.respond_to?(:awesome!)
+        assert subset = node_set.search('.//employee')
+        assert subset.respond_to?(:awesome!)
+        assert sub_subset = node_set.search('.//name')
+        assert sub_subset.respond_to?(:awesome!)
+      end
+
+      def test_decorator_is_applied
+        x = Module.new do
+          def awesome!
+          end
+        end
+        util_decorate(@xml, x)
+
+        assert @xml.respond_to?(:awesome!)
+        assert node_set = @xml.search('//employee')
+        assert node_set.respond_to?(:awesome!)
+        node_set.each do |node|
+          assert node.respond_to?(:awesome!), node.class
+        end
+        assert @xml.root.respond_to?(:awesome!)
+        assert @xml.children.respond_to?(:awesome!)
       end
     end
   end
