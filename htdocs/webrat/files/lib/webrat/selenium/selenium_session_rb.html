@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:44:05 +0200 2009</td>
+      <td>Sun Jul 25 20:11:26 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -20,7 +20,12 @@ require &quot;webrat/selenium/selenium_rc_server&quot;
 require &quot;webrat/selenium/application_server_factory&quot;
 require &quot;webrat/selenium/application_servers/base&quot;
 
-require &quot;selenium&quot;
+begin
+  require &quot;selenium&quot;
+rescue LoadError =&gt; e
+  e.message &lt;&lt; &quot; (You may need to install the selenium-rc gem)&quot;
+  raise e
+end
 
 module Webrat
   class TimeoutError &lt; WebratError
@@ -187,8 +192,8 @@ module Webrat
       end
 
       error_message = &quot;#{message} (after #{timeout} sec)&quot;
-
-      if $browser
+      
+      if $browser &amp;&amp; Webrat.configuration.selenium_verbose_output
         error_message += &lt;&lt;-EOS
 
 
@@ -212,9 +217,9 @@ EOS
 
 
     def save_and_open_screengrab
-      return unless File.exist?(saved_page_dir)
+      return unless File.exist?(Webrat.configuration.saved_pages_dir)
 
-      filename = &quot;#{saved_page_dir}/webrat-#{Time.now.to_i}.png&quot;
+      filename = &quot;#{Webrat.configuration.saved_pages_dir}/webrat-#{Time.now.to_i}.png&quot;
 
       if $browser.chrome_backend?
         $browser.capture_entire_page_screenshot(filename, '')
@@ -249,7 +254,7 @@ EOS
 
     def create_browser
       $browser = ::Selenium::Client::Driver.new(Webrat.configuration.selenium_server_address || &quot;localhost&quot;,
-      Webrat.configuration.selenium_server_port, Webrat.configuration.selenium_browser_key, &quot;http://#{Webrat.configuration.application_address}:#{Webrat.configuration.application_port}&quot;)
+      Webrat.configuration.selenium_server_port, Webrat.configuration.selenium_browser_key, &quot;http://#{Webrat.configuration.application_address}:#{Webrat.configuration.application_port_for_selenium}&quot;)
       $browser.set_speed(0) unless Webrat.configuration.selenium_server_address
 
       at_exit do

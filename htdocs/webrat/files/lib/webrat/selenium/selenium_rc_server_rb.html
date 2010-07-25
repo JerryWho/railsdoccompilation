@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:44:05 +0200 2009</td>
+      <td>Sun Jul 25 20:11:08 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -48,10 +48,13 @@
 
       def remote_control
         return @remote_control if @remote_control
+        server_options = { :timeout =&gt; Webrat.configuration.selenium_browser_startup_timeout }
+        server_options[:firefox_profile] = Webrat.configuration.selenium_firefox_profile if Webrat.configuration.selenium_firefox_profile
 
         @remote_control = ::Selenium::RemoteControl::RemoteControl.new(&quot;0.0.0.0&quot;,
                                                                        Webrat.configuration.selenium_server_port,
-                                                                       :timeout =&gt; Webrat.configuration.selenium_browser_startup_timeout)
+                                                                       server_options)
+
         @remote_control.jar_file = jar_path
 
         return @remote_control
@@ -78,7 +81,7 @@
           TCPSocket.wait_for_service_with_timeout \
             :host     =&gt; (Webrat.configuration.selenium_server_address || &quot;0.0.0.0&quot;),
             :port     =&gt; Webrat.configuration.selenium_server_port,
-            :timeout  =&gt; 15 # seconds
+            :timeout  =&gt; 45 # seconds
         end
       end
 

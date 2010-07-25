@@ -7,7 +7,7 @@
     </tr>
     <tr class="top-aligned-row">
       <td><strong>Last Update:</strong></td>
-      <td>Mon Oct 12 19:44:05 +0200 2009</td>
+      <td>Sun Jul 25 20:11:08 +0200 2010</td>
     </tr>
     </table>
   </div>
@@ -16,8 +16,9 @@
   <div id="bodyContent" >
     <h2>Source Code</h2>
     <pre>require &quot;cgi&quot;
+require &quot;digest/md5&quot;
 require &quot;webrat/core_extensions/blank&quot;
-require &quot;webrat/core_extensions/nil_to_param&quot;
+require &quot;webrat/core_extensions/nil_to_query_string&quot;
 
 require &quot;webrat/core/elements/element&quot;
 
@@ -30,7 +31,7 @@ module Webrat
     attr_reader :value
 
     def self.xpath_search
-      [&quot;.//button&quot;, &quot;.//input&quot;, &quot;.//textarea&quot;, &quot;.//select&quot;]
+      &quot;.//button|.//input|.//textarea|.//select&quot;
     end
 
     def self.xpath_search_excluding_hidden
@@ -101,19 +102,17 @@ module Webrat
       raise DisabledFieldError.new(&quot;Cannot interact with disabled form element (#{self})&quot;)
     end
 
-    def to_param
+    def to_query_string
       return nil if disabled?
 
-      params = case Webrat.configuration.mode
-      when :rails
-        parse_rails_request_params(&quot;#{name}=#{escaped_value}&quot;)
-      when :merb
-        ::Merb::Parse.query(&quot;#{name}=#{escaped_value}&quot;)
-      else
-        { name =&gt; [*@value].first.to_s }
+      query_string = case Webrat.configuration.mode
+      when :rails, :merb, :rack, :sinatra
+        build_query_string
+      when :mechanize
+        build_query_string(false)
       end
 
-      unescape_params(params)
+      query_string
     end
 
     def set(value)
@@ -125,18 +124,6 @@ module Webrat
     end
 
   protected
-
-    def parse_rails_request_params(params)
-      if defined?(ActionController::AbstractRequest)
-        ActionController::AbstractRequest.parse_query_parameters(params)
-      elsif defined?(ActionController::UrlEncodedPairParser)
-        # For Rails &gt; 2.2
-        ActionController::UrlEncodedPairParser.parse_query_parameters(params)
-      else
-        # For Rails &gt; 2.3
-        Rack::Utils.parse_nested_query(params)
-      end
-    end
 
     def form
       Form.load(@session, form_element)
@@ -155,23 +142,20 @@ module Webrat
       @element[&quot;name&quot;]
     end
 
-    def escaped_value
-      CGI.escape(@value.to_s)
+    def build_query_string(escape_value=true)
+      if @value.is_a?(Array)
+        @value.collect {|value| &quot;#{name}=#{ escape_value ? escape(value) : value }&quot; }.join(&quot;&amp;&quot;)
+      else
+        &quot;#{name}=#{ escape_value ? escape(value) : value }&quot;
+      end
     end
 
-    # Because we have to escape it before sending it to the above case statement,
-    # we have to make sure we unescape each value when it gets back so assertions
-    # involving characters like &lt;, &gt;, and &amp;  work as expected
-    def unescape_params(params)
-      case params.class.name
-      when 'Hash', 'Mash'
-        params.each { |key,value| params[key] = unescape_params(value) }
-        params
-      when 'Array'
-        params.collect { |value| unescape_params(value) }
-      else
-        CGI.unescapeHTML(params)
-      end
+    def escape(value)
+      CGI.escape(value.to_s)
+    end
+
+    def escaped_value
+      CGI.escape(@value.to_s)
     end
 
     def labels
@@ -203,22 +187,6 @@ module Webrat
     def default_value
       @element[&quot;value&quot;]
     end
-
-    def replace_param_value(params, oval, nval)
-      output = Hash.new
-      params.each do |key, value|
-        case value
-        when Hash
-          value = replace_param_value(value, oval, nval)
-        when Array
-          value = value.map { |o| o == oval ? nval : oval }
-        when oval
-          value = nval
-        end
-        output[key] = value
-      end
-      output
-    end
   end
 
   class ButtonField &lt; Field #:nodoc:
@@ -227,7 +195,7 @@ module Webrat
       [&quot;.//button&quot;, &quot;.//input[@type = 'submit']&quot;, &quot;.//input[@type = 'button']&quot;, &quot;.//input[@type = 'image']&quot;]
     end
 
-    def to_param
+    def to_query_string
       return nil if @value.nil?
       super
     end
@@ -250,13 +218,13 @@ module Webrat
       &quot;.//input[@type = 'hidden']&quot;
     end
 
-    def to_param
+    def to_query_string
       if collection_name?
         super
       else
         checkbox_with_same_name = form.field_named(name, CheckboxField)
 
-        if checkbox_with_same_name.to_param.blank?
+        if checkbox_with_same_name.to_query_string.blank?
           super
         else
           nil
@@ -278,7 +246,7 @@ module Webrat
       &quot;.//input[@type = 'checkbox']&quot;
     end
 
-    def to_param
+    def to_query_string
       return nil if @value.nil?
       super
     end
@@ -323,7 +291,7 @@ module Webrat
       &quot;.//input[@type = 'radio']&quot;
     end
 
-    def to_param
+    def to_query_string
       return nil if @value.nil?
       super
     end
@@ -380,30 +348,32 @@ module Webrat
     attr_accessor :content_type
 
     def set(value, content_type = nil)
+      @original_value = @value
+      @content_type ||= content_type
       super(value)
-      @content_type = content_type
     end
 
-    def to_param
-      if @value.nil?
-        super
-      else
-        replace_param_value(super, @value, test_uploaded_file)
-      end
+    def digest_value
+      @value ? Digest::MD5.hexdigest(self.object_id.to_s) : &quot;&quot;
     end
 
-  protected
+    def to_query_string
+      @value.nil? ? set(&quot;&quot;) : set(digest_value)
+      super
+    end
 
     def test_uploaded_file
+      return &quot;&quot; if @original_value.blank?
+
       case Webrat.configuration.mode
       when :rails
         if content_type
-          ActionController::TestUploadedFile.new(@value, content_type)
+          ActionController::TestUploadedFile.new(@original_value, content_type)
         else
-          ActionController::TestUploadedFile.new(@value)
+          ActionController::TestUploadedFile.new(@original_value)
         end
       when :rack, :merb
-        Rack::Test::UploadedFile.new(@value, content_type)
+        Rack::Test::UploadedFile.new(@original_value, content_type)
       end
     end
 
@@ -465,25 +435,6 @@ module Webrat
 
     def unset(value)
       @value.delete(value)
-    end
-
-    # We have to overide how the uri string is formed when dealing with multiples
-    # Where normally a select field might produce   name=value   with a multiple,
-    # we need to form something like   name[]=value1&amp;name[]=value2
-    def to_param
-      return nil if disabled?
-
-      uri_string = @value.collect {|value| &quot;#{name}=#{CGI.escape(value)}&quot;}.join(&quot;&amp;&quot;)
-      params = case Webrat.configuration.mode
-      when :rails
-        parse_rails_request_params(uri_string)
-      when :merb
-        ::Merb::Parse.query(uri_string)
-      else
-        { name =&gt; @value }
-      end
-
-      unescape_params(params)
     end
 
   protected
