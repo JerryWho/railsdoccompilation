@@ -1,0 +1,4368 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: OptionParser</title>
+<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index (O)</a> &raquo; 
+    
+    
+    <span class="title">OptionParser</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: OptionParser
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">OptionParser</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/optparse.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h2>Developer Documentation (not for RDoc output)</h2>
+<h3>Class tree</h3>
+<ul>
+<li><table>
+<tr><td valign="top">OptionParser</td><td><p>
+front end
+</p>
+</td></tr>
+</table>
+</li>
+<li><table>
+<tr><td valign="top">OptionParser::Switch</td><td><p>
+each switches
+</p>
+</td></tr>
+</table>
+</li>
+<li><table>
+<tr><td valign="top">OptionParser::List</td><td><p>
+options list
+</p>
+</td></tr>
+</table>
+</li>
+<li><table>
+<tr><td valign="top">OptionParser::ParseError</td><td><p>
+errors on parsing
+</p>
+</td></tr>
+</table>
+<ul>
+<li><p>
+OptionParser::AmbiguousOption
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+OptionParser::NeedlessArgument
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+OptionParser::MissingArgument
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+OptionParser::InvalidOption
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+OptionParser::InvalidArgument
+</p>
+<ul>
+<li><p>
+OptionParser::AmbiguousArgument
+</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Object relationship diagram</h3>
+<pre class="code">
+  +--------------+
+  | OptionParser |&lt;&gt;-----+
+  +--------------+       |                      +--------+
+                         |                    ,-| Switch |
+       on_head --------&gt;+---------------+    /  +--------+
+       accept/reject --&gt;| List          |&lt;|&gt;-
+                        |               |&lt;|&gt;-  +----------+
+       on -------------&gt;+---------------+    `-| argument |
+                          :           :        |  class   |
+                        +---------------+      |==========|
+       on_tail --------&gt;|               |      |pattern   |
+                        +---------------+      |----------|
+  OptionParser.accept -&gt;| DefaultList   |      |converter |
+               reject   |(shared between|      +----------+
+                        | all instances)|
+                        +---------------+
+</pre>
+<h2>OptionParser</h2>
+<h3>Introduction</h3>
+<p>
+OptionParser is a class for command-line option analysis.  It is much more
+advanced, yet also easier to use, than GetoptLong, and is a more
+Ruby-oriented solution.
+</p>
+<h3>Features</h3>
+<ol>
+<li><p>
+The argument specification and the code to handle it are written in the
+same place.
+</p>
+</li>
+<li><p>
+It can output an option summary; you don&#8217;t need to maintain this
+string separately.
+</p>
+</li>
+<li><p>
+Optional and mandatory arguments are specified very gracefully.
+</p>
+</li>
+<li><p>
+Arguments can be automatically converted to a specified class.
+</p>
+</li>
+<li><p>
+Arguments can be restricted to a certain set.
+</p>
+</li>
+</ol>
+<p>
+All of these features are demonstrated in the examples below.
+</p>
+<h3>Minimal example</h3>
+<pre class="code">
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>optparse</span><span class='tstring_end'>'</span></span>
+
+  <span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='const'>OptionParser</span><span class='period'>.</span><span class='id new'>new</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id opts'>opts</span><span class='op'>|</span>
+    <span class='id opts'>opts</span><span class='period'>.</span><span class='id banner'>banner</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Usage: example.rb [options]</span><span class='tstring_end'>&quot;</span></span>
+
+    <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-v</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--[no-]verbose</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Run verbosely</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id v'>v</span><span class='op'>|</span>
+      <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:verbose</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id v'>v</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span><span class='period'>.</span><span class='id parse!'>parse!</span>
+
+  <span class='id p'>p</span> <span class='id options'>options</span>
+  <span class='id p'>p</span> <span class='const'>ARGV</span>
+</pre>
+<h3>Complete example</h3>
+<p>
+The following example is a complete Ruby program.  You can run it and see
+the effect of specifying various options.  This is probably the best way to
+learn the features of <tt>optparse</tt>.
+</p>
+<pre class="code">
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>optparse</span><span class='tstring_end'>'</span></span>
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>optparse/time</span><span class='tstring_end'>'</span></span>
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>ostruct</span><span class='tstring_end'>'</span></span>
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>pp</span><span class='tstring_end'>'</span></span>
+
+  <span class='kw'>class</span> <span class='const'>OptparseExample</span>
+
+    <span class='const'>CODES</span> <span class='op'>=</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>iso-2022-jp</span><span class='words_sep'> </span><span class='tstring_content'>shift_jis</span><span class='words_sep'> </span><span class='tstring_content'>euc-jp</span><span class='words_sep'> </span><span class='tstring_content'>utf8</span><span class='words_sep'> </span><span class='tstring_content'>binary</span><span class='words_sep'>]</span>
+    <span class='const'>CODE_ALIASES</span> <span class='op'>=</span> <span class='lbrace'>{</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>jis</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>iso-2022-jp</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sjis</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>shift_jis</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+
+    <span class='comment'>#
+</span>    <span class='comment'># Return a structure describing the options.
+</span>    <span class='comment'>#
+</span>    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id parse'>parse</span><span class='lparen'>(</span><span class='id args'>args</span><span class='rparen'>)</span>
+      <span class='comment'># The options specified on the command line will be collected in *options*.
+</span>      <span class='comment'># We set default values here.
+</span>      <span class='id options'>options</span> <span class='op'>=</span> <span class='const'>OpenStruct</span><span class='period'>.</span><span class='id new'>new</span>
+      <span class='id options'>options</span><span class='period'>.</span><span class='id library'>library</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+      <span class='id options'>options</span><span class='period'>.</span><span class='id inplace'>inplace</span> <span class='op'>=</span> <span class='kw'>false</span>
+      <span class='id options'>options</span><span class='period'>.</span><span class='id encoding'>encoding</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>utf8</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id options'>options</span><span class='period'>.</span><span class='id transfer_type'>transfer_type</span> <span class='op'>=</span> <span class='symbol'>:auto</span>
+      <span class='id options'>options</span><span class='period'>.</span><span class='id verbose'>verbose</span> <span class='op'>=</span> <span class='kw'>false</span>
+
+      <span class='id opts'>opts</span> <span class='op'>=</span> <span class='const'>OptionParser</span><span class='period'>.</span><span class='id new'>new</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id opts'>opts</span><span class='op'>|</span>
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id banner'>banner</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Usage: example.rb [options]</span><span class='tstring_end'>&quot;</span></span>
+
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id separator'>separator</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span>
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id separator'>separator</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Specific options:</span><span class='tstring_end'>&quot;</span></span>
+
+        <span class='comment'># Mandatory argument.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-r</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--require LIBRARY</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Require the LIBRARY before executing your script</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id lib'>lib</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id library'>library</span> <span class='op'>&lt;&lt;</span> <span class='id lib'>lib</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Optional argument; multi-line description.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-i</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--inplace [EXTENSION]</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Edit ARGV files in place</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>  (make backup if EXTENSION supplied)</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id ext'>ext</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id inplace'>inplace</span> <span class='op'>=</span> <span class='kw'>true</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id extension'>extension</span> <span class='op'>=</span> <span class='id ext'>ext</span> <span class='op'>||</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id extension'>extension</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A\.?(?=.)</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>  <span class='comment'># Ensure extension begins with dot.
+</span>        <span class='kw'>end</span>
+
+        <span class='comment'># Cast 'delay' argument to a Float.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--delay N</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>Float</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Delay N seconds before executing</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id n'>n</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id delay'>delay</span> <span class='op'>=</span> <span class='id n'>n</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Cast 'time' argument to a Time object.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-t</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--time [TIME]</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>Time</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Begin execution at given time</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id time'>time</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id time'>time</span> <span class='op'>=</span> <span class='id time'>time</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Cast to octal integer.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-F</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--irs [OCTAL]</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>OptionParser</span><span class='op'>::</span><span class='const'>OctalInteger</span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Specify record separator (default \\0)</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id rs'>rs</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id record_separator'>record_separator</span> <span class='op'>=</span> <span class='id rs'>rs</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># List of arguments.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--list x,y,z</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>Array</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Example 'list' of arguments</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id list'>list</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id list'>list</span> <span class='op'>=</span> <span class='id list'>list</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Keyword completion.  We are specifying a specific set of arguments (CODES
+</span>        <span class='comment'># and CODE_ALIASES - notice the latter is a Hash), and the user may provide
+</span>        <span class='comment'># the shortest unambiguous text.
+</span>        <span class='id code_list'>code_list</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='const'>CODE_ALIASES</span><span class='period'>.</span><span class='id keys'>keys</span> <span class='op'>+</span> <span class='const'>CODES</span><span class='rparen'>)</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>,</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--code CODE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>CODES</span><span class='comma'>,</span> <span class='const'>CODE_ALIASES</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Select encoding</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>  (</span><span class='embexpr_beg'>#{</span><span class='id code_list'>code_list</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id encoding'>encoding</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id encoding'>encoding</span> <span class='op'>=</span> <span class='id encoding'>encoding</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Optional argument with keyword completion.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--type [TYPE]</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='symbol'>:text</span><span class='comma'>,</span> <span class='symbol'>:binary</span><span class='comma'>,</span> <span class='symbol'>:auto</span><span class='rbracket'>]</span><span class='comma'>,</span>
+                <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Select transfer type (text, binary, auto)</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id t'>t</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id transfer_type'>transfer_type</span> <span class='op'>=</span> <span class='id t'>t</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Boolean switch.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on'>on</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-v</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--[no-]verbose</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Run verbosely</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id v'>v</span><span class='op'>|</span>
+          <span class='id options'>options</span><span class='period'>.</span><span class='id verbose'>verbose</span> <span class='op'>=</span> <span class='id v'>v</span>
+        <span class='kw'>end</span>
+
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id separator'>separator</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span>
+        <span class='id opts'>opts</span><span class='period'>.</span><span class='id separator'>separator</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Common options:</span><span class='tstring_end'>&quot;</span></span>
+
+        <span class='comment'># No argument, shows at tail.  This will print an options summary.
+</span>        <span class='comment'># Try it and see!
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on_tail'>on_tail</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-h</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--help</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Show this message</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+          <span class='id puts'>puts</span> <span class='id opts'>opts</span>
+          <span class='id exit'>exit</span>
+        <span class='kw'>end</span>
+
+        <span class='comment'># Another typical switch to print the version.
+</span>        <span class='id opts'>opts</span><span class='period'>.</span><span class='id on_tail'>on_tail</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--version</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Show version</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+          <span class='id puts'>puts</span> <span class='const'>OptionParser</span><span class='op'>::</span><span class='const'>Version</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+          <span class='id exit'>exit</span>
+        <span class='kw'>end</span>
+      <span class='kw'>end</span>
+
+      <span class='id opts'>opts</span><span class='period'>.</span><span class='id parse!'>parse!</span><span class='lparen'>(</span><span class='id args'>args</span><span class='rparen'>)</span>
+      <span class='id options'>options</span>
+    <span class='kw'>end</span>  <span class='comment'># parse()
+</span>
+  <span class='kw'>end</span>  <span class='comment'># class OptparseExample
+</span>
+  <span class='id options'>options</span> <span class='op'>=</span> <span class='const'>OptparseExample</span><span class='period'>.</span><span class='id parse'>parse</span><span class='lparen'>(</span><span class='const'>ARGV</span><span class='rparen'>)</span>
+  <span class='id pp'>pp</span> <span class='id options'>options</span>
+</pre>
+<h3>Further documentation</h3>
+<p>
+The above examples should be enough to learn how to use this class.  If you
+have any questions, email me (gsinclair@soyabean.com.au) and I will update
+this document.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="OptionParser/Acceptables.html" title="OptionParser::Acceptables (module)">Acceptables</a></span>, <span class='object_link'><a href="OptionParser/Arguable.html" title="OptionParser::Arguable (module)">Arguable</a></span>, <span class='object_link'><a href="OptionParser/Completion.html" title="OptionParser::Completion (module)">Completion</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="OptionParser/AmbiguousArgument.html" title="OptionParser::AmbiguousArgument (class)">AmbiguousArgument</a></span>, <span class='object_link'><a href="OptionParser/AmbiguousOption.html" title="OptionParser::AmbiguousOption (class)">AmbiguousOption</a></span>, <span class='object_link'><a href="OptionParser/CompletingHash.html" title="OptionParser::CompletingHash (class)">CompletingHash</a></span>, <span class='object_link'><a href="OptionParser/InvalidArgument.html" title="OptionParser::InvalidArgument (class)">InvalidArgument</a></span>, <span class='object_link'><a href="OptionParser/InvalidOption.html" title="OptionParser::InvalidOption (class)">InvalidOption</a></span>, <span class='object_link'><a href="OptionParser/List.html" title="OptionParser::List (class)">List</a></span>, <span class='object_link'><a href="OptionParser/MissingArgument.html" title="OptionParser::MissingArgument (class)">MissingArgument</a></span>, <span class='object_link'><a href="OptionParser/NeedlessArgument.html" title="OptionParser::NeedlessArgument (class)">NeedlessArgument</a></span>, <span class='object_link'><a href="OptionParser/OptionMap.html" title="OptionParser::OptionMap (class)">OptionMap</a></span>, <span class='object_link'><a href="OptionParser/ParseError.html" title="OptionParser::ParseError (class)">ParseError</a></span>, <span class='object_link'><a href="OptionParser/Switch.html" title="OptionParser::Switch (class)">Switch</a></span>
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="RCSID-constant" class="">RCSID =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+:stopdoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w$</span><span class='tstring_content'>Id:</span><span class='words_sep'> </span><span class='tstring_content'>optparse.rb</span><span class='words_sep'> </span><span class='tstring_content'>27089</span><span class='words_sep'> </span><span class='tstring_content'>2010-03-29</span><span class='words_sep'> </span><span class='tstring_content'>09:10:12Z</span><span class='words_sep'> </span><span class='tstring_content'>nobu</span><span class='words_sep'> $</span><span class='lbracket'>[</span><span class='int'>1</span><span class='op'>..</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id s'>s</span><span class='op'>|</span> <span class='id s'>s</span><span class='period'>.</span><span class='id freeze'>freeze</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id freeze'>freeze</span></pre></dd>
+      
+        <dt id="Version-constant" class="">Version =
+          
+        </dt>
+        <dd><pre class="code"><span class='lparen'>(</span><span class='const'>RCSID</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id collect'>collect</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id s'>s</span><span class='op'>|</span> <span class='id s'>s</span><span class='period'>.</span><span class='id to_i'>to_i</span><span class='rbrace'>}</span><span class='period'>.</span><span class='id extend'>extend</span><span class='lparen'>(</span><span class='const'>Comparable</span><span class='rparen'>)</span><span class='period'>.</span><span class='id freeze'>freeze</span> <span class='kw'>if</span> <span class='const'>RCSID</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='rparen'>)</span></pre></dd>
+      
+        <dt id="LastModified-constant" class="">LastModified =
+          
+        </dt>
+        <dd><pre class="code"><span class='lparen'>(</span><span class='const'>Time</span><span class='period'>.</span><span class='id gm'>gm</span><span class='lparen'>(</span><span class='op'>*</span><span class='const'>RCSID</span><span class='lbracket'>[</span><span class='int'>2</span><span class='comma'>,</span> <span class='int'>2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>-</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\d+</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id collect'>collect</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id s'>s</span><span class='op'>|</span> <span class='id s'>s</span><span class='period'>.</span><span class='id to_i'>to_i</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='const'>RCSID</span><span class='lbracket'>[</span><span class='int'>2</span><span class='rbracket'>]</span><span class='rparen'>)</span></pre></dd>
+      
+        <dt id="Release-constant" class="">Release =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'>RCSID</span><span class='lbracket'>[</span><span class='int'>2</span><span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="NoArgument-constant" class="">NoArgument =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='const'>NO_ARGUMENT</span> <span class='op'>=</span> <span class='symbol'>:NONE</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id freeze'>freeze</span></pre></dd>
+      
+        <dt id="RequiredArgument-constant" class="">RequiredArgument =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='const'>REQUIRED_ARGUMENT</span> <span class='op'>=</span> <span class='symbol'>:REQUIRED</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id freeze'>freeze</span></pre></dd>
+      
+        <dt id="OptionalArgument-constant" class="">OptionalArgument =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='const'>OPTIONAL_ARGUMENT</span> <span class='op'>=</span> <span class='symbol'>:OPTIONAL</span><span class='comma'>,</span> <span class='kw'>false</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id freeze'>freeze</span></pre></dd>
+      
+        <dt id="ArgumentStyle-constant" class="">ArgumentStyle =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Enumeration of acceptable argument styles. Possible values are:
+</p>
+<table>
+<tr><td valign="top">NO_ARGUMENT</td><td><p>
+The switch takes no arguments. (:NONE)
+</p>
+</td></tr>
+<tr><td valign="top">REQUIRED_ARGUMENT</td><td><p>
+The switch requires an argument. (:REQUIRED)
+</p>
+</td></tr>
+<tr><td valign="top">OPTIONAL_ARGUMENT</td><td><p>
+The switch requires an optional argument. (:OPTIONAL)
+</p>
+</td></tr>
+</table>
+<p>
+Use like --switch=argument (long style) or -Xargument (short style).
+For short style, only portion matched to argument pattern is dealed as
+argument.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='lbrace'>{</span><span class='rbrace'>}</span></pre></dd>
+      
+        <dt id="DefaultList-constant" class="">DefaultList =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Switches common used such as &#8217;--&#8217;, and also provides
+default argument classes
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'>List</span><span class='period'>.</span><span class='id new'>new</span></pre></dd>
+      
+        <dt id="Officious-constant" class="">Officious =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Default options for ARGV, which never appear in option summary.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='lbrace'>{</span><span class='rbrace'>}</span></pre></dd>
+      
+        <dt id="SPLAT_PROC-constant" class="">SPLAT_PROC =
+          
+        </dt>
+        <dd><pre class="code"><span class='id proc'>proc</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='op'>*</span><span class='id a'>a</span><span class='op'>|</span> <span class='id a'>a</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>&lt;=</span> <span class='int'>1</span> <span class='op'>?</span> <span class='id a'>a</span><span class='period'>.</span><span class='id first'>first</span> <span class='op'>:</span> <span class='id a'>a</span><span class='rbrace'>}</span></pre></dd>
+      
+        <dt id="DecimalInteger-constant" class="">DecimalInteger =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Decimal integer format, to be converted to Integer.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A[-+]?</span><span class='embexpr_beg'>#{</span><span class='id decimal'>decimal</span><span class='rbrace'>}</span><span class='regexp_end'>/io</span></span></pre></dd>
+      
+        <dt id="OctalInteger-constant" class="">OctalInteger =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Ruby/C like octal/hexadecimal/binary integer format, to be converted to
+Integer.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A[-+]?(?:[0-7]+(?:_[0-7]+)*|0(?:</span><span class='embexpr_beg'>#{</span><span class='id binary'>binary</span><span class='rbrace'>}</span><span class='tstring_content'>|</span><span class='embexpr_beg'>#{</span><span class='id hex'>hex</span><span class='rbrace'>}</span><span class='tstring_content'>))</span><span class='regexp_end'>/io</span></span></pre></dd>
+      
+        <dt id="DecimalNumeric-constant" class="">DecimalNumeric =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Decimal integer/float number format, to be converted to Integer for integer
+format, Float for float format.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='id floatpat'>floatpat</span></pre></dd>
+      
+    </dl>
+  
+
+
+  <h2>Instance Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#banner-instance_method" title="#banner (instance method)">- (Object) <strong>banner</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Heading banner preceding summary.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#default_argv-instance_method" title="#default_argv (instance method)">- (Object) <strong>default_argv</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Strings to be parsed in default.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#program_name-instance_method" title="#program_name (instance method)">- (Object) <strong>program_name</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Program name to be emitted in error message and default banner, defaults to
+$0.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#release-instance_method" title="#release (instance method)">- (Object) <strong>release</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Release code.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#summary_indent-instance_method" title="#summary_indent (instance method)">- (Object) <strong>summary_indent</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Indentation for summary.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#summary_width-instance_method" title="#summary_width (instance method)">- (Object) <strong>summary_width</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Width for option list portion of summary.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#version-instance_method" title="#version (instance method)">- (Object) <strong>version</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Version.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#accept-class_method" title="accept (class method)">+ (Object) <strong>accept</strong>(*args, &amp;blk) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+See #accept.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#each_const-class_method" title="each_const (class method)">+ (Object) <strong>each_const</strong>(path, base = Object) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getopts-class_method" title="getopts (class method)">+ (Object) <strong>getopts</strong>(*args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+See #getopts.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#inc-class_method" title="inc (class method)">+ (Object) <strong>inc</strong>(arg, default = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns an incremented value of <tt>default</tt> according to <tt>arg</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reject-class_method" title="reject (class method)">+ (Object) <strong>reject</strong>(*args, &amp;blk) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+See #reject.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#search_const-class_method" title="search_const (class method)">+ (Object) <strong>search_const</strong>(klass, name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#show_version-class_method" title="show_version (class method)">+ (Object) <strong>show_version</strong>(*pkgs) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#terminate-class_method" title="terminate (class method)">+ (Object) <strong>terminate</strong>(arg = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#top-class_method" title="top (class method)">+ (Object) <strong>top</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#with-class_method" title="with (class method)">+ (Object) <strong>with</strong>(*args, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Initializes a new instance and evaluates the optional block in context of
+the instance.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#abort-instance_method" title="#abort (instance method)">- (Object) <strong>abort</strong>(mesg = $!) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#accept-instance_method" title="#accept (instance method)">- (Object) <strong>accept</strong>(*args, &amp;blk) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Directs to accept specified class <tt>t</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#add_officious-instance_method" title="#add_officious (instance method)">- (Object) <strong>add_officious</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#base-instance_method" title="#base (instance method)">- (Object) <strong>base</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Subject of #on_tail.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#define-instance_method" title="#define (instance method)">- (Object) <strong>define</strong>(*opts, &amp;block) </a>
+    
+
+    
+      (also: #def_option)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#define_head-instance_method" title="#define_head (instance method)">- (Object) <strong>define_head</strong>(*opts, &amp;block) </a>
+    
+
+    
+      (also: #def_head_option)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#define_tail-instance_method" title="#define_tail (instance method)">- (Object) <strong>define_tail</strong>(*opts, &amp;block) </a>
+    
+
+    
+      (also: #def_tail_option)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#environment-instance_method" title="#environment (instance method)">- (Object) <strong>environment</strong>(env = File.basename($0, '.*')) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parses environment variable <tt>env</tt> or its uppercase with splitting
+like a shell.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getopts-instance_method" title="#getopts (instance method)">- (Object) <strong>getopts</strong>(*args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Wrapper method for getopts.rb.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#help-instance_method" title="#help (instance method)">- (Object) <strong>help</strong> </a>
+    
+
+    
+      (also: #to_s)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns option summary string.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#inc-instance_method" title="#inc (instance method)">- (Object) <strong>inc</strong>(*args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (OptionParser) <strong>initialize</strong>(banner = nil, width = 32, indent = ' ' * 4) {|_self| ... }</a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Initializes the instance and yields itself if called with a block.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#load-instance_method" title="#load (instance method)">- (Object) <strong>load</strong>(filename = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Loads options from file names as <tt>filename</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#make_switch-instance_method" title="#make_switch (instance method)">- (Object) <strong>make_switch</strong>(opts, block = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Creates an OptionParser::Switch from the parameters.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new-instance_method" title="#new (instance method)">- (Object) <strong>new</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Pushes a new List.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#on-instance_method" title="#on (instance method)">- (Object) <strong>on</strong>(*opts, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Add option switch and handler.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#on_head-instance_method" title="#on_head (instance method)">- (Object) <strong>on_head</strong>(*opts, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Add option switch like with #on, but at head of summary.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#on_tail-instance_method" title="#on_tail (instance method)">- (Object) <strong>on_tail</strong>(*opts, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Add option switch like with #on, but at tail of summary.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#order-instance_method" title="#order (instance method)">- (Object) <strong>order</strong>(*argv, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parses command line arguments <tt>argv</tt> in order.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#order%21-instance_method" title="#order! (instance method)">- (Object) <strong>order!</strong>(argv = default_argv, &amp;nonopt) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Same as #order, but removes switches destructively.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse-instance_method" title="#parse (instance method)">- (Object) <strong>parse</strong>(*argv) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parses command line arguments <tt>argv</tt> in order when environment
+variable POSIXLY_CORRECT is set, and in permutation mode otherwise.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse%21-instance_method" title="#parse! (instance method)">- (Object) <strong>parse!</strong>(argv = default_argv) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Same as #parse, but removes switches destructively.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#permute-instance_method" title="#permute (instance method)">- (Object) <strong>permute</strong>(*argv) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parses command line arguments <tt>argv</tt> in permutation mode and returns
+list of non-option arguments.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#permute%21-instance_method" title="#permute! (instance method)">- (Object) <strong>permute!</strong>(argv = default_argv) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Same as #permute, but removes switches destructively.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reject-instance_method" title="#reject (instance method)">- (Object) <strong>reject</strong>(*args, &amp;blk) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Directs to reject specified class argument.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remove-instance_method" title="#remove (instance method)">- (Object) <strong>remove</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Removes the last List.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#separator-instance_method" title="#separator (instance method)">- (Object) <strong>separator</strong>(string) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Add separator in summary.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#summarize-instance_method" title="#summarize (instance method)">- (Object) <strong>summarize</strong>(to = [], width = @summary_width, max = width - 1, indent = @summary_indent, &amp;blk) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Puts option summary into <tt>to</tt> and returns <tt>to</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#terminate-instance_method" title="#terminate (instance method)">- (Object) <strong>terminate</strong>(arg = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Terminates option parsing.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_a-instance_method" title="#to_a (instance method)">- (Object) <strong>to_a</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns option summary list.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#top-instance_method" title="#top (instance method)">- (Object) <strong>top</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Subject of #on / #on_head, #accept / #reject.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ver-instance_method" title="#ver (instance method)">- (Object) <strong>ver</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns version string from program_name, version and release.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#warn-instance_method" title="#warn (instance method)">- (Object) <strong>warn</strong>(mesg = $!) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="OptionParser (class)">OptionParser</a></span></tt>) <strong>initialize</strong>(banner = nil, width = 32, indent = ' ' * 4) {|_self| ... }
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Initializes the instance and yields itself if called with a block.
+</p>
+<table>
+<tr><td valign="top"><tt>banner</tt></td><td><p>
+Banner message.
+</p>
+</td></tr>
+<tr><td valign="top"><tt>width</tt></td><td><p>
+Summary width.
+</p>
+</td></tr>
+<tr><td valign="top"><tt>indent</tt></td><td><p>
+Summary indent.
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Yields:</h3>
+<ul class="yield">
+  
+    <li>
+      
+        <span class='type'>(<tt>_self</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+<h3>Yield Parameters:</h3>
+<ul class="yieldparam">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="" title="OptionParser (class)">OptionParser</a></span></tt>)</span>
+      
+      
+        <span class='name'>_self</span>
+      
+      
+      
+        &mdash;
+        <div class='inline'><p>
+the object that the method was called on
+</p>
+</div>
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+791
+792
+793
+794
+795
+796
+797
+798
+799
+800</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 791</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id banner'>banner</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id width'>width</span> <span class='op'>=</span> <span class='int'>32</span><span class='comma'>,</span> <span class='id indent'>indent</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='int'>4</span><span class='rparen'>)</span>
+  <span class='ivar'>@stack</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='const'>DefaultList</span><span class='comma'>,</span> <span class='const'>List</span><span class='period'>.</span><span class='id new'>new</span><span class='comma'>,</span> <span class='const'>List</span><span class='period'>.</span><span class='id new'>new</span><span class='rbracket'>]</span>
+  <span class='ivar'>@program_name</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@banner</span> <span class='op'>=</span> <span class='id banner'>banner</span>
+  <span class='ivar'>@summary_width</span> <span class='op'>=</span> <span class='id width'>width</span>
+  <span class='ivar'>@summary_indent</span> <span class='op'>=</span> <span class='id indent'>indent</span>
+  <span class='ivar'>@default_argv</span> <span class='op'>=</span> <span class='const'>ARGV</span>
+  <span class='id add_officious'>add_officious</span>
+  <span class='kw'>yield</span> <span class='kw'>self</span> <span class='kw'>if</span> <span class='id block_given?'>block_given?</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id="banner=-instance_method"></span>
+      <span id="banner-instance_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="banner-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>banner</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Heading banner preceding summary.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+874
+875
+876
+877
+878
+879
+880</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 874</span>
+
+<span class='kw'>def</span> <span class='id banner'>banner</span>
+  <span class='kw'>unless</span> <span class='ivar'>@banner</span>
+    <span class='ivar'>@banner</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Usage: </span><span class='embexpr_beg'>#{</span><span class='id program_name'>program_name</span><span class='rbrace'>}</span><span class='tstring_content'> [options]</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id visit'>visit</span><span class='lparen'>(</span><span class='symbol'>:add_banner</span><span class='comma'>,</span> <span class='ivar'>@banner</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@banner</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="default_argv=-instance_method"></span>
+      <span id="default_argv-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="default_argv-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>default_argv</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Strings to be parsed in default.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+869
+870
+871</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 869</span>
+
+<span class='kw'>def</span> <span class='id default_argv'>default_argv</span>
+  <span class='ivar'>@default_argv</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="program_name=-instance_method"></span>
+      <span id="program_name-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="program_name-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>program_name</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Program name to be emitted in error message and default banner, defaults to
+$0.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+886
+887
+888</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 886</span>
+
+<span class='kw'>def</span> <span class='id program_name'>program_name</span>
+  <span class='ivar'>@program_name</span> <span class='op'>||</span> <span class='const'>File</span><span class='period'>.</span><span class='id basename'>basename</span><span class='lparen'>(</span><span class='gvar'>$0</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.*</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="release=-instance_method"></span>
+      <span id="release-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="release-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>release</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Release code
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+911
+912
+913</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 911</span>
+
+<span class='kw'>def</span> <span class='id release'>release</span>
+  <span class='ivar'>@release</span> <span class='op'>||</span> <span class='lparen'>(</span><span class='kw'>defined?</span><span class='lparen'>(</span><span class='op'>::</span><span class='const'>Release</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>::</span><span class='const'>Release</span><span class='rparen'>)</span> <span class='op'>||</span> <span class='lparen'>(</span><span class='kw'>defined?</span><span class='lparen'>(</span><span class='op'>::</span><span class='const'>RELEASE</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>::</span><span class='const'>RELEASE</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="summary_indent=-instance_method"></span>
+      <span id="summary_indent-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="summary_indent-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>summary_indent</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Indentation for summary. Must be String (or have + String method).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+866
+867
+868</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 866</span>
+
+<span class='kw'>def</span> <span class='id summary_indent'>summary_indent</span>
+  <span class='ivar'>@summary_indent</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="summary_width=-instance_method"></span>
+      <span id="summary_width-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="summary_width-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>summary_width</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Width for option list portion of summary. Must be Numeric.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+863
+864
+865</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 863</span>
+
+<span class='kw'>def</span> <span class='id summary_width'>summary_width</span>
+  <span class='ivar'>@summary_width</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="version=-instance_method"></span>
+      <span id="version-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="version-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>version</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Version
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+904
+905
+906</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 904</span>
+
+<span class='kw'>def</span> <span class='id version'>version</span>
+  <span class='ivar'>@version</span> <span class='op'>||</span> <span class='lparen'>(</span><span class='kw'>defined?</span><span class='lparen'>(</span><span class='op'>::</span><span class='const'>Version</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>::</span><span class='const'>Version</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="accept-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>accept</strong>(*args, &amp;blk) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+See #accept.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+836</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 836</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id accept'>accept</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='id top'>top</span><span class='period'>.</span><span class='id accept'>accept</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="each_const-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>each_const</strong>(path, base = Object) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+49
+50
+51
+52
+53
+54
+55
+56
+57</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse/version.rb', line 49</span>
+
+<span class='kw'>def</span> <span class='id each_const'>each_const</span><span class='lparen'>(</span><span class='id path'>path</span><span class='comma'>,</span> <span class='id base'>base</span> <span class='op'>=</span> <span class='op'>::</span><span class='const'>Object</span><span class='rparen'>)</span>
+  <span class='id path'>path</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>::|\/</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id inject'>inject</span><span class='lparen'>(</span><span class='id base'>base</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id klass'>klass</span><span class='comma'>,</span> <span class='id name'>name</span><span class='op'>|</span>
+    <span class='id raise'>raise</span> <span class='const'>NameError</span><span class='comma'>,</span> <span class='id path'>path</span> <span class='kw'>unless</span> <span class='const'>Module</span> <span class='op'>===</span> <span class='id klass'>klass</span>
+    <span class='id klass'>klass</span><span class='period'>.</span><span class='id constants'>constants</span><span class='period'>.</span><span class='id grep'>grep</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='embexpr_beg'>#{</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='regexp_end'>/i</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id c'>c</span><span class='op'>|</span>
+      <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='id c'>c</span><span class='rparen'>)</span> <span class='kw'>or</span> <span class='kw'>next</span>
+      <span class='id c'>c</span> <span class='op'>=</span> <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id c'>c</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getopts-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>getopts</strong>(*args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+See #getopts.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1417
+1418
+1419</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1417</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id getopts'>getopts</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id new'>new</span><span class='period'>.</span><span class='id getopts'>getopts</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="inc-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>inc</strong>(arg, default = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns an incremented value of <tt>default</tt> according to <tt>arg</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+772
+773
+774
+775
+776
+777
+778
+779</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 772</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id inc'>inc</span><span class='lparen'>(</span><span class='id arg'>arg</span><span class='comma'>,</span> <span class='id default'>default</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>case</span> <span class='id arg'>arg</span>
+  <span class='kw'>when</span> <span class='const'>Integer</span>
+    <span class='id arg'>arg</span><span class='period'>.</span><span class='id nonzero?'>nonzero?</span>
+  <span class='kw'>when</span> <span class='kw'>nil</span>
+    <span class='id default'>default</span><span class='period'>.</span><span class='id to_i'>to_i</span> <span class='op'>+</span> <span class='int'>1</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="reject-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>reject</strong>(*args, &amp;blk) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+See #reject.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+849</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 849</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id reject'>reject</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='id top'>top</span><span class='period'>.</span><span class='id reject'>reject</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="search_const-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>search_const</strong>(klass, name) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse/version.rb', line 59</span>
+
+<span class='kw'>def</span> <span class='id search_const'>search_const</span><span class='lparen'>(</span><span class='id klass'>klass</span><span class='comma'>,</span> <span class='id name'>name</span><span class='rparen'>)</span>
+  <span class='id klasses'>klasses</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id klass'>klass</span><span class='rbracket'>]</span>
+  <span class='kw'>while</span> <span class='id klass'>klass</span> <span class='op'>=</span> <span class='id klasses'>klasses</span><span class='period'>.</span><span class='id shift'>shift</span>
+    <span class='id klass'>klass</span><span class='period'>.</span><span class='id constants'>constants</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id cname'>cname</span><span class='op'>|</span>
+      <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='id cname'>cname</span><span class='rparen'>)</span> <span class='kw'>or</span> <span class='kw'>next</span>
+      <span class='id const'>const</span> <span class='op'>=</span> <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id cname'>cname</span><span class='rparen'>)</span>
+      <span class='kw'>yield</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='id cname'>cname</span><span class='comma'>,</span> <span class='id const'>const</span> <span class='kw'>if</span> <span class='id name'>name</span> <span class='op'>===</span> <span class='id cname'>cname</span>
+      <span class='id klasses'>klasses</span> <span class='op'>&lt;&lt;</span> <span class='id const'>const</span> <span class='kw'>if</span> <span class='const'>Module</span> <span class='op'>===</span> <span class='id const'>const</span> <span class='kw'>and</span> <span class='id const'>const</span> <span class='op'>!=</span> <span class='op'>::</span><span class='const'>Object</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="show_version-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>show_version</strong>(*pkgs) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse/version.rb', line 4</span>
+
+<span class='kw'>def</span> <span class='id show_version'>show_version</span><span class='lparen'>(</span><span class='op'>*</span><span class='id pkgs'>pkgs</span><span class='rparen'>)</span>
+  <span class='id progname'>progname</span> <span class='op'>=</span> <span class='const'>ARGV</span><span class='period'>.</span><span class='id options'>options</span><span class='period'>.</span><span class='id program_name'>program_name</span>
+  <span class='id result'>result</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='id show'>show</span> <span class='op'>=</span> <span class='id proc'>proc</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id klass'>klass</span><span class='comma'>,</span> <span class='id cname'>cname</span><span class='comma'>,</span> <span class='id version'>version</span><span class='op'>|</span>
+    <span class='id str'>str</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id progname'>progname</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>unless</span> <span class='id klass'>klass</span> <span class='op'>==</span> <span class='op'>::</span><span class='const'>Object</span> <span class='kw'>and</span> <span class='id cname'>cname</span> <span class='op'>==</span> <span class='symbol'>:VERSION</span>
+      <span class='id version'>version</span> <span class='op'>=</span> <span class='id version'>version</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>.</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='const'>Array</span> <span class='op'>===</span> <span class='id version'>version</span>
+      <span class='id str'>str</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id klass'>klass</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id klass'>klass</span> <span class='op'>==</span> <span class='const'>Object</span>
+      <span class='id str'>str</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> version </span><span class='embexpr_beg'>#{</span><span class='id version'>version</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='lbracket'>[</span><span class='symbol'>:Release</span><span class='comma'>,</span> <span class='symbol'>:RELEASE</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id find'>find</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id rel'>rel</span><span class='op'>|</span>
+      <span class='kw'>if</span> <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='id rel'>rel</span><span class='rparen'>)</span>
+        <span class='id str'>str</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> (</span><span class='embexpr_beg'>#{</span><span class='id klass'>klass</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id rel'>rel</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+    <span class='id puts'>puts</span> <span class='id str'>str</span>
+    <span class='id result'>result</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='id pkgs'>pkgs</span><span class='period'>.</span><span class='id size'>size</span> <span class='op'>==</span> <span class='int'>1</span> <span class='kw'>and</span> <span class='id pkgs'>pkgs</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>all</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id search_const'>search_const</span><span class='lparen'>(</span><span class='op'>::</span><span class='const'>Object</span><span class='comma'>,</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\AV(?:ERSION|ersion)\z</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id klass'>klass</span><span class='comma'>,</span> <span class='id cname'>cname</span><span class='comma'>,</span> <span class='id version'>version</span><span class='op'>|</span>
+      <span class='kw'>unless</span> <span class='id cname'>cname</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='CHAR'>?e</span> <span class='kw'>and</span> <span class='id klass'>klass</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='symbol'>:Version</span><span class='rparen'>)</span>
+        <span class='id show'>show</span><span class='period'>.</span><span class='id call'>call</span><span class='lparen'>(</span><span class='id klass'>klass</span><span class='comma'>,</span> <span class='id cname'>cname</span><span class='period'>.</span><span class='id intern'>intern</span><span class='comma'>,</span> <span class='id version'>version</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>else</span>
+    <span class='id pkgs'>pkgs</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id pkg'>pkg</span><span class='op'>|</span>
+      <span class='kw'>begin</span>
+        <span class='id pkg'>pkg</span> <span class='op'>=</span> <span class='id pkg'>pkg</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>::|\/</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id inject'>inject</span><span class='lparen'>(</span><span class='op'>::</span><span class='const'>Object</span><span class='rparen'>)</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id m'>m</span><span class='comma'>,</span> <span class='id c'>c</span><span class='op'>|</span> <span class='id m'>m</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id c'>c</span><span class='rparen'>)</span><span class='rbrace'>}</span>
+        <span class='id v'>v</span> <span class='op'>=</span> <span class='kw'>case</span>
+            <span class='kw'>when</span> <span class='id pkg'>pkg</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='symbol'>:Version</span><span class='rparen'>)</span>
+              <span class='id pkg'>pkg</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id n'>n</span> <span class='op'>=</span> <span class='symbol'>:Version</span><span class='rparen'>)</span>
+            <span class='kw'>when</span> <span class='id pkg'>pkg</span><span class='period'>.</span><span class='id const_defined?'>const_defined?</span><span class='lparen'>(</span><span class='symbol'>:VERSION</span><span class='rparen'>)</span>
+              <span class='id pkg'>pkg</span><span class='period'>.</span><span class='id const_get'>const_get</span><span class='lparen'>(</span><span class='id n'>n</span> <span class='op'>=</span> <span class='symbol'>:VERSION</span><span class='rparen'>)</span>
+            <span class='kw'>else</span>
+              <span class='id n'>n</span> <span class='op'>=</span> <span class='kw'>nil</span>
+              <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>end</span>
+        <span class='id show'>show</span><span class='period'>.</span><span class='id call'>call</span><span class='lparen'>(</span><span class='id pkg'>pkg</span><span class='comma'>,</span> <span class='id n'>n</span><span class='comma'>,</span> <span class='id v'>v</span><span class='rparen'>)</span>
+      <span class='kw'>rescue</span> <span class='const'>NameError</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='id result'>result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="terminate-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>terminate</strong>(arg = nil) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+816
+817
+818</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 816</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id terminate'>terminate</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id throw'>throw</span> <span class='symbol'>:terminate</span><span class='comma'>,</span> <span class='id arg'>arg</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="top-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>top</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+821</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 821</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id top'>top</span><span class='lparen'>(</span><span class='rparen'>)</span> <span class='const'>DefaultList</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="with-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>with</strong>(*args, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Initializes a new instance and evaluates the optional block in context of
+the instance. Arguments <tt>args</tt> are passed to #new, see there for
+description of parameters.
+</p>
+<p>
+This method is <b>deprecated</b>, its behavior corresponds to the older
+#new method.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+763
+764
+765
+766
+767</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 763</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id with'>with</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id opts'>opts</span> <span class='op'>=</span> <span class='id new'>new</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id opts'>opts</span><span class='period'>.</span><span class='id instance_eval'>instance_eval</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id opts'>opts</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="abort-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>abort</strong>(mesg = $!) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+930
+931
+932</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 930</span>
+
+<span class='kw'>def</span> <span class='id abort'>abort</span><span class='lparen'>(</span><span class='id mesg'>mesg</span> <span class='op'>=</span> <span class='gvar'>$!</span><span class='rparen'>)</span>
+  <span class='kw'>super</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id program_name'>program_name</span><span class='rbrace'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id mesg'>mesg</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="accept-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>accept</strong>(*args, &amp;blk) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Directs to accept specified class <tt>t</tt>. The argument string is passed
+to the block in which it should be converted to the desired class.
+</p>
+<table>
+<tr><td valign="top"><tt>t</tt></td><td><p>
+Argument class specifier, any object including Class.
+</p>
+</td></tr>
+<tr><td valign="top"><tt>pat</tt></td><td><p>
+Pattern for argument, defaults to <tt>t</tt> if it responds to match.
+</p>
+</td></tr>
+</table>
+<pre class="code">
+  <span class='id accept'>accept</span><span class='lparen'>(</span><span class='id t'>t</span><span class='comma'>,</span> <span class='id pat'>pat</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+832</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 832</span>
+
+<span class='kw'>def</span> <span class='id accept'>accept</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='id top'>top</span><span class='period'>.</span><span class='id accept'>accept</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="add_officious-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>add_officious</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+802
+803
+804
+805
+806
+807</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 802</span>
+
+<span class='kw'>def</span> <span class='id add_officious'>add_officious</span>  <span class='comment'># :nodoc:
+</span>  <span class='id list'>list</span> <span class='op'>=</span> <span class='id base'>base</span><span class='lparen'>(</span><span class='rparen'>)</span>
+  <span class='const'>Officious</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id opt'>opt</span><span class='comma'>,</span> <span class='id block'>block</span><span class='op'>|</span>
+    <span class='id list'>list</span><span class='period'>.</span><span class='id long'>long</span><span class='lbracket'>[</span><span class='id opt'>opt</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='id block'>block</span><span class='period'>.</span><span class='id call'>call</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="base-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>base</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Subject of #on_tail.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+944
+945
+946</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 944</span>
+
+<span class='kw'>def</span> <span class='id base'>base</span>
+  <span class='ivar'>@stack</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="define-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>define</strong>(*opts, &amp;block) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='def_option-instance_method'>def_option</span></span>
+    </span>
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1193
+1194
+1195
+1196</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1193</span>
+
+<span class='kw'>def</span> <span class='id define'>define</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id top'>top</span><span class='period'>.</span><span class='id append'>append</span><span class='lparen'>(</span><span class='op'>*</span><span class='lparen'>(</span><span class='id sw'>sw</span> <span class='op'>=</span> <span class='id make_switch'>make_switch</span><span class='lparen'>(</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id sw'>sw</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="define_head-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>define_head</strong>(*opts, &amp;block) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='def_head_option-instance_method'>def_head_option</span></span>
+    </span>
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1208
+1209
+1210
+1211</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1208</span>
+
+<span class='kw'>def</span> <span class='id define_head'>define_head</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id top'>top</span><span class='period'>.</span><span class='id prepend'>prepend</span><span class='lparen'>(</span><span class='op'>*</span><span class='lparen'>(</span><span class='id sw'>sw</span> <span class='op'>=</span> <span class='id make_switch'>make_switch</span><span class='lparen'>(</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id sw'>sw</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="define_tail-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>define_tail</strong>(*opts, &amp;block) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='def_tail_option-instance_method'>def_tail_option</span></span>
+    </span>
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1222
+1223
+1224
+1225</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1222</span>
+
+<span class='kw'>def</span> <span class='id define_tail'>define_tail</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id base'>base</span><span class='period'>.</span><span class='id append'>append</span><span class='lparen'>(</span><span class='op'>*</span><span class='lparen'>(</span><span class='id sw'>sw</span> <span class='op'>=</span> <span class='id make_switch'>make_switch</span><span class='lparen'>(</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id sw'>sw</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="environment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>environment</strong>(env = File.basename($0, '.*')) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parses environment variable <tt>env</tt> or its uppercase with splitting
+like a shell.
+</p>
+<p>
+<tt>env</tt> defaults to the basename of the program.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1491
+1492
+1493
+1494
+1495</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1491</span>
+
+<span class='kw'>def</span> <span class='id environment'>environment</span><span class='lparen'>(</span><span class='id env'>env</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id basename'>basename</span><span class='lparen'>(</span><span class='gvar'>$0</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.*</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id env'>env</span> <span class='op'>=</span> <span class='const'>ENV</span><span class='lbracket'>[</span><span class='id env'>env</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>ENV</span><span class='lbracket'>[</span><span class='id env'>env</span><span class='period'>.</span><span class='id upcase'>upcase</span><span class='rbracket'>]</span> <span class='kw'>or</span> <span class='kw'>return</span>
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>shellwords</span><span class='tstring_end'>'</span></span>
+  <span class='id parse'>parse</span><span class='lparen'>(</span><span class='op'>*</span><span class='const'>Shellwords</span><span class='period'>.</span><span class='id shellwords'>shellwords</span><span class='lparen'>(</span><span class='id env'>env</span><span class='rparen'>)</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getopts-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>getopts</strong>(*args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Wrapper method for getopts.rb.
+</p>
+<pre class="code">
+  <span class='id params'>params</span> <span class='op'>=</span> <span class='const'>ARGV</span><span class='period'>.</span><span class='id getopts'>getopts</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ab:</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>foo</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>bar:</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'># params[:a] = true   # -a
+</span>  <span class='comment'># params[:b] = &quot;1&quot;    # -b1
+</span>  <span class='comment'># params[:foo] = &quot;1&quot;  # --foo
+</span>  <span class='comment'># params[:bar] = &quot;x&quot;  # --bar x</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1383
+1384
+1385
+1386
+1387
+1388
+1389
+1390
+1391
+1392
+1393
+1394
+1395
+1396
+1397
+1398
+1399
+1400
+1401
+1402
+1403
+1404
+1405
+1406
+1407
+1408
+1409
+1410
+1411
+1412</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1383</span>
+
+<span class='kw'>def</span> <span class='id getopts'>getopts</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id argv'>argv</span> <span class='op'>=</span> <span class='const'>Array</span> <span class='op'>===</span> <span class='id args'>args</span><span class='period'>.</span><span class='id first'>first</span> <span class='op'>?</span> <span class='id args'>args</span><span class='period'>.</span><span class='id shift'>shift</span> <span class='op'>:</span> <span class='id default_argv'>default_argv</span>
+  <span class='id single_options'>single_options</span><span class='comma'>,</span> <span class='op'>*</span><span class='id long_options'>long_options</span> <span class='op'>=</span> <span class='op'>*</span><span class='id args'>args</span>
+
+  <span class='id result'>result</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+
+  <span class='id single_options'>single_options</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(.)(:)?</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id opt'>opt</span><span class='comma'>,</span> <span class='id val'>val</span><span class='op'>|</span>
+    <span class='kw'>if</span> <span class='id val'>val</span>
+      <span class='id result'>result</span><span class='lbracket'>[</span><span class='id opt'>opt</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>nil</span>
+      <span class='id define'>define</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='embexpr_beg'>#{</span><span class='id opt'>opt</span><span class='rbrace'>}</span><span class='tstring_content'> VAL</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='id result'>result</span><span class='lbracket'>[</span><span class='id opt'>opt</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>false</span>
+      <span class='id define'>define</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='embexpr_beg'>#{</span><span class='id opt'>opt</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span> <span class='kw'>if</span> <span class='id single_options'>single_options</span>
+
+  <span class='id long_options'>long_options</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id arg'>arg</span><span class='op'>|</span>
+    <span class='id opt'>opt</span><span class='comma'>,</span> <span class='id val'>val</span> <span class='op'>=</span> <span class='id arg'>arg</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>:</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='int'>2</span><span class='rparen'>)</span>
+    <span class='kw'>if</span> <span class='id val'>val</span>
+      <span class='id result'>result</span><span class='lbracket'>[</span><span class='id opt'>opt</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id val'>val</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='op'>?</span> <span class='kw'>nil</span> <span class='op'>:</span> <span class='id val'>val</span>
+      <span class='id define'>define</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--</span><span class='embexpr_beg'>#{</span><span class='id opt'>opt</span><span class='rbrace'>}</span><span class='tstring_content'> VAL</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='id result'>result</span><span class='lbracket'>[</span><span class='id opt'>opt</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>false</span>
+      <span class='id define'>define</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--</span><span class='embexpr_beg'>#{</span><span class='id opt'>opt</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id parse_in_order'>parse_in_order</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='comma'>,</span> <span class='id result'>result</span><span class='period'>.</span><span class='id method'>method</span><span class='lparen'>(</span><span class='symbol'>:[]=</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id result'>result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="help-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>help</strong> 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='to_s-instance_method'>to_s</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns option summary string.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+985</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 985</span>
+
+<span class='kw'>def</span> <span class='id help'>help</span><span class='semicolon'>;</span> <span class='id summarize'>summarize</span><span class='lparen'>(</span><span class='id banner'>banner</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='period'>.</span><span class='id sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\n?\z</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="inc-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>inc</strong>(*args) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+780
+781
+782</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 780</span>
+
+<span class='kw'>def</span> <span class='id inc'>inc</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id class'>class</span><span class='period'>.</span><span class='id inc'>inc</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="load-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>load</strong>(filename = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Loads options from file names as <tt>filename</tt>. Does nothing when the
+file is not present. Returns whether successfully loaded.
+</p>
+<p>
+<tt>filename</tt> defaults to basename of the program without suffix in a
+directory ~/.options.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1471
+1472
+1473
+1474
+1475
+1476
+1477
+1478
+1479
+1480
+1481
+1482
+1483</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1471</span>
+
+<span class='kw'>def</span> <span class='id load'>load</span><span class='lparen'>(</span><span class='id filename'>filename</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>begin</span>
+    <span class='id filename'>filename</span> <span class='op'>||=</span> <span class='const'>File</span><span class='period'>.</span><span class='id expand_path'>expand_path</span><span class='lparen'>(</span><span class='const'>File</span><span class='period'>.</span><span class='id basename'>basename</span><span class='lparen'>(</span><span class='gvar'>$0</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.*</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>~/.options</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='kw'>rescue</span>
+    <span class='kw'>return</span> <span class='kw'>false</span>
+  <span class='kw'>end</span>
+  <span class='kw'>begin</span>
+    <span class='id parse'>parse</span><span class='lparen'>(</span><span class='op'>*</span><span class='const'>IO</span><span class='period'>.</span><span class='id readlines'>readlines</span><span class='lparen'>(</span><span class='id filename'>filename</span><span class='rparen'>)</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id s'>s</span><span class='op'>|</span> <span class='id s'>s</span><span class='period'>.</span><span class='id chomp!'>chomp!</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+    <span class='kw'>true</span>
+  <span class='kw'>rescue</span> <span class='const'>Errno</span><span class='op'>::</span><span class='const'>ENOENT</span><span class='comma'>,</span> <span class='const'>Errno</span><span class='op'>::</span><span class='const'>ENOTDIR</span>
+    <span class='kw'>false</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="make_switch-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>make_switch</strong>(opts, block = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Creates an OptionParser::Switch from the parameters. The parsed argument
+value is passed to the given block, where it can be processed.
+</p>
+<p>
+See at the beginning of OptionParser for some full examples.
+</p>
+<p>
+<tt>opts</tt> can include the following elements:
+</p>
+<dl>
+<dt>Argument style:</dt><dd><p>
+One of the following:
+</p>
+<pre class="code">
+  :NONE, :REQUIRED, :OPTIONAL
+</pre>
+</dd>
+<dt>Argument pattern:</dt><dd><p>
+Acceptable option argument format, must be pre-defined with
+OptionParser.accept or OptionParser#accept, or Regexp. This can appear once
+or assigned as String if not present, otherwise causes an ArgumentError.
+Examples:
+</p>
+<pre class="code">
+  Float, Time, Array
+</pre>
+</dd>
+<dt>Possible argument values:</dt><dd><p>
+Hash or Array.
+</p>
+<pre class="code">
+  <span class='lbracket'>[</span><span class='symbol'>:text</span><span class='comma'>,</span> <span class='symbol'>:binary</span><span class='comma'>,</span> <span class='symbol'>:auto</span><span class='rbracket'>]</span>
+  <span class='qwords_beg'>%w[</span><span class='tstring_content'>iso-2022-jp</span><span class='words_sep'> </span><span class='tstring_content'>shift_jis</span><span class='words_sep'> </span><span class='tstring_content'>euc-jp</span><span class='words_sep'> </span><span class='tstring_content'>utf8</span><span class='words_sep'> </span><span class='tstring_content'>binary</span><span class='words_sep'>]</span>
+  <span class='lbrace'>{</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>jis</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>iso-2022-jp</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>sjis</span><span class='tstring_end'>&quot;</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>shift_jis</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+</pre>
+</dd>
+<dt>Long style switch:</dt><dd><p>
+Specifies a long style switch which takes a mandatory, optional or no
+argument. It&#8217;s a string of the following form:
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--switch=MANDATORY</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>or</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--switch MANDATORY</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--switch[=OPTIONAL]</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--switch</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+</dd>
+<dt>Short style switch:</dt><dd><p>
+Specifies short style switch which takes a mandatory, optional or no
+argument. It&#8217;s a string of the following form:
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-xMANDATORY</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-x[OPTIONAL]</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-x</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+<p>
+There is also a special form which matches character range (not full set of
+regular expression):
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-[a-z]MANDATORY</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-[a-z][OPTIONAL]</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-[a-z]</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+</dd>
+<dt>Argument style and description:</dt><dd><p>
+Instead of specifying mandatory or optional arguments directly in the
+switch parameter, this separate parameter can be used.
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>=MANDATORY</span><span class='tstring_end'>&quot;</span></span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>=[OPTIONAL]</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+</dd>
+<dt>Description:</dt><dd><p>
+Description string for the option.
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Run verbosely</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+</dd>
+<dt>Handler:</dt><dd><p>
+Handler for the parsed argument value. Either give a block or pass a Proc
+or Method as an argument.
+</p>
+</dd>
+</dl>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1069
+1070
+1071
+1072
+1073
+1074
+1075
+1076
+1077
+1078
+1079
+1080
+1081
+1082
+1083
+1084
+1085
+1086
+1087
+1088
+1089
+1090
+1091
+1092
+1093
+1094
+1095
+1096
+1097
+1098
+1099
+1100
+1101
+1102
+1103
+1104
+1105
+1106
+1107
+1108
+1109
+1110
+1111
+1112
+1113
+1114
+1115
+1116
+1117
+1118
+1119
+1120
+1121
+1122
+1123
+1124
+1125
+1126
+1127
+1128
+1129
+1130
+1131
+1132
+1133
+1134
+1135
+1136
+1137
+1138
+1139
+1140
+1141
+1142
+1143
+1144
+1145
+1146
+1147
+1148
+1149
+1150
+1151
+1152
+1153
+1154
+1155
+1156
+1157
+1158
+1159
+1160
+1161
+1162
+1163
+1164
+1165
+1166
+1167
+1168
+1169
+1170
+1171
+1172
+1173
+1174
+1175
+1176
+1177
+1178
+1179
+1180
+1181
+1182
+1183
+1184
+1185
+1186
+1187
+1188
+1189
+1190
+1191</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1069</span>
+
+<span class='kw'>def</span> <span class='id make_switch'>make_switch</span><span class='lparen'>(</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='id block'>block</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id short'>short</span><span class='comma'>,</span> <span class='id long'>long</span><span class='comma'>,</span> <span class='id nolong'>nolong</span><span class='comma'>,</span> <span class='id style'>style</span><span class='comma'>,</span> <span class='id pattern'>pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span><span class='comma'>,</span> <span class='id not_pattern'>not_pattern</span><span class='comma'>,</span> <span class='id not_conv'>not_conv</span><span class='comma'>,</span> <span class='id not_style'>not_style</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id ldesc'>ldesc</span><span class='comma'>,</span> <span class='id sdesc'>sdesc</span><span class='comma'>,</span> <span class='id desc'>desc</span><span class='comma'>,</span> <span class='id arg'>arg</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='const'>Switch</span><span class='op'>::</span><span class='const'>NoArgument</span>
+  <span class='id default_pattern'>default_pattern</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id klass'>klass</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id n'>n</span><span class='comma'>,</span> <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
+  <span class='id opts'>opts</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id o'>o</span><span class='op'>|</span>
+    <span class='comment'># argument class
+</span>    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id pat'>pat</span><span class='comma'>,</span> <span class='id c'>c</span><span class='op'>|</span>
+      <span class='id klass'>klass</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id o'>o</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id not_style'>not_style</span> <span class='kw'>and</span> <span class='id not_style'>not_style</span> <span class='op'>!=</span> <span class='const'>Switch</span><span class='op'>::</span><span class='const'>NoArgument</span>
+        <span class='id not_pattern'>not_pattern</span><span class='comma'>,</span> <span class='id not_conv'>not_conv</span> <span class='op'>=</span> <span class='id pat'>pat</span><span class='comma'>,</span> <span class='id c'>c</span>
+      <span class='kw'>else</span>
+        <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id pat'>pat</span><span class='comma'>,</span> <span class='id c'>c</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+
+    <span class='comment'># directly specified pattern(any object possible to match)
+</span>    <span class='kw'>if</span> <span class='lparen'>(</span><span class='op'>!</span><span class='lparen'>(</span><span class='const'>String</span> <span class='op'>===</span> <span class='id o'>o</span> <span class='op'>||</span> <span class='const'>Symbol</span> <span class='op'>===</span> <span class='id o'>o</span><span class='rparen'>)</span><span class='rparen'>)</span> <span class='kw'>and</span> <span class='id o'>o</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:match</span><span class='rparen'>)</span>
+      <span class='id pattern'>pattern</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id o'>o</span><span class='comma'>,</span> <span class='id pattern'>pattern</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>pattern</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id pattern'>pattern</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:convert</span><span class='rparen'>)</span>
+        <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id pattern'>pattern</span><span class='period'>.</span><span class='id method'>method</span><span class='lparen'>(</span><span class='symbol'>:convert</span><span class='rparen'>)</span><span class='period'>.</span><span class='id to_proc'>to_proc</span>
+      <span class='kw'>else</span>
+        <span class='id conv'>conv</span> <span class='op'>=</span> <span class='const'>SPLAT_PROC</span>
+      <span class='kw'>end</span>
+      <span class='kw'>next</span>
+    <span class='kw'>end</span>
+
+    <span class='comment'># anything others
+</span>    <span class='kw'>case</span> <span class='id o'>o</span>
+    <span class='kw'>when</span> <span class='const'>Proc</span><span class='comma'>,</span> <span class='const'>Method</span>
+      <span class='id block'>block</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id o'>o</span><span class='comma'>,</span> <span class='id block'>block</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>block</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='const'>Array</span><span class='comma'>,</span> <span class='const'>Hash</span>
+      <span class='kw'>case</span> <span class='id pattern'>pattern</span>
+      <span class='kw'>when</span> <span class='const'>CompletingHash</span>
+      <span class='kw'>when</span> <span class='kw'>nil</span>
+        <span class='id pattern'>pattern</span> <span class='op'>=</span> <span class='const'>CompletingHash</span><span class='period'>.</span><span class='id new'>new</span>
+        <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id pattern'>pattern</span><span class='period'>.</span><span class='id method'>method</span><span class='lparen'>(</span><span class='symbol'>:convert</span><span class='rparen'>)</span><span class='period'>.</span><span class='id to_proc'>to_proc</span> <span class='kw'>if</span> <span class='id pattern'>pattern</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:convert</span><span class='rparen'>)</span>
+      <span class='kw'>else</span>
+        <span class='id raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>argument pattern given twice</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+      <span class='id o'>o</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id pat'>pat</span><span class='comma'>,</span> <span class='op'>*</span><span class='id v'>v</span><span class='op'>|</span> <span class='id pattern'>pattern</span><span class='lbracket'>[</span><span class='id pat'>pat</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id v'>v</span><span class='period'>.</span><span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='int'>0</span><span class='rparen'>)</span> <span class='lbrace'>{</span><span class='id pat'>pat</span><span class='rbrace'>}</span><span class='rbrace'>}</span>
+    <span class='kw'>when</span> <span class='const'>Module</span>
+      <span class='id raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unsupported argument type: </span><span class='embexpr_beg'>#{</span><span class='id o'>o</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>ParseError</span><span class='period'>.</span><span class='id filter_backtrace'>filter_backtrace</span><span class='lparen'>(</span><span class='id caller'>caller</span><span class='lparen'>(</span><span class='int'>4</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='op'>*</span><span class='const'>ArgumentStyle</span><span class='period'>.</span><span class='id keys'>keys</span>
+      <span class='id style'>style</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='const'>ArgumentStyle</span><span class='lbracket'>[</span><span class='id o'>o</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id style'>style</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>style</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^--no-([^\[\]=\s]*)(.+)?</span><span class='regexp_end'>/</span></span>
+      <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='backref'>$2</span>
+      <span class='id o'>o</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id a'>a</span> <span class='op'>?</span> <span class='const'>Object</span> <span class='op'>:</span> <span class='const'>TrueClass</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id not_pattern'>not_pattern</span><span class='comma'>,</span> <span class='id not_conv'>not_conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id not_style'>not_style</span>
+      <span class='id not_style'>not_style</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id not_style'>not_style</span> <span class='op'>||</span> <span class='id default_style'>default_style</span><span class='rparen'>)</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id a'>a</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id a'>a</span>
+      <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='const'>Switch</span><span class='op'>::</span><span class='const'>NoArgument</span>
+      <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='const'>FalseClass</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+      <span class='id ldesc'>ldesc</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--no-</span><span class='embexpr_beg'>#{</span><span class='id q'>q</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id long'>long</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>no-</span><span class='tstring_end'>'</span></span> <span class='op'>+</span> <span class='lparen'>(</span><span class='id q'>q</span> <span class='op'>=</span> <span class='id q'>q</span><span class='period'>.</span><span class='id downcase'>downcase</span><span class='rparen'>)</span>
+      <span class='id nolong'>nolong</span> <span class='op'>&lt;&lt;</span> <span class='id q'>q</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^--\[no-\]([^\[\]=\s]*)(.+)?</span><span class='regexp_end'>/</span></span>
+      <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='backref'>$2</span>
+      <span class='id o'>o</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id a'>a</span> <span class='op'>?</span> <span class='const'>Object</span> <span class='op'>:</span> <span class='const'>TrueClass</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id a'>a</span>
+        <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='id default_style'>default_style</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id a'>a</span><span class='rparen'>)</span>
+        <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+      <span class='kw'>end</span>
+      <span class='id ldesc'>ldesc</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--[no-]</span><span class='embexpr_beg'>#{</span><span class='id q'>q</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id long'>long</span> <span class='op'>&lt;&lt;</span> <span class='lparen'>(</span><span class='id o'>o</span> <span class='op'>=</span> <span class='id q'>q</span><span class='period'>.</span><span class='id downcase'>downcase</span><span class='rparen'>)</span>
+      <span class='id not_pattern'>not_pattern</span><span class='comma'>,</span> <span class='id not_conv'>not_conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='const'>FalseClass</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id not_style'>not_style</span>
+      <span class='id not_style'>not_style</span> <span class='op'>=</span> <span class='const'>Switch</span><span class='op'>::</span><span class='const'>NoArgument</span>
+      <span class='id nolong'>nolong</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>no-</span><span class='tstring_end'>'</span></span> <span class='op'>+</span> <span class='id o'>o</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^--([^\[\]=\s]*)(.+)?</span><span class='regexp_end'>/</span></span>
+      <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='backref'>$2</span>
+      <span class='kw'>if</span> <span class='id a'>a</span>
+        <span class='id o'>o</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='const'>NilClass</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+        <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='id default_style'>default_style</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id a'>a</span><span class='rparen'>)</span>
+        <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+      <span class='kw'>end</span>
+      <span class='id ldesc'>ldesc</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--</span><span class='embexpr_beg'>#{</span><span class='id q'>q</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id long'>long</span> <span class='op'>&lt;&lt;</span> <span class='lparen'>(</span><span class='id o'>o</span> <span class='op'>=</span> <span class='id q'>q</span><span class='period'>.</span><span class='id downcase'>downcase</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^-(\[\^?\]?(?:[^\\\]]|\\.)*\])(.+)?</span><span class='regexp_end'>/</span></span>
+      <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='backref'>$2</span>
+      <span class='id o'>o</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='const'>Object</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='kw'>if</span> <span class='id a'>a</span>
+        <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='id default_style'>default_style</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id a'>a</span><span class='rparen'>)</span>
+        <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+      <span class='kw'>end</span>
+      <span class='id sdesc'>sdesc</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='embexpr_beg'>#{</span><span class='id q'>q</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id short'>short</span> <span class='op'>&lt;&lt;</span> <span class='const'>Regexp</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id q'>q</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^-(.)(.+)?</span><span class='regexp_end'>/</span></span>
+      <span class='id q'>q</span><span class='comma'>,</span> <span class='id a'>a</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='backref'>$2</span>
+      <span class='kw'>if</span> <span class='id a'>a</span>
+        <span class='id o'>o</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='const'>NilClass</span><span class='comma'>,</span> <span class='id klass'>klass</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>type</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+        <span class='id default_style'>default_style</span> <span class='op'>=</span> <span class='id default_style'>default_style</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id a'>a</span><span class='rparen'>)</span>
+        <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id o'>o</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+      <span class='kw'>end</span>
+      <span class='id sdesc'>sdesc</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='embexpr_beg'>#{</span><span class='id q'>q</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id short'>short</span> <span class='op'>&lt;&lt;</span> <span class='id q'>q</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^=</span><span class='regexp_end'>/</span></span>
+      <span class='id style'>style</span> <span class='op'>=</span> <span class='id notwice'>notwice</span><span class='lparen'>(</span><span class='id default_style'>default_style</span><span class='period'>.</span><span class='id guess'>guess</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='id o'>o</span><span class='rparen'>)</span><span class='comma'>,</span> <span class='id style'>style</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>style</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='const'>Object</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+    <span class='kw'>else</span>
+      <span class='id desc'>desc</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='id o'>o</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span> <span class='id conv'>conv</span> <span class='op'>=</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='symbol'>:atype</span><span class='comma'>,</span> <span class='id default_style'>default_style</span><span class='period'>.</span><span class='id pattern'>pattern</span><span class='rparen'>)</span> <span class='kw'>unless</span> <span class='id default_pattern'>default_pattern</span>
+  <span class='kw'>if</span> <span class='op'>!</span><span class='lparen'>(</span><span class='id short'>short</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>and</span> <span class='id long'>long</span><span class='period'>.</span><span class='id empty?'>empty?</span><span class='rparen'>)</span>
+    <span class='id s'>s</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id style'>style</span> <span class='op'>||</span> <span class='id default_style'>default_style</span><span class='rparen'>)</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id pattern'>pattern</span> <span class='op'>||</span> <span class='id default_pattern'>default_pattern</span><span class='comma'>,</span>
+                                     <span class='id conv'>conv</span><span class='comma'>,</span> <span class='id sdesc'>sdesc</span><span class='comma'>,</span> <span class='id ldesc'>ldesc</span><span class='comma'>,</span> <span class='id arg'>arg</span><span class='comma'>,</span> <span class='id desc'>desc</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>elsif</span> <span class='op'>!</span><span class='id block'>block</span>
+    <span class='kw'>if</span> <span class='id style'>style</span> <span class='kw'>or</span> <span class='id pattern'>pattern</span>
+      <span class='id raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>no switch given</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='const'>ParseError</span><span class='period'>.</span><span class='id filter_backtrace'>filter_backtrace</span><span class='lparen'>(</span><span class='id caller'>caller</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id s'>s</span> <span class='op'>=</span> <span class='id desc'>desc</span>
+  <span class='kw'>else</span>
+    <span class='id short'>short</span> <span class='op'>&lt;&lt;</span> <span class='id pattern'>pattern</span>
+    <span class='id s'>s</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='id style'>style</span> <span class='op'>||</span> <span class='id default_style'>default_style</span><span class='rparen'>)</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id pattern'>pattern</span><span class='comma'>,</span>
+                                     <span class='id conv'>conv</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id arg'>arg</span><span class='comma'>,</span> <span class='id desc'>desc</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='kw'>return</span> <span class='id s'>s</span><span class='comma'>,</span> <span class='id short'>short</span><span class='comma'>,</span> <span class='id long'>long</span><span class='comma'>,</span>
+    <span class='lparen'>(</span><span class='id not_style'>not_style</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id not_pattern'>not_pattern</span><span class='comma'>,</span> <span class='id not_conv'>not_conv</span><span class='comma'>,</span> <span class='id sdesc'>sdesc</span><span class='comma'>,</span> <span class='id ldesc'>ldesc</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id desc'>desc</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id not_style'>not_style</span><span class='rparen'>)</span><span class='comma'>,</span>
+    <span class='id nolong'>nolong</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="new-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>new</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Pushes a new List.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+951
+952
+953
+954
+955
+956
+957
+958</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 951</span>
+
+<span class='kw'>def</span> <span class='id new'>new</span>
+  <span class='ivar'>@stack</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='const'>List</span><span class='period'>.</span><span class='id new'>new</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id block_given?'>block_given?</span>
+    <span class='kw'>yield</span> <span class='kw'>self</span>
+  <span class='kw'>else</span>
+    <span class='kw'>self</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="on-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>on</strong>(*opts, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Add option switch and handler. See #make_switch for an explanation of
+parameters.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1202
+1203
+1204
+1205</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1202</span>
+
+<span class='kw'>def</span> <span class='id on'>on</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id define'>define</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="on_head-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>on_head</strong>(*opts, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Add option switch like with #on, but at head of summary.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1216
+1217
+1218
+1219</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1216</span>
+
+<span class='kw'>def</span> <span class='id on_head'>on_head</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id define_head'>define_head</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="on_tail-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>on_tail</strong>(*opts, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Add option switch like with #on, but at tail of summary.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1230
+1231
+1232
+1233</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1230</span>
+
+<span class='kw'>def</span> <span class='id on_tail'>on_tail</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id define_tail'>define_tail</span><span class='lparen'>(</span><span class='op'>*</span><span class='id opts'>opts</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="order-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>order</strong>(*argv, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parses command line arguments <tt>argv</tt> in order. When a block is
+given, each non-option argument is yielded.
+</p>
+<p>
+Returns the rest of <tt>argv</tt> left unparsed.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1249
+1250
+1251
+1252</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1249</span>
+
+<span class='kw'>def</span> <span class='id order'>order</span><span class='lparen'>(</span><span class='op'>*</span><span class='id argv'>argv</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id argv'>argv</span> <span class='op'>=</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id dup'>dup</span> <span class='kw'>if</span> <span class='id argv'>argv</span><span class='period'>.</span><span class='id size'>size</span> <span class='op'>==</span> <span class='int'>1</span> <span class='kw'>and</span> <span class='const'>Array</span> <span class='op'>===</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+  <span class='id order!'>order!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="order!-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>order!</strong>(argv = default_argv, &amp;nonopt) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Same as #order, but removes switches destructively.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1257
+1258
+1259</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1257</span>
+
+<span class='kw'>def</span> <span class='id order!'>order!</span><span class='lparen'>(</span><span class='id argv'>argv</span> <span class='op'>=</span> <span class='id default_argv'>default_argv</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id nonopt'>nonopt</span><span class='rparen'>)</span>
+  <span class='id parse_in_order'>parse_in_order</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id nonopt'>nonopt</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="parse-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse</strong>(*argv) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parses command line arguments <tt>argv</tt> in order when environment
+variable POSIXLY_CORRECT is set, and in permutation mode otherwise.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1358
+1359
+1360
+1361</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1358</span>
+
+<span class='kw'>def</span> <span class='id parse'>parse</span><span class='lparen'>(</span><span class='op'>*</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+  <span class='id argv'>argv</span> <span class='op'>=</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id dup'>dup</span> <span class='kw'>if</span> <span class='id argv'>argv</span><span class='period'>.</span><span class='id size'>size</span> <span class='op'>==</span> <span class='int'>1</span> <span class='kw'>and</span> <span class='const'>Array</span> <span class='op'>===</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+  <span class='id parse!'>parse!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="parse!-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse!</strong>(argv = default_argv) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Same as #parse, but removes switches destructively.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1366
+1367
+1368
+1369
+1370
+1371
+1372</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1366</span>
+
+<span class='kw'>def</span> <span class='id parse!'>parse!</span><span class='lparen'>(</span><span class='id argv'>argv</span> <span class='op'>=</span> <span class='id default_argv'>default_argv</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='const'>ENV</span><span class='period'>.</span><span class='id include?'>include?</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>POSIXLY_CORRECT</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='id order!'>order!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id permute!'>permute!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="permute-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>permute</strong>(*argv) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parses command line arguments <tt>argv</tt> in permutation mode and returns
+list of non-option arguments.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1339
+1340
+1341
+1342</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1339</span>
+
+<span class='kw'>def</span> <span class='id permute'>permute</span><span class='lparen'>(</span><span class='op'>*</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+  <span class='id argv'>argv</span> <span class='op'>=</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id dup'>dup</span> <span class='kw'>if</span> <span class='id argv'>argv</span><span class='period'>.</span><span class='id size'>size</span> <span class='op'>==</span> <span class='int'>1</span> <span class='kw'>and</span> <span class='const'>Array</span> <span class='op'>===</span> <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+  <span class='id permute!'>permute!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="permute!-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>permute!</strong>(argv = default_argv) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Same as #permute, but removes switches destructively.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1347
+1348
+1349
+1350
+1351
+1352</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1347</span>
+
+<span class='kw'>def</span> <span class='id permute!'>permute!</span><span class='lparen'>(</span><span class='id argv'>argv</span> <span class='op'>=</span> <span class='id default_argv'>default_argv</span><span class='rparen'>)</span>
+  <span class='id nonopts'>nonopts</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id order!'>order!</span><span class='lparen'>(</span><span class='id argv'>argv</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id nonopts'>nonopts</span><span class='period'>.</span><span class='id method'>method</span><span class='lparen'>(</span><span class='symbol'>:&lt;&lt;</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id argv'>argv</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>0</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id nonopts'>nonopts</span>
+  <span class='id argv'>argv</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="reject-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>reject</strong>(*args, &amp;blk) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Directs to reject specified class argument.
+</p>
+<table>
+<tr><td valign="top"><tt>t</tt></td><td><p>
+Argument class specifier, any object including Class.
+</p>
+</td></tr>
+</table>
+<pre class="code">
+  <span class='id reject'>reject</span><span class='lparen'>(</span><span class='id t'>t</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+845</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 845</span>
+
+<span class='kw'>def</span> <span class='id reject'>reject</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='id top'>top</span><span class='period'>.</span><span class='id reject'>reject</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remove-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>remove</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Removes the last List.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+963
+964
+965</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 963</span>
+
+<span class='kw'>def</span> <span class='id remove'>remove</span>
+  <span class='ivar'>@stack</span><span class='period'>.</span><span class='id pop'>pop</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="separator-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>separator</strong>(string) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Add separator in summary.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1239
+1240
+1241</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 1239</span>
+
+<span class='kw'>def</span> <span class='id separator'>separator</span><span class='lparen'>(</span><span class='id string'>string</span><span class='rparen'>)</span>
+  <span class='id top'>top</span><span class='period'>.</span><span class='id append'>append</span><span class='lparen'>(</span><span class='id string'>string</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="summarize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>summarize</strong>(to = [], width = @summary_width, max = width - 1, indent = @summary_indent, &amp;blk) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Puts option summary into <tt>to</tt> and returns <tt>to</tt>. Yields each
+line if a block is given.
+</p>
+<table>
+<tr><td valign="top"><tt>to</tt></td><td><p>
+Output destination, which must have method <<. Defaults to [].
+</p>
+</td></tr>
+<tr><td valign="top"><tt>width</tt></td><td><p>
+Width of left side, defaults to @summary_width.
+</p>
+</td></tr>
+<tr><td valign="top"><tt>max</tt></td><td><p>
+Maximum length allowed for left side, defaults to <tt>width</tt> - 1.
+</p>
+</td></tr>
+<tr><td valign="top"><tt>indent</tt></td><td><p>
+Indentation, defaults to @summary_indent.
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+976
+977
+978
+979
+980</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 976</span>
+
+<span class='kw'>def</span> <span class='id summarize'>summarize</span><span class='lparen'>(</span><span class='id to'>to</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id width'>width</span> <span class='op'>=</span> <span class='ivar'>@summary_width</span><span class='comma'>,</span> <span class='id max'>max</span> <span class='op'>=</span> <span class='id width'>width</span> <span class='op'>-</span> <span class='int'>1</span><span class='comma'>,</span> <span class='id indent'>indent</span> <span class='op'>=</span> <span class='ivar'>@summary_indent</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span>
+  <span class='id blk'>blk</span> <span class='op'>||=</span> <span class='id proc'>proc</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id l'>l</span><span class='op'>|</span> <span class='id to'>to</span> <span class='op'>&lt;&lt;</span> <span class='lparen'>(</span><span class='id l'>l</span><span class='period'>.</span><span class='id index'>index</span><span class='lparen'>(</span><span class='gvar'>$/</span><span class='comma'>,</span> <span class='op'>-</span><span class='int'>1</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id l'>l</span> <span class='op'>:</span> <span class='id l'>l</span> <span class='op'>+</span> <span class='gvar'>$/</span><span class='rparen'>)</span><span class='rbrace'>}</span>
+  <span class='id visit'>visit</span><span class='lparen'>(</span><span class='symbol'>:summarize</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='id width'>width</span><span class='comma'>,</span> <span class='id max'>max</span><span class='comma'>,</span> <span class='id indent'>indent</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id blk'>blk</span><span class='rparen'>)</span>
+  <span class='id to'>to</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="terminate-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>terminate</strong>(arg = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Terminates option parsing. Optional parameter <tt>arg</tt> is a string
+pushed back to be the first non-option argument.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+813
+814
+815</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 813</span>
+
+<span class='kw'>def</span> <span class='id terminate'>terminate</span><span class='lparen'>(</span><span class='id arg'>arg</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id class'>class</span><span class='period'>.</span><span class='id terminate'>terminate</span><span class='lparen'>(</span><span class='id arg'>arg</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_a-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_a</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns option summary list.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+991</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 991</span>
+
+<span class='kw'>def</span> <span class='id to_a'>to_a</span><span class='semicolon'>;</span> <span class='id summarize'>summarize</span><span class='lparen'>(</span><span class='id banner'>banner</span><span class='period'>.</span><span class='id to_a'>to_a</span><span class='period'>.</span><span class='id dup'>dup</span><span class='rparen'>)</span> <span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="top-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>top</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Subject of #on / #on_head, #accept / #reject
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+937
+938
+939</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 937</span>
+
+<span class='kw'>def</span> <span class='id top'>top</span>
+  <span class='ivar'>@stack</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="ver-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>ver</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns version string from program_name, version and release.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+918
+919
+920
+921
+922
+923
+924</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 918</span>
+
+<span class='kw'>def</span> <span class='id ver'>ver</span>
+  <span class='kw'>if</span> <span class='id v'>v</span> <span class='op'>=</span> <span class='id version'>version</span>
+    <span class='id str'>str</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id program_name'>program_name</span><span class='rbrace'>}</span><span class='tstring_content'> </span><span class='embexpr_beg'>#{</span><span class='lbracket'>[</span><span class='id v'>v</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>.</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id str'>str</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> (</span><span class='embexpr_beg'>#{</span><span class='id v'>v</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id v'>v</span> <span class='op'>=</span> <span class='id release'>release</span>
+    <span class='id str'>str</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="warn-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>warn</strong>(mesg = $!) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+926
+927
+928</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/optparse.rb', line 926</span>
+
+<span class='kw'>def</span> <span class='id warn'>warn</span><span class='lparen'>(</span><span class='id mesg'>mesg</span> <span class='op'>=</span> <span class='gvar'>$!</span><span class='rparen'>)</span>
+  <span class='kw'>super</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id program_name'>program_name</span><span class='rbrace'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id mesg'>mesg</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:01:36 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

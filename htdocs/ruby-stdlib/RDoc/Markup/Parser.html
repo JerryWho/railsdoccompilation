@@ -1,0 +1,2107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: RDoc::Markup::Parser</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (P)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../RDoc.html" title="RDoc (module)">RDoc</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Markup.html" title="RDoc::Markup (class)">Markup</a></span></span>
+     &raquo; 
+    <span class="title">Parser</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: RDoc::Markup::Parser
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">RDoc::Markup::Parser</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+      <dt class="r2">Includes:</dt>
+      <dd class="r2"><span class='object_link'><a href="../Text.html" title="RDoc::Text (module)">Text</a></span></dd>
+      
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">lib/rdoc/markup/parser.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+A recursive-descent parser for RDoc markup.
+</p>
+<p>
+The parser tokenizes an input string then parses the tokens into a
+Document. Documents can be converted into output formats by writing a
+visitor like RDoc::Markup::ToHTML.
+</p>
+<p>
+The parser only handles the block-level constructs Paragraph, List,
+ListItem, Heading, Verbatim, BlankLine and Rule.  Inline markup such as
+<tt>+blah+</tt> is handled separately by RDoc::Markup::AttributeManager.
+</p>
+<p>
+To see what markup the Parser implements read RDoc.  To see how to use RDoc
+markup to format text in your program read RDoc::Markup.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Parser/Error.html" title="RDoc::Markup::Parser::Error (class)">Error</a></span>, <span class='object_link'><a href="Parser/ParseError.html" title="RDoc::Markup::Parser::ParseError (class)">ParseError</a></span>
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="LIST_TOKENS-constant" class="">LIST_TOKENS =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+List token types
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:BULLET</span><span class='comma'>,</span>
+  <span class='symbol'>:LABEL</span><span class='comma'>,</span>
+  <span class='symbol'>:LALPHA</span><span class='comma'>,</span>
+  <span class='symbol'>:NOTE</span><span class='comma'>,</span>
+  <span class='symbol'>:NUMBER</span><span class='comma'>,</span>
+  <span class='symbol'>:UALPHA</span><span class='comma'>,</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+    </dl>
+  
+
+
+  
+  
+  
+  
+  <h2>Instance Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#debug-instance_method" title="#debug (instance method)">- (Object) <strong>debug</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Enables display of debugging information.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tokens-instance_method" title="#tokens (instance method)">- (Object) <strong>tokens</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title readonly">readonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Token accessor.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse-class_method" title="parse (class method)">+ (Object) <strong>parse</strong>(str) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parsers <tt>str</tt> into a Document.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tokenize-class_method" title="tokenize (class method)">+ (Object) <strong>tokenize</strong>(str) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns a token stream for <tt>str</tt>, for testing.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_heading-instance_method" title="#build_heading (instance method)">- (Object) <strong>build_heading</strong>(level) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Builds a Heading of <tt>level</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_list-instance_method" title="#build_list (instance method)">- (Object) <strong>build_list</strong>(margin) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Builds a List flush to <tt>margin</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_list_item-instance_method" title="#build_list_item (instance method)">- (Object) <strong>build_list_item</strong>(indent, item_type = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Builds a ListItem that is flush to <tt>indent</tt> with type
+<tt>item_type</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_paragraph-instance_method" title="#build_paragraph (instance method)">- (Object) <strong>build_paragraph</strong>(margin) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Builds a Paragraph that is flush to <tt>margin</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#build_verbatim-instance_method" title="#build_verbatim (instance method)">- (Object) <strong>build_verbatim</strong>(margin) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Builds a Verbatim that is flush to <tt>margin</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#get-instance_method" title="#get (instance method)">- (Object) <strong>get</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Pulls the next token from the stream.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Parser) <strong>initialize</strong> </a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Creates a new Parser.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse-instance_method" title="#parse (instance method)">- (Object) <strong>parse</strong>(indent = 0) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parses the tokens into a Document.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#peek_token-instance_method" title="#peek_token (instance method)">- (Object) <strong>peek_token</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the next token on the stream without modifying the stream.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#skip-instance_method" title="#skip (instance method)">- (Object) <strong>skip</strong>(token_type, error = true) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Skips a token of <tt>token_type</tt>, optionally raising an error.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#text-instance_method" title="#text (instance method)">- (Object) <strong>text</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Consumes tokens until NEWLINE and turns them back into text.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#token_pos-instance_method" title="#token_pos (instance method)">- (Object) <strong>token_pos</strong>(offset) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Calculates the column and line of the current token based on
+<tt>offset</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#tokenize-instance_method" title="#tokenize (instance method)">- (Object) <strong>tokenize</strong>(input) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Turns text <tt>input</tt> into a stream of tokens.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#unget-instance_method" title="#unget (instance method)">- (Object) <strong>unget</strong>(token = @current_token) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the current token or <tt>token</tt> to the token stream.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../Text.html" title="RDoc::Text (module)">Text</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../Text.html#expand_tabs-instance_method" title="RDoc::Text#expand_tabs (method)">#expand_tabs</a></span>, <span class='object_link'><a href="../Text.html#flush_left-instance_method" title="RDoc::Text#flush_left (method)">#flush_left</a></span>, <span class='object_link'><a href="../Text.html#markup-instance_method" title="RDoc::Text#markup (method)">#markup</a></span>, <span class='object_link'><a href="../Text.html#normalize_comment-instance_method" title="RDoc::Text#normalize_comment (method)">#normalize_comment</a></span>, <span class='object_link'><a href="../Text.html#strip_hashes-instance_method" title="RDoc::Text#strip_hashes (method)">#strip_hashes</a></span>, <span class='object_link'><a href="../Text.html#strip_newlines-instance_method" title="RDoc::Text#strip_newlines (method)">#strip_newlines</a></span>, <span class='object_link'><a href="../Text.html#strip_stars-instance_method" title="RDoc::Text#strip_stars (method)">#strip_stars</a></span></p>
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="RDoc::Markup::Parser (class)">Parser</a></span></tt>) <strong>initialize</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Creates a new Parser.  See also ::parse
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+76
+77
+78
+79
+80
+81
+82
+83</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 76</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span>
+  <span class='ivar'>@tokens</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='ivar'>@current_token</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='ivar'>@debug</span> <span class='op'>=</span> <span class='kw'>false</span>
+
+  <span class='ivar'>@line</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@line_pos</span> <span class='op'>=</span> <span class='int'>0</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id="debug=-instance_method"></span>
+      <span id="debug-instance_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="debug-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>debug</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Enables display of debugging information
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+47
+48
+49</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 47</span>
+
+<span class='kw'>def</span> <span class='id debug'>debug</span>
+  <span class='ivar'>@debug</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <span id="tokens-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="tokens-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>tokens</strong>  <span class="extras">(readonly)</span>
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Token accessor
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+52
+53
+54</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 52</span>
+
+<span class='kw'>def</span> <span class='id tokens'>tokens</span>
+  <span class='ivar'>@tokens</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="parse-class_method">
+  
+    + (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse</strong>(str) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parsers <tt>str</tt> into a Document
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+57
+58
+59
+60
+61
+62</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 57</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id parse'>parse</span> <span class='id str'>str</span>
+  <span class='id parser'>parser</span> <span class='op'>=</span> <span class='id new'>new</span>
+  <span class='comment'>#parser.debug = true
+</span>  <span class='id parser'>parser</span><span class='period'>.</span><span class='id tokenize'>tokenize</span> <span class='id str'>str</span>
+  <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>Document</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='op'>*</span><span class='id parser'>parser</span><span class='period'>.</span><span class='id parse'>parse</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="tokenize-class_method">
+  
+    + (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>tokenize</strong>(str) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns a token stream for <tt>str</tt>, for testing
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+67
+68
+69
+70
+71</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 67</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id tokenize'>tokenize</span> <span class='id str'>str</span>
+  <span class='id parser'>parser</span> <span class='op'>=</span> <span class='id new'>new</span>
+  <span class='id parser'>parser</span><span class='period'>.</span><span class='id tokenize'>tokenize</span> <span class='id str'>str</span>
+  <span class='id parser'>parser</span><span class='period'>.</span><span class='id tokens'>tokens</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="build_heading-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>build_heading</strong>(level) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Builds a Heading of <tt>level</tt>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+88
+89
+90
+91
+92
+93</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 88</span>
+
+<span class='kw'>def</span> <span class='id build_heading'>build_heading</span> <span class='id level'>level</span>
+  <span class='id heading'>heading</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>Heading</span><span class='period'>.</span><span class='id new'>new</span> <span class='id level'>level</span><span class='comma'>,</span> <span class='id text'>text</span>
+  <span class='id skip'>skip</span> <span class='symbol'>:NEWLINE</span>
+
+  <span class='id heading'>heading</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="build_list-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>build_list</strong>(margin) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Builds a List flush to <tt>margin</tt>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 98</span>
+
+<span class='kw'>def</span> <span class='id build_list'>build_list</span> <span class='id margin'>margin</span>
+  <span class='id p'>p</span> <span class='symbol'>:list_start</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id list'>list</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>List</span><span class='period'>.</span><span class='id new'>new</span>
+
+  <span class='kw'>until</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='kw'>case</span> <span class='id type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:BULLET</span><span class='comma'>,</span> <span class='symbol'>:LABEL</span><span class='comma'>,</span> <span class='symbol'>:LALPHA</span><span class='comma'>,</span> <span class='symbol'>:NOTE</span><span class='comma'>,</span> <span class='symbol'>:NUMBER</span><span class='comma'>,</span> <span class='symbol'>:UALPHA</span> <span class='kw'>then</span>
+      <span class='id list_type'>list_type</span> <span class='op'>=</span> <span class='id type'>type</span>
+
+      <span class='kw'>if</span> <span class='id column'>column</span> <span class='op'>&lt;</span> <span class='id margin'>margin</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>end</span>
+
+      <span class='kw'>if</span> <span class='id list'>list</span><span class='period'>.</span><span class='id type'>type</span> <span class='kw'>and</span> <span class='id list'>list</span><span class='period'>.</span><span class='id type'>type</span> <span class='op'>!=</span> <span class='id list_type'>list_type</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>end</span>
+
+      <span class='id list'>list</span><span class='period'>.</span><span class='id type'>type</span> <span class='op'>=</span> <span class='id list_type'>list_type</span>
+
+      <span class='kw'>case</span> <span class='id type'>type</span>
+      <span class='kw'>when</span> <span class='symbol'>:NOTE</span><span class='comma'>,</span> <span class='symbol'>:LABEL</span> <span class='kw'>then</span>
+        <span class='id _'>_</span><span class='comma'>,</span> <span class='id indent'>indent</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span> <span class='comment'># SPACE
+</span>        <span class='kw'>if</span> <span class='symbol'>:NEWLINE</span> <span class='op'>==</span> <span class='id peek_token'>peek_token</span><span class='period'>.</span><span class='id first'>first</span> <span class='kw'>then</span>
+          <span class='id get'>get</span>
+          <span class='id peek_type'>peek_type</span><span class='comma'>,</span> <span class='id new_indent'>new_indent</span><span class='comma'>,</span> <span class='id peek_column'>peek_column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id peek_token'>peek_token</span>
+          <span class='id indent'>indent</span> <span class='op'>=</span> <span class='id new_indent'>new_indent</span> <span class='kw'>if</span>
+            <span class='id peek_type'>peek_type</span> <span class='op'>==</span> <span class='symbol'>:INDENT</span> <span class='kw'>and</span> <span class='id peek_column'>peek_column</span> <span class='op'>&gt;=</span> <span class='id column'>column</span>
+          <span class='id unget'>unget</span>
+        <span class='kw'>end</span>
+      <span class='kw'>else</span>
+        <span class='id data'>data</span> <span class='op'>=</span> <span class='kw'>nil</span>
+        <span class='id _'>_</span><span class='comma'>,</span> <span class='id indent'>indent</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+      <span class='kw'>end</span>
+
+      <span class='id list_item'>list_item</span> <span class='op'>=</span> <span class='id build_list_item'>build_list_item</span><span class='lparen'>(</span><span class='id margin'>margin</span> <span class='op'>+</span> <span class='id indent'>indent</span><span class='comma'>,</span> <span class='id data'>data</span><span class='rparen'>)</span>
+
+      <span class='id list'>list</span> <span class='op'>&lt;&lt;</span> <span class='id list_item'>list_item</span> <span class='kw'>if</span> <span class='id list_item'>list_item</span>
+    <span class='kw'>else</span>
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id p'>p</span> <span class='symbol'>:list_end</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='id list'>list</span><span class='period'>.</span><span class='id empty?'>empty?</span>
+
+  <span class='id list'>list</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="build_list_item-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>build_list_item</strong>(indent, item_type = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Builds a ListItem that is flush to <tt>indent</tt> with type
+<tt>item_type</tt>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 156</span>
+
+<span class='kw'>def</span> <span class='id build_list_item'>build_list_item</span> <span class='id indent'>indent</span><span class='comma'>,</span> <span class='id item_type'>item_type</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id p'>p</span> <span class='symbol'>:list_item_start</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='id indent'>indent</span><span class='comma'>,</span> <span class='id item_type'>item_type</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id list_item'>list_item</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>ListItem</span><span class='period'>.</span><span class='id new'>new</span> <span class='id item_type'>item_type</span>
+
+  <span class='kw'>until</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='kw'>if</span> <span class='id column'>column</span> <span class='op'>&lt;</span> <span class='id indent'>indent</span> <span class='kw'>and</span>
+       <span class='kw'>not</span> <span class='id type'>type</span> <span class='op'>==</span> <span class='symbol'>:NEWLINE</span> <span class='kw'>and</span>
+       <span class='lparen'>(</span><span class='id type'>type</span> <span class='op'>!=</span> <span class='symbol'>:INDENT</span> <span class='kw'>or</span> <span class='id data'>data</span> <span class='op'>&lt;</span> <span class='id indent'>indent</span><span class='rparen'>)</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>case</span> <span class='id type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:INDENT</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='id list_item'>list_item</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='op'>*</span><span class='id parse'>parse</span><span class='lparen'>(</span><span class='id indent'>indent</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:TEXT</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='id list_item'>list_item</span> <span class='op'>&lt;&lt;</span> <span class='id build_paragraph'>build_paragraph</span><span class='lparen'>(</span><span class='id indent'>indent</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:HEADER</span> <span class='kw'>then</span>
+      <span class='id list_item'>list_item</span> <span class='op'>&lt;&lt;</span> <span class='id build_heading'>build_heading</span><span class='lparen'>(</span><span class='id data'>data</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:NEWLINE</span> <span class='kw'>then</span>
+      <span class='id list_item'>list_item</span> <span class='op'>&lt;&lt;</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>BlankLine</span><span class='period'>.</span><span class='id new'>new</span>
+    <span class='kw'>when</span> <span class='op'>*</span><span class='const'>LIST_TOKENS</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='id list_item'>list_item</span> <span class='op'>&lt;&lt;</span> <span class='id build_list'>build_list</span><span class='lparen'>(</span><span class='id column'>column</span><span class='rparen'>)</span>
+    <span class='kw'>else</span>
+      <span class='id raise'>raise</span> <span class='const'>ParseError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unhandled token </span><span class='embexpr_beg'>#{</span><span class='ivar'>@current_token</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id p'>p</span> <span class='symbol'>:list_item_end</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='id indent'>indent</span><span class='comma'>,</span> <span class='id item_type'>item_type</span><span class='rbracket'>]</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='id list_item'>list_item</span><span class='period'>.</span><span class='id empty?'>empty?</span>
+
+  <span class='id list_item'>list_item</span><span class='period'>.</span><span class='id parts'>parts</span><span class='period'>.</span><span class='id shift'>shift</span> <span class='kw'>if</span>
+    <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>BlankLine</span> <span class='op'>===</span> <span class='id list_item'>list_item</span><span class='period'>.</span><span class='id parts'>parts</span><span class='period'>.</span><span class='id first'>first</span> <span class='kw'>and</span>
+    <span class='id list_item'>list_item</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>&gt;</span> <span class='int'>1</span>
+
+  <span class='id list_item'>list_item</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="build_paragraph-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>build_paragraph</strong>(margin) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Builds a Paragraph that is flush to <tt>margin</tt>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 204</span>
+
+<span class='kw'>def</span> <span class='id build_paragraph'>build_paragraph</span> <span class='id margin'>margin</span>
+  <span class='id p'>p</span> <span class='symbol'>:paragraph_start</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id paragraph'>paragraph</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>Paragraph</span><span class='period'>.</span><span class='id new'>new</span>
+
+  <span class='kw'>until</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='kw'>case</span> <span class='id type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:INDENT</span> <span class='kw'>then</span>
+      <span class='kw'>next</span> <span class='kw'>if</span> <span class='id data'>data</span> <span class='op'>==</span> <span class='id margin'>margin</span> <span class='kw'>and</span> <span class='id peek_token'>peek_token</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:TEXT</span>
+
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>when</span> <span class='symbol'>:TEXT</span> <span class='kw'>then</span>
+      <span class='kw'>if</span> <span class='id column'>column</span> <span class='op'>!=</span> <span class='id margin'>margin</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>end</span>
+
+      <span class='id paragraph'>paragraph</span> <span class='op'>&lt;&lt;</span> <span class='id data'>data</span>
+      <span class='id skip'>skip</span> <span class='symbol'>:NEWLINE</span>
+    <span class='kw'>else</span>
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id p'>p</span> <span class='symbol'>:paragraph_end</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id paragraph'>paragraph</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="build_verbatim-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>build_verbatim</strong>(margin) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Builds a Verbatim that is flush to <tt>margin</tt>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 240</span>
+
+<span class='kw'>def</span> <span class='id build_verbatim'>build_verbatim</span> <span class='id margin'>margin</span>
+  <span class='id p'>p</span> <span class='symbol'>:verbatim_begin</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+  <span class='id verbatim'>verbatim</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>Verbatim</span><span class='period'>.</span><span class='id new'>new</span>
+
+  <span class='kw'>until</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='kw'>case</span> <span class='id type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:INDENT</span> <span class='kw'>then</span>
+      <span class='kw'>if</span> <span class='id margin'>margin</span> <span class='op'>&gt;=</span> <span class='id data'>data</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>end</span>
+
+      <span class='id indent'>indent</span> <span class='op'>=</span> <span class='id data'>data</span> <span class='op'>-</span> <span class='id margin'>margin</span>
+
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='id indent'>indent</span>
+    <span class='kw'>when</span> <span class='symbol'>:HEADER</span> <span class='kw'>then</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>=</span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='id data'>data</span>
+
+      <span class='id _'>_</span><span class='comma'>,</span> <span class='id _'>_</span><span class='comma'>,</span> <span class='id peek_column'>peek_column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id peek_token'>peek_token</span>
+      <span class='id peek_column'>peek_column</span> <span class='op'>||=</span> <span class='id column'>column</span> <span class='op'>+</span> <span class='id data'>data</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id peek_column'>peek_column</span> <span class='op'>-</span> <span class='id column'>column</span> <span class='op'>-</span> <span class='id data'>data</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:RULE</span> <span class='kw'>then</span>
+      <span class='id width'>width</span> <span class='op'>=</span> <span class='int'>2</span> <span class='op'>+</span> <span class='id data'>data</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>-</span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='id width'>width</span>
+
+      <span class='id _'>_</span><span class='comma'>,</span> <span class='id _'>_</span><span class='comma'>,</span> <span class='id peek_column'>peek_column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id peek_token'>peek_token</span>
+      <span class='id peek_column'>peek_column</span> <span class='op'>||=</span> <span class='id column'>column</span> <span class='op'>+</span> <span class='id data'>data</span> <span class='op'>+</span> <span class='int'>2</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id peek_column'>peek_column</span> <span class='op'>-</span> <span class='id column'>column</span> <span class='op'>-</span> <span class='id width'>width</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:TEXT</span> <span class='kw'>then</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='id data'>data</span>
+    <span class='kw'>when</span> <span class='op'>*</span><span class='const'>LIST_TOKENS</span> <span class='kw'>then</span>
+      <span class='kw'>if</span> <span class='id column'>column</span> <span class='op'>&lt;=</span> <span class='id margin'>margin</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>end</span>
+
+      <span class='id list_marker'>list_marker</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id type'>type</span>
+                    <span class='kw'>when</span> <span class='symbol'>:BULLET</span>                   <span class='kw'>then</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>*</span><span class='tstring_end'>'</span></span>
+                    <span class='kw'>when</span> <span class='symbol'>:LABEL</span>                    <span class='kw'>then</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>]</span><span class='tstring_end'>&quot;</span></span>
+                    <span class='kw'>when</span> <span class='symbol'>:LALPHA</span><span class='comma'>,</span> <span class='symbol'>:NUMBER</span><span class='comma'>,</span> <span class='symbol'>:UALPHA</span> <span class='kw'>then</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>.</span><span class='tstring_end'>&quot;</span></span>
+                    <span class='kw'>when</span> <span class='symbol'>:NOTE</span>                     <span class='kw'>then</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>::</span><span class='tstring_end'>&quot;</span></span>
+                    <span class='kw'>end</span>
+
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='id list_marker'>list_marker</span>
+
+      <span class='id _'>_</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id data'>data</span> <span class='op'>-</span> <span class='id list_marker'>list_marker</span><span class='period'>.</span><span class='id length'>length</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:NEWLINE</span> <span class='kw'>then</span>
+      <span class='id verbatim'>verbatim</span> <span class='op'>&lt;&lt;</span> <span class='id data'>data</span>
+      <span class='kw'>break</span> <span class='kw'>unless</span> <span class='lbracket'>[</span><span class='symbol'>:INDENT</span><span class='comma'>,</span> <span class='symbol'>:NEWLINE</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id include?'>include?</span> <span class='id peek_token'>peek_token</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+    <span class='kw'>else</span>
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id verbatim'>verbatim</span><span class='period'>.</span><span class='id normalize'>normalize</span>
+
+  <span class='id p'>p</span> <span class='symbol'>:verbatim_end</span> <span class='op'>=&gt;</span> <span class='id margin'>margin</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id verbatim'>verbatim</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="get-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>get</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Pulls the next token from the stream.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+309
+310
+311
+312
+313</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 309</span>
+
+<span class='kw'>def</span> <span class='id get'>get</span>
+  <span class='ivar'>@current_token</span> <span class='op'>=</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id shift'>shift</span>
+  <span class='id p'>p</span> <span class='symbol'>:get</span> <span class='op'>=&gt;</span> <span class='ivar'>@current_token</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+  <span class='ivar'>@current_token</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="parse-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse</strong>(indent = 0) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parses the tokens into a Document
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 318</span>
+
+<span class='kw'>def</span> <span class='id parse'>parse</span> <span class='id indent'>indent</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='id p'>p</span> <span class='symbol'>:parse_start</span> <span class='op'>=&gt;</span> <span class='id indent'>indent</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id document'>document</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+
+  <span class='kw'>until</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='kw'>if</span> <span class='id type'>type</span> <span class='op'>!=</span> <span class='symbol'>:INDENT</span> <span class='kw'>and</span> <span class='id column'>column</span> <span class='op'>&lt;</span> <span class='id indent'>indent</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='kw'>break</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>case</span> <span class='id type'>type</span>
+    <span class='kw'>when</span> <span class='symbol'>:HEADER</span> <span class='kw'>then</span>
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='id build_heading'>build_heading</span><span class='lparen'>(</span><span class='id data'>data</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:INDENT</span> <span class='kw'>then</span>
+      <span class='kw'>if</span> <span class='id indent'>indent</span> <span class='op'>&gt;</span> <span class='id data'>data</span> <span class='kw'>then</span>
+        <span class='id unget'>unget</span>
+        <span class='kw'>break</span>
+      <span class='kw'>elsif</span> <span class='id indent'>indent</span> <span class='op'>==</span> <span class='id data'>data</span> <span class='kw'>then</span>
+        <span class='kw'>next</span>
+      <span class='kw'>end</span>
+
+      <span class='id unget'>unget</span>
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='id build_verbatim'>build_verbatim</span><span class='lparen'>(</span><span class='id indent'>indent</span><span class='rparen'>)</span>
+    <span class='kw'>when</span> <span class='symbol'>:NEWLINE</span> <span class='kw'>then</span>
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>BlankLine</span><span class='period'>.</span><span class='id new'>new</span>
+      <span class='id skip'>skip</span> <span class='symbol'>:NEWLINE</span><span class='comma'>,</span> <span class='kw'>false</span>
+    <span class='kw'>when</span> <span class='symbol'>:RULE</span> <span class='kw'>then</span>
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>Rule</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id data'>data</span><span class='rparen'>)</span>
+      <span class='id skip'>skip</span> <span class='symbol'>:NEWLINE</span>
+    <span class='kw'>when</span> <span class='symbol'>:TEXT</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='id build_paragraph'>build_paragraph</span><span class='lparen'>(</span><span class='id indent'>indent</span><span class='rparen'>)</span>
+
+      <span class='comment'># we're done with this paragraph (indent mismatch)
+</span>      <span class='kw'>break</span> <span class='kw'>if</span> <span class='id peek_token'>peek_token</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:TEXT</span>
+    <span class='kw'>when</span> <span class='op'>*</span><span class='const'>LIST_TOKENS</span> <span class='kw'>then</span>
+      <span class='id unget'>unget</span>
+
+      <span class='id list'>list</span> <span class='op'>=</span> <span class='id build_list'>build_list</span><span class='lparen'>(</span><span class='id indent'>indent</span><span class='rparen'>)</span>
+
+      <span class='id document'>document</span> <span class='op'>&lt;&lt;</span> <span class='id list'>list</span> <span class='kw'>if</span> <span class='id list'>list</span>
+
+      <span class='comment'># we're done with this list (indent mismatch)
+</span>      <span class='kw'>break</span> <span class='kw'>if</span> <span class='const'>LIST_TOKENS</span><span class='period'>.</span><span class='id include?'>include?</span> <span class='id peek_token'>peek_token</span><span class='period'>.</span><span class='id first'>first</span> <span class='kw'>and</span> <span class='id indent'>indent</span> <span class='op'>&gt;</span> <span class='int'>0</span>
+    <span class='kw'>else</span>
+      <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='id column'>column</span><span class='comma'>,</span> <span class='id line'>line</span> <span class='op'>=</span> <span class='ivar'>@current_token</span>
+      <span class='id raise'>raise</span> <span class='const'>ParseError</span><span class='comma'>,</span>
+            <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Unhandled token </span><span class='embexpr_beg'>#{</span><span class='id type'>type</span><span class='rbrace'>}</span><span class='tstring_content'> (</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>) at </span><span class='embexpr_beg'>#{</span><span class='id line'>line</span><span class='rbrace'>}</span><span class='tstring_content'>:</span><span class='embexpr_beg'>#{</span><span class='id column'>column</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id p'>p</span> <span class='symbol'>:parse_end</span> <span class='op'>=&gt;</span> <span class='id indent'>indent</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+
+  <span class='id document'>document</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="peek_token-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>peek_token</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the next token on the stream without modifying the stream
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+380
+381
+382
+383
+384</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 380</span>
+
+<span class='kw'>def</span> <span class='id peek_token'>peek_token</span>
+  <span class='id token'>token</span> <span class='op'>=</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id first'>first</span> <span class='op'>||</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='id p'>p</span> <span class='symbol'>:peek</span> <span class='op'>=&gt;</span> <span class='id token'>token</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+  <span class='id token'>token</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="skip-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>skip</strong>(token_type, error = true) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Skips a token of <tt>token_type</tt>, optionally raising an error.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Raises:</h3>
+<ul class="raise">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Parser/ParseError.html" title="RDoc::Markup::Parser::ParseError (class)">ParseError</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 389</span>
+
+<span class='kw'>def</span> <span class='id skip'>skip</span> <span class='id token_type'>token_type</span><span class='comma'>,</span> <span class='id error'>error</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id type'>type</span> <span class='comment'># end of stream
+</span>
+  <span class='kw'>return</span> <span class='ivar'>@current_token</span> <span class='kw'>if</span> <span class='id token_type'>token_type</span> <span class='op'>==</span> <span class='id type'>type</span>
+
+  <span class='id unget'>unget</span>
+
+  <span class='id raise'>raise</span> <span class='const'>ParseError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id token_type'>token_type</span><span class='rbrace'>}</span><span class='tstring_content'> got </span><span class='embexpr_beg'>#{</span><span class='ivar'>@current_token</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span>
+    <span class='id error'>error</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="text-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>text</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Consumes tokens until NEWLINE and turns them back into text
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 405</span>
+
+<span class='kw'>def</span> <span class='id text'>text</span>
+  <span class='id text'>text</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+
+  <span class='id loop'>loop</span> <span class='kw'>do</span>
+    <span class='id type'>type</span><span class='comma'>,</span> <span class='id data'>data</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span>
+
+    <span class='id text'>text</span> <span class='op'>&lt;&lt;</span> <span class='kw'>case</span> <span class='id type'>type</span>
+            <span class='kw'>when</span> <span class='symbol'>:BULLET</span> <span class='kw'>then</span>
+              <span class='id _'>_</span><span class='comma'>,</span> <span class='id space'>space</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span> <span class='comment'># SPACE
+</span>              <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>*</span><span class='embexpr_beg'>#{</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id space'>space</span> <span class='op'>-</span> <span class='int'>1</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>when</span> <span class='symbol'>:LABEL</span> <span class='kw'>then</span>
+              <span class='id _'>_</span><span class='comma'>,</span> <span class='id space'>space</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span> <span class='comment'># SPACE
+</span>              <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>[</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>]</span><span class='embexpr_beg'>#{</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id space'>space</span> <span class='op'>-</span> <span class='id data'>data</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>-</span> <span class='int'>2</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>when</span> <span class='symbol'>:LALPHA</span><span class='comma'>,</span> <span class='symbol'>:NUMBER</span><span class='comma'>,</span> <span class='symbol'>:UALPHA</span> <span class='kw'>then</span>
+              <span class='id _'>_</span><span class='comma'>,</span> <span class='id space'>space</span><span class='comma'>,</span> <span class='op'>=</span> <span class='id get'>get</span> <span class='comment'># SPACE
+</span>              <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>.</span><span class='embexpr_beg'>#{</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id space'>space</span> <span class='op'>-</span> <span class='int'>2</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>when</span> <span class='symbol'>:NOTE</span> <span class='kw'>then</span>
+              <span class='id _'>_</span><span class='comma'>,</span> <span class='id space'>space</span> <span class='op'>=</span> <span class='id get'>get</span> <span class='comment'># SPACE
+</span>              <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'>::</span><span class='embexpr_beg'>#{</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id space'>space</span> <span class='op'>-</span> <span class='id data'>data</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>-</span> <span class='int'>2</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>when</span> <span class='symbol'>:TEXT</span> <span class='kw'>then</span>
+              <span class='id data'>data</span>
+            <span class='kw'>when</span> <span class='symbol'>:NEWLINE</span> <span class='kw'>then</span>
+              <span class='id unget'>unget</span>
+              <span class='kw'>break</span>
+            <span class='kw'>when</span> <span class='kw'>nil</span> <span class='kw'>then</span>
+              <span class='kw'>break</span>
+            <span class='kw'>else</span>
+              <span class='id raise'>raise</span> <span class='const'>ParseError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unhandled token </span><span class='embexpr_beg'>#{</span><span class='ivar'>@current_token</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+            <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id text'>text</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="token_pos-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>token_pos</strong>(offset) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Calculates the column and line of the current token based on
+<tt>offset</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+442
+443
+444</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 442</span>
+
+<span class='kw'>def</span> <span class='id token_pos'>token_pos</span> <span class='id offset'>offset</span>
+  <span class='lbracket'>[</span><span class='id offset'>offset</span> <span class='op'>-</span> <span class='ivar'>@line_pos</span><span class='comma'>,</span> <span class='ivar'>@line</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="tokenize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>tokenize</strong>(input) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Turns text <tt>input</tt> into a stream of tokens
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 449</span>
+
+<span class='kw'>def</span> <span class='id tokenize'>tokenize</span> <span class='id input'>input</span>
+  <span class='id s'>s</span> <span class='op'>=</span> <span class='const'>StringScanner</span><span class='period'>.</span><span class='id new'>new</span> <span class='id input'>input</span>
+
+  <span class='ivar'>@line</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='ivar'>@line_pos</span> <span class='op'>=</span> <span class='int'>0</span>
+
+  <span class='kw'>until</span> <span class='id s'>s</span><span class='period'>.</span><span class='id eos?'>eos?</span> <span class='kw'>do</span>
+    <span class='id pos'>pos</span> <span class='op'>=</span> <span class='id s'>s</span><span class='period'>.</span><span class='id pos'>pos</span>
+
+    <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='kw'>case</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\r?\n</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='id token'>token</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='symbol'>:NEWLINE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched'>matched</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+                 <span class='ivar'>@line_pos</span> <span class='op'>=</span> <span class='id s'>s</span><span class='period'>.</span><span class='id pos'>pos</span>
+                 <span class='ivar'>@line</span> <span class='op'>+=</span> <span class='int'>1</span>
+                 <span class='id token'>token</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'> +</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:INDENT</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched_size'>matched_size</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(=+)\s*</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='id level'>level</span> <span class='op'>=</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id length'>length</span>
+                 <span class='id level'>level</span> <span class='op'>=</span> <span class='int'>6</span> <span class='kw'>if</span> <span class='id level'>level</span> <span class='op'>&gt;</span> <span class='int'>6</span>
+                 <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='lbracket'>[</span><span class='symbol'>:HEADER</span><span class='comma'>,</span> <span class='id level'>level</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+
+                 <span class='id pos'>pos</span> <span class='op'>=</span> <span class='id s'>s</span><span class='period'>.</span><span class='id pos'>pos</span>
+                 <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>.*</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:TEXT</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched'>matched</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^(-{3,}) *$</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:RULE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>-</span> <span class='int'>2</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>([*-])\s+</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='lbracket'>[</span><span class='symbol'>:BULLET</span><span class='comma'>,</span> <span class='symbol'>:BULLET</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:SPACE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched_size'>matched_size</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>([a-z]|\d+)\.[ \t]+\S</span><span class='regexp_end'>/i</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='id list_label'>list_label</span> <span class='op'>=</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span>
+                 <span class='id width'>width</span>      <span class='op'>=</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched_size'>matched_size</span> <span class='op'>-</span> <span class='int'>1</span>
+
+                 <span class='id s'>s</span><span class='period'>.</span><span class='id pos'>pos</span> <span class='op'>-=</span> <span class='int'>1</span> <span class='comment'># unget \S
+</span>
+                 <span class='id list_type'>list_type</span> <span class='op'>=</span> <span class='kw'>case</span> <span class='id list_label'>list_label</span>
+                             <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>[a-z]</span><span class='regexp_end'>/</span></span> <span class='kw'>then</span> <span class='symbol'>:LALPHA</span>
+                             <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>[A-Z]</span><span class='regexp_end'>/</span></span> <span class='kw'>then</span> <span class='symbol'>:UALPHA</span>
+                             <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\d</span><span class='regexp_end'>/</span></span>    <span class='kw'>then</span> <span class='symbol'>:NUMBER</span>
+                             <span class='kw'>else</span>
+                               <span class='id raise'>raise</span> <span class='const'>ParseError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BUG token </span><span class='embexpr_beg'>#{</span><span class='id list_label'>list_label</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+                             <span class='kw'>end</span>
+
+                 <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='lbracket'>[</span><span class='id list_type'>list_type</span><span class='comma'>,</span> <span class='id list_label'>list_label</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:SPACE</span><span class='comma'>,</span> <span class='id width'>width</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\[(.*?)\]( +|$)</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='lbracket'>[</span><span class='symbol'>:LABEL</span><span class='comma'>,</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:SPACE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched_size'>matched_size</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>when</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(.*?)::( +|$)</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+                 <span class='ivar'>@tokens</span> <span class='op'>&lt;&lt;</span> <span class='lbracket'>[</span><span class='symbol'>:NOTE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>1</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:SPACE</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched_size'>matched_size</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>else</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>.*</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span>
+                 <span class='lbracket'>[</span><span class='symbol'>:TEXT</span><span class='comma'>,</span> <span class='id s'>s</span><span class='period'>.</span><span class='id matched'>matched</span><span class='comma'>,</span> <span class='op'>*</span><span class='id token_pos'>token_pos</span><span class='lparen'>(</span><span class='id pos'>pos</span><span class='rparen'>)</span><span class='rbracket'>]</span>
+               <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>self</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="unget-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>unget</strong>(token = @current_token) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the current token or <tt>token</tt> to the token stream
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Raises:</h3>
+<ul class="raise">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Parser/Error.html" title="RDoc::Markup::Parser::Error (class)">Error</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+512
+513
+514
+515
+516</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/markup/parser.rb', line 512</span>
+
+<span class='kw'>def</span> <span class='id unget'>unget</span> <span class='id token'>token</span> <span class='op'>=</span> <span class='ivar'>@current_token</span>
+  <span class='id p'>p</span> <span class='symbol'>:unget</span> <span class='op'>=&gt;</span> <span class='id token'>token</span> <span class='kw'>if</span> <span class='ivar'>@debug</span>
+  <span class='id raise'>raise</span> <span class='const'>Error</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>too many #ungets</span><span class='tstring_end'>'</span></span> <span class='kw'>if</span> <span class='id token'>token</span> <span class='op'>==</span> <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id first'>first</span>
+  <span class='ivar'>@tokens</span><span class='period'>.</span><span class='id unshift'>unshift</span> <span class='id token'>token</span> <span class='kw'>if</span> <span class='id token'>token</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:02:48 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

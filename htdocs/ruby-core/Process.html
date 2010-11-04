@@ -1,0 +1,5864 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: Process</title>
+<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index (P)</a> &raquo; 
+    
+    
+    <span class="title">Process</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: Process
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">process.c</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+The <tt>Process</tt> module is a collection of methods used to manipulate
+processes.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Process/GID.html" title="Process::GID (module)">GID</a></span>, <span class='object_link'><a href="Process/Sys.html" title="Process::Sys (module)">Sys</a></span>, <span class='object_link'><a href="Process/UID.html" title="Process::UID (module)">UID</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Process/Status.html" title="Process::Status (class)">Status</a></span>
+    
+  
+</p>
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#abort-class_method" title="abort (class method)">+ (Object) <strong>abort</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Terminate execution immediately, effectively by calling
+<tt>Kernel.exit(false)</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#daemon-class_method" title="daemon (class method)">+ (Object) <strong>daemon</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Detach the process from controlling terminal and run in the background as
+system daemon.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#detach-class_method" title="detach (class method)">+ (Object) <strong>detach</strong>(pid) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Some operating systems retain the status of terminated child processes
+until the parent collects that status (normally using some variant of
+<tt>wait()</tt>. If the parent never collects this status, the child stays
+around as a <em>zombie</em> process. <tt>Process::detach</tt> prevents this
+by setting up a separate Ruby thread whose sole job is to reap the status
+of the process <em>pid</em> when it terminates. Use <tt>detach</tt> only
+when you do not intent to explicitly wait for the child to terminate.
+</p>
+<p>
+The waiting thread returns the exit status of the detached process when it
+terminates, so you can use <tt>Thread#join</tt> to know the result.  If
+specified <em>pid</em> is not a valid child process ID, the thread returns
+<tt>nil</tt> immediately.
+</p>
+<p>
+The waiting thread has <tt>pid</tt> method which returns the pid.
+</p>
+<p>
+In this first example, we don&#8217;t reap the first child process, so it
+appears as a zombie in the process status display.
+</p>
+<pre class="code">
+   <span class='id p1'>p1</span> <span class='op'>=</span> <span class='id fork'>fork</span> <span class='lbrace'>{</span> <span class='id sleep'>sleep</span> <span class='float'>0.1</span> <span class='rbrace'>}</span>
+   <span class='id p2'>p2</span> <span class='op'>=</span> <span class='id fork'>fork</span> <span class='lbrace'>{</span> <span class='id sleep'>sleep</span> <span class='float'>0.2</span> <span class='rbrace'>}</span>
+   <span class='const'>Process</span><span class='period'>.</span><span class='id waitpid'>waitpid</span><span class='lparen'>(</span><span class='id p2'>p2</span><span class='rparen'>)</span>
+   <span class='id sleep'>sleep</span> <span class='int'>2</span>
+   <span class='id system'>system</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ps -ho pid,state -p </span><span class='embexpr_beg'>#{</span><span class='id p1'>p1</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre class="code">
+   27389 Z
+</pre>
+<p>
+In the next example, <tt>Process::detach</tt> is used to reap the child
+automatically.
+</p>
+<pre class="code">
+   <span class='id p1'>p1</span> <span class='op'>=</span> <span class='id fork'>fork</span> <span class='lbrace'>{</span> <span class='id sleep'>sleep</span> <span class='float'>0.1</span> <span class='rbrace'>}</span>
+   <span class='id p2'>p2</span> <span class='op'>=</span> <span class='id fork'>fork</span> <span class='lbrace'>{</span> <span class='id sleep'>sleep</span> <span class='float'>0.2</span> <span class='rbrace'>}</span>
+   <span class='const'>Process</span><span class='period'>.</span><span class='id detach'>detach</span><span class='lparen'>(</span><span class='id p1'>p1</span><span class='rparen'>)</span>
+   <span class='const'>Process</span><span class='period'>.</span><span class='id waitpid'>waitpid</span><span class='lparen'>(</span><span class='id p2'>p2</span><span class='rparen'>)</span>
+   <span class='id sleep'>sleep</span> <span class='int'>2</span>
+   <span class='id system'>system</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ps -ho pid,state -p </span><span class='embexpr_beg'>#{</span><span class='id p1'>p1</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+<em>(produces no output)</em>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#egid-class_method" title="egid (class method)">+ (Object) <strong>egid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the effective group ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#egid%3D-class_method" title="egid= (class method)">+ (Object) <strong>egid=</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#euid-class_method" title="euid (class method)">+ (Object) <strong>euid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the effective user ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#euid%3D-class_method" title="euid= (class method)">+ (Object) <strong>euid=</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#exec-class_method" title="exec (class method)">+ (Object) <strong>exec</strong>([env,][,options]) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Replaces the current process by running the given external
+<em>command</em>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#exit-class_method" title="exit (class method)">+ (Object) <strong>exit</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+and runs any object finalizers (see ObjectSpace::define_finalizer).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#exit%21-class_method" title="exit! (class method)">+ (Object) <strong>exit!</strong>(status = false) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Exits the process immediately.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fork-class_method" title="fork (class method)">+ (Object) <strong>fork</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Creates a subprocess.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getpgid-class_method" title="getpgid (class method)">+ (Integer) <strong>getpgid</strong>(pid) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the process group ID for the given process id.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getpgrp-class_method" title="getpgrp (class method)">+ (Integer) <strong>getpgrp</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the process group ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getpriority-class_method" title="getpriority (class method)">+ (Fixnum) <strong>getpriority</strong>(kind, integer) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Gets the scheduling priority for specified process, process group, or user.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getrlimit-class_method" title="getrlimit (class method)">+ (Array) <strong>getrlimit</strong>(resource) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Gets the resource limit of the process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#gid-class_method" title="gid (class method)">+ (Object) <strong>gid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the (real) group ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#gid%3D-class_method" title="gid= (class method)">+ (Fixnum) <strong>gid=</strong>(fixnum) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the group ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#groups-class_method" title="groups (class method)">+ (Array) <strong>groups</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Get an <tt>Array</tt> of the gids of groups in the supplemental group
+access list for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#groups%3D-class_method" title="groups= (class method)">+ (Array) <strong>groups=</strong>(array) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Set the supplemental group access list to the given <tt>Array</tt> of group
+IDs.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initgroups-class_method" title="initgroups (class method)">+ (Array) <strong>initgroups</strong>(username, gid) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Initializes the supplemental group access list by reading the system group
+database and using all groups of which the given user is a member.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#kill-class_method" title="kill (class method)">+ (Object) <strong>kill</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#maxgroups-class_method" title="maxgroups (class method)">+ (Fixnum) <strong>maxgroups</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the maximum number of gids allowed in the supplemental group access
+list.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#maxgroups%3D-class_method" title="maxgroups= (class method)">+ (Fixnum) <strong>maxgroups=</strong>(fixnum) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the maximum number of gids allowed in the supplemental group access
+list.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#pid-class_method" title="pid (class method)">+ (Fixnum) <strong>pid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the process id of this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ppid-class_method" title="ppid (class method)">+ (Fixnum) <strong>ppid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the process id of the parent of this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setpgid-class_method" title="setpgid (class method)">+ (0) <strong>setpgid</strong>(pid, integer) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the process group ID of <em>pid</em> (0 indicates this process) to
+<em>integer</em>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setpgrp-class_method" title="setpgrp (class method)">+ (0) <strong>setpgrp</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Equivalent to <tt>setpgid(0,0)</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setpriority-class_method" title="setpriority (class method)">+ (0) <strong>setpriority</strong>(kind, integer, priority) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+See <tt>Process#getpriority</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setrlimit-class_method" title="setrlimit (class method)">+ (Object) <strong>setrlimit</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the resource limit of the process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setsid-class_method" title="setsid (class method)">+ (Fixnum) <strong>setsid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Establishes this process as a new session and process group leader, with no
+controlling tty.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#spawn-class_method" title="spawn (class method)">+ (Object) <strong>spawn</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+spawn executes specified command and return its pid.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#times-class_method" title="times (class method)">+ (Object) <strong>times</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns a <tt>Tms</tt> structure (see <tt>Struct::Tms</tt> on page 388)
+that contains user and system CPU times for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid-class_method" title="uid (class method)">+ (Object) <strong>uid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the (real) user ID of this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid%3D-class_method" title="uid= (class method)">+ (Numeric) <strong>uid=</strong>(integer) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the (integer) user ID for this process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait-class_method" title="wait (class method)">+ (Object) <strong>wait</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Waits for a child process to exit, returns its process id, and sets
+<tt>$?</tt> to a <tt>Process::Status</tt> object containing information on
+that process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#wait2-class_method" title="wait2 (class method)">+ (Object) <strong>wait2</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Waits for a child process to exit (see Process::waitpid for exact
+semantics) and returns an array containing the process id and the exit
+status (a <tt>Process::Status</tt> object) of that child.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#waitall-class_method" title="waitall (class method)">+ (Array) <strong>waitall</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Waits for all children, returning an array of <em>pid</em>/<em>status</em>
+pairs (where <em>status</em> is a <tt>Process::Status</tt> object).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#waitpid-class_method" title="waitpid (class method)">+ (Object) <strong>waitpid</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Waits for a child process to exit, returns its process id, and sets
+<tt>$?</tt> to a <tt>Process::Status</tt> object containing information on
+that process.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#waitpid2-class_method" title="waitpid2 (class method)">+ (Object) <strong>waitpid2</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Waits for a child process to exit (see Process::waitpid for exact
+semantics) and returns an array containing the process id and the exit
+status (a <tt>Process::Status</tt> object) of that child.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="abort-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>abort</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>Kernel::abort</strong>([msg]) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>Process::abort</strong>([msg]) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Terminate execution immediately, effectively by calling
+<tt>Kernel.exit(false)</tt>. If <em>msg</em> is given, it is written to
+STDERR prior to terminating.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     abort
+ *     Kernel::abort([msg])
+ *     Process::abort([msg])
+ *
+ *  Terminate execution immediately, effectively by calling
+ *  &lt;code&gt;Kernel.exit(false)&lt;/code&gt;. If _msg_ is given, it is written
+ *  to STDERR prior to terminating.
+ */
+
+VALUE
+rb_f_abort(int argc, VALUE *argv)
+{
+    extern void ruby_error_print(void);
+
+    rb_secure(4);
+    if (argc == 0) {
+    if (!NIL_P(GET_THREAD()-&gt;errinfo)) {
+        ruby_error_print();
+    }
+    rb_exit(EXIT_FAILURE);
+    }
+    else {
+    VALUE args[2];
+
+    rb_scan_args(argc, argv, &quot;1&quot;, &amp;args[1]);
+    StringValue(argv[0]);
+    rb_io_puts(argc, argv, rb_stderr);
+    args[0] = INT2NUM(EXIT_FAILURE);
+    rb_exc_raise(rb_class_new_instance(2, args, rb_eSystemExit));
+    }
+    return Qnil;        /* not reached */
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="daemon-class_method">
+  
+    
+      <span class="overload">+ (<tt>0</tt>) <strong>daemon</strong> </span>
+    
+      <span class="overload">+ (<tt>0</tt>) <strong>daemon</strong>(nochdir = nil, noclose = nil) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Detach the process from controlling terminal and run in the background as
+system daemon.  Unless the argument nochdir is true (i.e. non false), it
+changes the current working directory to the root (&#8220;/&#8221;). Unless
+the argument noclose is true, daemon() will redirect standard input,
+standard output and standard error to /dev/null. Return zero on success, or
+raise one of Errno::*.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt>0</tt>) <strong>daemon</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>0</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt>0</tt>) <strong>daemon</strong>(nochdir = nil, noclose = nil) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>0</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.daemon()                        -&gt; 0
+ *     Process.daemon(nochdir=nil,noclose=nil) -&gt; 0
+ *
+ *  Detach the process from controlling terminal and run in
+ *  the background as system daemon.  Unless the argument
+ *  nochdir is true (i.e. non false), it changes the current
+ *  working directory to the root (&quot;/&quot;). Unless the argument
+ *  noclose is true, daemon() will redirect standard input,
+ *  standard output and standard error to /dev/null.
+ *  Return zero on success, or raise one of Errno::*.
+ */
+
+static VALUE
+proc_daemon(int argc, VALUE *argv)
+{
+    VALUE nochdir, noclose;
+    int n;
+
+    rb_secure(2);
+    rb_scan_args(argc, argv, &quot;02&quot;, &amp;nochdir, &amp;noclose);
+
+#if defined(HAVE_DAEMON)
+    prefork();
+    before_fork();
+    n = daemon(RTEST(nochdir), RTEST(noclose));
+    after_fork();
+    if (n &lt; 0) rb_sys_fail(&quot;daemon&quot;);
+    return INT2FIX(n);
+#elif defined(HAVE_FORK)
+    switch (rb_fork(0, 0, 0, Qnil)) {
+      case -1:
+    rb_sys_fail(&quot;daemon&quot;);
+      case 0:
+    break;
+      default:
+    _exit(EXIT_SUCCESS);
+    }
+
+    proc_setsid();
+
+    /* must not be process-leader */
+    switch (rb_fork(0, 0, 0, Qnil)) {
+      case -1:
+    rb_sys_fail(&quot;daemon&quot;);
+      case 0:
+    break;
+      default:
+    _exit(EXIT_SUCCESS);
+    }
+
+    if (!RTEST(nochdir))
+    (void)chdir(&quot;/&quot;);
+
+    if (!RTEST(noclose) &amp;&amp; (n = open(&quot;/dev/null&quot;, O_RDWR, 0)) != -1) {
+    (void)dup2(n, 0);
+    (void)dup2(n, 1);
+    (void)dup2(n, 2);
+    if (n &gt; 2)
+        (void)close (n);
+    }
+    return INT2FIX(0);
+#endif
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="detach-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>detach</strong>(pid) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Some operating systems retain the status of terminated child processes
+until the parent collects that status (normally using some variant of
+<tt>wait()</tt>. If the parent never collects this status, the child stays
+around as a <em>zombie</em> process. <tt>Process::detach</tt> prevents this
+by setting up a separate Ruby thread whose sole job is to reap the status
+of the process <em>pid</em> when it terminates. Use <tt>detach</tt> only
+when you do not intent to explicitly wait for the child to terminate.
+</p>
+<p>
+The waiting thread returns the exit status of the detached process when it
+terminates, so you can use <tt>Thread#join</tt> to know the result.  If
+specified <em>pid</em> is not a valid child process ID, the thread returns
+<tt>nil</tt> immediately.
+</p>
+<p>
+The waiting thread has <tt>pid</tt> method which returns the pid.
+</p>
+<p>
+In this first example, we don&#8217;t reap the first child process, so it
+appears as a zombie in the process status display.
+</p>
+<pre class="code">
+   p1 = fork { sleep 0.1 }
+   p2 = fork { sleep 0.2 }
+   Process.waitpid(p2)
+   sleep 2
+   system(&quot;ps -ho pid,state -p #{p1}&quot;)
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre class="code">
+   27389 Z
+</pre>
+<p>
+In the next example, <tt>Process::detach</tt> is used to reap the child
+automatically.
+</p>
+<pre class="code">
+   p1 = fork { sleep 0.1 }
+   p2 = fork { sleep 0.2 }
+   Process.detach(p1)
+   Process.waitpid(p2)
+   sleep 2
+   system(&quot;ps -ho pid,state -p #{p1}&quot;)
+</pre>
+<p>
+<em>(produces no output)</em>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.detach(pid)   -&gt; thread
+ *
+ *  Some operating systems retain the status of terminated child
+ *  processes until the parent collects that status (normally using
+ *  some variant of &lt;code&gt;wait()&lt;/code&gt;. If the parent never collects
+ *  this status, the child stays around as a &lt;em&gt;zombie&lt;/em&gt; process.
+ *  &lt;code&gt;Process::detach&lt;/code&gt; prevents this by setting up a
+ *  separate Ruby thread whose sole job is to reap the status of the
+ *  process _pid_ when it terminates. Use &lt;code&gt;detach&lt;/code&gt;
+ *  only when you do not intent to explicitly wait for the child to
+ *  terminate.
+ *
+ *  The waiting thread returns the exit status of the detached process
+ *  when it terminates, so you can use &lt;code&gt;Thread#join&lt;/code&gt; to
+ *  know the result.  If specified _pid_ is not a valid child process
+ *  ID, the thread returns +nil+ immediately.
+ *
+ *  The waiting thread has &lt;code&gt;pid&lt;/code&gt; method which returns the pid.
+ *
+ *  In this first example, we don't reap the first child process, so
+ *  it appears as a zombie in the process status display.
+ *
+ *     p1 = fork { sleep 0.1 }
+ *     p2 = fork { sleep 0.2 }
+ *     Process.waitpid(p2)
+ *     sleep 2
+ *     system(&quot;ps -ho pid,state -p #{p1}&quot;)
+ *
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *
+ *     27389 Z
+ *
+ *  In the next example, &lt;code&gt;Process::detach&lt;/code&gt; is used to reap
+ *  the child automatically.
+ *
+ *     p1 = fork { sleep 0.1 }
+ *     p2 = fork { sleep 0.2 }
+ *     Process.detach(p1)
+ *     Process.waitpid(p2)
+ *     sleep 2
+ *     system(&quot;ps -ho pid,state -p #{p1}&quot;)
+ *
+ *  &lt;em&gt;(produces no output)&lt;/em&gt;
+ */
+
+static VALUE
+proc_detach(VALUE obj, VALUE pid)
+{
+    rb_secure(2);
+    return rb_detach_process(NUM2PIDT(pid));
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="egid-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>egid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::GID.eid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.geteid</strong> </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the effective group ID for this process. Not available on all
+platforms.
+</p>
+<pre class="code">
+   Process.egid   #=&gt; 500</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>egid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::GID.eid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.geteid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.egid          -&gt; fixnum
+ *     Process::GID.eid      -&gt; fixnum
+ *     Process::Sys.geteid   -&gt; fixnum
+ *
+ *  Returns the effective group ID for this process. Not available on
+ *  all platforms.
+ *
+ *     Process.egid   #=&gt; 500
+ */
+
+static VALUE
+proc_getegid(VALUE obj)
+{
+    rb_gid_t egid = getegid();
+
+    return GIDT2NUM(egid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="egid=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>egid=</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="euid-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>euid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::UID.eid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.geteuid</strong> </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the effective user ID for this process.
+</p>
+<pre class="code">
+   Process.euid   #=&gt; 501</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>euid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::UID.eid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.geteuid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.euid           -&gt; fixnum
+ *     Process::UID.eid       -&gt; fixnum
+ *     Process::Sys.geteuid   -&gt; fixnum
+ *
+ *  Returns the effective user ID for this process.
+ *
+ *     Process.euid   #=&gt; 501
+ */
+
+static VALUE
+proc_geteuid(VALUE obj)
+{
+    rb_uid_t euid = geteuid();
+    return UIDT2NUM(euid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="euid=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>euid=</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="exec-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>exec</strong>([env,][,options]) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Replaces the current process by running the given external
+<em>command</em>. <em>command&#8230;</em> is one of following forms.
+</p>
+<pre class="code">
+  commandline                 : command line string which is passed to the standard shell
+  cmdname, arg1, ...          : command name and one or more arguments (no shell)
+  [cmdname, argv0], arg1, ... : command name, argv[0] and zero or more arguments (no shell)
+</pre>
+<p>
+If single string is given as the command, it is taken as a command line
+that is subject to shell expansion before being executed.
+</p>
+<p>
+The standard shell means always <tt>&quot;/bin/sh&quot;</tt> on Unix-like
+systems, <tt>ENV[&quot;RUBYSHELL&quot;]</tt> or
+<tt>ENV[&quot;COMSPEC&quot;]</tt> on Windows NT series, and similar.
+</p>
+<p>
+If two or more <tt>string</tt> given, the first is taken as a command name
+and the rest are passed as parameters to command with no shell expansion.
+</p>
+<p>
+If a two-element array at the beginning of the command, the first element
+is the command to be executed, and the second argument is used as the
+<tt>argv[0]</tt> value, which may show up in process listings.
+</p>
+<p>
+In order to execute the command, one of the <tt>exec(2)</tt> system calls
+is used, so the running command may inherit some of the environment of the
+original program (including open file descriptors). This behavior is
+modified by env and options. See <tt>spawn</tt> for details.
+</p>
+<p>
+Raises SystemCallError if the command couldn&#8217;t execute (typically
+<tt>Errno::ENOENT</tt> when it was not found).
+</p>
+<pre class="code">
+   exec &quot;echo *&quot;       # echoes list of files in current directory
+   # never get here
+
+   exec &quot;echo&quot;, &quot;*&quot;    # echoes an asterisk
+   # never get here</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     exec([env,] command... [,options])
+ *
+ *  Replaces the current process by running the given external _command_.
+ *  _command..._ is one of following forms.
+ *
+ *    commandline                 : command line string which is passed to the standard shell
+ *    cmdname, arg1, ...          : command name and one or more arguments (no shell)
+ *    [cmdname, argv0], arg1, ... : command name, argv[0] and zero or more arguments (no shell)
+ *
+ *  If single string is given as the command,
+ *  it is taken as a command line that is subject to shell expansion before being executed.
+ *
+ *  The standard shell means always &lt;code&gt;&quot;/bin/sh&quot;&lt;/code&gt; on Unix-like systems,
+ *  &lt;code&gt;ENV[&quot;RUBYSHELL&quot;]&lt;/code&gt; or &lt;code&gt;ENV[&quot;COMSPEC&quot;]&lt;/code&gt; on Windows NT series, and
+ *  similar.
+ *
+ *  If two or more +string+ given,
+ *  the first is taken as a command name and
+ *  the rest are passed as parameters to command with no shell expansion.
+ *
+ *  If a two-element array at the beginning of the command,
+ *  the first element is the command to be executed,
+ *  and the second argument is used as the &lt;code&gt;argv[0]&lt;/code&gt; value,
+ *  which may show up in process listings.
+ *
+ *  In order to execute the command, one of the &lt;code&gt;exec(2)&lt;/code&gt;
+ *  system calls is used, so the running command may inherit some of the environment
+ *  of the original program (including open file descriptors).
+ *  This behavior is modified by env and options.
+ *  See &lt;code&gt;spawn&lt;/code&gt; for details.
+ *
+ *  Raises SystemCallError if the command couldn't execute (typically
+ *  &lt;code&gt;Errno::ENOENT&lt;/code&gt; when it was not found).
+ *
+ *     exec &quot;echo *&quot;       # echoes list of files in current directory
+ *     # never get here
+ *
+ *
+ *     exec &quot;echo&quot;, &quot;*&quot;    # echoes an asterisk
+ *     # never get here
+ */
+
+VALUE
+rb_f_exec(int argc, VALUE *argv)
+{
+    struct rb_exec_arg earg;
+#define CHILD_ERRMSG_BUFLEN 80
+    char errmsg[CHILD_ERRMSG_BUFLEN] = { '\0' };
+
+    rb_exec_arg_init(argc, argv, TRUE, &amp;earg);
+    if (NIL_P(rb_ary_entry(earg.options, EXEC_OPTION_CLOSE_OTHERS)))
+        rb_exec_arg_addopt(&amp;earg, ID2SYM(rb_intern(&quot;close_others&quot;)), Qfalse);
+    rb_exec_arg_fixup(&amp;earg);
+
+    rb_exec_err(&amp;earg, errmsg, sizeof(errmsg));
+    if (errmsg[0])
+        rb_sys_fail(errmsg);
+    rb_sys_fail(earg.prog);
+    return Qnil;        /* dummy */
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="exit-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>exit</strong>(status = true) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>Kernel::exit</strong>(status = true) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>Process::exit</strong>(status = true) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+and runs any object finalizers (see ObjectSpace::define_finalizer).
+</p>
+<pre class="code">
+   at_exit { puts &quot;at_exit function&quot; }
+   ObjectSpace.define_finalizer(&quot;string&quot;,  proc { puts &quot;in finalizer&quot; })
+   exit
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre class="code">
+   at_exit function
+   in finalizer</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     exit(status=true)
+ *     Kernel::exit(status=true)
+ *     Process::exit(status=true)
+ *
+ *  Initiates the termination of the Ruby script by raising the
+ *  &lt;code&gt;SystemExit&lt;/code&gt; exception. This exception may be caught. The
+ *  optional parameter is used to return a status code to the invoking
+ *  environment.
+ *  +true+ and +FALSE+ of _status_ means success and failure
+ *  respectively.  The interpretation of other integer values are
+ *  system dependent.
+ *
+ *     begin
+ *       exit
+ *       puts &quot;never get here&quot;
+ *     rescue SystemExit
+ *       puts &quot;rescued a SystemExit exception&quot;
+ *     end
+ *     puts &quot;after begin block&quot;
+ *
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *
+ *     rescued a SystemExit exception
+ *     after begin block
+ *
+ *  Just prior to termination, Ruby executes any &lt;code&gt;at_exit&lt;/code&gt; functions
+ *  (see Kernel::at_exit) and runs any object finalizers (see
+ *  ObjectSpace::define_finalizer).
+ *
+ *     at_exit { puts &quot;at_exit function&quot; }
+ *     ObjectSpace.define_finalizer(&quot;string&quot;,  proc { puts &quot;in finalizer&quot; })
+ *     exit
+ *
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *
+ *     at_exit function
+ *     in finalizer
+ */
+
+VALUE
+rb_f_exit(int argc, VALUE *argv)
+{
+    VALUE status;
+    int istatus;
+
+    rb_secure(4);
+    if (argc &gt; 0 &amp;&amp; rb_scan_args(argc, argv, &quot;01&quot;, &amp;status) == 1) {
+    switch (status) {
+      case Qtrue:
+        istatus = EXIT_SUCCESS;
+        break;
+      case Qfalse:
+        istatus = EXIT_FAILURE;
+        break;
+      default:
+        istatus = NUM2INT(status);
+#if EXIT_SUCCESS != 0
+        if (istatus == 0)
+        istatus = EXIT_SUCCESS;
+#endif
+        break;
+    }
+    }
+    else {
+    istatus = EXIT_SUCCESS;
+    }
+    rb_exit(istatus);
+    return Qnil;        /* not reached */
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="exit!-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>exit!</strong>(status = false) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Exits the process immediately. No exit handlers are run. <em>status</em> is
+returned to the underlying system as the exit status.
+</p>
+<pre class="code">
+   Process.exit!(true)</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.exit!(status=false)
+ *
+ *  Exits the process immediately. No exit handlers are
+ *  run. &lt;em&gt;status&lt;/em&gt; is returned to the underlying system as the
+ *  exit status.
+ *
+ *     Process.exit!(true)
+ */
+
+static VALUE
+rb_f_exit_bang(int argc, VALUE *argv, VALUE obj)
+{
+    VALUE status;
+    int istatus;
+
+    rb_secure(4);
+    if (argc &gt; 0 &amp;&amp; rb_scan_args(argc, argv, &quot;01&quot;, &amp;status) == 1) {
+    switch (status) {
+      case Qtrue:
+        istatus = EXIT_SUCCESS;
+        break;
+      case Qfalse:
+        istatus = EXIT_FAILURE;
+        break;
+      default:
+        istatus = NUM2INT(status);
+        break;
+    }
+    }
+    else {
+    istatus = EXIT_FAILURE;
+    }
+    _exit(istatus);
+
+    return Qnil;        /* not reached */
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="fork-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt><sup>?</sup>) <strong>fork</strong> { ... }</span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt><sup>?</sup>) <strong>fork</strong> { ... }</span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Creates a subprocess. If a block is specified, that block is run in the
+subprocess, and the subprocess terminates with a status of zero. Otherwise,
+the <tt>fork</tt> call returns twice, once in the parent, returning the
+process ID of the child, and once in the child, returning <em>nil</em>. The
+child process can exit using <tt>Kernel.exit!</tt> to avoid running any
+<tt>at_exit</tt> functions. The parent process should use
+<tt>Process.wait</tt> to collect the termination statuses of its children
+or use <tt>Process.detach</tt> to register disinterest in their status;
+otherwise, the operating system may accumulate zombie processes.
+</p>
+<p>
+The thread calling fork is the only thread in the created child process.
+fork doesn&#8217;t copy other threads.
+</p>
+<p>
+If fork is not usable, Process.respond_to?(:fork) returns false.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt><sup>?</sup>) <strong>fork</strong> { ... }</span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Yields:</h3>
+<ul class="yield">
+  
+    <li>
+      
+        <span class='type'></span>
+      
+      
+      
+      
+        
+        <div class='inline'></div>
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt><sup>?</sup>) <strong>fork</strong> { ... }</span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Yields:</h3>
+<ul class="yield">
+  
+    <li>
+      
+        <span class='type'></span>
+      
+      
+      
+      
+        
+        <div class='inline'></div>
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>, <tt>nil</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Kernel.fork  [{ block }]   -&gt; fixnum or nil
+ *     Process.fork [{ block }]   -&gt; fixnum or nil
+ *
+ *  Creates a subprocess. If a block is specified, that block is run
+ *  in the subprocess, and the subprocess terminates with a status of
+ *  zero. Otherwise, the +fork+ call returns twice, once in
+ *  the parent, returning the process ID of the child, and once in
+ *  the child, returning _nil_. The child process can exit using
+ *  &lt;code&gt;Kernel.exit!&lt;/code&gt; to avoid running any
+ *  &lt;code&gt;at_exit&lt;/code&gt; functions. The parent process should
+ *  use &lt;code&gt;Process.wait&lt;/code&gt; to collect the termination statuses
+ *  of its children or use &lt;code&gt;Process.detach&lt;/code&gt; to register
+ *  disinterest in their status; otherwise, the operating system
+ *  may accumulate zombie processes.
+ *
+ *  The thread calling fork is the only thread in the created child process.
+ *  fork doesn't copy other threads.
+ *
+ *  If fork is not usable, Process.respond_to?(:fork) returns false.
+ */
+
+static VALUE
+rb_f_fork(VALUE obj)
+{
+    rb_pid_t pid;
+
+    rb_secure(2);
+
+    switch (pid = rb_fork(0, 0, 0, Qnil)) {
+      case 0:
+    rb_thread_atfork();
+    if (rb_block_given_p()) {
+        int status;
+
+        rb_protect(rb_yield, Qundef, &amp;status);
+        ruby_stop(status);
+    }
+    return Qnil;
+
+      case -1:
+    rb_sys_fail(&quot;fork(2)&quot;);
+    return Qnil;
+
+      default:
+    return PIDT2NUM(pid);
+    }
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getpgid-class_method">
+  
+    + (<tt><span class='object_link'><a href="Integer.html" title="Integer (class)">Integer</a></span></tt>) <strong>getpgid</strong>(pid) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the process group ID for the given process id. Not available on all
+platforms.
+</p>
+<pre class="code">
+   Process.getpgid(Process.ppid())   #=&gt; 25527</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Integer.html" title="Integer (class)">Integer</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.getpgid(pid)   -&gt; integer
+ *
+ *  Returns the process group ID for the given process id. Not
+ *  available on all platforms.
+ *
+ *     Process.getpgid(Process.ppid())   #=&gt; 25527
+ */
+
+static VALUE
+proc_getpgid(VALUE obj, VALUE pid)
+{
+    rb_pid_t i;
+
+    rb_secure(2);
+    i = getpgid(NUM2PIDT(pid));
+    if (i &lt; 0) rb_sys_fail(0);
+    return PIDT2NUM(i);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getpgrp-class_method">
+  
+    + (<tt><span class='object_link'><a href="Integer.html" title="Integer (class)">Integer</a></span></tt>) <strong>getpgrp</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the process group ID for this process. Not available on all
+platforms.
+</p>
+<pre class="code">
+   Process.getpgid(0)   #=&gt; 25527
+   Process.getpgrp      #=&gt; 25527</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Integer.html" title="Integer (class)">Integer</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.getpgrp   -&gt; integer
+ *
+ *  Returns the process group ID for this process. Not available on
+ *  all platforms.
+ *
+ *     Process.getpgid(0)   #=&gt; 25527
+ *     Process.getpgrp      #=&gt; 25527
+ */
+
+static VALUE
+proc_getpgrp(void)
+{
+    rb_pid_t pgrp;
+
+    rb_secure(2);
+#if defined(HAVE_GETPGRP) &amp;&amp; defined(GETPGRP_VOID)
+    pgrp = getpgrp();
+    if (pgrp &lt; 0) rb_sys_fail(0);
+    return PIDT2NUM(pgrp);
+#else /* defined(HAVE_GETPGID) */
+    pgrp = getpgid(0);
+    if (pgrp &lt; 0) rb_sys_fail(0);
+    return PIDT2NUM(pgrp);
+#endif
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getpriority-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>getpriority</strong>(kind, integer) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Gets the scheduling priority for specified process, process group, or user.
+<em>kind</em> indicates the kind of entity to find: one of
+<tt>Process::PRIO_PGRP</tt>, <tt>Process::PRIO_USER</tt>, or
+<tt>Process::PRIO_PROCESS</tt>. <em>integer</em> is an id indicating the
+particular process, process group, or user (an id of 0 means
+<em>current</em>). Lower priorities are more favorable for scheduling. Not
+available on all platforms.
+</p>
+<pre class="code">
+   Process.getpriority(Process::PRIO_USER, 0)      #=&gt; 19
+   Process.getpriority(Process::PRIO_PROCESS, 0)   #=&gt; 19</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.getpriority(kind, integer)   -&gt; fixnum
+ *
+ *  Gets the scheduling priority for specified process, process group,
+ *  or user. &lt;em&gt;kind&lt;/em&gt; indicates the kind of entity to find: one
+ *  of &lt;code&gt;Process::PRIO_PGRP&lt;/code&gt;,
+ *  &lt;code&gt;Process::PRIO_USER&lt;/code&gt;, or
+ *  &lt;code&gt;Process::PRIO_PROCESS&lt;/code&gt;. _integer_ is an id
+ *  indicating the particular process, process group, or user (an id
+ *  of 0 means _current_). Lower priorities are more favorable
+ *  for scheduling. Not available on all platforms.
+ *
+ *     Process.getpriority(Process::PRIO_USER, 0)      #=&gt; 19
+ *     Process.getpriority(Process::PRIO_PROCESS, 0)   #=&gt; 19
+ */
+
+static VALUE
+proc_getpriority(VALUE obj, VALUE which, VALUE who)
+{
+    int prio, iwhich, iwho;
+
+    rb_secure(2);
+    iwhich = NUM2INT(which);
+    iwho   = NUM2INT(who);
+
+    errno = 0;
+    prio = getpriority(iwhich, iwho);
+    if (errno) rb_sys_fail(0);
+    return INT2FIX(prio);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getrlimit-class_method">
+  
+    + (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>getrlimit</strong>(resource) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Gets the resource limit of the process. <em>cur_limit</em> means current
+(soft) limit and <em>max_limit</em> means maximum (hard) limit.
+</p>
+<p>
+<em>resource</em> indicates the kind of resource to limit. It is specified
+as a symbol such as <tt>:CORE</tt>, a string such as
+<tt>&quot;CORE&quot;</tt> or a constant such as
+<tt>Process::RLIMIT_CORE</tt>. See Process.setrlimit for details.
+</p>
+<p>
+<em>cur_limit</em> and <em>max_limit</em> may be
+<tt>Process::RLIM_INFINITY</tt>, <tt>Process::RLIM_SAVED_MAX</tt> or
+<tt>Process::RLIM_SAVED_CUR</tt>. See Process.setrlimit and the system
+getrlimit(2) manual for details.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.getrlimit(resource)   -&gt; [cur_limit, max_limit]
+ *
+ *  Gets the resource limit of the process.
+ *  _cur_limit_ means current (soft) limit and
+ *  _max_limit_ means maximum (hard) limit.
+ *
+ *  _resource_ indicates the kind of resource to limit.
+ *  It is specified as a symbol such as &lt;code&gt;:CORE&lt;/code&gt;,
+ *  a string such as &lt;code&gt;&quot;CORE&quot;&lt;/code&gt; or
+ *  a constant such as &lt;code&gt;Process::RLIMIT_CORE&lt;/code&gt;.
+ *  See Process.setrlimit for details.
+ *
+ *  _cur_limit_ and _max_limit_ may be &lt;code&gt;Process::RLIM_INFINITY&lt;/code&gt;,
+ *  &lt;code&gt;Process::RLIM_SAVED_MAX&lt;/code&gt; or
+ *  &lt;code&gt;Process::RLIM_SAVED_CUR&lt;/code&gt;.
+ *  See Process.setrlimit and the system getrlimit(2) manual for details.
+ */
+
+static VALUE
+proc_getrlimit(VALUE obj, VALUE resource)
+{
+    struct rlimit rlim;
+
+    rb_secure(2);
+
+    if (getrlimit(rlimit_resource_type(resource), &amp;rlim) &lt; 0) {
+    rb_sys_fail(&quot;getrlimit&quot;);
+    }
+    return rb_assoc_new(RLIM2NUM(rlim.rlim_cur), RLIM2NUM(rlim.rlim_max));
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="gid-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>gid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::GID.rid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.getgid</strong> </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the (real) group ID for this process.
+</p>
+<pre class="code">
+   Process.gid   #=&gt; 500</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>gid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::GID.rid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.getgid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.gid           -&gt; fixnum
+ *     Process::GID.rid      -&gt; fixnum
+ *     Process::Sys.getgid   -&gt; fixnum
+ *
+ *  Returns the (real) group ID for this process.
+ *
+ *     Process.gid   #=&gt; 500
+ */
+
+static VALUE
+proc_getgid(VALUE obj)
+{
+    rb_gid_t gid = getgid();
+    return GIDT2NUM(gid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="gid=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>gid=</strong>(fixnum) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the group ID for this process.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.gid= fixnum   -&gt; fixnum
+ *
+ *  Sets the group ID for this process.
+ */
+
+static VALUE
+proc_setgid(VALUE obj, VALUE id)
+{
+    rb_gid_t gid;
+
+    check_gid_switch();
+
+    gid = NUM2GIDT(id);
+#if defined(HAVE_SETRESGID)
+    if (setresgid(gid, -1, -1) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETREGID
+    if (setregid(gid, -1) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETRGID
+    if (setrgid(gid) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETGID
+    {
+    if (getegid() == gid) {
+        if (setgid(gid) &lt; 0) rb_sys_fail(0);
+    }
+    else {
+        rb_notimplement();
+    }
+    }
+#endif
+    return GIDT2NUM(gid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="groups-class_method">
+  
+    + (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>groups</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Get an <tt>Array</tt> of the gids of groups in the supplemental group
+access list for this process.
+</p>
+<pre class="code">
+   Process.groups   #=&gt; [27, 6, 10, 11]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.groups   -&gt; array
+ *
+ *  Get an &lt;code&gt;Array&lt;/code&gt; of the gids of groups in the
+ *  supplemental group access list for this process.
+ *
+ *     Process.groups   #=&gt; [27, 6, 10, 11]
+ *
+ */
+
+static VALUE
+proc_getgroups(VALUE obj)
+{
+    VALUE ary;
+    int i, ngroups;
+    rb_gid_t *groups;
+
+    groups = ALLOCA_N(rb_gid_t, maxgroups);
+
+    ngroups = getgroups(maxgroups, groups);
+    if (ngroups == -1)
+    rb_sys_fail(0);
+
+    ary = rb_ary_new();
+    for (i = 0; i &lt; ngroups; i++)
+    rb_ary_push(ary, GIDT2NUM(groups[i]));
+
+    return ary;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="groups=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>groups=</strong>(array) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Set the supplemental group access list to the given <tt>Array</tt> of group
+IDs.
+</p>
+<pre class="code">
+   Process.groups   #=&gt; [0, 1, 2, 3, 4, 6, 10, 11, 20, 26, 27]
+   Process.groups = [27, 6, 10, 11]   #=&gt; [27, 6, 10, 11]
+   Process.groups   #=&gt; [27, 6, 10, 11]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.groups= array   -&gt; array
+ *
+ *  Set the supplemental group access list to the given
+ *  &lt;code&gt;Array&lt;/code&gt; of group IDs.
+ *
+ *     Process.groups   #=&gt; [0, 1, 2, 3, 4, 6, 10, 11, 20, 26, 27]
+ *     Process.groups = [27, 6, 10, 11]   #=&gt; [27, 6, 10, 11]
+ *     Process.groups   #=&gt; [27, 6, 10, 11]
+ *
+ */
+
+static VALUE
+proc_setgroups(VALUE obj, VALUE ary)
+{
+    size_t ngroups, i;
+    rb_gid_t *groups;
+    struct group *gr;
+
+    Check_Type(ary, T_ARRAY);
+
+    ngroups = RARRAY_LEN(ary);
+    if (ngroups &gt; (size_t)maxgroups)
+    rb_raise(rb_eArgError, &quot;too many groups, %u max&quot;, maxgroups);
+
+    groups = ALLOCA_N(rb_gid_t, ngroups);
+
+    for (i = 0; i &lt; ngroups &amp;&amp; i &lt; (size_t)RARRAY_LEN(ary); i++) {
+    VALUE g = RARRAY_PTR(ary)[i];
+
+    if (FIXNUM_P(g)) {
+        groups[i] = NUM2GIDT(g);
+    }
+    else {
+        VALUE tmp = rb_check_string_type(g);
+
+        if (NIL_P(tmp)) {
+        groups[i] = NUM2GIDT(g);
+        }
+        else {
+        gr = getgrnam(RSTRING_PTR(tmp));
+        if (gr == NULL)
+            rb_raise(rb_eArgError,
+                 &quot;can't find group for %s&quot;, RSTRING_PTR(tmp));
+        groups[i] = gr-&gt;gr_gid;
+        }
+    }
+    }
+
+    if (setgroups((int)ngroups, groups) == -1) /* ngroups &lt;= maxgroups */
+    rb_sys_fail(0);
+
+    return proc_getgroups(obj);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="initgroups-class_method">
+  
+    + (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>initgroups</strong>(username, gid) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Initializes the supplemental group access list by reading the system group
+database and using all groups of which the given user is a member. The
+group with the specified <em>gid</em> is also added to the list. Returns
+the resulting <tt>Array</tt> of the gids of all the groups in the
+supplementary group access list. Not available on all platforms.
+</p>
+<pre class="code">
+   Process.groups   #=&gt; [0, 1, 2, 3, 4, 6, 10, 11, 20, 26, 27]
+   Process.initgroups( &quot;mgranger&quot;, 30 )   #=&gt; [30, 6, 10, 11]
+   Process.groups   #=&gt; [30, 6, 10, 11]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.initgroups(username, gid)   -&gt; array
+ *
+ *  Initializes the supplemental group access list by reading the
+ *  system group database and using all groups of which the given user
+ *  is a member. The group with the specified &lt;em&gt;gid&lt;/em&gt; is also
+ *  added to the list. Returns the resulting &lt;code&gt;Array&lt;/code&gt; of the
+ *  gids of all the groups in the supplementary group access list. Not
+ *  available on all platforms.
+ *
+ *     Process.groups   #=&gt; [0, 1, 2, 3, 4, 6, 10, 11, 20, 26, 27]
+ *     Process.initgroups( &quot;mgranger&quot;, 30 )   #=&gt; [30, 6, 10, 11]
+ *     Process.groups   #=&gt; [30, 6, 10, 11]
+ *
+ */
+
+static VALUE
+proc_initgroups(VALUE obj, VALUE uname, VALUE base_grp)
+{
+    if (initgroups(StringValuePtr(uname), NUM2GIDT(base_grp)) != 0) {
+    rb_sys_fail(0);
+    }
+    return proc_getgroups(obj);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="kill-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>kill</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="maxgroups-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>maxgroups</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the maximum number of gids allowed in the supplemental group access
+list.
+</p>
+<pre class="code">
+   Process.maxgroups   #=&gt; 32</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.maxgroups   -&gt; fixnum
+ *
+ *  Returns the maximum number of gids allowed in the supplemental
+ *  group access list.
+ *
+ *     Process.maxgroups   #=&gt; 32
+ */
+
+static VALUE
+proc_getmaxgroups(VALUE obj)
+{
+    return INT2FIX(maxgroups);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="maxgroups=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>maxgroups=</strong>(fixnum) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the maximum number of gids allowed in the supplemental group access
+list.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.maxgroups= fixnum   -&gt; fixnum
+ *
+ *  Sets the maximum number of gids allowed in the supplemental group
+ *  access list.
+ */
+
+static VALUE
+proc_setmaxgroups(VALUE obj, VALUE val)
+{
+    int ngroups = FIX2UINT(val);
+
+    if (ngroups &gt; 4096)
+    ngroups = 4096;
+
+    maxgroups = ngroups;
+
+    return INT2FIX(maxgroups);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="pid-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>pid</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the process id of this process. Not available on all platforms.
+</p>
+<pre class="code">
+   Process.pid   #=&gt; 27415</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.pid   -&gt; fixnum
+ *
+ *  Returns the process id of this process. Not available on all
+ *  platforms.
+ *
+ *     Process.pid   #=&gt; 27415
+ */
+
+static VALUE
+get_pid(void)
+{
+    rb_secure(2);
+    return PIDT2NUM(getpid());
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="ppid-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>ppid</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the process id of the parent of this process. Returns untrustworthy
+value on Win32/64. Not available on all platforms.
+</p>
+<pre class="code">
+   puts &quot;I am #{Process.pid}&quot;
+   Process.fork { puts &quot;Dad is #{Process.ppid}&quot; }
+</pre>
+<p>
+<em>produces:</em>
+</p>
+<pre class="code">
+   I am 27417
+   Dad is 27417</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.ppid   -&gt; fixnum
+ *
+ *  Returns the process id of the parent of this process. Returns
+ *  untrustworthy value on Win32/64. Not available on all platforms.
+ *
+ *     puts &quot;I am #{Process.pid}&quot;
+ *     Process.fork { puts &quot;Dad is #{Process.ppid}&quot; }
+ *
+ *  &lt;em&gt;produces:&lt;/em&gt;
+ *
+ *     I am 27417
+ *     Dad is 27417
+ */
+
+static VALUE
+get_ppid(void)
+{
+    rb_secure(2);
+    return PIDT2NUM(getppid());
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setpgid-class_method">
+  
+    + (<tt>0</tt>) <strong>setpgid</strong>(pid, integer) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the process group ID of <em>pid</em> (0 indicates this process) to
+<em>integer</em>. Not available on all platforms.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>0</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.setpgid(pid, integer)   -&gt; 0
+ *
+ *  Sets the process group ID of _pid_ (0 indicates this
+ *  process) to &lt;em&gt;integer&lt;/em&gt;. Not available on all platforms.
+ */
+
+static VALUE
+proc_setpgid(VALUE obj, VALUE pid, VALUE pgrp)
+{
+    rb_pid_t ipid, ipgrp;
+
+    rb_secure(2);
+    ipid = NUM2PIDT(pid);
+    ipgrp = NUM2PIDT(pgrp);
+
+    if (setpgid(ipid, ipgrp) &lt; 0) rb_sys_fail(0);
+    return INT2FIX(0);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setpgrp-class_method">
+  
+    + (<tt>0</tt>) <strong>setpgrp</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Equivalent to <tt>setpgid(0,0)</tt>. Not available on all platforms.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>0</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.setpgrp   -&gt; 0
+ *
+ *  Equivalent to &lt;code&gt;setpgid(0,0)&lt;/code&gt;. Not available on all
+ *  platforms.
+ */
+
+static VALUE
+proc_setpgrp(void)
+{
+    rb_secure(2);
+  /* check for posix setpgid() first; this matches the posix */
+  /* getpgrp() above.  It appears that configure will set SETPGRP_VOID */
+  /* even though setpgrp(0,0) would be preferred. The posix call avoids */
+  /* this confusion. */
+#ifdef HAVE_SETPGID
+    if (setpgid(0,0) &lt; 0) rb_sys_fail(0);
+#elif defined(HAVE_SETPGRP) &amp;&amp; defined(SETPGRP_VOID)
+    if (setpgrp() &lt; 0) rb_sys_fail(0);
+#endif
+    return INT2FIX(0);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setpriority-class_method">
+  
+    + (<tt>0</tt>) <strong>setpriority</strong>(kind, integer, priority) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+See <tt>Process#getpriority</tt>.
+</p>
+<pre class="code">
+   Process.setpriority(Process::PRIO_USER, 0, 19)      #=&gt; 0
+   Process.setpriority(Process::PRIO_PROCESS, 0, 19)   #=&gt; 0
+   Process.getpriority(Process::PRIO_USER, 0)          #=&gt; 19
+   Process.getpriority(Process::PRIO_PROCESS, 0)       #=&gt; 19</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>0</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.setpriority(kind, integer, priority)   -&gt; 0
+ *
+ *  See &lt;code&gt;Process#getpriority&lt;/code&gt;.
+ *
+ *     Process.setpriority(Process::PRIO_USER, 0, 19)      #=&gt; 0
+ *     Process.setpriority(Process::PRIO_PROCESS, 0, 19)   #=&gt; 0
+ *     Process.getpriority(Process::PRIO_USER, 0)          #=&gt; 19
+ *     Process.getpriority(Process::PRIO_PROCESS, 0)       #=&gt; 19
+ */
+
+static VALUE
+proc_setpriority(VALUE obj, VALUE which, VALUE who, VALUE prio)
+{
+    int iwhich, iwho, iprio;
+
+    rb_secure(2);
+    iwhich = NUM2INT(which);
+    iwho   = NUM2INT(who);
+    iprio  = NUM2INT(prio);
+
+    if (setpriority(iwhich, iwho, iprio) &lt; 0)
+    rb_sys_fail(0);
+    return INT2FIX(0);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setrlimit-class_method">
+  
+    
+      <span class="overload">+ (<tt>nil</tt>) <strong>setrlimit</strong>(resource, cur_limit, max_limit) </span>
+    
+      <span class="overload">+ (<tt>nil</tt>) <strong>setrlimit</strong>(resource, cur_limit) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the resource limit of the process. <em>cur_limit</em> means current
+(soft) limit and <em>max_limit</em> means maximum (hard) limit.
+</p>
+<p>
+If <em>max_limit</em> is not given, <em>cur_limit</em> is used.
+</p>
+<p>
+<em>resource</em> indicates the kind of resource to limit. It should be a
+symbol such as <tt>:CORE</tt>, a string such as <tt>&quot;CORE&quot;</tt>
+or a constant such as <tt>Process::RLIMIT_CORE</tt>. The available
+resources are OS dependent. Ruby may support following resources.
+</p>
+<dl>
+<dt>CORE</dt><dd><p>
+core size (bytes) (SUSv3)
+</p>
+</dd>
+<dt>CPU</dt><dd><p>
+CPU time (seconds) (SUSv3)
+</p>
+</dd>
+<dt>DATA</dt><dd><p>
+data segment (bytes) (SUSv3)
+</p>
+</dd>
+<dt>FSIZE</dt><dd><p>
+file size (bytes) (SUSv3)
+</p>
+</dd>
+<dt>NOFILE</dt><dd><p>
+file descriptors (number) (SUSv3)
+</p>
+</dd>
+<dt>STACK</dt><dd><p>
+stack size (bytes) (SUSv3)
+</p>
+</dd>
+<dt>AS</dt><dd><p>
+total available memory (bytes) (SUSv3, NetBSD, FreeBSD, OpenBSD but
+4.4BSD-Lite)
+</p>
+</dd>
+<dt>MEMLOCK</dt><dd><p>
+total size for mlock(2) (bytes) (4.4BSD, GNU/Linux)
+</p>
+</dd>
+<dt>NPROC</dt><dd><p>
+number of processes for the user (number) (4.4BSD, GNU/Linux)
+</p>
+</dd>
+<dt>RSS</dt><dd><p>
+resident memory size (bytes) (4.2BSD, GNU/Linux)
+</p>
+</dd>
+<dt>SBSIZE</dt><dd><p>
+all socket buffers (bytes) (NetBSD, FreeBSD)
+</p>
+</dd>
+</dl>
+<p>
+<em>cur_limit</em> and <em>max_limit</em> may be <tt>:INFINITY</tt>,
+<tt>&quot;INFINITY&quot;</tt> or <tt>Process::RLIM_INFINITY</tt>, which
+means that the resource is not limited. They may be
+<tt>Process::RLIM_SAVED_MAX</tt>, <tt>Process::RLIM_SAVED_CUR</tt> and
+corresponding symbols and strings too. See system setrlimit(2) manual for
+details.
+</p>
+<p>
+The following example raise the soft limit of core size to the hard limit
+to try to make core dump possible.
+</p>
+<pre class="code">
+  Process.setrlimit(:CORE, Process.getrlimit(:CORE)[1])</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt>nil</tt>) <strong>setrlimit</strong>(resource, cur_limit, max_limit) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>nil</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt>nil</tt>) <strong>setrlimit</strong>(resource, cur_limit) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>nil</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.setrlimit(resource, cur_limit, max_limit)        -&gt; nil
+ *     Process.setrlimit(resource, cur_limit)                   -&gt; nil
+ *
+ *  Sets the resource limit of the process.
+ *  _cur_limit_ means current (soft) limit and
+ *  _max_limit_ means maximum (hard) limit.
+ *
+ *  If _max_limit_ is not given, _cur_limit_ is used.
+ *
+ *  _resource_ indicates the kind of resource to limit.
+ *  It should be a symbol such as &lt;code&gt;:CORE&lt;/code&gt;,
+ *  a string such as &lt;code&gt;&quot;CORE&quot;&lt;/code&gt; or
+ *  a constant such as &lt;code&gt;Process::RLIMIT_CORE&lt;/code&gt;.
+ *  The available resources are OS dependent.
+ *  Ruby may support following resources.
+ *
+ *  [CORE] core size (bytes) (SUSv3)
+ *  [CPU] CPU time (seconds) (SUSv3)
+ *  [DATA] data segment (bytes) (SUSv3)
+ *  [FSIZE] file size (bytes) (SUSv3)
+ *  [NOFILE] file descriptors (number) (SUSv3)
+ *  [STACK] stack size (bytes) (SUSv3)
+ *  [AS] total available memory (bytes) (SUSv3, NetBSD, FreeBSD, OpenBSD but 4.4BSD-Lite)
+ *  [MEMLOCK] total size for mlock(2) (bytes) (4.4BSD, GNU/Linux)
+ *  [NPROC] number of processes for the user (number) (4.4BSD, GNU/Linux)
+ *  [RSS] resident memory size (bytes) (4.2BSD, GNU/Linux)
+ *  [SBSIZE] all socket buffers (bytes) (NetBSD, FreeBSD)
+ *
+ *  _cur_limit_ and _max_limit_ may be
+ *  &lt;code&gt;:INFINITY&lt;/code&gt;, &lt;code&gt;&quot;INFINITY&quot;&lt;/code&gt; or
+ *  &lt;code&gt;Process::RLIM_INFINITY&lt;/code&gt;,
+ *  which means that the resource is not limited.
+ *  They may be &lt;code&gt;Process::RLIM_SAVED_MAX&lt;/code&gt;,
+ *  &lt;code&gt;Process::RLIM_SAVED_CUR&lt;/code&gt; and
+ *  corresponding symbols and strings too.
+ *  See system setrlimit(2) manual for details.
+ *
+ *  The following example raise the soft limit of core size to
+ *  the hard limit to try to make core dump possible.
+ *
+ *    Process.setrlimit(:CORE, Process.getrlimit(:CORE)[1])
+ *
+ */
+
+static VALUE
+proc_setrlimit(int argc, VALUE *argv, VALUE obj)
+{
+    VALUE resource, rlim_cur, rlim_max;
+    struct rlimit rlim;
+
+    rb_secure(2);
+
+    rb_scan_args(argc, argv, &quot;21&quot;, &amp;resource, &amp;rlim_cur, &amp;rlim_max);
+    if (rlim_max == Qnil)
+        rlim_max = rlim_cur;
+
+    rlim.rlim_cur = rlimit_resource_value(rlim_cur);
+    rlim.rlim_max = rlimit_resource_value(rlim_max);
+
+    if (setrlimit(rlimit_resource_type(resource), &amp;rlim) &lt; 0) {
+    rb_sys_fail(&quot;setrlimit&quot;);
+    }
+    return Qnil;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setsid-class_method">
+  
+    + (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>setsid</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Establishes this process as a new session and process group leader, with no
+controlling tty. Returns the session id. Not available on all platforms.
+</p>
+<pre class="code">
+   Process.setsid   #=&gt; 27422</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.setsid   -&gt; fixnum
+ *
+ *  Establishes this process as a new session and process group
+ *  leader, with no controlling tty. Returns the session id. Not
+ *  available on all platforms.
+ *
+ *     Process.setsid   #=&gt; 27422
+ */
+
+static VALUE
+proc_setsid(void)
+{
+    rb_pid_t pid;
+
+    rb_secure(2);
+    pid = setsid();
+    if (pid &lt; 0) rb_sys_fail(0);
+    return PIDT2NUM(pid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="spawn-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>spawn</strong>([env,][,options]) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>spawn</strong>([env,][,options]) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+spawn executes specified command and return its pid.
+</p>
+<p>
+This method doesn&#8217;t wait for end of the command. The parent process
+should use <tt>Process.wait</tt> to collect the termination status of its
+child or use <tt>Process.detach</tt> to register disinterest in their
+status; otherwise, the operating system may accumulate zombie processes.
+</p>
+<p>
+spawn has bunch of options to specify process attributes:
+</p>
+<pre class="code">
+  env: hash
+    name =&gt; val : set the environment variable
+    name =&gt; nil : unset the environment variable
+  command...:
+    commandline                 : command line string which is passed to the standard shell
+    cmdname, arg1, ...          : command name and one or more arguments (no shell)
+    [cmdname, argv0], arg1, ... : command name, argv[0] and zero or more arguments (no shell)
+  options: hash
+    clearing environment variables:
+      :unsetenv_others =&gt; true   : clear environment variables except specified by env
+      :unsetenv_others =&gt; false  : don't clear (default)
+    process group:
+      :pgroup =&gt; true or 0 : make a new process group
+      :pgroup =&gt; pgid      : join to specified process group
+      :pgroup =&gt; nil       : don't change the process group (default)
+    resource limit: resourcename is core, cpu, data, etc.  See Process.setrlimit.
+      :rlimit_resourcename =&gt; limit
+      :rlimit_resourcename =&gt; [cur_limit, max_limit]
+    current directory:
+      :chdir =&gt; str
+    umask:
+      :umask =&gt; int
+    redirection:
+      key:
+        FD              : single file descriptor in child process
+        [FD, FD, ...]   : multiple file descriptor in child process
+      value:
+        FD                        : redirect to the file descriptor in parent process
+        string                    : redirect to file with open(string, &quot;r&quot; or &quot;w&quot;)
+        [string]                  : redirect to file with open(string, File::RDONLY)
+        [string, open_mode]       : redirect to file with open(string, open_mode, 0644)
+        [string, open_mode, perm] : redirect to file with open(string, open_mode, perm)
+        [:child, FD]              : redirect to the redirected file descriptor
+        :close                    : close the file descriptor in child process
+      FD is one of follows
+        :in     : the file descriptor 0 which is the standard input
+        :out    : the file descriptor 1 which is the standard output
+        :err    : the file descriptor 2 which is the standard error
+        integer : the file descriptor of specified the integer
+        io      : the file descriptor specified as io.fileno
+    file descriptor inheritance: close non-redirected non-standard fds (3, 4, 5, ...) or not
+      :close_others =&gt; false : inherit fds (default for system and exec)
+      :close_others =&gt; true  : don't inherit (default for spawn and IO.popen)
+</pre>
+<p>
+If a hash is given as <tt>env</tt>, the environment is updated by
+<tt>env</tt> before <tt>exec(2)</tt> in the child process. If a pair in
+<tt>env</tt> has nil as the value, the variable is deleted.
+</p>
+<pre class="code">
+  # set FOO as BAR and unset BAZ.
+  pid = spawn({&quot;FOO&quot;=&gt;&quot;BAR&quot;, &quot;BAZ&quot;=&gt;nil}, command)
+</pre>
+<p>
+If a hash is given as <tt>options</tt>, it specifies process group,
+resource limit, current directory, umask and redirects for the child
+process. Also, it can be specified to clear environment variables.
+</p>
+<p>
+The <tt>:unsetenv_others</tt> key in <tt>options</tt> specifies to clear
+environment variables, other than specified by <tt>env</tt>.
+</p>
+<pre class="code">
+  pid = spawn(command, :unsetenv_others=&gt;true) # no environment variable
+  pid = spawn({&quot;FOO&quot;=&gt;&quot;BAR&quot;}, command, :unsetenv_others=&gt;true) # FOO only
+</pre>
+<p>
+The <tt>:pgroup</tt> key in <tt>options</tt> specifies a process group. The
+corresponding value should be true, zero or positive integer. true and zero
+means the process should be a process leader of a new process group. Other
+values specifies a process group to be belongs.
+</p>
+<pre class="code">
+  pid = spawn(command, :pgroup=&gt;true) # process leader
+  pid = spawn(command, :pgroup=&gt;10) # belongs to the process group 10
+</pre>
+<p>
+The <tt>:rlimit_</tt><em>foo</em> key specifies a resource limit.
+<em>foo</em> should be one of resource types such as <tt>core</tt>. The
+corresponding value should be an integer or an array which have one or two
+integers: same as cur_limit and max_limit arguments for Process.setrlimit.
+</p>
+<pre class="code">
+  cur, max = Process.getrlimit(:CORE)
+  pid = spawn(command, :rlimit_core=&gt;[0,max]) # disable core temporary.
+  pid = spawn(command, :rlimit_core=&gt;max) # enable core dump
+  pid = spawn(command, :rlimit_core=&gt;0) # never dump core.
+</pre>
+<p>
+The <tt>:chdir</tt> key in <tt>options</tt> specifies the current
+directory.
+</p>
+<pre class="code">
+  pid = spawn(command, :chdir=&gt;&quot;/var/tmp&quot;)
+</pre>
+<p>
+The <tt>:umask</tt> key in <tt>options</tt> specifies the umask.
+</p>
+<pre class="code">
+  pid = spawn(command, :umask=&gt;077)
+</pre>
+<p>
+The :in, :out, :err, a fixnum, an IO and an array key specifies a
+redirection. The redirection maps a file descriptor in the child process.
+</p>
+<p>
+For example, stderr can be merged into stdout as follows:
+</p>
+<pre class="code">
+  pid = spawn(command, :err=&gt;:out)
+  pid = spawn(command, 2=&gt;1)
+  pid = spawn(command, STDERR=&gt;:out)
+  pid = spawn(command, STDERR=&gt;STDOUT)
+</pre>
+<p>
+The hash keys specifies a file descriptor in the child process started by
+<tt>spawn</tt>. :err, 2 and STDERR specifies the standard error stream
+(stderr).
+</p>
+<p>
+The hash values specifies a file descriptor in the parent process which
+invokes <tt>spawn</tt>. :out, 1 and STDOUT specifies the standard output
+stream (stdout).
+</p>
+<p>
+In the above example, the standard output in the child process is not
+specified. So it is inherited from the parent process.
+</p>
+<p>
+The standard input stream (stdin) can be specified by :in, 0 and STDIN.
+</p>
+<p>
+A filename can be specified as a hash value.
+</p>
+<pre class="code">
+  pid = spawn(command, :in=&gt;&quot;/dev/null&quot;) # read mode
+  pid = spawn(command, :out=&gt;&quot;/dev/null&quot;) # write mode
+  pid = spawn(command, :err=&gt;&quot;log&quot;) # write mode
+  pid = spawn(command, 3=&gt;&quot;/dev/null&quot;) # read mode
+</pre>
+<p>
+For stdout and stderr, it is opened in write mode. Otherwise read mode is
+used.
+</p>
+<p>
+For specifying flags and permission of file creation explicitly, an array
+is used instead.
+</p>
+<pre class="code">
+  pid = spawn(command, :in=&gt;[&quot;file&quot;]) # read mode is assumed
+  pid = spawn(command, :in=&gt;[&quot;file&quot;, &quot;r&quot;])
+  pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;]) # 0644 assumed
+  pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;, 0600])
+  pid = spawn(command, :out=&gt;[&quot;log&quot;, File::WRONLY|File::EXCL|File::CREAT, 0600])
+</pre>
+<p>
+The array specifies a filename, flags and permission. The flags can be a
+string or an integer. If the flags is omitted or nil, File::RDONLY is
+assumed. The permission should be an integer. If the permission is omitted
+or nil, 0644 is assumed.
+</p>
+<p>
+If an array of IOs and integers are specified as a hash key, all the
+elements are redirected.
+</p>
+<pre class="code">
+  # stdout and stderr is redirected to log file.
+  # The file &quot;log&quot; is opened just once.
+  pid = spawn(command, [:out, :err]=&gt;[&quot;log&quot;, &quot;w&quot;])
+</pre>
+<p>
+Another way to merge multiple file descriptors is [:child, fd]. \[:child,
+fd] means the file descriptor in the child process. This is different from
+fd. For example, :err=>:out means redirecting child stderr to parent
+stdout. But :err=>[:child, :out] means redirecting child stderr to child
+stdout. They differs if stdout is redirected in the child process as
+follows.
+</p>
+<pre class="code">
+  # stdout and stderr is redirected to log file.
+  # The file &quot;log&quot; is opened just once.
+  pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;], :err=&gt;[:child, :out])
+</pre>
+<p>
+\[:child, :out] can be used to merge stderr into stdout in IO.popen. In
+this case, IO.popen redirects stdout to a pipe in the child process and
+[:child, :out] refers the redirected stdout.
+</p>
+<pre class="code">
+  io = IO.popen([&quot;sh&quot;, &quot;-c&quot;, &quot;echo out; echo err &gt;&amp;2&quot;, :err=&gt;[:child, :out]])
+  p io.read #=&gt; &quot;out\nerr\n&quot;
+</pre>
+<p>
+spawn closes all non-standard unspecified descriptors by default. The
+&#8220;standard&#8221; descriptors are 0, 1 and 2. This behavior is
+specified by :close_others option. :close_others doesn&#8217;t affect the
+standard descriptors which are closed only if :close is specified
+explicitly.
+</p>
+<pre class="code">
+  pid = spawn(command, :close_others=&gt;true)  # close 3,4,5,... (default)
+  pid = spawn(command, :close_others=&gt;false) # don't close 3,4,5,...
+</pre>
+<p>
+:close_others is true by default for spawn and IO.popen.
+</p>
+<p>
+So IO.pipe and spawn can be used as IO.popen.
+</p>
+<pre class="code">
+  # similar to r = IO.popen(command)
+  r, w = IO.pipe
+  pid = spawn(command, :out=&gt;w)   # r, w is closed in the child process.
+  w.close
+</pre>
+<p>
+:close is specified as a hash value to close a fd individually.
+</p>
+<pre class="code">
+  f = open(foo)
+  system(command, f=&gt;:close)        # don't inherit f.
+</pre>
+<p>
+If a file descriptor need to be inherited, io=>io can be used.
+</p>
+<pre class="code">
+  # valgrind has --log-fd option for log destination.
+  # log_w=&gt;log_w indicates log_w.fileno inherits to child process.
+  log_r, log_w = IO.pipe
+  pid = spawn(&quot;valgrind&quot;, &quot;--log-fd=#{log_w.fileno}&quot;, &quot;echo&quot;, &quot;a&quot;, log_w=&gt;log_w)
+  log_w.close
+  p log_r.read
+</pre>
+<p>
+It is also possible to exchange file descriptors.
+</p>
+<pre class="code">
+  pid = spawn(command, :out=&gt;:err, :err=&gt;:out)
+</pre>
+<p>
+The hash keys specify file descriptors in the child process. The hash
+values specifies file descriptors in the parent process. So the above
+specifies exchanging stdout and stderr. Internally, <tt>spawn</tt> uses an
+extra file descriptor to resolve such cyclic file descriptor mapping.
+</p>
+<p>
+See <tt>Kernel.exec</tt> for the standard shell.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     spawn([env,] command... [,options])     -&gt; pid
+ *     Process.spawn([env,] command... [,options])     -&gt; pid
+ *
+ *  spawn executes specified command and return its pid.
+ *
+ *  This method doesn't wait for end of the command.
+ *  The parent process should
+ *  use &lt;code&gt;Process.wait&lt;/code&gt; to collect
+ *  the termination status of its child or
+ *  use &lt;code&gt;Process.detach&lt;/code&gt; to register
+ *  disinterest in their status;
+ *  otherwise, the operating system may accumulate zombie processes.
+ *
+ *  spawn has bunch of options to specify process attributes:
+ *
+ *    env: hash
+ *      name =&gt; val : set the environment variable
+ *      name =&gt; nil : unset the environment variable
+ *    command...:
+ *      commandline                 : command line string which is passed to the standard shell
+ *      cmdname, arg1, ...          : command name and one or more arguments (no shell)
+ *      [cmdname, argv0], arg1, ... : command name, argv[0] and zero or more arguments (no shell)
+ *    options: hash
+ *      clearing environment variables:
+ *        :unsetenv_others =&gt; true   : clear environment variables except specified by env
+ *        :unsetenv_others =&gt; false  : don't clear (default)
+ *      process group:
+ *        :pgroup =&gt; true or 0 : make a new process group
+ *        :pgroup =&gt; pgid      : join to specified process group
+ *        :pgroup =&gt; nil       : don't change the process group (default)
+ *      resource limit: resourcename is core, cpu, data, etc.  See Process.setrlimit.
+ *        :rlimit_resourcename =&gt; limit
+ *        :rlimit_resourcename =&gt; [cur_limit, max_limit]
+ *      current directory:
+ *        :chdir =&gt; str
+ *      umask:
+ *        :umask =&gt; int
+ *      redirection:
+ *        key:
+ *          FD              : single file descriptor in child process
+ *          [FD, FD, ...]   : multiple file descriptor in child process
+ *        value:
+ *          FD                        : redirect to the file descriptor in parent process
+ *          string                    : redirect to file with open(string, &quot;r&quot; or &quot;w&quot;)
+ *          [string]                  : redirect to file with open(string, File::RDONLY)
+ *          [string, open_mode]       : redirect to file with open(string, open_mode, 0644)
+ *          [string, open_mode, perm] : redirect to file with open(string, open_mode, perm)
+ *          [:child, FD]              : redirect to the redirected file descriptor
+ *          :close                    : close the file descriptor in child process
+ *        FD is one of follows
+ *          :in     : the file descriptor 0 which is the standard input
+ *          :out    : the file descriptor 1 which is the standard output
+ *          :err    : the file descriptor 2 which is the standard error
+ *          integer : the file descriptor of specified the integer
+ *          io      : the file descriptor specified as io.fileno
+ *      file descriptor inheritance: close non-redirected non-standard fds (3, 4, 5, ...) or not
+ *        :close_others =&gt; false : inherit fds (default for system and exec)
+ *        :close_others =&gt; true  : don't inherit (default for spawn and IO.popen)
+ *
+ *  If a hash is given as +env+, the environment is
+ *  updated by +env+ before &lt;code&gt;exec(2)&lt;/code&gt; in the child process.
+ *  If a pair in +env+ has nil as the value, the variable is deleted.
+ *
+ *    # set FOO as BAR and unset BAZ.
+ *    pid = spawn({&quot;FOO&quot;=&gt;&quot;BAR&quot;, &quot;BAZ&quot;=&gt;nil}, command)
+ *
+ *  If a hash is given as +options+,
+ *  it specifies
+ *  process group,
+ *  resource limit,
+ *  current directory,
+ *  umask and
+ *  redirects for the child process.
+ *  Also, it can be specified to clear environment variables.
+ *
+ *  The &lt;code&gt;:unsetenv_others&lt;/code&gt; key in +options+ specifies
+ *  to clear environment variables, other than specified by +env+.
+ *
+ *    pid = spawn(command, :unsetenv_others=&gt;true) # no environment variable
+ *    pid = spawn({&quot;FOO&quot;=&gt;&quot;BAR&quot;}, command, :unsetenv_others=&gt;true) # FOO only
+ *
+ *  The &lt;code&gt;:pgroup&lt;/code&gt; key in +options+ specifies a process group.
+ *  The corresponding value should be true, zero or positive integer.
+ *  true and zero means the process should be a process leader of a new
+ *  process group.
+ *  Other values specifies a process group to be belongs.
+ *
+ *    pid = spawn(command, :pgroup=&gt;true) # process leader
+ *    pid = spawn(command, :pgroup=&gt;10) # belongs to the process group 10
+ *
+ *  The &lt;code&gt;:rlimit_&lt;/code&gt;&lt;em&gt;foo&lt;/em&gt; key specifies a resource limit.
+ *  &lt;em&gt;foo&lt;/em&gt; should be one of resource types such as &lt;code&gt;core&lt;/code&gt;.
+ *  The corresponding value should be an integer or an array which have one or
+ *  two integers: same as cur_limit and max_limit arguments for
+ *  Process.setrlimit.
+ *
+ *    cur, max = Process.getrlimit(:CORE)
+ *    pid = spawn(command, :rlimit_core=&gt;[0,max]) # disable core temporary.
+ *    pid = spawn(command, :rlimit_core=&gt;max) # enable core dump
+ *    pid = spawn(command, :rlimit_core=&gt;0) # never dump core.
+ *
+ *  The &lt;code&gt;:chdir&lt;/code&gt; key in +options+ specifies the current directory.
+ *
+ *    pid = spawn(command, :chdir=&gt;&quot;/var/tmp&quot;)
+ *
+ *  The &lt;code&gt;:umask&lt;/code&gt; key in +options+ specifies the umask.
+ *
+ *    pid = spawn(command, :umask=&gt;077)
+ *
+ *  The :in, :out, :err, a fixnum, an IO and an array key specifies a redirection.
+ *  The redirection maps a file descriptor in the child process.
+ *
+ *  For example, stderr can be merged into stdout as follows:
+ *
+ *    pid = spawn(command, :err=&gt;:out)
+ *    pid = spawn(command, 2=&gt;1)
+ *    pid = spawn(command, STDERR=&gt;:out)
+ *    pid = spawn(command, STDERR=&gt;STDOUT)
+ *
+ *  The hash keys specifies a file descriptor
+ *  in the child process started by &lt;code&gt;spawn&lt;/code&gt;.
+ *  :err, 2 and STDERR specifies the standard error stream (stderr).
+ *
+ *  The hash values specifies a file descriptor
+ *  in the parent process which invokes &lt;code&gt;spawn&lt;/code&gt;.
+ *  :out, 1 and STDOUT specifies the standard output stream (stdout).
+ *
+ *  In the above example,
+ *  the standard output in the child process is not specified.
+ *  So it is inherited from the parent process.
+ *
+ *  The standard input stream (stdin) can be specified by :in, 0 and STDIN.
+ *
+ *  A filename can be specified as a hash value.
+ *
+ *    pid = spawn(command, :in=&gt;&quot;/dev/null&quot;) # read mode
+ *    pid = spawn(command, :out=&gt;&quot;/dev/null&quot;) # write mode
+ *    pid = spawn(command, :err=&gt;&quot;log&quot;) # write mode
+ *    pid = spawn(command, 3=&gt;&quot;/dev/null&quot;) # read mode
+ *
+ *  For stdout and stderr,
+ *  it is opened in write mode.
+ *  Otherwise read mode is used.
+ *
+ *  For specifying flags and permission of file creation explicitly,
+ *  an array is used instead.
+ *
+ *    pid = spawn(command, :in=&gt;[&quot;file&quot;]) # read mode is assumed
+ *    pid = spawn(command, :in=&gt;[&quot;file&quot;, &quot;r&quot;])
+ *    pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;]) # 0644 assumed
+ *    pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;, 0600])
+ *    pid = spawn(command, :out=&gt;[&quot;log&quot;, File::WRONLY|File::EXCL|File::CREAT, 0600])
+ *
+ *  The array specifies a filename, flags and permission.
+ *  The flags can be a string or an integer.
+ *  If the flags is omitted or nil, File::RDONLY is assumed.
+ *  The permission should be an integer.
+ *  If the permission is omitted or nil, 0644 is assumed.
+ *
+ *  If an array of IOs and integers are specified as a hash key,
+ *  all the elements are redirected.
+ *
+ *    # stdout and stderr is redirected to log file.
+ *    # The file &quot;log&quot; is opened just once.
+ *    pid = spawn(command, [:out, :err]=&gt;[&quot;log&quot;, &quot;w&quot;])
+ *
+ *  Another way to merge multiple file descriptors is [:child, fd].
+ *  \[:child, fd] means the file descriptor in the child process.
+ *  This is different from fd.
+ *  For example, :err=&gt;:out means redirecting child stderr to parent stdout.
+ *  But :err=&gt;[:child, :out] means redirecting child stderr to child stdout.
+ *  They differs if stdout is redirected in the child process as follows.
+ *
+ *    # stdout and stderr is redirected to log file.
+ *    # The file &quot;log&quot; is opened just once.
+ *    pid = spawn(command, :out=&gt;[&quot;log&quot;, &quot;w&quot;], :err=&gt;[:child, :out])
+ *
+ *  \[:child, :out] can be used to merge stderr into stdout in IO.popen.
+ *  In this case, IO.popen redirects stdout to a pipe in the child process
+ *  and [:child, :out] refers the redirected stdout.
+ *
+ *    io = IO.popen([&quot;sh&quot;, &quot;-c&quot;, &quot;echo out; echo err &gt;&amp;2&quot;, :err=&gt;[:child, :out]])
+ *    p io.read #=&gt; &quot;out\nerr\n&quot;
+ *
+ *  spawn closes all non-standard unspecified descriptors by default.
+ *  The &quot;standard&quot; descriptors are 0, 1 and 2.
+ *  This behavior is specified by :close_others option.
+ *  :close_others doesn't affect the standard descriptors which are
+ *  closed only if :close is specified explicitly.
+ *
+ *    pid = spawn(command, :close_others=&gt;true)  # close 3,4,5,... (default)
+ *    pid = spawn(command, :close_others=&gt;false) # don't close 3,4,5,...
+ *
+ *  :close_others is true by default for spawn and IO.popen.
+ *
+ *  So IO.pipe and spawn can be used as IO.popen.
+ *
+ *    # similar to r = IO.popen(command)
+ *    r, w = IO.pipe
+ *    pid = spawn(command, :out=&gt;w)   # r, w is closed in the child process.
+ *    w.close
+ *
+ *  :close is specified as a hash value to close a fd individually.
+ *
+ *    f = open(foo)
+ *    system(command, f=&gt;:close)        # don't inherit f.
+ *
+ *  If a file descriptor need to be inherited,
+ *  io=&gt;io can be used.
+ *
+ *    # valgrind has --log-fd option for log destination.
+ *    # log_w=&gt;log_w indicates log_w.fileno inherits to child process.
+ *    log_r, log_w = IO.pipe
+ *    pid = spawn(&quot;valgrind&quot;, &quot;--log-fd=#{log_w.fileno}&quot;, &quot;echo&quot;, &quot;a&quot;, log_w=&gt;log_w)
+ *    log_w.close
+ *    p log_r.read
+ *
+ *  It is also possible to exchange file descriptors.
+ *
+ *    pid = spawn(command, :out=&gt;:err, :err=&gt;:out)
+ *
+ *  The hash keys specify file descriptors in the child process.
+ *  The hash values specifies file descriptors in the parent process.
+ *  So the above specifies exchanging stdout and stderr.
+ *  Internally, +spawn+ uses an extra file descriptor to resolve such cyclic
+ *  file descriptor mapping.
+ *
+ *  See &lt;code&gt;Kernel.exec&lt;/code&gt; for the standard shell.
+ */
+
+static VALUE
+rb_f_spawn(int argc, VALUE *argv)
+{
+    rb_pid_t pid;
+    char errmsg[CHILD_ERRMSG_BUFLEN] = { '\0' };
+    struct rb_exec_arg earg;
+
+    pid = rb_spawn_process(&amp;earg, rb_exec_arg_prepare(&amp;earg, argc, argv, TRUE), errmsg, sizeof(errmsg));
+    if (pid == -1) {
+    const char *prog = errmsg;
+    if (!prog[0] &amp;&amp; !(prog = earg.prog) &amp;&amp; earg.argc) {
+        prog = RSTRING_PTR(earg.argv[0]);
+    }
+    rb_sys_fail(prog);
+    }
+#if defined(HAVE_FORK) || defined(HAVE_SPAWNV)
+    return PIDT2NUM(pid);
+#else
+    return Qnil;
+#endif
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="times-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>times</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns a <tt>Tms</tt> structure (see <tt>Struct::Tms</tt> on page 388)
+that contains user and system CPU times for this process.
+</p>
+<pre class="code">
+   t = Process.times
+   [ t.utime, t.stime ]   #=&gt; [0.0, 0.02]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.times   -&gt; aStructTms
+ *
+ *  Returns a &lt;code&gt;Tms&lt;/code&gt; structure (see &lt;code&gt;Struct::Tms&lt;/code&gt;
+ *  on page 388) that contains user and system CPU times for this
+ *  process.
+ *
+ *     t = Process.times
+ *     [ t.utime, t.stime ]   #=&gt; [0.0, 0.02]
+ */
+
+VALUE
+rb_proc_times(VALUE obj)
+{
+    const double hertz =
+#ifdef HAVE__SC_CLK_TCK
+    (double)sysconf(_SC_CLK_TCK);
+#else
+#ifndef HZ
+# ifdef CLK_TCK
+#   define HZ CLK_TCK
+# else
+#   define HZ 60
+# endif
+#endif /* HZ */
+    HZ;
+#endif
+    struct tms buf;
+    volatile VALUE utime, stime, cutime, sctime;
+
+    times(&amp;buf);
+    return rb_struct_new(rb_cProcessTms,
+             utime = DBL2NUM(buf.tms_utime / hertz),
+             stime = DBL2NUM(buf.tms_stime / hertz),
+             cutime = DBL2NUM(buf.tms_cutime / hertz),
+             sctime = DBL2NUM(buf.tms_cstime / hertz));
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>uid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::UID.rid</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.getuid</strong> </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the (real) user ID of this process.
+</p>
+<pre class="code">
+   Process.uid   #=&gt; 501</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>uid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::UID.rid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>Process::Sys.getuid</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.uid           -&gt; fixnum
+ *     Process::UID.rid      -&gt; fixnum
+ *     Process::Sys.getuid   -&gt; fixnum
+ *
+ *  Returns the (real) user ID of this process.
+ *
+ *     Process.uid   #=&gt; 501
+ */
+
+static VALUE
+proc_getuid(VALUE obj)
+{
+    rb_uid_t uid = getuid();
+    return UIDT2NUM(uid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid=-class_method">
+  
+    + (<tt><span class='object_link'><a href="Numeric.html" title="Numeric (class)">Numeric</a></span></tt>) <strong>uid=</strong>(integer) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the (integer) user ID for this process. Not available on all
+platforms.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Numeric.html" title="Numeric (class)">Numeric</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.uid= integer   -&gt; numeric
+ *
+ *  Sets the (integer) user ID for this process. Not available on all
+ *  platforms.
+ */
+
+static VALUE
+proc_setuid(VALUE obj, VALUE id)
+{
+    rb_uid_t uid;
+
+    check_uid_switch();
+
+    uid = NUM2UIDT(id);
+#if defined(HAVE_SETRESUID)
+    if (setresuid(uid, -1, -1) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETREUID
+    if (setreuid(uid, -1) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETRUID
+    if (setruid(uid) &lt; 0) rb_sys_fail(0);
+#elif defined HAVE_SETUID
+    {
+    if (geteuid() == uid) {
+        if (setuid(uid) &lt; 0) rb_sys_fail(0);
+    }
+    else {
+        rb_notimplement();
+    }
+    }
+#endif
+    return id;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="wait-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong>(pid = -1, flags = 0) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>waitpid</strong>(pid = -1, flags = 0) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Waits for a child process to exit, returns its process id, and sets
+<tt>$?</tt> to a <tt>Process::Status</tt> object containing information on
+that process. Which child it waits on depends on the value of <em>pid</em>:
+</p>
+<table>
+<tr><td valign="top">> 0</td><td><p>
+Waits for the child whose process ID equals <em>pid</em>.
+</p>
+</td></tr>
+<tr><td valign="top">0</td><td><p>
+Waits for any child whose process group ID equals that of the calling
+process.
+</p>
+</td></tr>
+<tr><td valign="top">-1</td><td><p>
+Waits for any child process (the default if no <em>pid</em> is given).
+</p>
+</td></tr>
+<tr><td valign="top">< -1</td><td><p>
+Waits for any child whose process group ID equals the absolute value of
+<em>pid</em>.
+</p>
+</td></tr>
+</table>
+<p>
+The <em>flags</em> argument may be a logical or of the flag values
+<tt>Process::WNOHANG</tt> (do not block if no child available) or
+<tt>Process::WUNTRACED</tt> (return stopped children that haven&#8217;t
+been reported). Not all flags are available on all platforms, but a flag
+value of zero will work on all platforms.
+</p>
+<p>
+Calling this method raises a <tt>SystemError</tt> if there are no child
+processes. Not available on all platforms.
+</p>
+<pre class="code">
+   include Process
+   fork { exit 99 }                 #=&gt; 27429
+   wait                             #=&gt; 27429
+   $?.exitstatus                    #=&gt; 99
+
+   pid = fork { sleep 3 }           #=&gt; 27440
+   Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+   waitpid(pid, Process::WNOHANG)   #=&gt; nil
+   Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+   waitpid(pid, 0)                  #=&gt; 27440
+   Time.now                         #=&gt; 2008-03-08 19:56:19 +0900</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>waitpid</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.wait()                     -&gt; fixnum
+ *     Process.wait(pid=-1, flags=0)      -&gt; fixnum
+ *     Process.waitpid(pid=-1, flags=0)   -&gt; fixnum
+ *
+ *  Waits for a child process to exit, returns its process id, and
+ *  sets &lt;code&gt;$?&lt;/code&gt; to a &lt;code&gt;Process::Status&lt;/code&gt; object
+ *  containing information on that process. Which child it waits on
+ *  depends on the value of _pid_:
+ *
+ *  &gt; 0::   Waits for the child whose process ID equals _pid_.
+ *
+ *  0::     Waits for any child whose process group ID equals that of the
+ *          calling process.
+ *
+ *  -1::    Waits for any child process (the default if no _pid_ is
+ *          given).
+ *
+ *  &lt; -1::  Waits for any child whose process group ID equals the absolute
+ *          value of _pid_.
+ *
+ *  The _flags_ argument may be a logical or of the flag values
+ *  &lt;code&gt;Process::WNOHANG&lt;/code&gt; (do not block if no child available)
+ *  or &lt;code&gt;Process::WUNTRACED&lt;/code&gt; (return stopped children that
+ *  haven't been reported). Not all flags are available on all
+ *  platforms, but a flag value of zero will work on all platforms.
+ *
+ *  Calling this method raises a &lt;code&gt;SystemError&lt;/code&gt; if there are
+ *  no child processes. Not available on all platforms.
+ *
+ *     include Process
+ *     fork { exit 99 }                 #=&gt; 27429
+ *     wait                             #=&gt; 27429
+ *     $?.exitstatus                    #=&gt; 99
+ *
+ *     pid = fork { sleep 3 }           #=&gt; 27440
+ *     Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+ *     waitpid(pid, Process::WNOHANG)   #=&gt; nil
+ *     Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+ *     waitpid(pid, 0)                  #=&gt; 27440
+ *     Time.now                         #=&gt; 2008-03-08 19:56:19 +0900
+ */
+
+static VALUE
+proc_wait(int argc, VALUE *argv)
+{
+    VALUE vpid, vflags;
+    rb_pid_t pid;
+    int flags, status;
+
+    rb_secure(2);
+    flags = 0;
+    if (argc == 0) {
+    pid = -1;
+    }
+    else {
+    rb_scan_args(argc, argv, &quot;02&quot;, &amp;vpid, &amp;vflags);
+    pid = NUM2PIDT(vpid);
+    if (argc == 2 &amp;&amp; !NIL_P(vflags)) {
+        flags = NUM2UINT(vflags);
+    }
+    }
+    if ((pid = rb_waitpid(pid, &amp;status, flags)) &lt; 0)
+    rb_sys_fail(0);
+    if (pid == 0) {
+    rb_last_status_clear();
+    return Qnil;
+    }
+    return PIDT2NUM(pid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="wait2-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>wait2</strong>(pid = -1, flags = 0) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>waitpid2</strong>(pid = -1, flags = 0) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Waits for a child process to exit (see Process::waitpid for exact
+semantics) and returns an array containing the process id and the exit
+status (a <tt>Process::Status</tt> object) of that child. Raises a
+<tt>SystemError</tt> if there are no child processes.
+</p>
+<pre class="code">
+   Process.fork { exit 99 }   #=&gt; 27437
+   pid, status = Process.wait2
+   pid                        #=&gt; 27437
+   status.exitstatus          #=&gt; 99</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>wait2</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>waitpid2</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.wait2(pid=-1, flags=0)      -&gt; [pid, status]
+ *     Process.waitpid2(pid=-1, flags=0)   -&gt; [pid, status]
+ *
+ *  Waits for a child process to exit (see Process::waitpid for exact
+ *  semantics) and returns an array containing the process id and the
+ *  exit status (a &lt;code&gt;Process::Status&lt;/code&gt; object) of that
+ *  child. Raises a &lt;code&gt;SystemError&lt;/code&gt; if there are no child
+ *  processes.
+ *
+ *     Process.fork { exit 99 }   #=&gt; 27437
+ *     pid, status = Process.wait2
+ *     pid                        #=&gt; 27437
+ *     status.exitstatus          #=&gt; 99
+ */
+
+static VALUE
+proc_wait2(int argc, VALUE *argv)
+{
+    VALUE pid = proc_wait(argc, argv);
+    if (NIL_P(pid)) return Qnil;
+    return rb_assoc_new(pid, rb_last_status_get());
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="waitall-class_method">
+  
+    + (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>waitall</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Waits for all children, returning an array of <em>pid</em>/<em>status</em>
+pairs (where <em>status</em> is a <tt>Process::Status</tt> object).
+</p>
+<pre class="code">
+   fork { sleep 0.2; exit 2 }   #=&gt; 27432
+   fork { sleep 0.1; exit 1 }   #=&gt; 27433
+   fork {            exit 0 }   #=&gt; 27434
+   p Process.waitall
+</pre>
+<p>
+<em>produces</em>:
+</p>
+<pre class="code">
+   [[27434, #&lt;Process::Status: pid=27434,exited(0)&gt;],
+    [27433, #&lt;Process::Status: pid=27433,exited(1)&gt;],
+    [27432, #&lt;Process::Status: pid=27432,exited(2)&gt;]]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.waitall   -&gt; [ [pid1,status1], ...]
+ *
+ *  Waits for all children, returning an array of
+ *  _pid_/_status_ pairs (where _status_ is a
+ *  &lt;code&gt;Process::Status&lt;/code&gt; object).
+ *
+ *     fork { sleep 0.2; exit 2 }   #=&gt; 27432
+ *     fork { sleep 0.1; exit 1 }   #=&gt; 27433
+ *     fork {            exit 0 }   #=&gt; 27434
+ *     p Process.waitall
+ *
+ *  &lt;em&gt;produces&lt;/em&gt;:
+ *
+ *     [[27434, #&lt;Process::Status: pid=27434,exited(0)&gt;],
+ *      [27433, #&lt;Process::Status: pid=27433,exited(1)&gt;],
+ *      [27432, #&lt;Process::Status: pid=27432,exited(2)&gt;]]
+ */
+
+static VALUE
+proc_waitall(void)
+{
+    VALUE result;
+    rb_pid_t pid;
+    int status;
+
+    rb_secure(2);
+    result = rb_ary_new();
+#ifdef NO_WAITPID
+    if (pid_tbl) {
+    st_foreach(pid_tbl, waitall_each, result);
+    }
+#else
+    rb_last_status_clear();
+#endif
+
+    for (pid = -1;;) {
+#ifdef NO_WAITPID
+    pid = wait(&amp;status);
+#else
+    pid = rb_waitpid(-1, &amp;status, 0);
+#endif
+    if (pid == -1) {
+        if (errno == ECHILD)
+        break;
+#ifdef NO_WAITPID
+        if (errno == EINTR) {
+        rb_thread_schedule();
+        continue;
+        }
+#endif
+        rb_sys_fail(0);
+    }
+#ifdef NO_WAITPID
+    rb_last_status_set(status, pid);
+#endif
+    rb_ary_push(result, rb_assoc_new(PIDT2NUM(pid), rb_last_status_get()));
+    }
+    return result;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="waitpid-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong> </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong>(pid = -1, flags = 0) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>waitpid</strong>(pid = -1, flags = 0) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Waits for a child process to exit, returns its process id, and sets
+<tt>$?</tt> to a <tt>Process::Status</tt> object containing information on
+that process. Which child it waits on depends on the value of <em>pid</em>:
+</p>
+<table>
+<tr><td valign="top">> 0</td><td><p>
+Waits for the child whose process ID equals <em>pid</em>.
+</p>
+</td></tr>
+<tr><td valign="top">0</td><td><p>
+Waits for any child whose process group ID equals that of the calling
+process.
+</p>
+</td></tr>
+<tr><td valign="top">-1</td><td><p>
+Waits for any child process (the default if no <em>pid</em> is given).
+</p>
+</td></tr>
+<tr><td valign="top">< -1</td><td><p>
+Waits for any child whose process group ID equals the absolute value of
+<em>pid</em>.
+</p>
+</td></tr>
+</table>
+<p>
+The <em>flags</em> argument may be a logical or of the flag values
+<tt>Process::WNOHANG</tt> (do not block if no child available) or
+<tt>Process::WUNTRACED</tt> (return stopped children that haven&#8217;t
+been reported). Not all flags are available on all platforms, but a flag
+value of zero will work on all platforms.
+</p>
+<p>
+Calling this method raises a <tt>SystemError</tt> if there are no child
+processes. Not available on all platforms.
+</p>
+<pre class="code">
+   include Process
+   fork { exit 99 }                 #=&gt; 27429
+   wait                             #=&gt; 27429
+   $?.exitstatus                    #=&gt; 99
+
+   pid = fork { sleep 3 }           #=&gt; 27440
+   Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+   waitpid(pid, Process::WNOHANG)   #=&gt; nil
+   Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+   waitpid(pid, 0)                  #=&gt; 27440
+   Time.now                         #=&gt; 2008-03-08 19:56:19 +0900</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong> </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>wait</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>) <strong>waitpid</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Fixnum.html" title="Fixnum (class)">Fixnum</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.wait()                     -&gt; fixnum
+ *     Process.wait(pid=-1, flags=0)      -&gt; fixnum
+ *     Process.waitpid(pid=-1, flags=0)   -&gt; fixnum
+ *
+ *  Waits for a child process to exit, returns its process id, and
+ *  sets &lt;code&gt;$?&lt;/code&gt; to a &lt;code&gt;Process::Status&lt;/code&gt; object
+ *  containing information on that process. Which child it waits on
+ *  depends on the value of _pid_:
+ *
+ *  &gt; 0::   Waits for the child whose process ID equals _pid_.
+ *
+ *  0::     Waits for any child whose process group ID equals that of the
+ *          calling process.
+ *
+ *  -1::    Waits for any child process (the default if no _pid_ is
+ *          given).
+ *
+ *  &lt; -1::  Waits for any child whose process group ID equals the absolute
+ *          value of _pid_.
+ *
+ *  The _flags_ argument may be a logical or of the flag values
+ *  &lt;code&gt;Process::WNOHANG&lt;/code&gt; (do not block if no child available)
+ *  or &lt;code&gt;Process::WUNTRACED&lt;/code&gt; (return stopped children that
+ *  haven't been reported). Not all flags are available on all
+ *  platforms, but a flag value of zero will work on all platforms.
+ *
+ *  Calling this method raises a &lt;code&gt;SystemError&lt;/code&gt; if there are
+ *  no child processes. Not available on all platforms.
+ *
+ *     include Process
+ *     fork { exit 99 }                 #=&gt; 27429
+ *     wait                             #=&gt; 27429
+ *     $?.exitstatus                    #=&gt; 99
+ *
+ *     pid = fork { sleep 3 }           #=&gt; 27440
+ *     Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+ *     waitpid(pid, Process::WNOHANG)   #=&gt; nil
+ *     Time.now                         #=&gt; 2008-03-08 19:56:16 +0900
+ *     waitpid(pid, 0)                  #=&gt; 27440
+ *     Time.now                         #=&gt; 2008-03-08 19:56:19 +0900
+ */
+
+static VALUE
+proc_wait(int argc, VALUE *argv)
+{
+    VALUE vpid, vflags;
+    rb_pid_t pid;
+    int flags, status;
+
+    rb_secure(2);
+    flags = 0;
+    if (argc == 0) {
+    pid = -1;
+    }
+    else {
+    rb_scan_args(argc, argv, &quot;02&quot;, &amp;vpid, &amp;vflags);
+    pid = NUM2PIDT(vpid);
+    if (argc == 2 &amp;&amp; !NIL_P(vflags)) {
+        flags = NUM2UINT(vflags);
+    }
+    }
+    if ((pid = rb_waitpid(pid, &amp;status, flags)) &lt; 0)
+    rb_sys_fail(0);
+    if (pid == 0) {
+    rb_last_status_clear();
+    return Qnil;
+    }
+    return PIDT2NUM(pid);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="waitpid2-class_method">
+  
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>wait2</strong>(pid = -1, flags = 0) </span>
+    
+      <span class="overload">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>waitpid2</strong>(pid = -1, flags = 0) </span>
+    
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Waits for a child process to exit (see Process::waitpid for exact
+semantics) and returns an array containing the process id and the exit
+status (a <tt>Process::Status</tt> object) of that child. Raises a
+<tt>SystemError</tt> if there are no child processes.
+</p>
+<pre class="code">
+   Process.fork { exit 99 }   #=&gt; 27437
+   pid, status = Process.wait2
+   pid                        #=&gt; 27437
+   status.exitstatus          #=&gt; 99</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <h3>Overloads:</h3>
+  <ul class="overload">
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>wait2</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+      
+      <li class="overload_item">
+        <span class="signature">+ (<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>) <strong>waitpid2</strong>(pid = -1, flags = 0) </span>
+        <div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><span class='object_link'><a href="Array.html" title="Array (class)">Array</a></span></tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div>
+      </li>
+    
+  </ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'process.c'</span>
+
+/*
+ *  call-seq:
+ *     Process.wait2(pid=-1, flags=0)      -&gt; [pid, status]
+ *     Process.waitpid2(pid=-1, flags=0)   -&gt; [pid, status]
+ *
+ *  Waits for a child process to exit (see Process::waitpid for exact
+ *  semantics) and returns an array containing the process id and the
+ *  exit status (a &lt;code&gt;Process::Status&lt;/code&gt; object) of that
+ *  child. Raises a &lt;code&gt;SystemError&lt;/code&gt; if there are no child
+ *  processes.
+ *
+ *     Process.fork { exit 99 }   #=&gt; 27437
+ *     pid, status = Process.wait2
+ *     pid                        #=&gt; 27437
+ *     status.exitstatus          #=&gt; 99
+ */
+
+static VALUE
+proc_wait2(int argc, VALUE *argv)
+{
+    VALUE pid = proc_wait(argc, argv);
+    if (NIL_P(pid)) return Qnil;
+    return rb_assoc_new(pid, rb_last_status_get());
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:06:07 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

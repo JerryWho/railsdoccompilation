@@ -1,0 +1,504 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActiveRecord::Transactions::ClassMethods</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (C)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../ActiveRecord.html" title="ActiveRecord (module)">ActiveRecord</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Transactions.html" title="ActiveRecord::Transactions (module)">Transactions</a></span></span>
+     &raquo; 
+    <span class="title">ClassMethods</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActiveRecord::Transactions::ClassMethods
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">activerecord/lib/active_record/transactions.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>Active Record Transactions</h1>
+<p>
+Transactions are protective blocks where SQL statements are only permanent
+if they can all succeed as one atomic action. The classic example is a
+transfer between two accounts where you can only have a deposit if the
+withdrawal succeeded and vice versa. Transactions enforce the integrity of
+the database and guard the data against program errors or database
+break-downs. So basically you should use transaction blocks whenever you
+have a number of statements that must be executed together or not at all.
+</p>
+<p>
+For example:
+</p>
+<pre class="code">
+  <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='id david'>david</span><span class='period'>.</span><span class='id withdrawal'>withdrawal</span><span class='lparen'>(</span><span class='int'>100</span><span class='rparen'>)</span>
+    <span class='id mary'>mary</span><span class='period'>.</span><span class='id deposit'>deposit</span><span class='lparen'>(</span><span class='int'>100</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This example will only take money from David and give it to Mary if neither
+<tt>withdrawal</tt> nor <tt>deposit</tt> raise an exception. Exceptions
+will force a ROLLBACK that returns the database to the state before the
+transaction began. Be aware, though, that the objects will <em>not</em>
+have their instance data returned to their pre-transactional state.
+</p>
+<h2>Different Active Record classes in a single transaction</h2>
+<p>
+Though the transaction class method is called on some Active Record class,
+the objects within the transaction block need not all be instances of that
+class. This is because transactions are per-database connection, not
+per-model.
+</p>
+<p>
+In this example a <tt>balance</tt> record is transactionally saved even
+though <tt>transaction</tt> is called on the <tt>Account</tt> class:
+</p>
+<pre class="code">
+  <span class='const'>Account</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='id balance'>balance</span><span class='period'>.</span><span class='id save!'>save!</span>
+    <span class='id account'>account</span><span class='period'>.</span><span class='id save!'>save!</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The <tt>transaction</tt> method is also available as a model instance
+method. For example, you can also do this:
+</p>
+<pre class="code">
+  <span class='id balance'>balance</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='id balance'>balance</span><span class='period'>.</span><span class='id save!'>save!</span>
+    <span class='id account'>account</span><span class='period'>.</span><span class='id save!'>save!</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Transactions are not distributed across database connections</h2>
+<p>
+A transaction acts on a single database connection. If you have multiple
+class-specific databases, the transaction will not protect interaction
+among them. One workaround is to begin a transaction on each class whose
+models you alter:
+</p>
+<pre class="code">
+  <span class='const'>Student</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='const'>Course</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+      <span class='id course'>course</span><span class='period'>.</span><span class='id enroll'>enroll</span><span class='lparen'>(</span><span class='id student'>student</span><span class='rparen'>)</span>
+      <span class='id student'>student</span><span class='period'>.</span><span class='id units'>units</span> <span class='op'>+=</span> <span class='id course'>course</span><span class='period'>.</span><span class='id units'>units</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This is a poor solution, but fully distributed transactions are beyond the
+scope of Active Record.
+</p>
+<h2><tt>save</tt> and <tt>destroy</tt> are automatically wrapped in a transaction</h2>
+<p>
+Both <tt>save</tt> and <tt>destroy</tt> come wrapped in a transaction that
+ensures that whatever you do in validations or callbacks will happen under
+its protected cover. So you can use validations to check for values that
+the transaction depends on or you can raise exceptions in the callbacks to
+rollback, including <tt>after_*</tt> callbacks.
+</p>
+<p>
+As a consequence changes to the database are not seen outside your
+connection until the operation is complete. For example, if you try to
+update the index of a search engine in <tt>after_save</tt> the indexer
+won&#8217;t see the updated record. The <tt>after_commit</tt> callback is
+the only one that is triggered once the update is committed. See below.
+</p>
+<h2>Exception handling and rolling back</h2>
+<p>
+Also have in mind that exceptions thrown within a transaction block will be
+propagated (after triggering the ROLLBACK), so you should be ready to catch
+those in your application code.
+</p>
+<p>
+One exception is the <tt>ActiveRecord::Rollback</tt> exception, which will
+trigger a ROLLBACK when raised, but not be re-raised by the transaction
+block.
+</p>
+<p>
+<b>Warning</b>: one should not catch
+<tt>ActiveRecord::StatementInvalid</tt> exceptions inside a transaction
+block. <tt>ActiveRecord::StatementInvalid</tt> exceptions indicate that an
+error occurred at the database level, for example when a unique constraint
+is violated. On some database systems, such as PostgreSQL, database errors
+inside a transaction cause the entire transaction to become unusable until
+it&#8217;s restarted from the beginning. Here is an example which
+demonstrates the problem:
+</p>
+<pre class="code">
+  <span class='comment'># Suppose that we have a Number model with a unique column called 'i'.
+</span>  <span class='const'>Number</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='const'>Number</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:i</span> <span class='op'>=&gt;</span> <span class='int'>0</span><span class='rparen'>)</span>
+    <span class='kw'>begin</span>
+      <span class='comment'># This will raise a unique constraint error...
+</span>      <span class='const'>Number</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:i</span> <span class='op'>=&gt;</span> <span class='int'>0</span><span class='rparen'>)</span>
+    <span class='kw'>rescue</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>StatementInvalid</span>
+      <span class='comment'># ...which we ignore.
+</span>    <span class='kw'>end</span>
+
+    <span class='comment'># On PostgreSQL, the transaction is now unusable. The following
+</span>    <span class='comment'># statement will cause a PostgreSQL error, even though the unique
+</span>    <span class='comment'># constraint is no longer violated:
+</span>    <span class='const'>Number</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:i</span> <span class='op'>=&gt;</span> <span class='int'>1</span><span class='rparen'>)</span>
+    <span class='comment'># =&gt; &quot;PGError: ERROR:  current transaction is aborted, commands
+</span>    <span class='comment'>#     ignored until end of transaction block&quot;
+</span>  <span class='kw'>end</span>
+</pre>
+<p>
+One should restart the entire transaction if an
+<tt>ActiveRecord::StatementInvalid</tt> occurred.
+</p>
+<h2>Nested transactions</h2>
+<p>
+<tt>transaction</tt> calls can be nested. By default, this makes all
+database statements in the nested transaction block become part of the
+parent transaction. For example:
+</p>
+<pre class="code">
+  <span class='const'>User</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='const'>User</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:username</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Kotori</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='const'>User</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+      <span class='const'>User</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:username</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Nemu</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id raise'>raise</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Rollback</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='const'>User</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='rparen'>)</span>  <span class='comment'># =&gt; empty
+</span></pre>
+<p>
+It is also possible to requires a sub-transaction by passing
+<tt>:requires_new =&gt; true</tt>. If anything goes wrong, the database
+rolls back to the beginning of the sub-transaction without rolling back the
+parent transaction. For example:
+</p>
+<pre class="code">
+  <span class='const'>User</span><span class='period'>.</span><span class='id transaction'>transaction</span> <span class='kw'>do</span>
+    <span class='const'>User</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:username</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Kotori</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='const'>User</span><span class='period'>.</span><span class='id transaction'>transaction</span><span class='lparen'>(</span><span class='symbol'>:requires_new</span> <span class='op'>=&gt;</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='const'>User</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='symbol'>:username</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Nemu</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id raise'>raise</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Rollback</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='const'>User</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='rparen'>)</span>  <span class='comment'># =&gt; Returns only Kotori
+</span></pre>
+<p>
+Most databases don&#8217;t support true nested transactions. At the time of
+writing, the only database that we&#8217;re aware of that supports true
+nested transactions, is MS-SQL. Because of this, Active Record emulates
+nested transactions by using savepoints. See <a
+href="http://dev.mysql.com/doc/refman/5.0/en/savepoints.html">dev.mysql.com/doc/refman/5.0/en/savepoints.html</a>
+for more information about savepoints.
+</p>
+<h3>Callbacks</h3>
+<p>
+There are two types of callbacks associated with committing and rolling
+back transactions: <tt>after_commit</tt> and <tt>after_rollback</tt>.
+</p>
+<p>
+<tt>after_commit</tt> callbacks are called on every record saved or
+destroyed within a transaction immediately after the transaction is
+committed. <tt>after_rollback</tt> callbacks are called on every record
+saved or destroyed within a transaction immediately after the transaction
+or savepoint is rolled back.
+</p>
+<p>
+These callbacks are useful for interacting with other systems since you
+will be guaranteed that the callback is only executed when the database is
+in a permanent state. For example, <tt>after_commit</tt> is a good spot to
+put in a hook to clearing a cache since clearing it from within a
+transaction could trigger the cache to be regenerated before the database
+is updated.
+</p>
+<h3>Caveats</h3>
+<p>
+If you&#8217;re on MySQL, then do not use DDL operations in nested
+transactions blocks that are emulated with savepoints. That is, do not
+execute statements like &#8216;CREATE TABLE&#8217; inside such blocks. This
+is because MySQL automatically releases all savepoints upon executing a DDL
+operation. When <tt>transaction</tt> is finished and tries to release the
+savepoint it created earlier, a database error will occur because the
+savepoint has already been automatically released. The following example
+demonstrates the problem:
+</p>
+<pre class="code">
+  Model.connection.transaction do                           # BEGIN
+    Model.connection.transaction(:requires_new =&gt; true) do  # CREATE SAVEPOINT active_record_1
+      Model.connection.create_table(...)                    # active_record_1 now automatically released
+    end                                                     # RELEASE savepoint active_record_1
+                                                            # ^^^^ BOOM! database error!
+  end
+</pre>
+<p>
+Note that &#8220;TRUNCATE&#8221; is also a MySQL DDL statement!
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#after_commit-instance_method" title="#after_commit (instance method)">- (Object) <strong>after_commit</strong>(*args, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#after_rollback-instance_method" title="#after_rollback (instance method)">- (Object) <strong>after_rollback</strong>(*args, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#transaction-instance_method" title="#transaction (instance method)">- (Object) <strong>transaction</strong>(options = {}, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+See ActiveRecord::Transactions::ClassMethods for detailed documentation.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="after_commit-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>after_commit</strong>(*args, &amp;block) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+207
+208
+209
+210
+211
+212
+213
+214</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/transactions.rb', line 207</span>
+
+<span class='kw'>def</span> <span class='id after_commit'>after_commit</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id options'>options</span> <span class='op'>=</span> <span class='id args'>args</span><span class='period'>.</span><span class='id last'>last</span>
+  <span class='kw'>if</span> <span class='id options'>options</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:on</span><span class='rbracket'>]</span>
+    <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id wrap'>wrap</span><span class='lparen'>(</span><span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>transaction_include_action?(:</span><span class='embexpr_beg'>#{</span><span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:on</span><span class='rbracket'>]</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id set_callback'>set_callback</span><span class='lparen'>(</span><span class='symbol'>:commit</span><span class='comma'>,</span> <span class='symbol'>:after</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="after_rollback-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>after_rollback</strong>(*args, &amp;block) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+216
+217
+218
+219
+220
+221
+222
+223</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/transactions.rb', line 216</span>
+
+<span class='kw'>def</span> <span class='id after_rollback'>after_rollback</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id options'>options</span> <span class='op'>=</span> <span class='id args'>args</span><span class='period'>.</span><span class='id last'>last</span>
+  <span class='kw'>if</span> <span class='id options'>options</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:on</span><span class='rbracket'>]</span>
+    <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Array</span><span class='period'>.</span><span class='id wrap'>wrap</span><span class='lparen'>(</span><span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+    <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:if</span><span class='rbracket'>]</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>transaction_include_action?(:</span><span class='embexpr_beg'>#{</span><span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:on</span><span class='rbracket'>]</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+  <span class='id set_callback'>set_callback</span><span class='lparen'>(</span><span class='symbol'>:rollback</span><span class='comma'>,</span> <span class='symbol'>:after</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="transaction-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>transaction</strong>(options = {}, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+See ActiveRecord::Transactions::ClassMethods for detailed documentation.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+202
+203
+204
+205</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/transactions.rb', line 202</span>
+
+<span class='kw'>def</span> <span class='id transaction'>transaction</span><span class='lparen'>(</span><span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='comment'># See the ConnectionAdapters::DatabaseStatements#transaction API docs.
+</span>  <span class='id connection'>connection</span><span class='period'>.</span><span class='id transaction'>transaction</span><span class='lparen'>(</span><span class='id options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:38 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

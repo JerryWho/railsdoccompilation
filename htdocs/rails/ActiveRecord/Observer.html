@@ -1,0 +1,390 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: ActiveRecord::Observer</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (O)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActiveRecord.html" title="ActiveRecord (module)">ActiveRecord</a></span></span>
+     &raquo; 
+    <span class="title">Observer</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: ActiveRecord::Observer
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../ActiveModel/Observer.html" title="ActiveModel::Observer (class)">ActiveModel::Observer</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="../ActiveModel/Observer.html" title="ActiveModel::Observer (class)">ActiveModel::Observer</a></span></li>
+          
+            <li class="next">ActiveRecord::Observer</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">activerecord/lib/active_record/observer.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>Active Record Observer</h1>
+<p>
+Observer classes respond to life cycle callbacks to implement trigger-like
+behavior outside the original class. This is a great way to reduce the
+clutter that normally comes when the model class is burdened with
+functionality that doesn&#8217;t pertain to the core responsibility of the
+class. Example:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>CommentObserver</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Observer</span>
+    <span class='kw'>def</span> <span class='id after_save'>after_save</span><span class='lparen'>(</span><span class='id comment'>comment</span><span class='rparen'>)</span>
+      <span class='const'>Notifications</span><span class='period'>.</span><span class='id deliver_comment'>deliver_comment</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>admin@do.com</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>New comment was posted</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id comment'>comment</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This Observer sends an email when a Comment#save is finished.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>ContactObserver</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Observer</span>
+    <span class='kw'>def</span> <span class='id after_create'>after_create</span><span class='lparen'>(</span><span class='id contact'>contact</span><span class='rparen'>)</span>
+      <span class='id contact'>contact</span><span class='period'>.</span><span class='id logger'>logger</span><span class='period'>.</span><span class='id info'>info</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>New contact added!</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id after_destroy'>after_destroy</span><span class='lparen'>(</span><span class='id contact'>contact</span><span class='rparen'>)</span>
+      <span class='id contact'>contact</span><span class='period'>.</span><span class='id logger'>logger</span><span class='period'>.</span><span class='id warn'>warn</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Contact with an id of </span><span class='embexpr_beg'>#{</span><span class='id contact'>contact</span><span class='period'>.</span><span class='id id'>id</span><span class='rbrace'>}</span><span class='tstring_content'> was destroyed!</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This Observer uses logger to log when specific callbacks are triggered.
+</p>
+<h2>Observing a class that can&#8217;t be inferred</h2>
+<p>
+Observers will by default be mapped to the class with which they share a
+name. So CommentObserver will be tied to observing Comment,
+ProductManagerObserver to ProductManager, and so on. If you want to name
+your observer differently than the class you&#8217;re interested in
+observing, you can use the Observer.observe class method which takes either
+the concrete class (Product) or a symbol for that class (:product):
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AuditObserver</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Observer</span>
+    <span class='id observe'>observe</span> <span class='symbol'>:account</span>
+
+    <span class='kw'>def</span> <span class='id after_update'>after_update</span><span class='lparen'>(</span><span class='id account'>account</span><span class='rparen'>)</span>
+      <span class='const'>AuditTrail</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id account'>account</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UPDATED</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+If the audit observer needs to watch more than one kind of object, this can
+be specified with multiple arguments:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AuditObserver</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Observer</span>
+    <span class='id observe'>observe</span> <span class='symbol'>:account</span><span class='comma'>,</span> <span class='symbol'>:balance</span>
+
+    <span class='kw'>def</span> <span class='id after_update'>after_update</span><span class='lparen'>(</span><span class='id record'>record</span><span class='rparen'>)</span>
+      <span class='const'>AuditTrail</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id record'>record</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UPDATED</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The AuditObserver will now act on both updates to Account and Balance by
+treating them both as records.
+</p>
+<h2>Available callback methods</h2>
+<p>
+The observer can implement callback methods for each of the methods
+described in the Callbacks module.
+</p>
+<h2>Storing Observers in Rails</h2>
+<p>
+If you&#8217;re using Active Record within Rails, observer classes are
+usually stored in app/models with the naming convention of
+app/models/audit_observer.rb.
+</p>
+<h2>Configuration</h2>
+<p>
+In order to activate an observer, list it in the
+<tt>config.active_record.observers</tt> configuration setting in your
+<tt>config/application.rb</tt> file.
+</p>
+<pre class="code">
+  <span class='id config'>config</span><span class='period'>.</span><span class='id active_record'>active_record</span><span class='period'>.</span><span class='id observers'>observers</span> <span class='op'>=</span> <span class='symbol'>:comment_observer</span><span class='comma'>,</span> <span class='symbol'>:signup_observer</span>
+</pre>
+<p>
+Observers will not be invoked unless you define these in your application
+configuration.
+</p>
+<h2>Loading</h2>
+<p>
+Observers register themselves in the model class they observe, since it is
+the class that notifies them of events when they occur. As a side-effect,
+when an observer is loaded its corresponding model class is loaded.
+</p>
+<p>
+Up to (and including) Rails 2.0.2 observers were instantiated between
+plugins and application initializers. Now observers are loaded after
+application initializers, so observed models can make use of extensions.
+</p>
+<p>
+If by any chance you are using observed models in the initialization you
+can still load their observers by calling <tt>ModelObserver.instance</tt>
+before. Observers are singletons and that call instantiates and registers
+them.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="../ActionController/Caching/Sweeper.html" title="ActionController::Caching::Sweeper (class)">ActionController::Caching::Sweeper</a></span></p>
+</div>
+
+
+  
+  
+  
+  
+  
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#method_added-class_method" title="method_added (class method)">+ (Object) <strong>method_added</strong>(method) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Observer) <strong>initialize</strong> </a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+A new instance of Observer.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../ActiveModel/Observer.html" title="ActiveModel::Observer (class)">ActiveModel::Observer</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveModel/Observer.html#observe-class_method" title="ActiveModel::Observer.observe (method)">observe</a></span>, <span class='object_link'><a href="../ActiveModel/Observer.html#observed_class-class_method" title="ActiveModel::Observer.observed_class (method)">observed_class</a></span>, <span class='object_link'><a href="../ActiveModel/Observer.html#observed_class_inherited-instance_method" title="ActiveModel::Observer#observed_class_inherited (method)">#observed_class_inherited</a></span>, <span class='object_link'><a href="../ActiveModel/Observer.html#observed_classes-class_method" title="ActiveModel::Observer.observed_classes (method)">observed_classes</a></span>, <span class='object_link'><a href="../ActiveModel/Observer.html#observed_classes-instance_method" title="ActiveModel::Observer#observed_classes (method)">#observed_classes</a></span>, <span class='object_link'><a href="../ActiveModel/Observer.html#update-instance_method" title="ActiveModel::Observer#update (method)">#update</a></span></p>
+
+  <div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="ActiveRecord::Observer (class)">Observer</a></span></tt>) <strong>initialize</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+A new instance of Observer
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+95
+96
+97
+98</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/observer.rb', line 95</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span>
+  <span class='kw'>super</span>
+  <span class='id observed_descendants'>observed_descendants</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id klass'>klass</span><span class='op'>|</span> <span class='id add_observer!'>add_observer!</span><span class='lparen'>(</span><span class='id klass'>klass</span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="method_added-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>method_added</strong>(method) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+100
+101
+102
+103
+104
+105
+106
+107</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/observer.rb', line 100</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id method_added'>method_added</span><span class='lparen'>(</span><span class='id method'>method</span><span class='rparen'>)</span>
+  <span class='id method'>method</span> <span class='op'>=</span> <span class='id method'>method</span><span class='period'>.</span><span class='id to_sym'>to_sym</span>
+
+  <span class='kw'>if</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Callbacks</span><span class='op'>::</span><span class='const'>CALLBACKS</span><span class='period'>.</span><span class='id include?'>include?</span><span class='lparen'>(</span><span class='id method'>method</span><span class='rparen'>)</span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id observed_methods'>observed_methods</span> <span class='op'>+=</span> <span class='lbracket'>[</span><span class='id method'>method</span><span class='rbracket'>]</span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id observed_methods'>observed_methods</span><span class='period'>.</span><span class='id freeze'>freeze</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:28 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

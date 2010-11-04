@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: Psych::Parser</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (P)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../Psych.html" title="Psych (module)">Psych</a></span></span>
+     &raquo; 
+    <span class="title">Parser</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: Psych::Parser
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">Psych::Parser</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">ext/psych/parser.c</dd>
+  
+</dl>
+<div class="clear"></div>
+
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse-instance_method" title="#parse (instance method)">- (Object) <strong>parse</strong>(yaml) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Parse the YAML document contained in <tt>yaml</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="parse-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse</strong>(yaml) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Parse the YAML document contained in <tt>yaml</tt>.  Events will be called
+on the handler set on the parser instance.
+</p>
+<p>
+See Psych::Parser and Psych::Parser#handler
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/psych/parser.c'</span>
+
+/*
+ * call-seq:
+ *    parser.parse(yaml)
+ *
+ * Parse the YAML document contained in +yaml+.  Events will be called on
+ * the handler set on the parser instance.
+ *
+ * See Psych::Parser and Psych::Parser#handler
+ */
+static VALUE parse(VALUE self, VALUE yaml)
+{
+    yaml_parser_t parser;
+    yaml_event_t event;
+    int done = 0;
+#ifdef HAVE_RUBY_ENCODING_H
+    int encoding = rb_enc_find_index(&quot;ASCII-8BIT&quot;);
+    rb_encoding * internal_enc;
+#endif
+    VALUE handler = rb_iv_get(self, &quot;@handler&quot;);
+
+
+    yaml_parser_initialize(&amp;parser);
+
+    if(rb_respond_to(yaml, id_read)) {
+    yaml_parser_set_input(&amp;parser, io_reader, (void *)yaml);
+    } else {
+    StringValue(yaml);
+    yaml_parser_set_input_string(
+        &amp;parser,
+        (const unsigned char *)RSTRING_PTR(yaml),
+        (size_t)RSTRING_LEN(yaml)
+        );
+    }
+
+    while(!done) {
+    if(!yaml_parser_parse(&amp;parser, &amp;event)) {
+        size_t line   = parser.mark.line;
+        size_t column = parser.mark.column;
+
+        yaml_parser_delete(&amp;parser);
+        rb_raise(ePsychSyntaxError, &quot;couldn't parse YAML at line %d column %d&quot;,
+            (int)line, (int)column);
+    }
+
+    switch(event.type) {
+      case YAML_STREAM_START_EVENT:
+
+#ifdef HAVE_RUBY_ENCODING_H
+        switch(event.data.stream_start.encoding) {
+          case YAML_ANY_ENCODING:
+        break;
+          case YAML_UTF8_ENCODING:
+        encoding = rb_enc_find_index(&quot;UTF-8&quot;);
+        break;
+          case YAML_UTF16LE_ENCODING:
+        encoding = rb_enc_find_index(&quot;UTF-16LE&quot;);
+        break;
+          case YAML_UTF16BE_ENCODING:
+        encoding = rb_enc_find_index(&quot;UTF-16BE&quot;);
+        break;
+          default:
+        break;
+        }
+        internal_enc = rb_default_internal_encoding();
+#endif
+
+        rb_funcall(handler, id_start_stream, 1,
+               INT2NUM((long)event.data.stream_start.encoding)
+        );
+        break;
+      case YAML_DOCUMENT_START_EVENT:
+        {
+        /* Get a list of tag directives (if any) */
+        VALUE tag_directives = rb_ary_new();
+        /* Grab the document version */
+        VALUE version = event.data.document_start.version_directive ?
+            rb_ary_new3(
+            (long)2,
+            INT2NUM((long)event.data.document_start.version_directive-&gt;major),
+            INT2NUM((long)event.data.document_start.version_directive-&gt;minor)
+            ) : rb_ary_new();
+
+        if(event.data.document_start.tag_directives.start) {
+            yaml_tag_directive_t *start =
+            event.data.document_start.tag_directives.start;
+            yaml_tag_directive_t *end =
+            event.data.document_start.tag_directives.end;
+            for(; start != end; start++) {
+            VALUE handle = Qnil;
+            VALUE prefix = Qnil;
+            if(start-&gt;handle) {
+                handle = rb_str_new2((const char *)start-&gt;handle);
+#ifdef HAVE_RUBY_ENCODING_H
+                PSYCH_TRANSCODE(handle, encoding, internal_enc);
+#endif
+            }
+
+            if(start-&gt;prefix) {
+                prefix = rb_str_new2((const char *)start-&gt;prefix);
+#ifdef HAVE_RUBY_ENCODING_H
+                PSYCH_TRANSCODE(prefix, encoding, internal_enc);
+#endif
+            }
+
+            rb_ary_push(tag_directives, rb_ary_new3((long)2, handle, prefix));
+            }
+        }
+        rb_funcall(handler, id_start_document, 3,
+               version, tag_directives,
+               event.data.document_start.implicit == 1 ? Qtrue : Qfalse
+            );
+        }
+        break;
+      case YAML_DOCUMENT_END_EVENT:
+        rb_funcall(handler, id_end_document, 1,
+               event.data.document_end.implicit == 1 ? Qtrue : Qfalse
+        );
+        break;
+      case YAML_ALIAS_EVENT:
+        {
+        VALUE alias = Qnil;
+        if(event.data.alias.anchor) {
+            alias = rb_str_new2((const char *)event.data.alias.anchor);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(alias, encoding, internal_enc);
+#endif
+        }
+
+        rb_funcall(handler, id_alias, 1, alias);
+        }
+        break;
+      case YAML_SCALAR_EVENT:
+        {
+        VALUE anchor = Qnil;
+        VALUE tag = Qnil;
+        VALUE plain_implicit, quoted_implicit, style;
+        VALUE val = rb_str_new(
+            (const char *)event.data.scalar.value,
+            (long)event.data.scalar.length
+            );
+
+#ifdef HAVE_RUBY_ENCODING_H
+        PSYCH_TRANSCODE(val, encoding, internal_enc);
+#endif
+
+        if(event.data.scalar.anchor) {
+            anchor = rb_str_new2((const char *)event.data.scalar.anchor);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(anchor, encoding, internal_enc);
+#endif
+        }
+
+        if(event.data.scalar.tag) {
+            tag = rb_str_new2((const char *)event.data.scalar.tag);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(tag, encoding, internal_enc);
+#endif
+        }
+
+        plain_implicit =
+            event.data.scalar.plain_implicit == 0 ? Qfalse : Qtrue;
+
+        quoted_implicit =
+            event.data.scalar.quoted_implicit == 0 ? Qfalse : Qtrue;
+
+        style = INT2NUM((long)event.data.scalar.style);
+
+        rb_funcall(handler, id_scalar, 6,
+               val, anchor, tag, plain_implicit, quoted_implicit, style);
+        }
+        break;
+      case YAML_SEQUENCE_START_EVENT:
+        {
+        VALUE anchor = Qnil;
+        VALUE tag = Qnil;
+        VALUE implicit, style;
+        if(event.data.sequence_start.anchor) {
+            anchor = rb_str_new2((const char *)event.data.sequence_start.anchor);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(anchor, encoding, internal_enc);
+#endif
+        }
+
+        tag = Qnil;
+        if(event.data.sequence_start.tag) {
+            tag = rb_str_new2((const char *)event.data.sequence_start.tag);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(tag, encoding, internal_enc);
+#endif
+        }
+
+        implicit =
+            event.data.sequence_start.implicit == 0 ? Qfalse : Qtrue;
+
+        style = INT2NUM((long)event.data.sequence_start.style);
+
+        rb_funcall(handler, id_start_sequence, 4,
+               anchor, tag, implicit, style);
+        }
+        break;
+      case YAML_SEQUENCE_END_EVENT:
+        rb_funcall(handler, id_end_sequence, 0);
+        break;
+      case YAML_MAPPING_START_EVENT:
+        {
+        VALUE anchor = Qnil;
+        VALUE tag = Qnil;
+        VALUE implicit, style;
+        if(event.data.mapping_start.anchor) {
+            anchor = rb_str_new2((const char *)event.data.mapping_start.anchor);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(anchor, encoding, internal_enc);
+#endif
+        }
+
+        if(event.data.mapping_start.tag) {
+            tag = rb_str_new2((const char *)event.data.mapping_start.tag);
+#ifdef HAVE_RUBY_ENCODING_H
+            PSYCH_TRANSCODE(tag, encoding, internal_enc);
+#endif
+        }
+
+        implicit =
+            event.data.mapping_start.implicit == 0 ? Qfalse : Qtrue;
+
+        style = INT2NUM((long)event.data.mapping_start.style);
+
+        rb_funcall(handler, id_start_mapping, 4,
+               anchor, tag, implicit, style);
+        }
+        break;
+      case YAML_MAPPING_END_EVENT:
+        rb_funcall(handler, id_end_mapping, 0);
+        break;
+      case YAML_NO_EVENT:
+        rb_funcall(handler, id_empty, 0);
+        break;
+      case YAML_STREAM_END_EVENT:
+        rb_funcall(handler, id_end_stream, 0);
+        done = 1;
+        break;
+    }
+    }
+
+    return self;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:02:12 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

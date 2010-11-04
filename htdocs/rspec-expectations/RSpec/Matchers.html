@@ -1,0 +1,2537 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: RSpec::Matchers</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (M)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../RSpec.html" title="RSpec (module)">RSpec</a></span></span>
+     &raquo; 
+    <span class="title">Matchers</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: RSpec::Matchers
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+    <dt class="r1">Included in:</dt>
+    <dd class="r1"><span class='object_link'><a href="Matchers/Matcher.html" title="RSpec::Matchers::Matcher (class)">Matchers::Matcher</a></span></dd>
+    
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/rspec/matchers.rb<span class="defines">,<br />
+  lib/rspec/matchers/eq.rb,<br /> lib/rspec/matchers/be.rb,<br /> lib/rspec/matchers/eql.rb,<br /> lib/rspec/matchers/has.rb,<br /> lib/rspec/matchers/dsl.rb,<br /> lib/rspec/matchers/have.rb,<br /> lib/rspec/matchers/exist.rb,<br /> lib/rspec/matchers/match.rb,<br /> lib/rspec/matchers/equal.rb,<br /> lib/rspec/matchers/change.rb,<br /> lib/rspec/matchers/errors.rb,<br /> lib/rspec/matchers/pretty.rb,<br /> lib/rspec/matchers/matcher.rb,<br /> lib/rspec/matchers/satisfy.rb,<br /> lib/rspec/matchers/include.rb,<br /> lib/rspec/matchers/be_close.rb,<br /> lib/rspec/matchers/be_kind_of.rb,<br /> lib/rspec/matchers/respond_to.rb,<br /> lib/rspec/matchers/raise_error.rb,<br /> lib/rspec/matchers/match_array.rb,<br /> lib/rspec/matchers/throw_symbol.rb,<br /> lib/rspec/matchers/be_instance_of.rb,<br /> lib/rspec/matchers/method_missing.rb,<br /> lib/rspec/matchers/operator_matcher.rb,<br /> lib/rspec/matchers/generated_descriptions.rb,<br /> lib/rspec/matchers/extensions/instance_exec.rb</span>
+</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+rspec-expecations provides a number of useful Matchers we use to compose
+expectations. A Matcher is any object that responds to the following
+methods:
+</p>
+<pre class="code">
+  <span class='id matches?'>matches?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='rparen'>)</span>
+  <span class='id failure_message_for_should'>failure_message_for_should</span>
+</pre>
+<p>
+These methods are also part of the matcher protocol, but are optional:
+</p>
+<pre class="code">
+  <span class='id does_not_match?'>does_not_match?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='rparen'>)</span>
+  <span class='id failure_message_for_should_not'>failure_message_for_should_not</span>
+  <span class='id description'>description</span> <span class='comment'>#optional
+</span></pre>
+<h2>Predicates</h2>
+<p>
+In addition to those Expression Matchers that are defined explicitly, RSpec
+will create custom Matchers on the fly for any arbitrary predicate, giving
+your specs a much more natural language feel. 
+</p>
+<p>
+A Ruby predicate is a method that ends with a &#8220;?&#8221; and returns
+true or false. Common examples are <tt>empty?</tt>, <tt>nil?</tt>, and
+<tt>instance_of?</tt>.
+</p>
+<p>
+All you need to do is write <tt>should be_</tt> followed by the predicate without
+the question mark, and RSpec will figure it out from there. For example:
+</p>
+<pre class="code">
+  <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_empty'>be_empty</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='comment'>#passes
+</span>  <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_empty'>be_empty</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='comment'>#fails
+</span></pre>
+<p>
+In addtion to prefixing the predicate matchers with &#8220;be_&#8221;, you
+can also use &#8220;be_a_&#8221; and &#8220;be_an_&#8221;, making your
+specs read much more naturally:
+</p>
+<pre class="code">
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>a string</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_an_instance_of'>be_an_instance_of</span><span class='lparen'>(</span><span class='const'>String</span><span class='rparen'>)</span> <span class='op'>=&gt;</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>a string</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='const'>String</span><span class='rparen'>)</span> <span class='comment'>#passes
+</span>
+  <span class='int'>3</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='const'>Fixnum</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='int'>3</span><span class='period'>.</span><span class='id kind_of?'>kind_of?</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='comment'>#passes
+</span>  <span class='int'>3</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='int'>3</span><span class='period'>.</span><span class='id kind_of?'>kind_of?</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='comment'>#passes
+</span>  <span class='int'>3</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_an_instance_of'>be_an_instance_of</span><span class='lparen'>(</span><span class='const'>Fixnum</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='int'>3</span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='const'>Fixnum</span><span class='rparen'>)</span> <span class='comment'>#passes
+</span>  <span class='int'>3</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='int'>3</span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span> <span class='comment'>#fails
+</span></pre>
+<p>
+RSpec will also create custom matchers for predicates like
+<tt>has_key?</tt>. To use this feature, just state that the object should
+have_key(:key) and RSpec will call has_key?(:key) on the target. For
+example:
+</p>
+<pre class="code">
+  <span class='lbrace'>{</span><span class='symbol'>:a</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id have_key'>have_key</span><span class='lparen'>(</span><span class='symbol'>:a</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span><span class='symbol'>:a</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='period'>.</span><span class='id has_key?'>has_key?</span><span class='lparen'>(</span><span class='symbol'>:a</span><span class='rparen'>)</span> <span class='comment'>#passes
+</span>  <span class='lbrace'>{</span><span class='symbol'>:a</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id have_key'>have_key</span><span class='lparen'>(</span><span class='symbol'>:b</span><span class='rparen'>)</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span><span class='symbol'>:a</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>A</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='period'>.</span><span class='id has_key?'>has_key?</span><span class='lparen'>(</span><span class='symbol'>:b</span><span class='rparen'>)</span> <span class='comment'>#fails
+</span></pre>
+<p>
+You can use this feature to invoke any predicate that begins with
+&#8220;has_&#8221;, whether it is part of the Ruby libraries (like
+<tt>Hash#has_key?</tt>) or a method you wrote on your own class.
+</p>
+<h2>Custom Matchers</h2>
+<p>
+When you find that none of the stock Expectation Matchers provide a natural
+feeling expectation, you can very easily write your own using RSpec&#8217;s
+matcher DSL or writing one from scratch.
+</p>
+<h3>Matcher DSL</h3>
+<p>
+Imagine that you are writing a game in which players can be in various
+zones on a virtual board. To specify that bob should be in zone 4, you
+could say:
+</p>
+<pre class="code">
+  <span class='id bob'>bob</span><span class='period'>.</span><span class='id current_zone'>current_zone</span><span class='period'>.</span><span class='id should'>should</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='const'>Zone</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>4</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+</pre>
+<p>
+But you might find it more expressive to say:
+</p>
+<pre class="code">
+  <span class='id bob'>bob</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_in_zone'>be_in_zone</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>4</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+and/or
+</p>
+<pre class="code">
+  <span class='id bob'>bob</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_in_zone'>be_in_zone</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>3</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+You can create such a matcher like so:
+</p>
+<pre class="code">
+  <span class='const'>RSpec</span><span class='op'>::</span><span class='const'>Matchers</span><span class='period'>.</span><span class='id define'>define</span> <span class='symbol'>:be_in_zone</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id zone'>zone</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id player'>player</span><span class='op'>|</span>
+      <span class='id player'>player</span><span class='period'>.</span><span class='id in_zone?'>in_zone?</span><span class='lparen'>(</span><span class='id zone'>zone</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This will generate a <tt>be_in_zone</tt> method that returns a matcher with
+logical default messages for failures. You can override the failure
+messages and the generated description as follows:
+</p>
+<pre class="code">
+  <span class='const'>RSpec</span><span class='op'>::</span><span class='const'>Matchers</span><span class='period'>.</span><span class='id define'>define</span> <span class='symbol'>:be_in_zone</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id zone'>zone</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id player'>player</span><span class='op'>|</span>
+      <span class='id player'>player</span><span class='period'>.</span><span class='id in_zone?'>in_zone?</span><span class='lparen'>(</span><span class='id zone'>zone</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id failure_message_for_should'>failure_message_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id player'>player</span><span class='op'>|</span>
+      <span class='comment'># generate and return the appropriate string.
+</span>    <span class='kw'>end</span>
+    <span class='id failure_message_for_should_not'>failure_message_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id player'>player</span><span class='op'>|</span>
+      <span class='comment'># generate and return the appropriate string.
+</span>    <span class='kw'>end</span>
+    <span class='id description'>description</span> <span class='kw'>do</span>
+      <span class='comment'># generate and return the appropriate string.
+</span>    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Each of the message-generation methods has access to the block arguments
+passed to the <tt>create</tt> method (in this case, <tt>zone</tt>). The
+failure message methods (<tt>failure_message_for_should</tt> and
+<tt>failure_message_for_should_not</tt>) are passed the actual value (the
+receiver of <tt>should</tt> or <tt>should_not</tt>).
+</p>
+<h3>Custom Matcher from scratch</h3>
+<p>
+You could also write a custom matcher from scratch, as follows:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>BeInZone</span>
+    <span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+      <span class='ivar'>@expected</span> <span class='op'>=</span> <span class='id expected'>expected</span>
+    <span class='kw'>end</span>
+    <span class='kw'>def</span> <span class='id matches?'>matches?</span><span class='lparen'>(</span><span class='id target'>target</span><span class='rparen'>)</span>
+      <span class='ivar'>@target</span> <span class='op'>=</span> <span class='id target'>target</span>
+      <span class='ivar'>@target</span><span class='period'>.</span><span class='id current_zone'>current_zone</span><span class='period'>.</span><span class='id eql?'>eql?</span><span class='lparen'>(</span><span class='const'>Zone</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='ivar'>@expected</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='kw'>def</span> <span class='id failure_message_for_should'>failure_message_for_should</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='ivar'>@target</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'> to be in Zone </span><span class='embexpr_beg'>#{</span><span class='ivar'>@expected</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='kw'>def</span> <span class='id failure_message_for_should_not'>failure_message_for_should_not</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='ivar'>@target</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'> not to be in Zone </span><span class='embexpr_beg'>#{</span><span class='ivar'>@expected</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+&#8230; and a method like this:
+</p>
+<pre class="code">
+  <span class='kw'>def</span> <span class='id be_in_zone'>be_in_zone</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+    <span class='const'>BeInZone</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+And then expose the method to your specs. This is normally done by
+including the method and the class in a module, which is then included in
+your spec:
+</p>
+<pre class="code">
+  module CustomGameMatchers
+    class BeInZone
+      ...
+    end
+
+    def be_in_zone(expected)
+      ...
+    end
+  end
+
+  describe &quot;Player behaviour&quot; do
+    include CustomGameMatchers
+    ...
+  end
+</pre>
+<p>
+or you can include in globally in a spec_helper.rb file <tt>require</tt>d
+from your spec file(s):
+</p>
+<pre class="code">
+  <span class='const'>RSpec</span><span class='op'>::</span><span class='const'>Runner</span><span class='period'>.</span><span class='id configure'>configure</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id config'>config</span><span class='op'>|</span>
+    <span class='id config'>config</span><span class='period'>.</span><span class='id include'>include</span><span class='lparen'>(</span><span class='const'>CustomGameMatchers</span><span class='rparen'>)</span>
+  <span class='kw'>end</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Matchers/DSL.html" title="RSpec::Matchers::DSL (module)">DSL</a></span>, <span class='object_link'><a href="Matchers/InstanceExec.html" title="RSpec::Matchers::InstanceExec (module)">InstanceExec</a></span>, <span class='object_link'><a href="Matchers/Pretty.html" title="RSpec::Matchers::Pretty (module)">Pretty</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Matchers/Be.html" title="RSpec::Matchers::Be (class)">Be</a></span>, <span class='object_link'><a href="Matchers/BeComparedTo.html" title="RSpec::Matchers::BeComparedTo (class)">BeComparedTo</a></span>, <span class='object_link'><a href="Matchers/BePredicate.html" title="RSpec::Matchers::BePredicate (class)">BePredicate</a></span>, <span class='object_link'><a href="Matchers/Change.html" title="RSpec::Matchers::Change (class)">Change</a></span>, <span class='object_link'><a href="Matchers/Has.html" title="RSpec::Matchers::Has (class)">Has</a></span>, <span class='object_link'><a href="Matchers/Have.html" title="RSpec::Matchers::Have (class)">Have</a></span>, <span class='object_link'><a href="Matchers/MatchArray.html" title="RSpec::Matchers::MatchArray (class)">MatchArray</a></span>, <span class='object_link'><a href="Matchers/Matcher.html" title="RSpec::Matchers::Matcher (class)">Matcher</a></span>, <span class='object_link'><a href="Matchers/MatcherError.html" title="RSpec::Matchers::MatcherError (class)">MatcherError</a></span>, <span class='object_link'><a href="Matchers/NegativeOperatorMatcher.html" title="RSpec::Matchers::NegativeOperatorMatcher (class)">NegativeOperatorMatcher</a></span>, <span class='object_link'><a href="Matchers/OperatorMatcher.html" title="RSpec::Matchers::OperatorMatcher (class)">OperatorMatcher</a></span>, <span class='object_link'><a href="Matchers/PositiveOperatorMatcher.html" title="RSpec::Matchers::PositiveOperatorMatcher (class)">PositiveOperatorMatcher</a></span>, <span class='object_link'><a href="Matchers/RaiseError.html" title="RSpec::Matchers::RaiseError (class)">RaiseError</a></span>, <span class='object_link'><a href="Matchers/RespondTo.html" title="RSpec::Matchers::RespondTo (class)">RespondTo</a></span>, <span class='object_link'><a href="Matchers/Satisfy.html" title="RSpec::Matchers::Satisfy (class)">Satisfy</a></span>, <span class='object_link'><a href="Matchers/ThrowSymbol.html" title="RSpec::Matchers::ThrowSymbol (class)">ThrowSymbol</a></span>
+    
+  
+</p>
+
+
+  <h2>Class Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#last_matcher-class_method" title="last_matcher (class method)">+ (Object) <strong>last_matcher</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#last_should-class_method" title="last_should (class method)">+ (Object) <strong>last_should</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#clear_generated_description-class_method" title="clear_generated_description (class method)">+ (Object) <strong>clear_generated_description</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#generated_description-class_method" title="generated_description (class method)">+ (Object) <strong>generated_description</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#be-instance_method" title="#be (instance method)">- (Object) <strong>be</strong>(*args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#be_a-instance_method" title="#be_a (instance method)">- (Object) <strong>be_a</strong>(klass) </a>
+    
+
+    
+      (also: #be_an)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+passes if target.kind_of?(klass).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#be_a_kind_of-instance_method" title="#be_a_kind_of (instance method)">- (Object) <strong>be_a_kind_of</strong>(expected) </a>
+    
+
+    
+      (also: #be_kind_of)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#be_an_instance_of-instance_method" title="#be_an_instance_of (instance method)">- (Object) <strong>be_an_instance_of</strong>(expected) </a>
+    
+
+    
+      (also: #be_instance_of)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#be_close-instance_method" title="#be_close (instance method)">- (Object) <strong>be_close</strong>(expected, delta) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#change-instance_method" title="#change (instance method)">- (Object) <strong>change</strong>(receiver = nil, message = nil, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#eq-instance_method" title="#eq (instance method)">- (Object) <strong>eq</strong>(expected) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#eql-instance_method" title="#eql (instance method)">- (Object) <strong>eql</strong>(expected) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#equal-instance_method" title="#equal (instance method)">- (Object) <strong>equal</strong>(expected) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#exist-instance_method" title="#exist (instance method)">- (Object) <strong>exist</strong>(arg = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#have-instance_method" title="#have (instance method)">- (Object) <strong>have</strong>(n) </a>
+    
+
+    
+      (also: #have_exactly)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#have_at_least-instance_method" title="#have_at_least (instance method)">- (Object) <strong>have_at_least</strong>(n) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#have_at_most-instance_method" title="#have_at_most (instance method)">- (Object) <strong>have_at_most</strong>(n) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#include-instance_method" title="#include (instance method)">- (Object) <strong>include</strong>(*expected) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#match-instance_method" title="#match (instance method)">- (Object) <strong>match</strong>(expected) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#method_missing-instance_method" title="#method_missing (instance method)">- (Object) <strong>method_missing</strong>(sym, *args, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raise_error-instance_method" title="#raise_error (instance method)">- (Object) <strong>raise_error</strong>(error = Exception, message = nil, &amp;block) </a>
+    
+
+    
+      (also: #raise_exception)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#respond_to-instance_method" title="#respond_to (instance method)">- (Object) <strong>respond_to</strong>(*names) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#satisfy-instance_method" title="#satisfy (instance method)">- (Object) <strong>satisfy</strong>(&amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#throw_symbol-instance_method" title="#throw_symbol (instance method)">- (Object) <strong>throw_symbol</strong>(expected_symbol = nil, expected_arg = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:call-seq:.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+<div id="method_missing_details" class="method_details_list">
+  <h2>Dynamic Method Handling</h2>
+  <p class="notice this">
+    This class handles dynamic methods through the <tt>method_missing</tt> method
+    
+  </p>
+  
+    <div class="method_details first">
+  <p class="signature first" id="method_missing-instance_method">
+  
+    - (<tt>Object</tt>) <strong>method_missing</strong>(sym, *args, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+3
+4
+5
+6
+7</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/method_missing.rb', line 3</span>
+
+<span class='kw'>def</span> <span class='id method_missing'>method_missing</span><span class='lparen'>(</span><span class='id sym'>sym</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span> <span class='comment'># :nodoc:
+</span>  <span class='kw'>return</span> <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>BePredicate</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id sym'>sym</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id sym'>sym</span><span class='period'>.</span><span class='id to_s'>to_s</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^be_</span><span class='regexp_end'>/</span></span>
+  <span class='kw'>return</span> <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Has</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id sym'>sym</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id sym'>sym</span><span class='period'>.</span><span class='id to_s'>to_s</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^have_</span><span class='regexp_end'>/</span></span>
+  <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="class_attr_details" class="attr_details">
+    <h2>Class Attribute Details</h2>
+    
+      
+      <span id="last_matcher=-class_method"></span>
+      <span id="last_matcher-class_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="last_matcher-class_method">
+  
+    + (<tt>Object</tt>) <strong>last_matcher</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+4
+5
+6</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/generated_descriptions.rb', line 4</span>
+
+<span class='kw'>def</span> <span class='id last_matcher'>last_matcher</span>
+  <span class='ivar'>@last_matcher</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id="last_should=-class_method"></span>
+      <span id="last_should-class_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="last_should-class_method">
+  
+    + (<tt>Object</tt>) <strong>last_should</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+4
+5
+6</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/generated_descriptions.rb', line 4</span>
+
+<span class='kw'>def</span> <span class='id last_should'>last_should</span>
+  <span class='ivar'>@last_should</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="clear_generated_description-class_method">
+  
+    + (<tt>Object</tt>) <strong>clear_generated_description</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+7
+8
+9
+10</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/generated_descriptions.rb', line 7</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id clear_generated_description'>clear_generated_description</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id last_matcher'>last_matcher</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id last_should'>last_should</span> <span class='op'>=</span> <span class='kw'>nil</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="generated_description-class_method">
+  
+    + (<tt>Object</tt>) <strong>generated_description</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+12
+13
+14
+15</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/generated_descriptions.rb', line 12</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id generated_description'>generated_description</span>
+  <span class='kw'>return</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='id last_should'>last_should</span><span class='period'>.</span><span class='id nil?'>nil?</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id last_should'>last_should</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>_</span><span class='tstring_end'>'</span></span><span class='comma'>,</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'> </span><span class='embexpr_beg'>#{</span><span class='id last_description'>last_description</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="be-instance_method">
+  
+    - (<tt>Object</tt>) <strong>be</strong>(*args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  should be_true
+  should be_false
+  should be_nil
+  should be_[arbitrary_predicate](*args)
+  should_not be_nil
+  should_not be_[arbitrary_predicate](*args)
+</pre>
+<p>
+Given true, false, or nil, will pass if actual value is true, false or nil
+(respectively). Given no args means the caller should satisfy an if
+condition (to be or not to be). 
+</p>
+<p>
+Predicates are any Ruby method that ends in a &#8220;?&#8221; and returns
+true or false. Given be_ followed by arbitrary_predicate (without the
+&#8220;?&#8221;), RSpec will match convert that into a query against the
+target object.
+</p>
+<p>
+The arbitrary_predicate feature will handle any predicate prefixed with
+&#8220;be_an_&#8221; (e.g. be_an_instance_of), &#8220;be_a_&#8221; (e.g.
+be_a_kind_of) or &#8220;be_&#8221; (e.g. be_empty), letting you choose the
+prefix that best suits the predicate.
+</p>
+<h2>Examples </h2>
+<pre class="code">
+  <span class='id target'>target</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_true'>be_true</span>
+  <span class='id target'>target</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_false'>be_false</span>
+  <span class='id target'>target</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_nil'>be_nil</span>
+  <span class='id target'>target</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_nil'>be_nil</span>
+
+  <span class='id collection'>collection</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_empty'>be_empty</span> <span class='comment'>#passes if target.empty?
+</span>  <span class='id target'>target</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_empty'>be_empty</span> <span class='comment'>#passes unless target.empty?
+</span>  <span class='id target'>target</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_old_enough'>be_old_enough</span><span class='lparen'>(</span><span class='int'>16</span><span class='rparen'>)</span> <span class='comment'>#passes unless target.old_enough?(16)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+210
+211
+212
+213</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/be.rb', line 210</span>
+
+<span class='kw'>def</span> <span class='id be'>be</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id args'>args</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='op'>?</span>
+    <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Be</span><span class='period'>.</span><span class='id new'>new</span> <span class='op'>:</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="be_a-instance_method">
+  
+    - (<tt>Object</tt>) <strong>be_a</strong>(klass) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='be_an-instance_method'>be_an</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+passes if target.kind_of?(klass)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+216
+217
+218</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/be.rb', line 216</span>
+
+<span class='kw'>def</span> <span class='id be_a'>be_a</span><span class='lparen'>(</span><span class='id klass'>klass</span><span class='rparen'>)</span>
+  <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='id klass'>klass</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="be_a_kind_of-instance_method">
+  
+    - (<tt>Object</tt>) <strong>be_a_kind_of</strong>(expected) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='be_kind_of-instance_method'>be_kind_of</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id be_kind_of'>be_kind_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id be_kind_of'>be_kind_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual.kind_of?(expected)
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_kind_of'>be_kind_of</span><span class='lparen'>(</span><span class='const'>Fixnum</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_kind_of'>be_kind_of</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_kind_of'>be_kind_of</span><span class='lparen'>(</span><span class='const'>Float</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18
+19
+20
+21
+22</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/be_kind_of.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id be_a_kind_of'>be_a_kind_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:be_a_kind_of</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span><span class='period'>.</span><span class='id kind_of?'>kind_of?</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="be_an_instance_of-instance_method">
+  
+    - (<tt>Object</tt>) <strong>be_an_instance_of</strong>(expected) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='be_instance_of-instance_method'>be_instance_of</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id be_an_instance_of'>be_an_instance_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id be_an_instance_of'>be_an_instance_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual.instance_of?(expected)
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='const'>Fixnum</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='const'>Numeric</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id be_instance_of'>be_instance_of</span><span class='lparen'>(</span><span class='const'>Float</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18
+19
+20
+21
+22</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/be_instance_of.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id be_an_instance_of'>be_an_instance_of</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:be_an_instance_of</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="be_close-instance_method">
+  
+    - (<tt>Object</tt>) <strong>be_close</strong>(expected, delta) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id be_close'>be_close</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='comma'>,</span> <span class='id delta'>delta</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id be_close'>be_close</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='comma'>,</span> <span class='id delta'>delta</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual == expected +/- delta
+</p>
+<h2>Example</h2>
+<pre class="code">
+  <span class='id result'>result</span><span class='period'>.</span><span class='id should'>should</span> <span class='id be_close'>be_close</span><span class='lparen'>(</span><span class='float'>3.0</span><span class='comma'>,</span> <span class='float'>0.5</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/be_close.rb', line 12</span>
+
+<span class='kw'>def</span> <span class='id be_close'>be_close</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='comma'>,</span> <span class='id delta'>delta</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:be_close</span><span class='comma'>,</span> <span class='id expected'>expected</span><span class='comma'>,</span> <span class='id delta'>delta</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='comma'>,</span> <span class='id _delta_'>_delta_</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='lparen'>(</span><span class='id actual'>actual</span> <span class='op'>-</span> <span class='id _expected_'>_expected_</span><span class='rparen'>)</span><span class='period'>.</span><span class='id abs'>abs</span> <span class='op'>&lt;</span> <span class='id _delta_'>_delta_</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should'>failure_message_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='rbrace'>}</span><span class='tstring_content'> +/- (&lt; </span><span class='embexpr_beg'>#{</span><span class='id _delta_'>_delta_</span><span class='rbrace'>}</span><span class='tstring_content'>), got </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should_not'>failure_message_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='rbrace'>}</span><span class='tstring_content'> +/- (&lt; </span><span class='embexpr_beg'>#{</span><span class='id _delta_'>_delta_</span><span class='rbrace'>}</span><span class='tstring_content'>), got </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='id description'>description</span> <span class='kw'>do</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>be close to </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='rbrace'>}</span><span class='tstring_content'> (within +- </span><span class='embexpr_beg'>#{</span><span class='id _delta_'>_delta_</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="change-instance_method">
+  
+    - (<tt>Object</tt>) <strong>change</strong>(receiver = nil, message = nil, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id by'>by</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span><span class='period'>.</span><span class='id from'>from</span><span class='lparen'>(</span><span class='id old'>old</span><span class='rparen'>)</span><span class='period'>.</span><span class='id to'>to</span><span class='lparen'>(</span><span class='id new'>new</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+</pre>
+<p>
+Allows you to specify that a Proc will cause some value to change.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id team'>team</span><span class='period'>.</span><span class='id add_player'>add_player</span><span class='lparen'>(</span><span class='id player'>player</span><span class='rparen'>)</span> 
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id roster'>roster</span><span class='comma'>,</span> <span class='symbol'>:count</span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id team'>team</span><span class='period'>.</span><span class='id add_player'>add_player</span><span class='lparen'>(</span><span class='id player'>player</span><span class='rparen'>)</span> 
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id roster'>roster</span><span class='comma'>,</span> <span class='symbol'>:count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id by'>by</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id team'>team</span><span class='period'>.</span><span class='id add_player'>add_player</span><span class='lparen'>(</span><span class='id player'>player</span><span class='rparen'>)</span> 
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id roster'>roster</span><span class='comma'>,</span> <span class='symbol'>:count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id by_at_least'>by_at_least</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id team'>team</span><span class='period'>.</span><span class='id add_player'>add_player</span><span class='lparen'>(</span><span class='id player'>player</span><span class='rparen'>)</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id roster'>roster</span><span class='comma'>,</span> <span class='symbol'>:count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id by_at_most'>by_at_most</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span>    
+
+  <span class='id string'>string</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>string</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id string'>string</span><span class='period'>.</span><span class='id reverse!'>reverse!</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span> <span class='lbrace'>{</span> <span class='id string'>string</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id from'>from</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>string</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id to'>to</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>gnirts</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id person'>person</span><span class='period'>.</span><span class='id happy_birthday'>happy_birthday</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id person'>person</span><span class='comma'>,</span> <span class='symbol'>:birthday</span><span class='rparen'>)</span><span class='period'>.</span><span class='id from'>from</span><span class='lparen'>(</span><span class='int'>32</span><span class='rparen'>)</span><span class='period'>.</span><span class='id to'>to</span><span class='lparen'>(</span><span class='int'>33</span><span class='rparen'>)</span>
+      
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span>
+    <span class='id employee'>employee</span><span class='period'>.</span><span class='id develop_great_new_social_networking_app'>develop_great_new_social_networking_app</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id employee'>employee</span><span class='comma'>,</span> <span class='symbol'>:title</span><span class='rparen'>)</span><span class='period'>.</span><span class='id from'>from</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Mail Clerk</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id to'>to</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CEO</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+Evaluates <tt>receiver.message</tt> or <tt>block</tt> before and after it
+evaluates the c object (generated by the lambdas in the examples above).
+</p>
+<p>
+Then compares the values before and after the <tt>receiver.message</tt> and
+evaluates the difference compared to the expected difference.
+</p>
+<h2>WARNING</h2>
+<p>
+<tt>should_not change</tt> only supports the form with no subsequent calls
+to <tt>by</tt>, <tt>by_at_least</tt>, <tt>by_at_most</tt>, <tt>to</tt> or
+<tt>from</tt>.
+</p>
+<p>
+blocks passed to <tt>should</tt> <tt>change</tt> and <tt>should_not</tt>
+<tt>change</tt> must use the <tt>{}</tt> form (<tt>do/end</tt> is not
+supported).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+180
+181
+182</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/change.rb', line 180</span>
+
+<span class='kw'>def</span> <span class='id change'>change</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='op'>=</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='id message'>message</span><span class='op'>=</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Change</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id receiver'>receiver</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="eq-instance_method">
+  
+    - (<tt>Object</tt>) <strong>eq</strong>(expected) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id eq'>eq</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id eq'>eq</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual == expected.
+</p>
+<p>
+See <a
+href="http://www.ruby-doc.org/core/classes/Object.html#M001057">www.ruby-doc.org/core/classes/Object.html#M001057</a>
+for more information about equality in Ruby.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id eq'>eq</span><span class='lparen'>(</span><span class='int'>5</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id eq'>eq</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/eq.rb', line 15</span>
+
+<span class='kw'>def</span> <span class='id eq'>eq</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:eq</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+
+    <span class='id diffable'>diffable</span>
+
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span> <span class='op'>==</span> <span class='id _expected_'>_expected_</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should'>failure_message_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+</span><span class='tstring_content'> got </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+(compared using ==)
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should_not'>failure_message_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'> not to equal </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+(compared using ==)
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+
+    <span class='id description'>description</span> <span class='kw'>do</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>== </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="eql-instance_method">
+  
+    - (<tt>Object</tt>) <strong>eql</strong>(expected) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual and expected are of equal value, but not necessarily the
+same object.
+</p>
+<p>
+See <a
+href="http://www.ruby-doc.org/core/classes/Object.html#M001057">www.ruby-doc.org/core/classes/Object.html#M001057</a>
+for more information about equality in Ruby.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='int'>5</span><span class='rparen'>)</span>
+  <span class='int'>5</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/eql.rb', line 15</span>
+
+<span class='kw'>def</span> <span class='id eql'>eql</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:eql</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+
+    <span class='id diffable'>diffable</span>
+
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span><span class='period'>.</span><span class='id eql?'>eql?</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should'>failure_message_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+</span><span class='tstring_content'> got </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+(compared using eql?)
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should_not'>failure_message_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id actual'>actual</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'> not to equal </span><span class='embexpr_beg'>#{</span><span class='id _expected_'>_expected_</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+(compared using eql?)
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="equal-instance_method">
+  
+    - (<tt>Object</tt>) <strong>equal</strong>(expected) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual and expected are the same object (object identity).
+</p>
+<p>
+See <a
+href="http://www.ruby-doc.org/core/classes/Object.html#M001057">www.ruby-doc.org/core/classes/Object.html#M001057</a>
+for more information about equality in Ruby.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='int'>5</span><span class='rparen'>)</span> <span class='comment'>#Fixnums are equal
+</span>  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>5</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>5</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='comment'>#Strings that look the same are not the same object</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/equal.rb', line 16</span>
+
+<span class='kw'>def</span> <span class='id equal'>equal</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:equal</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span><span class='period'>.</span><span class='id equal?'>equal?</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    
+    <span class='kw'>def</span> <span class='id inspect_object'>inspect_object</span><span class='lparen'>(</span><span class='id o'>o</span><span class='rparen'>)</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>#&lt;</span><span class='embexpr_beg'>#{</span><span class='id o'>o</span><span class='period'>.</span><span class='id class'>class</span><span class='rbrace'>}</span><span class='tstring_content'>:</span><span class='embexpr_beg'>#{</span><span class='id o'>o</span><span class='period'>.</span><span class='id object_id'>object_id</span><span class='rbrace'>}</span><span class='tstring_content'>&gt; =&gt; </span><span class='embexpr_beg'>#{</span><span class='id o'>o</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    
+    <span class='id failure_message_for_should'>failure_message_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected </span><span class='embexpr_beg'>#{</span><span class='id inspect_object'>inspect_object</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'>
+</span><span class='tstring_content'> got </span><span class='embexpr_beg'>#{</span><span class='id inspect_object'>inspect_object</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+Compared using equal?, which compares object identity,
+but expected and actual are not the same object. Use
+'actual.should == expected' if you don't care about
+object identity in this example.
+
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+
+    <span class='id failure_message_for_should_not'>failure_message_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='heredoc_beg'>&lt;&lt;-MESSAGE</span><span class='tstring_content'>
+</span><span class='tstring_content'>expected not </span><span class='embexpr_beg'>#{</span><span class='id inspect_object'>inspect_object</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'>
+</span><span class='tstring_content'>     got </span><span class='embexpr_beg'>#{</span><span class='id inspect_object'>inspect_object</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_content'>
+
+Compared using equal?, which compares object identity.
+
+</span><span class='heredoc_end'>MESSAGE
+</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="exist-instance_method">
+  
+    - (<tt>Object</tt>) <strong>exist</strong>(arg = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id exist'>exist</span>
+  <span class='id should_not'>should_not</span> <span class='id exist'>exist</span>
+</pre>
+<p>
+Passes if actual.exist?
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+8
+9
+10
+11
+12
+13
+14</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/exist.rb', line 8</span>
+
+<span class='kw'>def</span> <span class='id exist'>exist</span><span class='lparen'>(</span><span class='id arg'>arg</span><span class='op'>=</span><span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:exist</span> <span class='kw'>do</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id arg'>arg</span> <span class='op'>?</span> <span class='id actual'>actual</span><span class='period'>.</span><span class='id exist?'>exist?</span><span class='lparen'>(</span><span class='id arg'>arg</span><span class='rparen'>)</span> <span class='op'>:</span> <span class='id actual'>actual</span><span class='period'>.</span><span class='id exist?'>exist?</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="have-instance_method">
+  
+    - (<tt>Object</tt>) <strong>have</strong>(n) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='have_exactly-instance_method'>have_exactly</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='id number'>number</span><span class='rparen'>)</span><span class='period'>.</span><span class='id named_collection__or__sugar'>named_collection__or__sugar</span>
+  <span class='id should_not'>should_not</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='id number'>number</span><span class='rparen'>)</span><span class='period'>.</span><span class='id named_collection__or__sugar'>named_collection__or__sugar</span>
+</pre>
+<p>
+Passes if receiver is a collection with the submitted number of items OR if
+the receiver OWNS a collection with the submitted number of items.
+</p>
+<p>
+If the receiver OWNS the collection, you must use the name of the
+collection. So if a <tt>Team</tt> instance has a collection named
+<tt>#players</tt>, you must use that name to set the expectation.
+</p>
+<p>
+If the receiver IS the collection, you can use any name you like for
+<tt>named_collection</tt>. We&#8217;d recommend using either
+&#8220;elements&#8221;, &#8220;members&#8221;, or &#8220;items&#8221; as
+these are all standard ways of describing the things IN a collection.
+</p>
+<p>
+This also works for Strings, letting you set an expectation about its
+length
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='comment'># Passes if team.players.size == 11
+</span>  <span class='id team'>team</span><span class='period'>.</span><span class='id should'>should</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='int'>11</span><span class='rparen'>)</span><span class='period'>.</span><span class='id players'>players</span>
+
+  <span class='comment'># Passes if [1,2,3].length == 3
+</span>  <span class='lbracket'>[</span><span class='int'>1</span><span class='comma'>,</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should'>should</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span><span class='period'>.</span><span class='id items'>items</span> <span class='comment'>#&quot;items&quot; is pure sugar
+</span>
+  <span class='comment'># Passes if &quot;this string&quot;.length == 11
+</span>  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>this string</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id should'>should</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='int'>11</span><span class='rparen'>)</span><span class='period'>.</span><span class='id characters'>characters</span> <span class='comment'>#&quot;characters&quot; is pure sugar</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+122
+123
+124</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/have.rb', line 122</span>
+
+<span class='kw'>def</span> <span class='id have'>have</span><span class='lparen'>(</span><span class='id n'>n</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Have</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id n'>n</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="have_at_least-instance_method">
+  
+    - (<tt>Object</tt>) <strong>have_at_least</strong>(n) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id have_at_least'>have_at_least</span><span class='lparen'>(</span><span class='id number'>number</span><span class='rparen'>)</span><span class='period'>.</span><span class='id items'>items</span>
+</pre>
+<p>
+Exactly like have() with >=.
+</p>
+<h2>Warning</h2>
+<p>
+<tt>should_not</tt> <tt>have_at_least</tt> is not supported
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+135
+136
+137</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/have.rb', line 135</span>
+
+<span class='kw'>def</span> <span class='id have_at_least'>have_at_least</span><span class='lparen'>(</span><span class='id n'>n</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Have</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id n'>n</span><span class='comma'>,</span> <span class='symbol'>:at_least</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="have_at_most-instance_method">
+  
+    - (<tt>Object</tt>) <strong>have_at_most</strong>(n) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id have_at_most'>have_at_most</span><span class='lparen'>(</span><span class='id number'>number</span><span class='rparen'>)</span><span class='period'>.</span><span class='id items'>items</span>
+</pre>
+<p>
+Exactly like have() with <=.
+</p>
+<h2>Warning</h2>
+<p>
+<tt>should_not</tt> <tt>have_at_most</tt> is not supported
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+147
+148
+149</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/have.rb', line 147</span>
+
+<span class='kw'>def</span> <span class='id have_at_most'>have_at_most</span><span class='lparen'>(</span><span class='id n'>n</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Have</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id n'>n</span><span class='comma'>,</span> <span class='symbol'>:at_most</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="include-instance_method">
+  
+    - (<tt>Object</tt>) <strong>include</strong>(*expected) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+</pre>
+<p>
+Passes if actual includes expected. This works for collections and Strings.
+You can also pass in multiple args and it will only pass if all args are
+found in collection.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='lbracket'>[</span><span class='int'>1</span><span class='comma'>,</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should'>should</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='int'>3</span><span class='rparen'>)</span>
+  <span class='lbracket'>[</span><span class='int'>1</span><span class='comma'>,</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should'>should</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rparen'>)</span> <span class='comment'>#would pass
+</span>  <span class='lbracket'>[</span><span class='int'>1</span><span class='comma'>,</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should'>should</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='comma'>,</span><span class='int'>4</span><span class='rparen'>)</span> <span class='comment'>#would fail
+</span>  <span class='lbracket'>[</span><span class='int'>1</span><span class='comma'>,</span><span class='int'>2</span><span class='comma'>,</span><span class='int'>3</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='int'>4</span><span class='rparen'>)</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>spread</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id should'>should</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>read</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>spread</span><span class='tstring_end'>&quot;</span></span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>red</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/include.rb', line 19</span>
+
+<span class='kw'>def</span> <span class='id include'>include</span><span class='lparen'>(</span><span class='op'>*</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:include</span><span class='comma'>,</span> <span class='op'>*</span><span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='op'>*</span><span class='id _expected'>_expected</span><span class='op'>|</span>
+    <span class='id match_for_should'>match_for_should</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id perform_match'>perform_match</span><span class='lparen'>(</span><span class='symbol'>:all?</span><span class='comma'>,</span> <span class='symbol'>:all?</span><span class='comma'>,</span> <span class='id actual'>actual</span><span class='comma'>,</span> <span class='id _expected'>_expected</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='id match_for_should_not'>match_for_should_not</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id perform_match'>perform_match</span><span class='lparen'>(</span><span class='symbol'>:none?</span><span class='comma'>,</span> <span class='symbol'>:any?</span><span class='comma'>,</span> <span class='id actual'>actual</span><span class='comma'>,</span> <span class='id _expected'>_expected</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id perform_match'>perform_match</span><span class='lparen'>(</span><span class='id predicate'>predicate</span><span class='comma'>,</span> <span class='id hash_predicate'>hash_predicate</span><span class='comma'>,</span> <span class='id actual'>actual</span><span class='comma'>,</span> <span class='id _expected'>_expected</span><span class='rparen'>)</span>
+      <span class='id _expected'>_expected</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='id predicate'>predicate</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id expected'>expected</span><span class='op'>|</span>
+        <span class='kw'>if</span> <span class='id comparing_hash_values?'>comparing_hash_values?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='comma'>,</span> <span class='id expected'>expected</span><span class='rparen'>)</span>
+          <span class='id expected'>expected</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='id hash_predicate'>hash_predicate</span><span class='rparen'>)</span> <span class='lbrace'>{</span><span class='op'>|</span><span class='id k'>k</span><span class='comma'>,</span><span class='id v'>v</span><span class='op'>|</span> <span class='id actual'>actual</span><span class='lbracket'>[</span><span class='id k'>k</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='id v'>v</span><span class='rbrace'>}</span>
+        <span class='kw'>elsif</span> <span class='id comparing_hash_keys?'>comparing_hash_keys?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='comma'>,</span> <span class='id expected'>expected</span><span class='rparen'>)</span>
+          <span class='id actual'>actual</span><span class='period'>.</span><span class='id has_key?'>has_key?</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+        <span class='kw'>else</span>
+          <span class='id actual'>actual</span><span class='period'>.</span><span class='id include?'>include?</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+        <span class='kw'>end</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id comparing_hash_keys?'>comparing_hash_keys?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='comma'>,</span> <span class='id expected'>expected</span><span class='rparen'>)</span> <span class='comment'># :nodoc:
+</span>      <span class='id actual'>actual</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='id expected'>expected</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id comparing_hash_values?'>comparing_hash_values?</span><span class='lparen'>(</span><span class='id actual'>actual</span><span class='comma'>,</span> <span class='id expected'>expected</span><span class='rparen'>)</span> <span class='comment'># :nodoc:
+</span>      <span class='id actual'>actual</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id expected'>expected</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Hash</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="match-instance_method">
+  
+    - (<tt>Object</tt>) <strong>match</strong>(expected) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id match'>match</span><span class='lparen'>(</span><span class='id pattern'>pattern</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id match'>match</span><span class='lparen'>(</span><span class='id pattern'>pattern</span><span class='rparen'>)</span>
+</pre>
+<p>
+Given a Regexp or String, passes if actual.match(pattern)
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='id email'>email</span><span class='period'>.</span><span class='id should'>should</span> <span class='id match'>match</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^([^\s]+)((?:[-a-z0-9]+\.)+[a-z]{2,})$</span><span class='regexp_end'>/i</span></span><span class='rparen'>)</span>
+  <span class='id email'>email</span><span class='period'>.</span><span class='id should'>should</span> <span class='id match'>match</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>@example.com</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+13
+14
+15
+16
+17
+18
+19</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/match.rb', line 13</span>
+
+<span class='kw'>def</span> <span class='id match'>match</span><span class='lparen'>(</span><span class='id expected'>expected</span><span class='rparen'>)</span>
+  <span class='const'>Matcher</span><span class='period'>.</span><span class='id new'>new</span> <span class='symbol'>:match</span><span class='comma'>,</span> <span class='id expected'>expected</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id _expected_'>_expected_</span><span class='op'>|</span>
+    <span class='id match'>match</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id actual'>actual</span><span class='op'>|</span>
+      <span class='id actual'>actual</span><span class='period'>.</span><span class='id match'>match</span><span class='lparen'>(</span><span class='id _expected_'>_expected_</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="raise_error-instance_method">
+  
+    - (<tt>Object</tt>) <strong>raise_error</strong>(error = Exception, message = nil, &amp;block) 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='raise_exception-instance_method'>raise_exception</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  should raise_error()
+  should raise_error(NamedError)
+  should raise_error(NamedError, String)
+  should raise_error(NamedError, Regexp)
+  should raise_error() { |error| ... }
+  should raise_error(NamedError) { |error| ... }
+  should raise_error(NamedError, String) { |error| ... }
+  should raise_error(NamedError, Regexp) { |error| ... }
+  should_not raise_error()
+  should_not raise_error(NamedError)
+  should_not raise_error(NamedError, String)
+  should_not raise_error(NamedError, Regexp)
+</pre>
+<p>
+With no args, matches if any error is raised. With a named error, matches
+only if that specific error is raised. With a named error and messsage
+specified as a String, matches only if both match. With a named error and
+messsage specified as a Regexp, matches only if both match. Pass an
+optional block to perform extra verifications on the exception matched
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id raise_error'>raise_error</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id error'>error</span><span class='op'>|</span> <span class='id error'>error</span><span class='period'>.</span><span class='id data'>data</span><span class='period'>.</span><span class='id should'>should</span> <span class='op'>==</span> <span class='int'>42</span> <span class='rbrace'>}</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>that was too risky</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='comma'>,</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>oo ri</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id raise_error'>raise_error</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>that was too risky</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='const'>PoorRiskDecisionError</span><span class='comma'>,</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>oo ri</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+125
+126
+127</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/raise_error.rb', line 125</span>
+
+<span class='kw'>def</span> <span class='id raise_error'>raise_error</span><span class='lparen'>(</span><span class='id error'>error</span><span class='op'>=</span><span class='const'>Exception</span><span class='comma'>,</span> <span class='id message'>message</span><span class='op'>=</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>RaiseError</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id error'>error</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="respond_to-instance_method">
+  
+    - (<tt>Object</tt>) <strong>respond_to</strong>(*names) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id respond_to'>respond_to</span><span class='lparen'>(</span><span class='op'>*</span><span class='id names'>names</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id respond_to'>respond_to</span><span class='lparen'>(</span><span class='op'>*</span><span class='id names'>names</span><span class='rparen'>)</span>
+</pre>
+<p>
+Matches if the target object responds to all of the names provided. Names
+can be Strings or Symbols.
+</p>
+<h2>Examples</h2>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+81
+82
+83</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/respond_to.rb', line 81</span>
+
+<span class='kw'>def</span> <span class='id respond_to'>respond_to</span><span class='lparen'>(</span><span class='op'>*</span><span class='id names'>names</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>RespondTo</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='op'>*</span><span class='id names'>names</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="satisfy-instance_method">
+  
+    - (<tt>Object</tt>) <strong>satisfy</strong>(&amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id satisfy'>satisfy</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='id should_not'>should_not</span> <span class='id satisfy'>satisfy</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+</pre>
+<p>
+Passes if the submitted block returns true. Yields target to the block.
+</p>
+<p>
+Generally speaking, this should be thought of as a last resort when you
+can&#8217;t find any other way to specify the behaviour you wish to
+specify.
+</p>
+<p>
+If you do find yourself in such a situation, you could always write a
+custom matcher, which would likely make your specs more expressive.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='int'>5</span><span class='period'>.</span><span class='id should'>should</span> <span class='id satisfy'>satisfy</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id n'>n</span><span class='op'>|</span>
+    <span class='id n'>n</span> <span class='op'>&gt;</span> <span class='int'>3</span>
+  <span class='rbrace'>}</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+47
+48
+49</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/satisfy.rb', line 47</span>
+
+<span class='kw'>def</span> <span class='id satisfy'>satisfy</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>Satisfy</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="throw_symbol-instance_method">
+  
+    - (<tt>Object</tt>) <strong>throw_symbol</strong>(expected_symbol = nil, expected_arg = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:call-seq:
+</p>
+<pre class="code">
+  <span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:sym</span><span class='rparen'>)</span>
+  <span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:sym</span><span class='comma'>,</span> <span class='id arg'>arg</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:sym</span><span class='rparen'>)</span>
+  <span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:sym</span><span class='comma'>,</span> <span class='id arg'>arg</span><span class='rparen'>)</span>
+</pre>
+<p>
+Given no argument, matches if a proc throws any Symbol.
+</p>
+<p>
+Given a Symbol, matches if the given proc throws the specified Symbol.
+</p>
+<p>
+Given a Symbol and an arg, matches if the given proc throws the specified
+Symbol with the specified arg.
+</p>
+<h2>Examples</h2>
+<pre class="code">
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:that_was_risky</span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should'>should</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:that_was_risky</span><span class='comma'>,</span> <span class='id culprit'>culprit</span><span class='rparen'>)</span>
+
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:that_was_risky</span><span class='rparen'>)</span>
+  <span class='id lambda'>lambda</span> <span class='lbrace'>{</span> <span class='id do_something_risky'>do_something_risky</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id should_not'>should_not</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='symbol'>:that_was_risky</span><span class='comma'>,</span> <span class='id culprit'>culprit</span><span class='rparen'>)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+100
+101
+102</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rspec/matchers/throw_symbol.rb', line 100</span>
+
+<span class='kw'>def</span> <span class='id throw_symbol'>throw_symbol</span><span class='lparen'>(</span><span class='id expected_symbol'>expected_symbol</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id expected_arg'>expected_arg</span><span class='op'>=</span><span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='const'>Matchers</span><span class='op'>::</span><span class='const'>ThrowSymbol</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id expected_symbol'>expected_symbol</span><span class='comma'>,</span> <span class='id expected_arg'>expected_arg</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 19:40:47 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

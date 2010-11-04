@@ -1,0 +1,2592 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: RDoc::Parser::C</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (C)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../RDoc.html" title="RDoc (module)">RDoc</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Parser.html" title="RDoc::Parser (class)">Parser</a></span></span>
+     &raquo; 
+    <span class="title">C</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: RDoc::Parser::C
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../Parser.html" title="RDoc::Parser (class)">RDoc::Parser</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="../Parser.html" title="RDoc::Parser (class)">RDoc::Parser</a></span></li>
+          
+            <li class="next">RDoc::Parser::C</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+      <dt class="r2">Includes:</dt>
+      <dd class="r2"><span class='object_link'><a href="../Text.html" title="RDoc::Text (module)">Text</a></span></dd>
+      
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">lib/rdoc/parser/c.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+We attempt to parse C extension files. Basically we look for the standard
+patterns that you find in extensions: <tt>rb_define_class,
+rb_define_method</tt> and so on. We also try to find the corresponding C
+source for the methods and extract comments, but if we fail we don&#8217;t
+worry too much.
+</p>
+<p>
+The comments associated with a Ruby method are extracted from the C comment
+block associated with the routine that <em>implements</em> that method,
+that is to say the method whose name is given in the
+<tt>rb_define_method</tt> call. For example, you might write:
+</p>
+<pre class="code">
+  /*
+   * Returns a new array that is a one-dimensional flattening of this
+   * array (recursively). That is, for every element that is an array,
+   * extract its elements into the new array.
+   *    *    s = [ 1, 2, 3 ]           #=&gt; [1, 2, 3]
+   *    t = [ 4, 5, 6, [7, 8] ]   #=&gt; [4, 5, 6, [7, 8]]
+   *    a = [ s, t, 9, 10 ]       #=&gt; [[1, 2, 3], [4, 5, 6, [7, 8]], 9, 10]
+   *    a.flatten                 #=&gt; [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+   */
+   static VALUE
+   rb_ary_flatten(ary)
+       VALUE ary;
+   {
+       ary = rb_obj_dup(ary);
+       rb_ary_flatten_bang(ary);
+       return ary;
+   }
+
+   ...
+
+   void
+   Init_Array()
+   {
+     ...
+     rb_define_method(rb_cArray, &quot;flatten&quot;, rb_ary_flatten, 0);
+</pre>
+<p>
+Here RDoc will determine from the rb_define_method line that there&#8217;s
+a method called &#8220;flatten&#8221; in class Array, and will look for the
+implementation in the method rb_ary_flatten. It will then use the comment
+from that method in the HTML output. This method must be in the same source
+file as the rb_define_method.
+</p>
+<p>
+The comment blocks may include special directives:
+</p>
+<dl>
+<dt>Document-class: <em>name</em></dt><dd><p>
+This comment block is documentation for the given class. Use this when the
+<tt>Init_xxx</tt> method is not named after the class.
+</p>
+</dd>
+<dt>Document-method: <em>name</em></dt><dd><p>
+This comment documents the named method. Use when RDoc cannot automatically
+find the method from it&#8217;s declaration
+</p>
+</dd>
+<dt>call-seq:  <em>text up to an empty line</em></dt><dd><p>
+Because C source doesn&#8217;t give descripive names to Ruby-level
+parameters, you need to document the calling sequence explicitly
+</p>
+</dd>
+</dl>
+<p>
+In addition, RDoc assumes by default that the C method implementing a Ruby
+function is in the same source file as the rb_define_method call. If this
+isn&#8217;t the case, add the comment:
+</p>
+<pre class="code">
+  rb_define_method(....);  // in filename
+</pre>
+<p>
+As an example, we might have an extension that defines multiple classes in
+its Init_xxx method. We could document them using
+</p>
+<pre class="code">
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * Document-class:  MyClass
+   *    * Encapsulate the writing and reading of the configuration
+   * file. ...
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span>
+
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * Document-method: read_value
+   *    * call-seq:
+   *   cfg.read_value(key)            -&gt; value
+   *   cfg.read_value(key} { |key| }  -&gt; value
+   *    * Return the value corresponding to +key+ from the configuration.
+   * In the second form, if the key isn't found, invoke the
+   * block and return its value.
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  <h2>Instance Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#content-instance_method" title="#content (instance method)">- (Object) <strong>content</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+C file the parser is parsing.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reset-class_method" title="reset (class method)">+ (Object) <strong>reset</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Resets cross-file state.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#do_aliases-instance_method" title="#do_aliases (instance method)">- (Object) <strong>do_aliases</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#do_classes-instance_method" title="#do_classes (instance method)">- (Object) <strong>do_classes</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#do_constants-instance_method" title="#do_constants (instance method)">- (Object) <strong>do_constants</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#do_includes-instance_method" title="#do_includes (instance method)">- (Object) <strong>do_includes</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Look for includes of the form:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#do_methods-instance_method" title="#do_methods (instance method)">- (Object) <strong>do_methods</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_attr_comment-instance_method" title="#find_attr_comment (instance method)">- (Object) <strong>find_attr_comment</strong>(attr_name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_body-instance_method" title="#find_body (instance method)">- (Object) <strong>find_body</strong>(class_name, meth_name, meth_obj, body, quiet = false) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Find the C code corresponding to a Ruby method.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_class-instance_method" title="#find_class (instance method)">- (Object) <strong>find_class</strong>(raw_name, name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_class_comment-instance_method" title="#find_class_comment (instance method)">- (Object) <strong>find_class_comment</strong>(class_name, class_mod) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Look for class or module documentation above Init_<tt>class_name</tt>(void), in a
+Document-class <tt>class_name</tt> (or module) comment or above an
+rb_define_class (or module).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_const_comment-instance_method" title="#find_const_comment (instance method)">- (Object) <strong>find_const_comment</strong>(type, const_name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Finds a comment matching <tt>type</tt> and <tt>const_name</tt> either above
+the comment or in the matching Document- section.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_modifiers-instance_method" title="#find_modifiers (instance method)">- (Object) <strong>find_modifiers</strong>(comment, meth_obj) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+If the comment block contains a section that looks like:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#find_override_comment-instance_method" title="#find_override_comment (instance method)">- (Object) <strong>find_override_comment</strong>(class_name, meth_name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_attr-instance_method" title="#handle_attr (instance method)">- (Object) <strong>handle_attr</strong>(var_name, attr_name, reader, writer) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_class_module-instance_method" title="#handle_class_module (instance method)">- (Object) <strong>handle_class_module</strong>(var_name, type, class_name, parent, in_module) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_constants-instance_method" title="#handle_constants (instance method)">- (Object) <strong>handle_constants</strong>(type, var_name, const_name, definition) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Adds constant comments.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_ifdefs_in-instance_method" title="#handle_ifdefs_in (instance method)">- (Object) <strong>handle_ifdefs_in</strong>(body) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Removes #ifdefs that would otherwise confuse us.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_method-instance_method" title="#handle_method (instance method)">- (Object) <strong>handle_method</strong>(type, var_name, meth_name, meth_body, param_count, source_file = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#handle_tab_width-instance_method" title="#handle_tab_width (instance method)">- (Object) <strong>handle_tab_width</strong>(body) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (C) <strong>initialize</strong>(top_level, file_name, content, options, stats) </a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Prepare to parse a C file.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#look_for_directives_in-instance_method" title="#look_for_directives_in (instance method)">- (Object) <strong>look_for_directives_in</strong>(context, comment) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Look for directives in a normal comment block:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remove_commented_out_lines-instance_method" title="#remove_commented_out_lines (instance method)">- (Object) <strong>remove_commented_out_lines</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Removes lines that are commented out that might otherwise get picked up
+when scanning for classes and methods.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remove_private_comments-instance_method" title="#remove_private_comments (instance method)">- (Object) <strong>remove_private_comments</strong>(comment) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#scan-instance_method" title="#scan (instance method)">- (Object) <strong>scan</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Extract the classes/modules and methods from a C file and return the
+corresponding top-level object.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../Text.html" title="RDoc::Text (module)">Text</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../Text.html#expand_tabs-instance_method" title="RDoc::Text#expand_tabs (method)">#expand_tabs</a></span>, <span class='object_link'><a href="../Text.html#flush_left-instance_method" title="RDoc::Text#flush_left (method)">#flush_left</a></span>, <span class='object_link'><a href="../Text.html#markup-instance_method" title="RDoc::Text#markup (method)">#markup</a></span>, <span class='object_link'><a href="../Text.html#normalize_comment-instance_method" title="RDoc::Text#normalize_comment (method)">#normalize_comment</a></span>, <span class='object_link'><a href="../Text.html#parse-instance_method" title="RDoc::Text#parse (method)">#parse</a></span>, <span class='object_link'><a href="../Text.html#strip_hashes-instance_method" title="RDoc::Text#strip_hashes (method)">#strip_hashes</a></span>, <span class='object_link'><a href="../Text.html#strip_newlines-instance_method" title="RDoc::Text#strip_newlines (method)">#strip_newlines</a></span>, <span class='object_link'><a href="../Text.html#strip_stars-instance_method" title="RDoc::Text#strip_stars (method)">#strip_stars</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../Parser.html" title="RDoc::Parser (class)">RDoc::Parser</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../Parser.html#alias_extension-class_method" title="RDoc::Parser.alias_extension (method)">alias_extension</a></span>, <span class='object_link'><a href="../Parser.html#binary%3F-class_method" title="RDoc::Parser.binary? (method)">binary?</a></span>, <span class='object_link'><a href="../Parser.html#can_parse-class_method" title="RDoc::Parser.can_parse (method)">can_parse</a></span>, <span class='object_link'><a href="../Parser.html#for-class_method" title="RDoc::Parser.for (method)">for</a></span>, <span class='object_link'><a href="../Parser.html#parse_files_matching-class_method" title="RDoc::Parser.parse_files_matching (method)">parse_files_matching</a></span>, <span class='object_link'><a href="../Parser.html#zip%3F-class_method" title="RDoc::Parser.zip? (method)">zip?</a></span></p>
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="RDoc::Parser::C (class)">C</a></span></tt>) <strong>initialize</strong>(top_level, file_name, content, options, stats) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Prepare to parse a C file
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+117
+118
+119
+120
+121
+122
+123
+124</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 117</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id top_level'>top_level</span><span class='comma'>,</span> <span class='id file_name'>file_name</span><span class='comma'>,</span> <span class='id content'>content</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='id stats'>stats</span><span class='rparen'>)</span>
+  <span class='kw'>super</span>
+
+  <span class='ivar'>@known_classes</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>KNOWN_CLASSES</span><span class='period'>.</span><span class='id dup'>dup</span>
+  <span class='ivar'>@content</span> <span class='op'>=</span> <span class='id handle_tab_width'>handle_tab_width</span> <span class='id handle_ifdefs_in'>handle_ifdefs_in</span><span class='lparen'>(</span><span class='ivar'>@content</span><span class='rparen'>)</span>
+  <span class='ivar'>@classes</span> <span class='op'>=</span> <span class='const'>Hash</span><span class='period'>.</span><span class='id new'>new</span>
+  <span class='ivar'>@file_dir</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id dirname'>dirname</span><span class='lparen'>(</span><span class='ivar'>@file_name</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id="content=-instance_method"></span>
+      <span id="content-instance_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="content-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>content</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+C file the parser is parsing
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+101
+102
+103</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 101</span>
+
+<span class='kw'>def</span> <span class='id content'>content</span>
+  <span class='ivar'>@content</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="reset-class_method">
+  
+    + (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>reset</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Resets cross-file state.  Call when parsing different projects that need
+separate documentation.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+107
+108
+109
+110</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 107</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id reset'>reset</span>
+  <span class='cvar'>@@enclosure_classes</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='cvar'>@@known_bodies</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="do_aliases-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>do_aliases</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id do_aliases'>do_aliases</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>rb_define_alias\s*\(\s*(\w+),\s*&quot;([^&quot;]+)&quot;,\s*&quot;([^&quot;]+)&quot;\s*\)</span><span class='regexp_end'>}m</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id new_name'>new_name</span><span class='comma'>,</span> <span class='id old_name'>old_name</span><span class='op'>|</span>
+    <span class='id class_name'>class_name</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id var_name'>var_name</span>
+    <span class='id class_obj'>class_obj</span>  <span class='op'>=</span> <span class='id find_class'>find_class</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='rparen'>)</span>
+
+    <span class='id as'>as</span> <span class='op'>=</span> <span class='id class_obj'>class_obj</span><span class='period'>.</span><span class='id add_alias'>add_alias</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Alias</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id old_name'>old_name</span><span class='comma'>,</span> <span class='id new_name'>new_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+    <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_alias'>add_alias</span> <span class='id as'>as</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="do_classes-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>do_classes</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 138</span>
+
+<span class='kw'>def</span> <span class='id do_classes'>do_classes</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(\w+)\s* = \s*rb_define_module\s*\(\s*&quot;(\w+)&quot;\s*\)</span><span class='regexp_end'>/mx</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='op'>|</span>
+    <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>module</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># The '.' lets us handle SWIG-generated files
+</span>  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>([\w\.]+)\s* = \s*rb_define_class\s*
+            \(
+               \s*&quot;(\w+)&quot;,
+               \s*(\w+)\s*
+</span><span class='tstring_content'>            \)</span><span class='regexp_end'>/mx</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='op'>|</span>
+    <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(\w+)\s*=\s*boot_defclass\s*\(\s*&quot;(\w+?)&quot;,\s*(\w+?)\s*\)</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='op'>|</span>
+    <span class='id parent'>parent</span> <span class='op'>=</span> <span class='kw'>nil</span> <span class='kw'>if</span> <span class='id parent'>parent</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(\w+)\s* = \s*rb_define_module_under\s*
+            \(
+               \s*(\w+),
+               \s*&quot;(\w+)&quot;
+</span><span class='tstring_content'>            \s*\)</span><span class='regexp_end'>/mx</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id in_module'>in_module</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='op'>|</span>
+    <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>module</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id in_module'>in_module</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>([\w\.]+)\s* = \s*rb_define_class_under\s*
+            \(
+               \s*(\w+),
+               \s*&quot;(\w+)&quot;,
+               \s*([\w\*\s\(\)\.\-&gt;]+)\s*  # for SWIG
+</span><span class='tstring_content'>            \s*\)</span><span class='regexp_end'>/mx</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id in_module'>in_module</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='op'>|</span>
+    <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='comma'>,</span> <span class='id in_module'>in_module</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="do_constants-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>do_constants</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 177</span>
+
+<span class='kw'>def</span> <span class='id do_constants'>do_constants</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>\Wrb_define_
+                 ( variable          |
+                   readonly_variable |
+                   const             |
+                   global_const      | )
+             \s*\(
+               (?:\s*(\w+),)?
+               \s*&quot;(\w+)&quot;,
+               \s*(.*?)\s*\)\s*;
+</span><span class='tstring_content'>               </span><span class='regexp_end'>}xm</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id definition'>definition</span><span class='op'>|</span>
+    <span class='id var_name'>var_name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_cObject</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='op'>!</span><span class='id var_name'>var_name</span> <span class='kw'>or</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_mKernel</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id handle_constants'>handle_constants</span> <span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id definition'>definition</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="do_includes-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>do_includes</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Look for includes of the form:
+</p>
+<pre class="code">
+  <span class='id rb_include_module'>rb_include_module</span><span class='lparen'>(</span><span class='id rb_cArray'>rb_cArray</span><span class='comma'>,</span> <span class='id rb_mEnumerable'>rb_mEnumerable</span><span class='rparen'>)</span><span class='semicolon'>;</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+198
+199
+200
+201
+202
+203
+204
+205</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 198</span>
+
+<span class='kw'>def</span> <span class='id do_includes'>do_includes</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>rb_include_module\s*\(\s*(\w+?),\s*(\w+?)\s*\)</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id c'>c</span><span class='comma'>,</span><span class='id m'>m</span><span class='op'>|</span>
+    <span class='kw'>if</span> <span class='id cls'>cls</span> <span class='op'>=</span> <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id c'>c</span><span class='rbracket'>]</span>
+      <span class='id m'>m</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id m'>m</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id m'>m</span>
+      <span class='id cls'>cls</span><span class='period'>.</span><span class='id add_include'>add_include</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Include</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id m'>m</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="do_methods-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>do_methods</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 207</span>
+
+<span class='kw'>def</span> <span class='id do_methods'>do_methods</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>rb_define_
+                 (
+                    singleton_method |
+                    method           |
+                    module_function  |
+                    private_method
+                 )
+                 \s*\(\s*([\w\.]+),
+                   \s*&quot;([^&quot;]+)&quot;,
+                   \s*(?:RUBY_METHOD_FUNC\(|VALUEFUNC\()?(\w+)\)?,
+                   \s*(-?\w+)\s*\)
+                 (?:;\s*/[*/]\s+in\s+(\w+?\.[cy]))?
+</span><span class='tstring_content'>               </span><span class='regexp_end'>}xm</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='op'>|</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='comma'>,</span> <span class='id source_file'>source_file</span><span class='op'>|</span>
+
+    <span class='comment'># Ignore top-object and weird struct.c dynamic stuff
+</span>    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ruby_top_self</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>nstr</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>envtbl</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>next</span> <span class='kw'>if</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>argf</span><span class='tstring_end'>&quot;</span></span>   <span class='comment'># it'd be nice to handle this one
+</span>
+    <span class='id var_name'>var_name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_cObject</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='id var_name'>var_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_mKernel</span><span class='tstring_end'>&quot;</span></span>
+    <span class='id handle_method'>handle_method</span><span class='lparen'>(</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='comma'>,</span>
+                  <span class='id source_file'>source_file</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>rb_define_attr\(
+                           \s*([\w\.]+),
+                           \s*&quot;([^&quot;]+)&quot;,
+                           \s*(\d+),
+                           \s*(\d+)\s*\);
+</span><span class='tstring_content'>              </span><span class='regexp_end'>}xm</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id attr_name'>attr_name</span><span class='comma'>,</span> <span class='id attr_reader'>attr_reader</span><span class='comma'>,</span> <span class='id attr_writer'>attr_writer</span><span class='op'>|</span>
+    <span class='comment'>#var_name = &quot;rb_cObject&quot; if var_name == &quot;rb_mKernel&quot;
+</span>    <span class='id handle_attr'>handle_attr</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id attr_name'>attr_name</span><span class='comma'>,</span>
+                <span class='id attr_reader'>attr_reader</span><span class='period'>.</span><span class='id to_i'>to_i</span> <span class='op'>!=</span> <span class='int'>0</span><span class='comma'>,</span>
+                <span class='id attr_writer'>attr_writer</span><span class='period'>.</span><span class='id to_i'>to_i</span> <span class='op'>!=</span> <span class='int'>0</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>rb_define_global_function\s*\(
+                           \s*&quot;([^&quot;]+)&quot;,
+                           \s*(?:RUBY_METHOD_FUNC\(|VALUEFUNC\()?(\w+)\)?,
+                           \s*(-?\w+)\s*\)
+              (?:;\s*/[*/]\s+in\s+(\w+?\.[cy]))?
+</span><span class='tstring_content'>              </span><span class='regexp_end'>}xm</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='comma'>,</span> <span class='id source_file'>source_file</span><span class='op'>|</span>
+    <span class='id handle_method'>handle_method</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>method</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_mKernel</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span>
+                  <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='comma'>,</span> <span class='id source_file'>source_file</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>define_filetest_function\s*\(
+                           \s*&quot;([^&quot;]+)&quot;,
+                           \s*(?:RUBY_METHOD_FUNC\(|VALUEFUNC\()?(\w+)\)?,
+</span><span class='tstring_content'>                           \s*(-?\w+)\s*\)</span><span class='regexp_end'>/xm</span></span><span class='rparen'>)</span> <span class='kw'>do</span>
+    <span class='op'>|</span><span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='op'>|</span>
+
+    <span class='id handle_method'>handle_method</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>method</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_mFileTest</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='rparen'>)</span>
+    <span class='id handle_method'>handle_method</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>singleton_method</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb_cFile</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_attr_comment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_attr_comment</strong>(attr_name) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 267</span>
+
+<span class='kw'>def</span> <span class='id find_attr_comment'>find_attr_comment</span><span class='lparen'>(</span><span class='id attr_name'>attr_name</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>((?&gt;/\*.*?\*/\s+))
+</span><span class='tstring_content'>                 rb_define_attr\((?:\s*(\w+),)?\s*&quot;</span><span class='embexpr_beg'>#{</span><span class='id attr_name'>attr_name</span><span class='rbrace'>}</span><span class='tstring_content'>&quot;\s*,.*?\)\s*;</span><span class='regexp_end'>}xmi</span></span>
+    <span class='backref'>$1</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-attr:\s</span><span class='embexpr_beg'>#{</span><span class='id attr_name'>attr_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*?\n((?&gt;.*?\*/))</span><span class='regexp_end'>}m</span></span>
+    <span class='backref'>$1</span>
+  <span class='kw'>else</span>
+    <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_body-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_body</strong>(class_name, meth_name, meth_obj, body, quiet = false) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Find the C code corresponding to a Ruby method
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 281</span>
+
+<span class='kw'>def</span> <span class='id find_body'>find_body</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='comma'>,</span> <span class='id body'>body</span><span class='comma'>,</span> <span class='id quiet'>quiet</span> <span class='op'>=</span> <span class='kw'>false</span><span class='rparen'>)</span>
+  <span class='kw'>case</span> <span class='id body'>body</span>
+  <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>%r&quot;</span><span class='tstring_content'>((?&gt;/\*.*?\*/\s*))((?:(?:static|SWIGINTERN)\s+)?(?:intern\s+)?VALUE\s+</span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_content'>
+</span><span class='tstring_content'>          \s*(\([^)]*\))([^;]|$))</span><span class='regexp_end'>&quot;xm</span></span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='backref'>$1</span>
+    <span class='id body_text'>body_text</span> <span class='op'>=</span> <span class='backref'>$2</span>
+    <span class='id params'>params</span> <span class='op'>=</span> <span class='backref'>$3</span>
+
+    <span class='id remove_private_comments'>remove_private_comments</span> <span class='id comment'>comment</span> <span class='kw'>if</span> <span class='id comment'>comment</span>
+
+    <span class='comment'># see if we can find the whole body
+</span>
+    <span class='id re'>re</span> <span class='op'>=</span> <span class='const'>Regexp</span><span class='period'>.</span><span class='id escape'>escape</span><span class='lparen'>(</span><span class='id body_text'>body_text</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>[^(]*^\{.*?^\}</span><span class='tstring_end'>'</span></span>
+    <span class='id body_text'>body_text</span> <span class='op'>=</span> <span class='backref'>$&amp;</span> <span class='kw'>if</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='embexpr_beg'>#{</span><span class='id re'>re</span><span class='rbrace'>}</span><span class='regexp_end'>/m</span></span> <span class='op'>=~</span> <span class='id body'>body</span>
+
+    <span class='comment'># The comment block may have been overridden with a 'Document-method'
+</span>    <span class='comment'># block. This happens in the interpreter when multiple methods are
+</span>    <span class='comment'># vectored through to the same C method but those methods are logically
+</span>    <span class='comment'># distinct (for example Kernel.hash and Kernel.object_id share the same
+</span>    <span class='comment'># implementation
+</span>
+    <span class='id override_comment'>override_comment</span> <span class='op'>=</span> <span class='id find_override_comment'>find_override_comment</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id name'>name</span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id override_comment'>override_comment</span> <span class='kw'>if</span> <span class='id override_comment'>override_comment</span>
+
+    <span class='id find_modifiers'>find_modifiers</span> <span class='id comment'>comment</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span> <span class='kw'>if</span> <span class='id comment'>comment</span>
+
+    <span class='comment'>#meth_obj.params = params
+</span>    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id start_collecting_tokens'>start_collecting_tokens</span>
+    <span class='id tk'>tk</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>RubyToken</span><span class='op'>::</span><span class='const'>Token</span><span class='period'>.</span><span class='id new'>new</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='int'>1</span><span class='comma'>,</span> <span class='int'>1</span>
+    <span class='id tk'>tk</span><span class='period'>.</span><span class='id set_text'>set_text</span> <span class='id body_text'>body_text</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id add_token'>add_token</span> <span class='id tk'>tk</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span> <span class='id comment'>comment</span>
+  <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>((?&gt;/\*.*?\*/\s*))^\s*(\#\s*define\s+</span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s+(\w+))</span><span class='regexp_end'>}m</span></span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='backref'>$1</span>
+    <span class='id body_text'>body_text</span> <span class='op'>=</span> <span class='backref'>$2</span>
+    <span class='id find_body'>find_body</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='backref'>$3</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='comma'>,</span> <span class='id body'>body</span><span class='comma'>,</span> <span class='kw'>true</span>
+    <span class='id find_modifiers'>find_modifiers</span> <span class='id comment'>comment</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span>
+
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id start_collecting_tokens'>start_collecting_tokens</span>
+    <span class='id tk'>tk</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>RubyToken</span><span class='op'>::</span><span class='const'>Token</span><span class='period'>.</span><span class='id new'>new</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='int'>1</span><span class='comma'>,</span> <span class='int'>1</span>
+    <span class='id tk'>tk</span><span class='period'>.</span><span class='id set_text'>set_text</span> <span class='id body_text'>body_text</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id add_token'>add_token</span> <span class='id tk'>tk</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span><span class='lparen'>(</span><span class='id comment'>comment</span><span class='rparen'>)</span> <span class='op'>+</span> <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id comment'>comment</span><span class='period'>.</span><span class='id to_s'>to_s</span>
+  <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>^\s*\#\s*define\s+</span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s+(\w+)</span><span class='regexp_end'>}m</span></span>
+    <span class='kw'>unless</span> <span class='id find_body'>find_body</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='backref'>$1</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='comma'>,</span> <span class='id body'>body</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
+      <span class='id warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>No definition for </span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='ivar'>@options</span><span class='period'>.</span><span class='id quiet'>quiet</span>
+      <span class='kw'>return</span> <span class='kw'>false</span>
+    <span class='kw'>end</span>
+  <span class='kw'>else</span>
+    <span class='comment'># No body, but might still have an override comment
+</span>    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id find_override_comment'>find_override_comment</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id name'>name</span><span class='rparen'>)</span>
+
+    <span class='kw'>if</span> <span class='id comment'>comment</span>
+      <span class='id find_modifiers'>find_modifiers</span><span class='lparen'>(</span><span class='id comment'>comment</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='rparen'>)</span>
+      <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span> <span class='id comment'>comment</span>
+    <span class='kw'>else</span>
+      <span class='id warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>No definition for </span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='ivar'>@options</span><span class='period'>.</span><span class='id quiet'>quiet</span>
+      <span class='kw'>return</span> <span class='kw'>false</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_class-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_class</strong>(raw_name, name) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 344</span>
+
+<span class='kw'>def</span> <span class='id find_class'>find_class</span><span class='lparen'>(</span><span class='id raw_name'>raw_name</span><span class='comma'>,</span> <span class='id name'>name</span><span class='rparen'>)</span>
+  <span class='kw'>unless</span> <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id raw_name'>raw_name</span><span class='rbracket'>]</span>
+    <span class='kw'>if</span> <span class='id raw_name'>raw_name</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^rb_m</span><span class='regexp_end'>/</span></span>
+      <span class='id container'>container</span> <span class='op'>=</span> <span class='ivar'>@top_level</span><span class='period'>.</span><span class='id add_module'>add_module</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>NormalModule</span><span class='comma'>,</span> <span class='id name'>name</span>
+    <span class='kw'>else</span>
+      <span class='id container'>container</span> <span class='op'>=</span> <span class='ivar'>@top_level</span><span class='period'>.</span><span class='id add_class'>add_class</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>NormalClass</span><span class='comma'>,</span> <span class='id name'>name</span>
+    <span class='kw'>end</span>
+
+    <span class='id container'>container</span><span class='period'>.</span><span class='id record_location'>record_location</span> <span class='ivar'>@top_level</span>
+    <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id raw_name'>raw_name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id container'>container</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id raw_name'>raw_name</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_class_comment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_class_comment</strong>(class_name, class_mod) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Look for class or module documentation above Init_<tt>class_name</tt>(void), in a
+Document-class <tt>class_name</tt> (or module) comment or above an
+rb_define_class (or module).  If a comment is supplied above a matching
+Init_ and a rb_define_class the Init_ comment is used.
+</p>
+<pre class="code">
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * This is a comment for Foo
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span>
+  <span class='const'>Init_Foo</span><span class='lparen'>(</span><span class='id void'>void</span><span class='rparen'>)</span> <span class='lbrace'>{</span>
+      <span class='const'>VALUE</span> <span class='id cFoo'>cFoo</span> <span class='op'>=</span> <span class='id rb_define_class'>rb_define_class</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Foo</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id rb_cObject'>rb_cObject</span><span class='rparen'>)</span><span class='semicolon'>;</span>
+  <span class='rbrace'>}</span>
+
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * Document-class: Foo
+   * This is a comment for Foo
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span>
+  <span class='const'>Init_foo</span><span class='lparen'>(</span><span class='id void'>void</span><span class='rparen'>)</span> <span class='lbrace'>{</span>
+      <span class='const'>VALUE</span> <span class='id cFoo'>cFoo</span> <span class='op'>=</span> <span class='id rb_define_class'>rb_define_class</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Foo</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id rb_cObject'>rb_cObject</span><span class='rparen'>)</span><span class='semicolon'>;</span>
+  <span class='rbrace'>}</span>
+
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * This is a comment for Foo
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span>
+  <span class='const'>VALUE</span> <span class='id cFoo'>cFoo</span> <span class='op'>=</span> <span class='id rb_define_class'>rb_define_class</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Foo</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id rb_cObject'>rb_cObject</span><span class='rparen'>)</span><span class='semicolon'>;</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 384</span>
+
+<span class='kw'>def</span> <span class='id find_class_comment'>find_class_comment</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id class_mod'>class_mod</span><span class='rparen'>)</span>
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
+  <span class='kw'>if</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>
+      ((?&gt;/\*.*?\*/\s+))
+      (static\s+)?
+      void\s+
+</span><span class='tstring_content'>      Init_</span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*(?:_\(\s*)?\(\s*(?:void\s*)?\)</span><span class='regexp_end'>}xmi</span></span> <span class='kw'>then</span> <span class='comment'># )
+</span>    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='backref'>$1</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-(?:class|module):\s+</span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*?(?:&lt;\s+[:,\w]+)?\n((?&gt;.*?\*/))</span><span class='regexp_end'>}m</span></span> <span class='kw'>then</span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='backref'>$1</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>((?&gt;/\*.*?\*/\s+))
+</span><span class='tstring_content'>                       ([\w\.\s]+\s* = \s+)?rb_define_(class|module).*?&quot;(</span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_content'>)&quot;</span><span class='regexp_end'>}xm</span></span> <span class='kw'>then</span> <span class='comment'># &quot;
+</span>    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='backref'>$1</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id comment'>comment</span>
+
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span> <span class='id comment'>comment</span>
+
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id look_for_directives_in'>look_for_directives_in</span> <span class='id class_mod'>class_mod</span><span class='comma'>,</span> <span class='id comment'>comment</span>
+
+  <span class='id class_mod'>class_mod</span><span class='period'>.</span><span class='id comment'>comment</span> <span class='op'>=</span> <span class='id comment'>comment</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_const_comment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_const_comment</strong>(type, const_name) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Finds a comment matching <tt>type</tt> and <tt>const_name</tt> either above
+the comment or in the matching Document- section.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 413</span>
+
+<span class='kw'>def</span> <span class='id find_const_comment'>find_const_comment</span><span class='lparen'>(</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id const_name'>const_name</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>((?&gt;^\s*/\*.*?\*/\s+))
+</span><span class='tstring_content'>                 rb_define_</span><span class='embexpr_beg'>#{</span><span class='id type'>type</span><span class='rbrace'>}</span><span class='tstring_content'>\((?:\s*(\w+),)?\s*&quot;</span><span class='embexpr_beg'>#{</span><span class='id const_name'>const_name</span><span class='rbrace'>}</span><span class='tstring_content'>&quot;\s*,.*?\)\s*;</span><span class='regexp_end'>}xmi</span></span>
+    <span class='backref'>$1</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-(?:const|global|variable):\s</span><span class='embexpr_beg'>#{</span><span class='id const_name'>const_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*?\n((?&gt;.*?\*/))</span><span class='regexp_end'>}m</span></span>
+    <span class='backref'>$1</span>
+  <span class='kw'>else</span>
+    <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_modifiers-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_modifiers</strong>(comment, meth_obj) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+If the comment block contains a section that looks like:
+</p>
+<pre class="code">
+   call-seq:
+       Array.new
+       Array.new(10)
+</pre>
+<p>
+use it for the parameters.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 433</span>
+
+<span class='kw'>def</span> <span class='id find_modifiers'>find_modifiers</span><span class='lparen'>(</span><span class='id comment'>comment</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id comment'>comment</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>:nodoc:\s*^\s*\*?\s*$</span><span class='regexp_end'>/m</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span> <span class='kw'>or</span>
+     <span class='id comment'>comment</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A\/\*\s*:nodoc:\s*\*\/\Z</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id document_self'>document_self</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='kw'>end</span>
+  <span class='kw'>if</span> <span class='id comment'>comment</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>call-seq:(.*?)^\s*\*?\s*$</span><span class='regexp_end'>/m</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span> <span class='kw'>or</span>
+     <span class='id comment'>comment</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A\/\*\s*call-seq:(.*?)\*\/\Z</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='id seq'>seq</span> <span class='op'>=</span> <span class='backref'>$1</span>
+    <span class='id seq'>seq</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^\s*\*\s*</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id call_seq'>call_seq</span> <span class='op'>=</span> <span class='id seq'>seq</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="find_override_comment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>find_override_comment</strong>(class_name, meth_name) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+446
+447
+448
+449
+450
+451
+452
+453</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 446</span>
+
+<span class='kw'>def</span> <span class='id find_override_comment'>find_override_comment</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='rparen'>)</span>
+  <span class='id name'>name</span> <span class='op'>=</span> <span class='const'>Regexp</span><span class='period'>.</span><span class='id escape'>escape</span><span class='lparen'>(</span><span class='id meth_name'>meth_name</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-method:\s+</span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_content'>(?:\.|::|#)</span><span class='embexpr_beg'>#{</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*?\n((?&gt;.*?\*/))</span><span class='regexp_end'>}m</span></span> <span class='kw'>then</span>
+    <span class='backref'>$1</span>
+  <span class='kw'>elsif</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-method:\s</span><span class='embexpr_beg'>#{</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*?\n((?&gt;.*?\*/))</span><span class='regexp_end'>}m</span></span> <span class='kw'>then</span>
+    <span class='backref'>$1</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_attr-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_attr</strong>(var_name, attr_name, reader, writer) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 455</span>
+
+<span class='kw'>def</span> <span class='id handle_attr'>handle_attr</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id attr_name'>attr_name</span><span class='comma'>,</span> <span class='id reader'>reader</span><span class='comma'>,</span> <span class='id writer'>writer</span><span class='rparen'>)</span>
+  <span class='id rw'>rw</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+  <span class='id rw'>rw</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>R</span><span class='tstring_end'>'</span></span> <span class='kw'>if</span> <span class='id reader'>reader</span>
+  <span class='id rw'>rw</span> <span class='op'>&lt;&lt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>W</span><span class='tstring_end'>'</span></span> <span class='kw'>if</span> <span class='id writer'>writer</span>
+
+  <span class='id class_name'>class_name</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id class_name'>class_name</span>
+
+  <span class='id class_obj'>class_obj</span> <span class='op'>=</span> <span class='id find_class'>find_class</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='rparen'>)</span>
+
+  <span class='kw'>if</span> <span class='id class_obj'>class_obj</span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id find_attr_comment'>find_attr_comment</span><span class='lparen'>(</span><span class='id attr_name'>attr_name</span><span class='rparen'>)</span>
+    <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span> <span class='id comment'>comment</span>
+    <span class='id att'>att</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Attr</span><span class='period'>.</span><span class='id new'>new</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='id attr_name'>attr_name</span><span class='comma'>,</span> <span class='id rw'>rw</span><span class='comma'>,</span> <span class='id comment'>comment</span>
+    <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_method'>add_method</span> <span class='id att'>att</span>
+    <span class='id class_obj'>class_obj</span><span class='period'>.</span><span class='id add_attribute'>add_attribute</span><span class='lparen'>(</span><span class='id att'>att</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_class_module-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_class_module</strong>(var_name, type, class_name, parent, in_module) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 475</span>
+
+<span class='kw'>def</span> <span class='id handle_class_module'>handle_class_module</span><span class='lparen'>(</span><span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id type'>type</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent'>parent</span><span class='comma'>,</span> <span class='id in_module'>in_module</span><span class='rparen'>)</span>
+  <span class='id parent_name'>parent_name</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id parent'>parent</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id parent'>parent</span>
+
+  <span class='kw'>if</span> <span class='id in_module'>in_module</span> <span class='kw'>then</span>
+    <span class='id enclosure'>enclosure</span> <span class='op'>=</span> <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id in_module'>in_module</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='cvar'>@@enclosure_classes</span><span class='lbracket'>[</span><span class='id in_module'>in_module</span><span class='rbracket'>]</span>
+
+    <span class='kw'>if</span> <span class='id enclosure'>enclosure</span><span class='period'>.</span><span class='id nil?'>nil?</span> <span class='kw'>and</span> <span class='id enclosure'>enclosure</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id in_module'>in_module</span><span class='rbracket'>]</span> <span class='kw'>then</span>
+      <span class='id type'>type</span> <span class='op'>=</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^rb_m</span><span class='regexp_end'>/</span></span> <span class='op'>=~</span> <span class='id in_module'>in_module</span> <span class='op'>?</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>module</span><span class='tstring_end'>&quot;</span></span> <span class='op'>:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id handle_class_module'>handle_class_module</span> <span class='id in_module'>in_module</span><span class='comma'>,</span> <span class='id type'>type</span><span class='comma'>,</span> <span class='id enclosure'>enclosure</span><span class='comma'>,</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='kw'>nil</span>
+      <span class='id enclosure'>enclosure</span> <span class='op'>=</span> <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id in_module'>in_module</span><span class='rbracket'>]</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>unless</span> <span class='id enclosure'>enclosure</span> <span class='kw'>then</span>
+      <span class='id warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Enclosing class/module '</span><span class='embexpr_beg'>#{</span><span class='id in_module'>in_module</span><span class='rbrace'>}</span><span class='tstring_content'>' for </span><span class='embexpr_beg'>#{</span><span class='id type'>type</span><span class='rbrace'>}</span><span class='tstring_content'> </span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_content'> not known</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>return</span>
+    <span class='kw'>end</span>
+  <span class='kw'>else</span>
+    <span class='id enclosure'>enclosure</span> <span class='op'>=</span> <span class='ivar'>@top_level</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>if</span> <span class='id type'>type</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>class</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>then</span>
+    <span class='id full_name'>full_name</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>ClassModule</span> <span class='op'>===</span> <span class='id enclosure'>enclosure</span> <span class='kw'>then</span>
+                  <span class='id enclosure'>enclosure</span><span class='period'>.</span><span class='id full_name'>full_name</span> <span class='op'>+</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>::</span><span class='embexpr_beg'>#{</span><span class='id class_name'>class_name</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+                <span class='kw'>else</span>
+                  <span class='id class_name'>class_name</span>
+                <span class='kw'>end</span>
+
+    <span class='kw'>if</span> <span class='ivar'>@content</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>Document-class:\s+</span><span class='embexpr_beg'>#{</span><span class='id full_name'>full_name</span><span class='rbrace'>}</span><span class='tstring_content'>\s*&lt;\s+([:,\w]+)</span><span class='regexp_end'>}</span></span> <span class='kw'>then</span>
+      <span class='id parent_name'>parent_name</span> <span class='op'>=</span> <span class='backref'>$1</span>
+    <span class='kw'>end</span>
+
+    <span class='id cm'>cm</span> <span class='op'>=</span> <span class='id enclosure'>enclosure</span><span class='period'>.</span><span class='id add_class'>add_class</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>NormalClass</span><span class='comma'>,</span> <span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id parent_name'>parent_name</span>
+
+    <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_class'>add_class</span> <span class='id cm'>cm</span>
+  <span class='kw'>else</span>
+    <span class='id cm'>cm</span> <span class='op'>=</span> <span class='id enclosure'>enclosure</span><span class='period'>.</span><span class='id add_module'>add_module</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>NormalModule</span><span class='comma'>,</span> <span class='id class_name'>class_name</span>
+    <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_module'>add_module</span> <span class='id cm'>cm</span>
+  <span class='kw'>end</span>
+
+  <span class='id cm'>cm</span><span class='period'>.</span><span class='id record_location'>record_location</span> <span class='id enclosure'>enclosure</span><span class='period'>.</span><span class='id top_level'>top_level</span>
+
+  <span class='id find_class_comment'>find_class_comment</span> <span class='id cm'>cm</span><span class='period'>.</span><span class='id full_name'>full_name</span><span class='comma'>,</span> <span class='id cm'>cm</span>
+
+  <span class='ivar'>@classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id cm'>cm</span>
+  <span class='cvar'>@@enclosure_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id cm'>cm</span>
+  <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id cm'>cm</span><span class='period'>.</span><span class='id full_name'>full_name</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_constants-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_constants</strong>(type, var_name, const_name, definition) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Adds constant comments.  By providing some_value: at the start ofthe
+comment you can override the C value of the comment to give a friendly
+definition.
+</p>
+<pre class="code">
+  /* 300: The perfect score in bowling */
+  rb_define_const(cFoo, &quot;PERFECT&quot;, INT2FIX(300);
+</pre>
+<p>
+Will override <tt>INT2FIX(300)</tt> with the value <tt>300</tt> in the output
+RDoc. Values may include quotes and escaped colons (\:).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 534</span>
+
+<span class='kw'>def</span> <span class='id handle_constants'>handle_constants</span><span class='lparen'>(</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id definition'>definition</span><span class='rparen'>)</span>
+  <span class='id class_name'>class_name</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id class_name'>class_name</span>
+
+  <span class='id class_obj'>class_obj</span> <span class='op'>=</span> <span class='id find_class'>find_class</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span>
+
+  <span class='kw'>unless</span> <span class='id class_obj'>class_obj</span> <span class='kw'>then</span>
+    <span class='id warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Enclosing class/module </span><span class='embexpr_beg'>#{</span><span class='id const_name'>const_name</span><span class='period'>.</span><span class='id inspect'>inspect</span><span class='rbrace'>}</span><span class='tstring_content'> not known</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>return</span>
+  <span class='kw'>end</span>
+
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id find_const_comment'>find_const_comment</span> <span class='id type'>type</span><span class='comma'>,</span> <span class='id const_name'>const_name</span>
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id strip_stars'>strip_stars</span> <span class='id comment'>comment</span>
+  <span class='id comment'>comment</span> <span class='op'>=</span> <span class='id normalize_comment'>normalize_comment</span> <span class='id comment'>comment</span>
+
+  <span class='comment'># In the case of rb_define_const, the definition and comment are in
+</span>  <span class='comment'># &quot;/* definition: comment */&quot; form.  The literal ':' and '\' characters
+</span>  <span class='comment'># can be escaped with a backslash.
+</span>  <span class='kw'>if</span> <span class='id type'>type</span><span class='period'>.</span><span class='id downcase'>downcase</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>const</span><span class='tstring_end'>'</span></span> <span class='kw'>then</span>
+    <span class='id elements'>elements</span> <span class='op'>=</span> <span class='id comment'>comment</span><span class='period'>.</span><span class='id split'>split</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>:</span><span class='tstring_end'>'</span></span>
+
+    <span class='kw'>if</span> <span class='id elements'>elements</span><span class='period'>.</span><span class='id nil?'>nil?</span> <span class='kw'>or</span> <span class='id elements'>elements</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>then</span>
+      <span class='id con'>con</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Constant</span><span class='period'>.</span><span class='id new'>new</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id definition'>definition</span><span class='comma'>,</span> <span class='id comment'>comment</span>
+    <span class='kw'>else</span>
+      <span class='id new_definition'>new_definition</span> <span class='op'>=</span> <span class='id elements'>elements</span><span class='lbracket'>[</span><span class='int'>0</span><span class='op'>..</span><span class='op'>-</span><span class='int'>2</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>:</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+
+      <span class='kw'>if</span> <span class='id new_definition'>new_definition</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='kw'>then</span> <span class='comment'># Default to literal C definition
+</span>        <span class='id new_definition'>new_definition</span> <span class='op'>=</span> <span class='id definition'>definition</span>
+      <span class='kw'>else</span>
+        <span class='id new_definition'>new_definition</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\:</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>:</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+        <span class='id new_definition'>new_definition</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\\</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>\\</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+
+      <span class='id new_definition'>new_definition</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\A(\s+)</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+
+      <span class='id new_comment'>new_comment</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='backref'>$1</span><span class='period'>.</span><span class='id nil?'>nil?</span> <span class='kw'>then</span>
+                      <span class='id elements'>elements</span><span class='period'>.</span><span class='id last'>last</span><span class='period'>.</span><span class='id lstrip'>lstrip</span>
+                    <span class='kw'>else</span>
+                      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='backref'>$1</span><span class='rbrace'>}</span><span class='embexpr_beg'>#{</span><span class='id elements'>elements</span><span class='period'>.</span><span class='id last'>last</span><span class='period'>.</span><span class='id lstrip'>lstrip</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+                    <span class='kw'>end</span>
+
+      <span class='id con'>con</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Constant</span><span class='period'>.</span><span class='id new'>new</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id new_definition'>new_definition</span><span class='comma'>,</span> <span class='id new_comment'>new_comment</span>
+    <span class='kw'>end</span>
+  <span class='kw'>else</span>
+    <span class='id con'>con</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Constant</span><span class='period'>.</span><span class='id new'>new</span> <span class='id const_name'>const_name</span><span class='comma'>,</span> <span class='id definition'>definition</span><span class='comma'>,</span> <span class='id comment'>comment</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_constant'>add_constant</span> <span class='id con'>con</span>
+  <span class='id class_obj'>class_obj</span><span class='period'>.</span><span class='id add_constant'>add_constant</span> <span class='id con'>con</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_ifdefs_in-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_ifdefs_in</strong>(body) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Removes #ifdefs that would otherwise confuse us
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+589
+590
+591</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 589</span>
+
+<span class='kw'>def</span> <span class='id handle_ifdefs_in'>handle_ifdefs_in</span><span class='lparen'>(</span><span class='id body'>body</span><span class='rparen'>)</span>
+  <span class='id body'>body</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^#ifdef HAVE_PROTOTYPES.*?#else.*?\n(.*?)#endif.*?\n</span><span class='regexp_end'>/m</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>\1</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_method-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_method</strong>(type, var_name, meth_name, meth_body, param_count, source_file = nil) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 593</span>
+
+<span class='kw'>def</span> <span class='id handle_method'>handle_method</span><span class='lparen'>(</span><span class='id type'>type</span><span class='comma'>,</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id param_count'>param_count</span><span class='comma'>,</span>
+                  <span class='id source_file'>source_file</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id class_name'>class_name</span> <span class='op'>=</span> <span class='ivar'>@known_classes</span><span class='lbracket'>[</span><span class='id var_name'>var_name</span><span class='rbracket'>]</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id class_name'>class_name</span>
+
+  <span class='id class_obj'>class_obj</span> <span class='op'>=</span> <span class='id find_class'>find_class</span> <span class='id var_name'>var_name</span><span class='comma'>,</span> <span class='id class_name'>class_name</span>
+
+  <span class='kw'>if</span> <span class='id class_obj'>class_obj</span> <span class='kw'>then</span>
+    <span class='kw'>if</span> <span class='id meth_name'>meth_name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>initialize</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>then</span>
+      <span class='id meth_name'>meth_name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>new</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id type'>type</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>singleton_method</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='id meth_obj'>meth_obj</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>AnyMethod</span><span class='period'>.</span><span class='id new'>new</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='id meth_name'>meth_name</span>
+    <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id singleton'>singleton</span> <span class='op'>=</span> <span class='qwords_beg'>%w[</span><span class='tstring_content'>singleton_method</span><span class='words_sep'> </span><span class='tstring_content'>module_function</span><span class='words_sep'>]</span><span class='period'>.</span><span class='id include?'>include?</span> <span class='id type'>type</span>
+
+    <span class='id p_count'>p_count</span> <span class='op'>=</span> <span class='const'>Integer</span><span class='lparen'>(</span><span class='id param_count'>param_count</span><span class='rparen'>)</span> <span class='kw'>rescue</span> <span class='op'>-</span><span class='int'>1</span>
+
+    <span class='kw'>if</span> <span class='id p_count'>p_count</span> <span class='op'>&lt;</span> <span class='int'>0</span> <span class='kw'>then</span>
+      <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id params'>params</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(...)</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>elsif</span> <span class='id p_count'>p_count</span> <span class='op'>==</span> <span class='int'>0</span>
+      <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id params'>params</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>()</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>else</span>
+      <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id params'>params</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>(</span><span class='tstring_end'>&quot;</span></span> <span class='op'>+</span> <span class='lparen'>(</span><span class='int'>1</span><span class='op'>..</span><span class='id p_count'>p_count</span><span class='rparen'>)</span><span class='period'>.</span><span class='id map'>map</span><span class='lbrace'>{</span><span class='op'>|</span><span class='id i'>i</span><span class='op'>|</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>p</span><span class='embexpr_beg'>#{</span><span class='id i'>i</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>, </span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='op'>+</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>if</span> <span class='id source_file'>source_file</span> <span class='kw'>then</span>
+      <span class='id file_name'>file_name</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id join'>join</span> <span class='ivar'>@file_dir</span><span class='comma'>,</span> <span class='id source_file'>source_file</span>
+
+      <span class='kw'>if</span> <span class='const'>File</span><span class='period'>.</span><span class='id exist?'>exist?</span> <span class='id file_name'>file_name</span> <span class='kw'>then</span>
+        <span class='id body'>body</span> <span class='op'>=</span> <span class='lparen'>(</span><span class='cvar'>@@known_bodies</span><span class='lbracket'>[</span><span class='id file_name'>file_name</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='id file_name'>file_name</span><span class='rparen'>)</span><span class='rparen'>)</span>
+      <span class='kw'>else</span>
+        <span class='id warn'>warn</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>unknown source </span><span class='embexpr_beg'>#{</span><span class='id source_file'>source_file</span><span class='rbrace'>}</span><span class='tstring_content'> for </span><span class='embexpr_beg'>#{</span><span class='id meth_name'>meth_name</span><span class='rbrace'>}</span><span class='tstring_content'> in </span><span class='embexpr_beg'>#{</span><span class='ivar'>@file_name</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+    <span class='kw'>else</span>
+      <span class='id body'>body</span> <span class='op'>=</span> <span class='ivar'>@content</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>if</span> <span class='id find_body'>find_body</span><span class='lparen'>(</span><span class='id class_name'>class_name</span><span class='comma'>,</span> <span class='id meth_body'>meth_body</span><span class='comma'>,</span> <span class='id meth_obj'>meth_obj</span><span class='comma'>,</span> <span class='id body'>body</span><span class='rparen'>)</span> <span class='kw'>and</span> <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id document_self'>document_self</span> <span class='kw'>then</span>
+      <span class='id class_obj'>class_obj</span><span class='period'>.</span><span class='id add_method'>add_method</span> <span class='id meth_obj'>meth_obj</span>
+      <span class='ivar'>@stats</span><span class='period'>.</span><span class='id add_method'>add_method</span> <span class='id meth_obj'>meth_obj</span>
+      <span class='id meth_obj'>meth_obj</span><span class='period'>.</span><span class='id visibility'>visibility</span> <span class='op'>=</span> <span class='symbol'>:private</span> <span class='kw'>if</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>private_method</span><span class='tstring_end'>'</span></span> <span class='op'>==</span> <span class='id type'>type</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="handle_tab_width-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>handle_tab_width</strong>(body) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 640</span>
+
+<span class='kw'>def</span> <span class='id handle_tab_width'>handle_tab_width</span><span class='lparen'>(</span><span class='id body'>body</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\t</span><span class='regexp_end'>/</span></span> <span class='op'>=~</span> <span class='id body'>body</span>
+    <span class='id tab_width'>tab_width</span> <span class='op'>=</span> <span class='ivar'>@options</span><span class='period'>.</span><span class='id tab_width'>tab_width</span>
+    <span class='id body'>body</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\n</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id map'>map</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id line'>line</span><span class='op'>|</span>
+      <span class='int'>1</span> <span class='kw'>while</span> <span class='id line'>line</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\t+</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'> </span><span class='tstring_end'>'</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='id tab_width'>tab_width</span><span class='op'>*</span><span class='backref'>$&amp;</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>-</span> <span class='backref'>$`</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>%</span> <span class='id tab_width'>tab_width</span><span class='rparen'>)</span><span class='rbrace'>}</span>  <span class='op'>&amp;&amp;</span> <span class='gvar'>$~</span> <span class='comment'>#`
+</span>      <span class='id line'>line</span>
+    <span class='kw'>end</span> <span class='period'>.</span><span class='id join'>join</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id body'>body</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="look_for_directives_in-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>look_for_directives_in</strong>(context, comment) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Look for directives in a normal comment block:
+</p>
+<pre class="code">
+  <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>*
+   * :title: My Awesome Project
+</span><span class='tstring_content'>   *</span><span class='regexp_end'>/</span></span>
+</pre>
+<p>
+This routine modifies it&#8217;s parameter
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 661</span>
+
+<span class='kw'>def</span> <span class='id look_for_directives_in'>look_for_directives_in</span><span class='lparen'>(</span><span class='id context'>context</span><span class='comma'>,</span> <span class='id comment'>comment</span><span class='rparen'>)</span>
+  <span class='id preprocess'>preprocess</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Markup</span><span class='op'>::</span><span class='const'>PreProcess</span><span class='period'>.</span><span class='id new'>new</span> <span class='ivar'>@file_name</span><span class='comma'>,</span> <span class='ivar'>@options</span><span class='period'>.</span><span class='id rdoc_include'>rdoc_include</span>
+
+  <span class='id preprocess'>preprocess</span><span class='period'>.</span><span class='id handle'>handle</span> <span class='id comment'>comment</span><span class='comma'>,</span> <span class='id context'>context</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id directive'>directive</span><span class='comma'>,</span> <span class='id param'>param</span><span class='op'>|</span>
+    <span class='kw'>case</span> <span class='id directive'>directive</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>main</span><span class='tstring_end'>'</span></span> <span class='kw'>then</span>
+      <span class='ivar'>@options</span><span class='period'>.</span><span class='id main_page'>main_page</span> <span class='op'>=</span> <span class='id param'>param</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+    <span class='kw'>when</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>title</span><span class='tstring_end'>'</span></span> <span class='kw'>then</span>
+      <span class='ivar'>@options</span><span class='period'>.</span><span class='id title'>title</span> <span class='op'>=</span> <span class='id param'>param</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id comment'>comment</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remove_commented_out_lines-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>remove_commented_out_lines</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Removes lines that are commented out that might otherwise get picked up
+when scanning for classes and methods
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+681
+682
+683</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 681</span>
+
+<span class='kw'>def</span> <span class='id remove_commented_out_lines'>remove_commented_out_lines</span>
+  <span class='ivar'>@content</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>//.*rb_define_</span><span class='regexp_end'>}</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>//</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remove_private_comments-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>remove_private_comments</strong>(comment) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+685
+686
+687
+688</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 685</span>
+
+<span class='kw'>def</span> <span class='id remove_private_comments'>remove_private_comments</span><span class='lparen'>(</span><span class='id comment'>comment</span><span class='rparen'>)</span>
+  <span class='id comment'>comment</span><span class='period'>.</span><span class='id gsub!'>gsub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\/?\*--\n(.*?)\/?\*\+\+</span><span class='regexp_end'>/m</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id comment'>comment</span><span class='period'>.</span><span class='id sub!'>sub!</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\/?\*--\n.*</span><span class='regexp_end'>/m</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="scan-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>scan</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Extract the classes/modules and methods from a C file and return the
+corresponding top-level object
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+694
+695
+696
+697
+698
+699
+700
+701
+702</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser/c.rb', line 694</span>
+
+<span class='kw'>def</span> <span class='id scan'>scan</span>
+  <span class='id remove_commented_out_lines'>remove_commented_out_lines</span>
+  <span class='id do_classes'>do_classes</span>
+  <span class='id do_constants'>do_constants</span>
+  <span class='id do_methods'>do_methods</span>
+  <span class='id do_includes'>do_includes</span>
+  <span class='id do_aliases'>do_aliases</span>
+  <span class='ivar'>@top_level</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:02:18 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

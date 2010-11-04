@@ -1,0 +1,855 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: RDoc::Parser</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (P)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../RDoc.html" title="RDoc (module)">RDoc</a></span></span>
+     &raquo; 
+    <span class="title">Parser</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: RDoc::Parser
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">RDoc::Parser</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/rdoc/parser.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+A parser is simple a class that implements
+</p>
+<pre class="code">
+  <span class='comment'>#initialize(file_name, body, options)
+</span></pre>
+<p>
+and
+</p>
+<pre class="code">
+  <span class='comment'>#scan
+</span></pre>
+<p>
+The initialize method takes a file name to be used, the body of the file,
+and an RDoc::Options object. The scan method is then called to return an
+appropriately parsed TopLevel code object.
+</p>
+<p>
+The ParseFactory is used to redirect to the correct parser given a filename
+extension. This magic works because individual parsers have to register
+themselves with us as they are loaded in. The do this using the following
+incantation
+</p>
+<pre class="code">
+  require &quot;rdoc/parser&quot;
+
+  class RDoc::Parser::Xyz &lt; RDoc::Parser
+    parse_files_matching /\.xyz$/ # &lt;&lt;&lt;&lt;
+
+    def initialize(file_name, body, options)
+      ...
+    end
+
+    def scan
+      ...
+    end
+  end
+</pre>
+<p>
+Just to make life interesting, if we suspect a plain text file, we also
+look for a shebang line just in case it&#8217;s a potential shell script
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="Parser/C.html" title="RDoc::Parser::C (class)">C</a></span>, <span class='object_link'><a href="Parser/PerlPOD.html" title="RDoc::Parser::PerlPOD (class)">PerlPOD</a></span>, <span class='object_link'><a href="Parser/Ruby.html" title="RDoc::Parser::Ruby (class)">Ruby</a></span>, <span class='object_link'><a href="Parser/Simple.html" title="RDoc::Parser::Simple (class)">Simple</a></span></p>
+</div>
+<h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Parser/RubyTools.html" title="RDoc::Parser::RubyTools (module)">RubyTools</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Parser/C.html" title="RDoc::Parser::C (class)">C</a></span>, <span class='object_link'><a href="Parser/PerlPOD.html" title="RDoc::Parser::PerlPOD (class)">PerlPOD</a></span>, <span class='object_link'><a href="Parser/Ruby.html" title="RDoc::Parser::Ruby (class)">Ruby</a></span>, <span class='object_link'><a href="Parser/Simple.html" title="RDoc::Parser::Simple (class)">Simple</a></span>
+    
+  
+</p>
+
+
+  <h2>Class Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parsers-class_method" title="parsers (class method)">+ (Object) <strong>parsers</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title readonly">readonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the value of attribute parsers.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#alias_extension-class_method" title="alias_extension (class method)">+ (Object) <strong>alias_extension</strong>(old_ext, new_ext) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Alias an extension to another extension.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#binary%3F-class_method" title="binary? (class method)">+ (Boolean) <strong>binary?</strong>(file) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Determines if the file is a &#8220;binary&#8221; file which basically means
+it has content that an RDoc parser shouldn&#8217;t try to consume.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#can_parse-class_method" title="can_parse (class method)">+ (Object) <strong>can_parse</strong>(file_name) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Return a parser that can handle a particular extension.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#for-class_method" title="for (class method)">+ (Object) <strong>for</strong>(top_level, file_name, body, options, stats) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Find the correct parser for a particular file name.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#parse_files_matching-class_method" title="parse_files_matching (class method)">+ (Object) <strong>parse_files_matching</strong>(regexp) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Record which file types this parser can understand.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#zip%3F-class_method" title="zip? (class method)">+ (Boolean) <strong>zip?</strong>(file) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Checks if <tt>file</tt> is a zip file in disguise.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Parser) <strong>initialize</strong>(top_level, file_name, content, options, stats) </a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+A new instance of Parser.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="RDoc::Parser (class)">Parser</a></span></tt>) <strong>initialize</strong>(top_level, file_name, content, options, stats) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+A new instance of Parser
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+146
+147
+148
+149
+150
+151
+152</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 146</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id top_level'>top_level</span><span class='comma'>,</span> <span class='id file_name'>file_name</span><span class='comma'>,</span> <span class='id content'>content</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='id stats'>stats</span><span class='rparen'>)</span>
+  <span class='ivar'>@top_level</span> <span class='op'>=</span> <span class='id top_level'>top_level</span>
+  <span class='ivar'>@file_name</span> <span class='op'>=</span> <span class='id file_name'>file_name</span>
+  <span class='ivar'>@content</span> <span class='op'>=</span> <span class='id content'>content</span>
+  <span class='ivar'>@options</span> <span class='op'>=</span> <span class='id options'>options</span>
+  <span class='ivar'>@stats</span> <span class='op'>=</span> <span class='id stats'>stats</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="class_attr_details" class="attr_details">
+    <h2>Class Attribute Details</h2>
+    
+      
+      <span id=""></span>
+      <span id="parsers-class_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="parsers-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>parsers</strong>  <span class="extras">(readonly)</span>
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the value of attribute parsers
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+46
+47
+48</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 46</span>
+
+<span class='kw'>def</span> <span class='id parsers'>parsers</span>
+  <span class='ivar'>@parsers</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="alias_extension-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>alias_extension</strong>(old_ext, new_ext) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Alias an extension to another extension. After this call, files ending
+&#8220;new_ext&#8221; will be parsed using the same parser as
+&#8220;old_ext&#8220;
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 53</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id alias_extension'>alias_extension</span><span class='lparen'>(</span><span class='id old_ext'>old_ext</span><span class='comma'>,</span> <span class='id new_ext'>new_ext</span><span class='rparen'>)</span>
+  <span class='id old_ext'>old_ext</span> <span class='op'>=</span> <span class='id old_ext'>old_ext</span><span class='period'>.</span><span class='id sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^\.(.*)</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>\1</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id new_ext'>new_ext</span> <span class='op'>=</span> <span class='id new_ext'>new_ext</span><span class='period'>.</span><span class='id sub'>sub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^\.(.*)</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>\1</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+
+  <span class='id parser'>parser</span> <span class='op'>=</span> <span class='id can_parse'>can_parse</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>xxx.</span><span class='embexpr_beg'>#{</span><span class='id old_ext'>old_ext</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>return</span> <span class='kw'>false</span> <span class='kw'>unless</span> <span class='id parser'>parser</span>
+
+  <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Parser</span><span class='period'>.</span><span class='id parsers'>parsers</span><span class='period'>.</span><span class='id unshift'>unshift</span> <span class='lbracket'>[</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\.</span><span class='embexpr_beg'>#{</span><span class='id new_ext'>new_ext</span><span class='rbrace'>}</span><span class='tstring_content'>$</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='id parser'>parser</span><span class='rbracket'>]</span>
+
+  <span class='kw'>true</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="binary?-class_method">
+  
+    + (<tt>Boolean</tt>) <strong>binary?</strong>(file) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Determines if the file is a &#8220;binary&#8221; file which basically means
+it has content that an RDoc parser shouldn&#8217;t try to consume.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 69</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id binary?'>binary?</span><span class='lparen'>(</span><span class='id file'>file</span><span class='rparen'>)</span>
+  <span class='id s'>s</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='id file'>file</span><span class='comma'>,</span> <span class='int'>1024</span><span class='rparen'>)</span> <span class='kw'>or</span> <span class='kw'>return</span> <span class='kw'>false</span>
+
+  <span class='kw'>if</span> <span class='id s'>s</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>2</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='const'>Marshal</span><span class='period'>.</span><span class='id dump'>dump</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>2</span><span class='rbracket'>]</span> <span class='kw'>then</span>
+    <span class='kw'>true</span>
+  <span class='kw'>elsif</span> <span class='id file'>file</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>erb\.rb$</span><span class='regexp_end'>/</span></span> <span class='kw'>then</span>
+    <span class='kw'>false</span>
+  <span class='kw'>elsif</span> <span class='id s'>s</span><span class='period'>.</span><span class='id scan'>scan</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>&lt;%|%&gt;</span><span class='regexp_end'>/</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>&gt;=</span> <span class='int'>4</span> <span class='op'>||</span> <span class='id s'>s</span><span class='period'>.</span><span class='id index'>index</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\x00</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>then</span>
+    <span class='kw'>true</span>
+  <span class='kw'>elsif</span> <span class='int'>0</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span> <span class='symbol'>:fdiv</span> <span class='kw'>then</span>
+    <span class='id s'>s</span><span class='period'>.</span><span class='id count'>count</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>^ -~\t\r\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id fdiv'>fdiv</span><span class='lparen'>(</span><span class='id s'>s</span><span class='period'>.</span><span class='id size'>size</span><span class='rparen'>)</span> <span class='op'>&gt;</span> <span class='float'>0.3</span>
+  <span class='kw'>else</span> <span class='comment'># HACK 1.8.6
+</span>    <span class='lparen'>(</span><span class='id s'>s</span><span class='period'>.</span><span class='id count'>count</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>^ -~\t\r\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id to_f'>to_f</span> <span class='op'>/</span> <span class='id s'>s</span><span class='period'>.</span><span class='id size'>size</span><span class='rparen'>)</span> <span class='op'>&gt;</span> <span class='float'>0.3</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="can_parse-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>can_parse</strong>(file_name) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Return a parser that can handle a particular extension
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 100</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id can_parse'>can_parse</span><span class='lparen'>(</span><span class='id file_name'>file_name</span><span class='rparen'>)</span>
+  <span class='id parser'>parser</span> <span class='op'>=</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Parser</span><span class='period'>.</span><span class='id parsers'>parsers</span><span class='period'>.</span><span class='id find'>find</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id regexp'>regexp</span><span class='comma'>,</span><span class='op'>|</span> <span class='id regexp'>regexp</span> <span class='op'>=~</span> <span class='id file_name'>file_name</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id last'>last</span>
+
+  <span class='comment'># HACK Selenium hides a jar file using a .txt extension
+</span>  <span class='kw'>return</span> <span class='kw'>if</span> <span class='id parser'>parser</span> <span class='op'>==</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Parser</span><span class='op'>::</span><span class='const'>Simple</span> <span class='kw'>and</span> <span class='id zip?'>zip?</span> <span class='id file_name'>file_name</span>
+
+  <span class='comment'># The default parser must not parse binary files
+</span>  <span class='id ext_name'>ext_name</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id extname'>extname</span> <span class='id file_name'>file_name</span>
+  <span class='kw'>return</span> <span class='id parser'>parser</span> <span class='kw'>if</span> <span class='id ext_name'>ext_name</span><span class='period'>.</span><span class='id empty?'>empty?</span>
+  <span class='kw'>return</span> <span class='kw'>if</span> <span class='id parser'>parser</span> <span class='op'>==</span> <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Parser</span><span class='op'>::</span><span class='const'>Simple</span> <span class='kw'>and</span> <span class='id ext_name'>ext_name</span> <span class='op'>!~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>txt|rdoc</span><span class='regexp_end'>/</span></span>
+
+  <span class='id parser'>parser</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="for-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>for</strong>(top_level, file_name, body, options, stats) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Find the correct parser for a particular file name. Return a SimpleParser
+for ones that we don&#8217;t know
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 118</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='kw'>for</span><span class='lparen'>(</span><span class='id top_level'>top_level</span><span class='comma'>,</span> <span class='id file_name'>file_name</span><span class='comma'>,</span> <span class='id body'>body</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='id stats'>stats</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='kw'>if</span> <span class='id binary?'>binary?</span> <span class='id file_name'>file_name</span>
+
+  <span class='comment'># If no extension, look for shebang
+</span>  <span class='kw'>if</span> <span class='id file_name'>file_name</span> <span class='op'>!~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\.\w+$</span><span class='regexp_end'>/</span></span> <span class='op'>&amp;&amp;</span> <span class='id body'>body</span> <span class='op'>=~</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>\A#!(.+)</span><span class='regexp_end'>}</span></span> <span class='kw'>then</span>
+    <span class='id shebang'>shebang</span> <span class='op'>=</span> <span class='backref'>$1</span>
+    <span class='kw'>case</span> <span class='id shebang'>shebang</span>
+    <span class='kw'>when</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>env\s+ruby</span><span class='regexp_end'>}</span></span><span class='comma'>,</span> <span class='tstring'><span class='regexp_beg'>%r{</span><span class='tstring_content'>/ruby</span><span class='regexp_end'>}</span></span>
+      <span class='id file_name'>file_name</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>dummy.rb</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id parser'>parser</span> <span class='op'>=</span> <span class='id can_parse'>can_parse</span> <span class='id file_name'>file_name</span>
+
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id parser'>parser</span>
+
+  <span class='id parser'>parser</span><span class='period'>.</span><span class='id new'>new</span> <span class='id top_level'>top_level</span><span class='comma'>,</span> <span class='id file_name'>file_name</span><span class='comma'>,</span> <span class='id body'>body</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='id stats'>stats</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="parse_files_matching-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>parse_files_matching</strong>(regexp) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Record which file types this parser can understand.
+</p>
+<p>
+It is ok to call this multiple times.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+142
+143
+144</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 142</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id parse_files_matching'>parse_files_matching</span><span class='lparen'>(</span><span class='id regexp'>regexp</span><span class='rparen'>)</span>
+  <span class='const'>RDoc</span><span class='op'>::</span><span class='const'>Parser</span><span class='period'>.</span><span class='id parsers'>parsers</span><span class='period'>.</span><span class='id unshift'>unshift</span> <span class='lbracket'>[</span><span class='id regexp'>regexp</span><span class='comma'>,</span> <span class='kw'>self</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="zip?-class_method">
+  
+    + (<tt>Boolean</tt>) <strong>zip?</strong>(file) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Checks if <tt>file</tt> is a zip file in disguise.  Signatures from <a
+href="http://www.garykessler.net/library/file_sigs.html">www.garykessler.net/library/file_sigs.html</a>
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+89
+90
+91
+92
+93
+94
+95</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/rdoc/parser.rb', line 89</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id zip?'>zip?</span> <span class='id file'>file</span>
+  <span class='id zip_signature'>zip_signature</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span> <span class='id file'>file</span><span class='comma'>,</span> <span class='int'>4</span>
+
+  <span class='id zip_signature'>zip_signature</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>PK\x03\x04</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>or</span>
+    <span class='id zip_signature'>zip_signature</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>PK\x05\x06</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>or</span>
+    <span class='id zip_signature'>zip_signature</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>PK\x07\x08</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:02:03 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>
