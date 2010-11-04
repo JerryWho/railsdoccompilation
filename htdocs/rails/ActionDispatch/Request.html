@@ -1,0 +1,2484 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: ActionDispatch::Request</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (R)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActionDispatch.html" title="ActionDispatch (module)">ActionDispatch</a></span></span>
+     &raquo; 
+    <span class="title">Request</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: ActionDispatch::Request
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName">Rack::Request</span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">Rack::Request</li>
+          
+            <li class="next">ActionDispatch::Request</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+      <dt class="r2">Includes:</dt>
+      <dd class="r2"><span class='object_link'><a href="Http/Cache/Request.html" title="ActionDispatch::Http::Cache::Request (module)">Http::Cache::Request</a></span>, <span class='object_link'><a href="Http/FilterParameters.html" title="ActionDispatch::Http::FilterParameters (module)">Http::FilterParameters</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html" title="ActionDispatch::Http::MimeNegotiation (module)">Http::MimeNegotiation</a></span>, <span class='object_link'><a href="Http/Parameters.html" title="ActionDispatch::Http::Parameters (module)">Http::Parameters</a></span>, <span class='object_link'><a href="Http/URL.html" title="ActionDispatch::Http::URL (module)">Http::URL</a></span>, <span class='object_link'><a href="Http/Upload.html" title="ActionDispatch::Http::Upload (module)">Http::Upload</a></span></dd>
+      
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">actionpack/lib/action_dispatch/http/request.rb<span class="defines">,<br />
+  actionpack/lib/action_dispatch/middleware/flash.rb,<br /> actionpack/lib/action_dispatch/middleware/cookies.rb</span>
+</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="TestRequest.html" title="ActionDispatch::TestRequest (class)">TestRequest</a></span></p>
+</div>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="LOCALHOST-constant" class="">LOCALHOST =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^127\.0\.0\.\d{1,3}$</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>::1</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^0:0:0:0:0:0:0:1(%.*)?$</span><span class='regexp_end'>/</span></span><span class='rbracket'>]</span><span class='period'>.</span><span class='id freeze'>freeze</span></pre></dd>
+      
+        <dt id="HTTP_METHODS-constant" class="">HTTP_METHODS =
+          
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w(</span><span class='tstring_end'>get</span></span></pre></dd>
+      
+        <dt id="HTTP_METHOD_LOOKUP-constant" class="">HTTP_METHOD_LOOKUP =
+          
+        </dt>
+        <dd><pre class="code"><span class='const'>HTTP_METHODS</span><span class='period'>.</span><span class='id inject'>inject</span><span class='lparen'>(</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id h'>h</span><span class='comma'>,</span> <span class='id m'>m</span><span class='op'>|</span> <span class='id h'>h</span><span class='lbracket'>[</span><span class='id m'>m</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id h'>h</span><span class='lbracket'>[</span><span class='id m'>m</span><span class='period'>.</span><span class='id upcase'>upcase</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id m'>m</span><span class='period'>.</span><span class='id to_sym'>to_sym</span><span class='semicolon'>;</span> <span class='id h'>h</span> <span class='rbrace'>}</span></pre></dd>
+      
+        <dt id="TRUSTED_PROXIES-constant" class="">TRUSTED_PROXIES =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Which IP addresses are &#8220;trusted proxies&#8221; that can be stripped
+from the right-hand-side of X-Forwarded-For
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^127\.0\.0\.1$|^(10|172\.(1[6-9]|2[0-9]|30|31)|192\.168)\.</span><span class='regexp_end'>/i</span></span></pre></dd>
+      
+    </dl>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new-class_method" title="new (class method)">+ (Object) <strong>new</strong>(env) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authorization-instance_method" title="#authorization (instance method)">- (Object) <strong>authorization</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the authorization header regardless of whether it was specified
+directly or through one of the proxy alternatives.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#body-instance_method" title="#body (instance method)">- (Object) <strong>body</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+The request body is an IO input stream.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#body_stream-instance_method" title="#body_stream (instance method)">- (Object) <strong>body_stream</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#content_length-instance_method" title="#content_length (instance method)">- (Object) <strong>content_length</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the content length of the request as an integer.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#cookie_jar-instance_method" title="#cookie_jar (instance method)">- (Object) <strong>cookie_jar</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#delete%3F-instance_method" title="#delete? (instance method)">- (Boolean) <strong>delete?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Is this a DELETE request? Equivalent to <tt>request.request_method ==
+:delete</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#flash-instance_method" title="#flash (instance method)">- (Object) <strong>flash</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Access the contents of the flash.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#forgery_whitelisted%3F-instance_method" title="#forgery_whitelisted? (instance method)">- (Boolean) <strong>forgery_whitelisted?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#form_data%3F-instance_method" title="#form_data? (instance method)">- (Boolean) <strong>form_data?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fullpath-instance_method" title="#fullpath (instance method)">- (Object) <strong>fullpath</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#GET-instance_method" title="#GET (instance method)">- (Object) <strong>GET</strong> </a>
+    
+
+    
+      (also: #query_parameters)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Override Rack&#8217;s GET method to support indifferent access.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#get%3F-instance_method" title="#get? (instance method)">- (Boolean) <strong>get?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Is this a GET (or HEAD) request? Equivalent to <tt>request.request_method
+== :get</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#head%3F-instance_method" title="#head? (instance method)">- (Boolean) <strong>head?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Is this a HEAD request? Equivalent to <tt>request.method == :head</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#headers-instance_method" title="#headers (instance method)">- (Object) <strong>headers</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Provides access to the request&#8217;s HTTP headers, for example:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ip-instance_method" title="#ip (instance method)">- (Object) <strong>ip</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#key%3F-instance_method" title="#key? (instance method)">- (Boolean) <strong>key?</strong>(key) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#local%3F-instance_method" title="#local? (instance method)">- (Boolean) <strong>local?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+True if the request came from localhost, 127.0.0.1.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#media_type-instance_method" title="#media_type (instance method)">- (Object) <strong>media_type</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#method-instance_method" title="#method (instance method)">- (Object) <strong>method</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the original value of the environment&#8217;s REQUEST_METHOD, even
+if it was overridden by middleware.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#method_symbol-instance_method" title="#method_symbol (instance method)">- (Object) <strong>method_symbol</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns a symbol form of the #method.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#POST-instance_method" title="#POST (instance method)">- (Object) <strong>POST</strong> </a>
+    
+
+    
+      (also: #request_parameters)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Override Rack&#8217;s POST method to support indifferent access.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#post%3F-instance_method" title="#post? (instance method)">- (Boolean) <strong>post?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Is this a POST request? Equivalent to <tt>request.request_method ==
+:post</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#put%3F-instance_method" title="#put? (instance method)">- (Boolean) <strong>put?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Is this a PUT request? Equivalent to <tt>request.request_method ==
+:put</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#raw_post-instance_method" title="#raw_post (instance method)">- (Object) <strong>raw_post</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Read the request \body.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remote_ip-instance_method" title="#remote_ip (instance method)">- (Object) <strong>remote_ip</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Determines originating IP address.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#request_method-instance_method" title="#request_method (instance method)">- (Object) <strong>request_method</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the HTTP \method that the application should see.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#request_method_symbol-instance_method" title="#request_method_symbol (instance method)">- (Object) <strong>request_method_symbol</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns a symbol form of the #request_method.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#reset_session-instance_method" title="#reset_session (instance method)">- (Object) <strong>reset_session</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+TODO This should be broken apart into AD::Request::Session and probably be
+included by the session middleware.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#server_software-instance_method" title="#server_software (instance method)">- (Object) <strong>server_software</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the lowercase name of the HTTP server software.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#session%3D-instance_method" title="#session= (instance method)">- (Object) <strong>session=</strong>(session) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#session_options%3D-instance_method" title="#session_options= (instance method)">- (Object) <strong>session_options=</strong>(options) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#xml_http_request%3F-instance_method" title="#xml_http_request? (instance method)">- (Boolean) <strong>xml_http_request?</strong> </a>
+    
+
+    
+      (also: #xhr?)
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns true if the request&#8217;s &#8220;X-Requested-With&#8221; header
+contains &#8220;XMLHttpRequest&#8221;.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Http/URL.html" title="ActionDispatch::Http::URL (module)">Http::URL</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Http/URL.html#domain-instance_method" title="ActionDispatch::Http::URL#domain (method)">#domain</a></span>, <span class='object_link'><a href="Http/URL.html#host-instance_method" title="ActionDispatch::Http::URL#host (method)">#host</a></span>, <span class='object_link'><a href="Http/URL.html#host_with_port-instance_method" title="ActionDispatch::Http::URL#host_with_port (method)">#host_with_port</a></span>, <span class='object_link'><a href="Http/URL.html#port-instance_method" title="ActionDispatch::Http::URL#port (method)">#port</a></span>, <span class='object_link'><a href="Http/URL.html#port_string-instance_method" title="ActionDispatch::Http::URL#port_string (method)">#port_string</a></span>, <span class='object_link'><a href="Http/URL.html#protocol-instance_method" title="ActionDispatch::Http::URL#protocol (method)">#protocol</a></span>, <span class='object_link'><a href="Http/URL.html#raw_host_with_port-instance_method" title="ActionDispatch::Http::URL#raw_host_with_port (method)">#raw_host_with_port</a></span>, <span class='object_link'><a href="Http/URL.html#request_uri-instance_method" title="ActionDispatch::Http::URL#request_uri (method)">#request_uri</a></span>, <span class='object_link'><a href="Http/URL.html#scheme-instance_method" title="ActionDispatch::Http::URL#scheme (method)">#scheme</a></span>, <span class='object_link'><a href="Http/URL.html#server_port-instance_method" title="ActionDispatch::Http::URL#server_port (method)">#server_port</a></span>, <span class='object_link'><a href="Http/URL.html#ssl%3F-instance_method" title="ActionDispatch::Http::URL#ssl? (method)">#ssl?</a></span>, <span class='object_link'><a href="Http/URL.html#standard_port-instance_method" title="ActionDispatch::Http::URL#standard_port (method)">#standard_port</a></span>, <span class='object_link'><a href="Http/URL.html#standard_port%3F-instance_method" title="ActionDispatch::Http::URL#standard_port? (method)">#standard_port?</a></span>, <span class='object_link'><a href="Http/URL.html#subdomain-instance_method" title="ActionDispatch::Http::URL#subdomain (method)">#subdomain</a></span>, <span class='object_link'><a href="Http/URL.html#subdomains-instance_method" title="ActionDispatch::Http::URL#subdomains (method)">#subdomains</a></span>, <span class='object_link'><a href="Http/URL.html#url-instance_method" title="ActionDispatch::Http::URL#url (method)">#url</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Http/FilterParameters.html" title="ActionDispatch::Http::FilterParameters (module)">Http::FilterParameters</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Http/FilterParameters.html#filtered_env-instance_method" title="ActionDispatch::Http::FilterParameters#filtered_env (method)">#filtered_env</a></span>, <span class='object_link'><a href="Http/FilterParameters.html#filtered_parameters-instance_method" title="ActionDispatch::Http::FilterParameters#filtered_parameters (method)">#filtered_parameters</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">#append_features</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">#included</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Http/Parameters.html" title="ActionDispatch::Http::Parameters (module)">Http::Parameters</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Http/Parameters.html#parameters-instance_method" title="ActionDispatch::Http::Parameters#parameters (method)">#parameters</a></span>, <span class='object_link'><a href="Http/Parameters.html#path_parameters-instance_method" title="ActionDispatch::Http::Parameters#path_parameters (method)">#path_parameters</a></span>, <span class='object_link'><a href="Http/Parameters.html#path_parameters%3D-instance_method" title="ActionDispatch::Http::Parameters#path_parameters= (method)">#path_parameters=</a></span>, <span class='object_link'><a href="Http/Parameters.html#symbolized_path_parameters-instance_method" title="ActionDispatch::Http::Parameters#symbolized_path_parameters (method)">#symbolized_path_parameters</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Http/MimeNegotiation.html" title="ActionDispatch::Http::MimeNegotiation (module)">Http::MimeNegotiation</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Http/MimeNegotiation.html#accepts-instance_method" title="ActionDispatch::Http::MimeNegotiation#accepts (method)">#accepts</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#content_mime_type-instance_method" title="ActionDispatch::Http::MimeNegotiation#content_mime_type (method)">#content_mime_type</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#content_type-instance_method" title="ActionDispatch::Http::MimeNegotiation#content_type (method)">#content_type</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#format-instance_method" title="ActionDispatch::Http::MimeNegotiation#format (method)">#format</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#format%3D-instance_method" title="ActionDispatch::Http::MimeNegotiation#format= (method)">#format=</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#formats-instance_method" title="ActionDispatch::Http::MimeNegotiation#formats (method)">#formats</a></span>, <span class='object_link'><a href="Http/MimeNegotiation.html#negotiate_mime-instance_method" title="ActionDispatch::Http::MimeNegotiation#negotiate_mime (method)">#negotiate_mime</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Http/Cache/Request.html" title="ActionDispatch::Http::Cache::Request (module)">Http::Cache::Request</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Http/Cache/Request.html#etag_matches%3F-instance_method" title="ActionDispatch::Http::Cache::Request#etag_matches? (method)">#etag_matches?</a></span>, <span class='object_link'><a href="Http/Cache/Request.html#fresh%3F-instance_method" title="ActionDispatch::Http::Cache::Request#fresh? (method)">#fresh?</a></span>, <span class='object_link'><a href="Http/Cache/Request.html#if_modified_since-instance_method" title="ActionDispatch::Http::Cache::Request#if_modified_since (method)">#if_modified_since</a></span>, <span class='object_link'><a href="Http/Cache/Request.html#if_none_match-instance_method" title="ActionDispatch::Http::Cache::Request#if_none_match (method)">#if_none_match</a></span>, <span class='object_link'><a href="Http/Cache/Request.html#not_modified%3F-instance_method" title="ActionDispatch::Http::Cache::Request#not_modified? (method)">#not_modified?</a></span></p>
+
+  
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="new-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>new</strong>(env) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+35
+36
+37
+38
+39
+40
+41</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 35</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id env'>env</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id request'>request</span> <span class='op'>=</span> <span class='id env'>env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>action_dispatch.request</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='id request'>request</span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='id request'>request</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="authorization-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>authorization</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the authorization header regardless of whether it was specified
+directly or through one of the proxy alternatives.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+230
+231
+232
+233
+234
+235</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 230</span>
+
+<span class='kw'>def</span> <span class='id authorization'>authorization</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>HTTP_AUTHORIZATION</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>   <span class='op'>||</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>X-HTTP_AUTHORIZATION</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>||</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>X_HTTP_AUTHORIZATION</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>||</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>REDIRECT_X_HTTP_AUTHORIZATION</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="body-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>body</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+The request body is an IO input stream. If the RAW_POST_DATA environment
+variable is already set, wrap it in a StringIO.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+182
+183
+184
+185
+186
+187
+188
+189</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 182</span>
+
+<span class='kw'>def</span> <span class='id body'>body</span>
+  <span class='kw'>if</span> <span class='id raw_post'>raw_post</span> <span class='op'>=</span> <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>RAW_POST_DATA</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+    <span class='id raw_post'>raw_post</span><span class='period'>.</span><span class='id force_encoding'>force_encoding</span><span class='lparen'>(</span><span class='const'>Encoding</span><span class='op'>::</span><span class='const'>BINARY</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id raw_post'>raw_post</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:force_encoding</span><span class='rparen'>)</span>
+    <span class='const'>StringIO</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id raw_post'>raw_post</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>rack.input</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="body_stream-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>body_stream</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+195
+196
+197</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 195</span>
+
+<span class='kw'>def</span> <span class='id body_stream'>body_stream</span> <span class='comment'>#:nodoc:
+</span>  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>rack.input</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="content_length-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>content_length</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the content length of the request as an integer.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+135
+136
+137</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 135</span>
+
+<span class='kw'>def</span> <span class='id content_length'>content_length</span>
+  <span class='kw'>super</span><span class='period'>.</span><span class='id to_i'>to_i</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="cookie_jar-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>cookie_jar</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+5
+6
+7</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/middleware/cookies.rb', line 5</span>
+
+<span class='kw'>def</span> <span class='id cookie_jar'>cookie_jar</span>
+  <span class='id env'>env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>action_dispatch.cookies</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='const'>Cookies</span><span class='op'>::</span><span class='const'>CookieJar</span><span class='period'>.</span><span class='id build'>build</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="delete?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>delete?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Is this a DELETE request? Equivalent to <tt>request.request_method ==
+:delete</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+105
+106
+107</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 105</span>
+
+<span class='kw'>def</span> <span class='id delete?'>delete?</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id request_method'>request_method</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:delete</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="flash-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>flash</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Access the contents of the flash. Use <tt>flash[&quot;notice&quot;]</tt> to
+read a notice you put there or <tt>flash[&quot;notice&quot;] =
+&quot;hello&quot;</tt> to put a new one.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+6
+7
+8</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/middleware/flash.rb', line 6</span>
+
+<span class='kw'>def</span> <span class='id flash'>flash</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>action_dispatch.request.flash_hash</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='lparen'>(</span><span class='id session'>session</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>flash</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='const'>Flash</span><span class='op'>::</span><span class='const'>FlashHash</span><span class='period'>.</span><span class='id new'>new</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="forgery_whitelisted?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>forgery_whitelisted?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+126
+127
+128</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 126</span>
+
+<span class='kw'>def</span> <span class='id forgery_whitelisted?'>forgery_whitelisted?</span>
+  <span class='id get?'>get?</span> <span class='op'>||</span> <span class='id xhr?'>xhr?</span> <span class='op'>||</span> <span class='id content_mime_type'>content_mime_type</span><span class='period'>.</span><span class='id nil?'>nil?</span> <span class='op'>||</span> <span class='op'>!</span><span class='id content_mime_type'>content_mime_type</span><span class='period'>.</span><span class='id verify_request?'>verify_request?</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="form_data?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>form_data?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+191
+192
+193</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 191</span>
+
+<span class='kw'>def</span> <span class='id form_data?'>form_data?</span>
+  <span class='const'>FORM_DATA_MEDIA_TYPES</span><span class='period'>.</span><span class='id include?'>include?</span><span class='lparen'>(</span><span class='id content_mime_type'>content_mime_type</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="fullpath-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>fullpath</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+122
+123
+124</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 122</span>
+
+<span class='kw'>def</span> <span class='id fullpath'>fullpath</span>
+  <span class='ivar'>@fullpath</span> <span class='op'>||=</span> <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="GET-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>GET</strong> 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='query_parameters-instance_method'>query_parameters</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Override Rack&#8217;s GET method to support indifferent access
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+216
+217
+218</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 216</span>
+
+<span class='kw'>def</span> <span class='const'>GET</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>action_dispatch.request.query_parameters</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='id normalize_parameters'>normalize_parameters</span><span class='lparen'>(</span><span class='kw'>super</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="get?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>get?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Is this a GET (or HEAD) request? Equivalent to <tt>request.request_method
+== :get</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+87
+88
+89</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 87</span>
+
+<span class='kw'>def</span> <span class='id get?'>get?</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id request_method'>request_method</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:get</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="head?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>head?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Is this a HEAD request? Equivalent to <tt>request.method == :head</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+111
+112
+113</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 111</span>
+
+<span class='kw'>def</span> <span class='id head?'>head?</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id method'>method</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:head</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="headers-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>headers</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Provides access to the request&#8217;s HTTP headers, for example:
+</p>
+<pre class="code">
+  <span class='id request'>request</span><span class='period'>.</span><span class='id headers'>headers</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Content-Type</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='comment'># =&gt; &quot;text/plain&quot;</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+118
+119
+120</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 118</span>
+
+<span class='kw'>def</span> <span class='id headers'>headers</span>
+  <span class='const'>Http</span><span class='op'>::</span><span class='const'>Headers</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='ivar'>@env</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="ip-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>ip</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+147
+148
+149</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 147</span>
+
+<span class='kw'>def</span> <span class='id ip'>ip</span>
+  <span class='ivar'>@ip</span> <span class='op'>||=</span> <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="key?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>key?</strong>(key) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+43
+44
+45</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 43</span>
+
+<span class='kw'>def</span> <span class='id key?'>key?</span><span class='lparen'>(</span><span class='id key'>key</span><span class='rparen'>)</span>
+  <span class='ivar'>@env</span><span class='period'>.</span><span class='id key?'>key?</span><span class='lparen'>(</span><span class='id key'>key</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="local?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>local?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+True if the request came from localhost, 127.0.0.1.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+238
+239
+240</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 238</span>
+
+<span class='kw'>def</span> <span class='id local?'>local?</span>
+  <span class='const'>LOCALHOST</span><span class='period'>.</span><span class='id any?'>any?</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id local_ip'>local_ip</span><span class='op'>|</span> <span class='id local_ip'>local_ip</span> <span class='op'>===</span> <span class='id remote_addr'>remote_addr</span> <span class='op'>&amp;&amp;</span> <span class='id local_ip'>local_ip</span> <span class='op'>===</span> <span class='id remote_ip'>remote_ip</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="media_type-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>media_type</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+130
+131
+132</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 130</span>
+
+<span class='kw'>def</span> <span class='id media_type'>media_type</span>
+  <span class='id content_mime_type'>content_mime_type</span><span class='period'>.</span><span class='id to_s'>to_s</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="method-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>method</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the original value of the environment&#8217;s REQUEST_METHOD, even
+if it was overridden by middleware. See #request_method for more
+information.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+72
+73
+74
+75
+76
+77
+78</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 72</span>
+
+<span class='kw'>def</span> <span class='id method'>method</span>
+  <span class='ivar'>@method</span> <span class='op'>||=</span> <span class='kw'>begin</span>
+    <span class='id method'>method</span> <span class='op'>=</span> <span class='id env'>env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rack.methodoverride.original_method</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id env'>env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>REQUEST_METHOD</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+    <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id method'>method</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id raise'>raise</span><span class='lparen'>(</span><span class='const'>ActionController</span><span class='op'>::</span><span class='const'>UnknownHttpMethod</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id method'>method</span><span class='rbrace'>}</span><span class='tstring_content'>, accepted HTTP methods are </span><span class='embexpr_beg'>#{</span><span class='const'>HTTP_METHODS</span><span class='period'>.</span><span class='id to_sentence'>to_sentence</span><span class='lparen'>(</span><span class='symbol'>:locale</span> <span class='op'>=&gt;</span> <span class='symbol'>:en</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id method'>method</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="method_symbol-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>method_symbol</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns a symbol form of the #method
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+81
+82
+83</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 81</span>
+
+<span class='kw'>def</span> <span class='id method_symbol'>method_symbol</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id method'>method</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="POST-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>POST</strong> 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='request_parameters-instance_method'>request_parameters</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Override Rack&#8217;s POST method to support indifferent access
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+222
+223
+224</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 222</span>
+
+<span class='kw'>def</span> <span class='const'>POST</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>action_dispatch.request.request_parameters</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='id normalize_parameters'>normalize_parameters</span><span class='lparen'>(</span><span class='kw'>super</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="post?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>post?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Is this a POST request? Equivalent to <tt>request.request_method ==
+:post</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+93
+94
+95</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 93</span>
+
+<span class='kw'>def</span> <span class='id post?'>post?</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id request_method'>request_method</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:post</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>put?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Is this a PUT request? Equivalent to <tt>request.request_method ==
+:put</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+99
+100
+101</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 99</span>
+
+<span class='kw'>def</span> <span class='id put?'>put?</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id request_method'>request_method</span><span class='rbracket'>]</span> <span class='op'>==</span> <span class='symbol'>:put</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="raw_post-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>raw_post</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Read the request \body. This is useful for web services that need to work
+with raw requests directly.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+172
+173
+174
+175
+176
+177
+178</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 172</span>
+
+<span class='kw'>def</span> <span class='id raw_post'>raw_post</span>
+  <span class='kw'>unless</span> <span class='ivar'>@env</span><span class='period'>.</span><span class='id include?'>include?</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>RAW_POST_DATA</span><span class='tstring_end'>'</span></span>
+    <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>RAW_POST_DATA</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id body'>body</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>CONTENT_LENGTH</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span><span class='period'>.</span><span class='id to_i'>to_i</span><span class='rparen'>)</span>
+    <span class='id body'>body</span><span class='period'>.</span><span class='id rewind'>rewind</span> <span class='kw'>if</span> <span class='id body'>body</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:rewind</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>RAW_POST_DATA</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remote_ip-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>remote_ip</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Determines originating IP address.  REMOTE_ADDR is the standard but will
+fail if the user is behind a proxy.  HTTP_CLIENT_IP and/or
+HTTP_X_FORWARDED_FOR are set by proxies so check for these if REMOTE_ADDR
+is a proxy.  HTTP_X_FORWARDED_FOR may be a comma- delimited list in the
+case of multiple chained proxies; the last address which is not trusted is
+the originating IP.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+161
+162
+163</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 161</span>
+
+<span class='kw'>def</span> <span class='id remote_ip'>remote_ip</span>
+  <span class='ivar'>@remote_ip</span> <span class='op'>||=</span> <span class='lparen'>(</span><span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>action_dispatch.remote_ip</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id ip'>ip</span><span class='rparen'>)</span><span class='period'>.</span><span class='id to_s'>to_s</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="request_method-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>request_method</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the HTTP \method that the application should see. In the case where
+the \method was overridden by a middleware (for instance, if a HEAD request
+was converted to a GET, or if a _method parameter was used to determine the
+\method the application should use), this \method returns the overridden
+value, not the original.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+56
+57
+58
+59
+60
+61
+62</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 56</span>
+
+<span class='kw'>def</span> <span class='id request_method'>request_method</span>
+  <span class='ivar'>@request_method</span> <span class='op'>||=</span> <span class='kw'>begin</span>
+    <span class='id method'>method</span> <span class='op'>=</span> <span class='id env'>env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>REQUEST_METHOD</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+    <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id method'>method</span><span class='rbracket'>]</span> <span class='op'>||</span> <span class='id raise'>raise</span><span class='lparen'>(</span><span class='const'>ActionController</span><span class='op'>::</span><span class='const'>UnknownHttpMethod</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id method'>method</span><span class='rbrace'>}</span><span class='tstring_content'>, accepted HTTP methods are </span><span class='embexpr_beg'>#{</span><span class='const'>HTTP_METHODS</span><span class='period'>.</span><span class='id to_sentence'>to_sentence</span><span class='lparen'>(</span><span class='symbol'>:locale</span> <span class='op'>=&gt;</span> <span class='symbol'>:en</span><span class='rparen'>)</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id method'>method</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="request_method_symbol-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>request_method_symbol</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns a symbol form of the #request_method
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+65
+66
+67</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 65</span>
+
+<span class='kw'>def</span> <span class='id request_method_symbol'>request_method_symbol</span>
+  <span class='const'>HTTP_METHOD_LOOKUP</span><span class='lbracket'>[</span><span class='id request_method'>request_method</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="reset_session-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>reset_session</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+TODO This should be broken apart into AD::Request::Session and probably be
+included by the session middleware.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+201
+202
+203
+204
+205</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 201</span>
+
+<span class='kw'>def</span> <span class='id reset_session'>reset_session</span>
+  <span class='id session'>session</span><span class='period'>.</span><span class='id destroy'>destroy</span> <span class='kw'>if</span> <span class='id session'>session</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id session'>session</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>action_dispatch.request.flash_hash</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='kw'>nil</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="server_software-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>server_software</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the lowercase name of the HTTP server software.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+166
+167
+168</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 166</span>
+
+<span class='kw'>def</span> <span class='id server_software'>server_software</span>
+  <span class='lparen'>(</span><span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>SERVER_SOFTWARE</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>&amp;&amp;</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>^([a-zA-Z]+)</span><span class='regexp_end'>/</span></span> <span class='op'>=~</span> <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>SERVER_SOFTWARE</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='backref'>$1</span><span class='period'>.</span><span class='id downcase'>downcase</span> <span class='op'>:</span> <span class='kw'>nil</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="session=-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>session=</strong>(session) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+207
+208
+209</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 207</span>
+
+<span class='kw'>def</span> <span class='id session='>session=</span><span class='lparen'>(</span><span class='id session'>session</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>rack.session</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id session'>session</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="session_options=-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>session_options=</strong>(options) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+211
+212
+213</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 211</span>
+
+<span class='kw'>def</span> <span class='id session_options='>session_options=</span><span class='lparen'>(</span><span class='id options'>options</span><span class='rparen'>)</span>
+  <span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>rack.session.options</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id options'>options</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="xml_http_request?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>xml_http_request?</strong> 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='xhr?-instance_method'>xhr?</span></span>
+    </span>
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns true if the request&#8217;s &#8220;X-Requested-With&#8221; header
+contains &#8220;XMLHttpRequest&#8221;. (The Prototype Javascript library
+sends this header with every Ajax request.)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+142
+143
+144</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/http/request.rb', line 142</span>
+
+<span class='kw'>def</span> <span class='id xml_http_request?'>xml_http_request?</span>
+  <span class='op'>!</span><span class='lparen'>(</span><span class='ivar'>@env</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>HTTP_X_REQUESTED_WITH</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>!~</span> <span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>XMLHttpRequest</span><span class='regexp_end'>/i</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:36 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

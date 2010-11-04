@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: Scanf</title>
+<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index (S)</a> &raquo; 
+    
+    
+    <span class="title">Scanf</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: Scanf
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">lib/scanf.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>scanf for Ruby</h1>
+<h2>Description</h2>
+<p>
+scanf for Ruby is an implementation of the C function scanf(3), modified as
+necessary for Ruby compatibility.
+</p>
+<p>
+The methods provided are String#scanf, IO#scanf, and Kernel#scanf.
+Kernel#scanf is a wrapper around STDIN.scanf.  IO#scanf can be used on any
+IO stream, including file handles and sockets. scanf can be called either
+with or without a block.
+</p>
+<p>
+scanf for Ruby scans an input string or stream according to a
+<b>format</b>, as described below (&#8220;Conversions&#8221;), and returns
+an array of matches between the format and the input.  The format is
+defined in a string, and is similar (though not identical) to the formats
+used in Kernel#printf and Kernel#sprintf.
+</p>
+<p>
+The format may contain <b>conversion specifiers</b>, which tell scanf what
+form (type) each particular matched substring should be converted to (e.g.,
+decimal integer, floating point number, literal string, etc.)  The matches
+and conversions take place from left to right, and the conversions
+themselves are returned as an array.
+</p>
+<p>
+The format string may also contain characters other than those in the
+conversion specifiers.  White space (blanks, tabs, or newlines) in the
+format string matches any amount of white space, including none, in the
+input.  Everything else matches only itself.
+</p>
+<p>
+Scanning stops, and scanf returns, when any input character fails to match
+the specifications in the format string, or when input is exhausted, or
+when everything in the format string has been matched. All matches found up
+to the stopping point are returned in the return array (or yielded to the
+block, if a block was given).
+</p>
+<h2>Basic usage</h2>
+<pre class="code">
+   <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>scanf.rb</span><span class='tstring_end'>'</span></span>
+
+   <span class='comment'># String#scanf and IO#scanf take a single argument (a format string)
+</span>   <span class='id array'>array</span> <span class='op'>=</span> <span class='id aString'>aString</span><span class='period'>.</span><span class='id scanf'>scanf</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>%d%s</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+   <span class='id array'>array</span> <span class='op'>=</span> <span class='id anIO'>anIO</span><span class='period'>.</span><span class='id scanf'>scanf</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>%d%s</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+   <span class='comment'># Kernel#scanf reads from STDIN
+</span>   <span class='id array'>array</span> <span class='op'>=</span> <span class='id scanf'>scanf</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>%d%s</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<h2>Block usage</h2>
+<p>
+When called with a block, scanf keeps scanning the input, cycling back to
+the beginning of the format string, and yields a new array of conversions
+to the block every time the format string is matched (including partial
+matches, but not including complete failures).  The actual return value of
+scanf when called with a block is an array containing the results of all
+the executions of the block.
+</p>
+<pre class="code">
+   <span class='id str'>str</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>123 abc 456 def 789 ghi</span><span class='tstring_end'>&quot;</span></span>
+   <span class='id str'>str</span><span class='period'>.</span><span class='id scanf'>scanf</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>%d%s</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id num'>num</span><span class='comma'>,</span><span class='id str'>str</span><span class='op'>|</span> <span class='lbracket'>[</span> <span class='id num'>num</span> <span class='op'>*</span> <span class='int'>2</span><span class='comma'>,</span> <span class='id str'>str</span><span class='period'>.</span><span class='id upcase'>upcase</span> <span class='rbracket'>]</span> <span class='rbrace'>}</span>
+     <span class='comment'># =&gt; [[246, &quot;ABC&quot;], [912, &quot;DEF&quot;], [1578, &quot;GHI&quot;]]
+</span></pre>
+<h2>Conversions</h2>
+<p>
+The single argument to scanf is a format string, which generally includes
+one or more conversion specifiers. Conversion specifiers begin with the
+percent character (&#8217;%&#8217;) and include information about what
+scanf should next scan for (string, decimal number, single character,
+etc.).
+</p>
+<p>
+There may be an optional maximum field width, expressed as a decimal
+integer, between the % and the conversion. If no width is given, a default
+of `infinity&#8217; is used (with the exception of the %c specifier; see
+below).  Otherwise, given a field width of <em>n</em> for a given
+conversion, at most <em>n</em> characters are scanned in processing that
+conversion.  Before conversion begins, most conversions skip white space in
+the input string; this white space is not counted against the field width.
+</p>
+<p>
+The following conversions are available. (See the files EXAMPLES and
+<tt>tests/scanftests.rb</tt> for examples.)
+</p>
+<dl>
+<dt>%</dt><dd><p>
+Matches a literal `%&#8217;. That is, `%%&#8217; in the format string
+matches a single input `%&#8217; character. No conversion is done, and the
+resulting &#8217;%&#8217; is not included in the return array.
+</p>
+</dd>
+<dt>d</dt><dd><p>
+Matches an optionally signed decimal integer.
+</p>
+</dd>
+<dt>u</dt><dd><p>
+Same as d.
+</p>
+</dd>
+<dt>i</dt><dd><p>
+Matches an optionally signed integer. The integer is read in base 16 if it
+begins with `0x&#8217; or `0X&#8217;, in base 8 if it begins with
+`0&#8217;, and in base 10 other- wise. Only characters that correspond to
+the base are recognized.
+</p>
+</dd>
+<dt>o</dt><dd><p>
+Matches an optionally signed octal integer.
+</p>
+</dd>
+<dt>x,X</dt><dd><p>
+Matches an optionally signed hexadecimal integer,
+</p>
+</dd>
+<dt>a,e,f,g,A,E,F,G</dt><dd><p>
+Matches an optionally signed floating-point number.
+</p>
+</dd>
+<dt>s</dt><dd><p>
+Matches a sequence of non-white-space character. The input string stops at
+white space or at the maximum field width, whichever occurs first.
+</p>
+</dd>
+<dt>c</dt><dd><p>
+Matches a single character, or a sequence of <em>n</em> characters if a
+field width of <em>n</em> is specified. The usual skip of leading white
+space is suppressed. To skip white space first, use an explicit space in
+the format.
+</p>
+</dd>
+<dt><tt>[</tt></dt><dd><p>
+Matches a nonempty sequence of characters from the specified set of
+accepted characters.  The usual skip of leading white space is suppressed. 
+This bracketed sub-expression is interpreted exactly like a character class
+in a Ruby regular expression.  (In fact, it is placed as-is in a regular
+expression.)  The matching against the input string ends with the
+appearance of a character not in (or, with a circumflex, in) the set, or
+when the field width runs out, whichever comes first.
+</p>
+</dd>
+</dl>
+<h3>Assignment suppression</h3>
+<p>
+To require that a particular match occur, but without including the result
+in the return array, place the <b>assignment suppression flag</b>, which is
+the star character (&#8217;*&#8217;), immediately after the leading
+&#8217;%&#8217; of a format specifier (just before the field width, if
+any).
+</p>
+<h2>Examples</h2>
+<p>
+See the files <tt>EXAMPLES</tt> and <tt>tests/scanftests.rb</tt>.
+</p>
+<h2>scanf for Ruby compared with scanf in C</h2>
+<p>
+scanf for Ruby is based on the C function scanf(3), but with modifications,
+dictated mainly by the underlying differences between the languages.
+</p>
+<h3>Unimplemented flags and specifiers</h3>
+<ul>
+<li><p>
+The only flag implemented in scanf for Ruby is &#8216;<tt>*</tt>&#8217;
+(ignore upcoming conversion). Many of the flags available in C versions of
+scanf(4) have to do with the type of upcoming pointer arguments, and are
+literally meaningless in Ruby.
+</p>
+</li>
+<li><p>
+The <tt>n</tt> specifier (store number of characters consumed so far in
+next pointer) is not implemented.
+</p>
+</li>
+<li><p>
+The <tt>p</tt> specifier (match a pointer value) is not implemented.
+</p>
+</li>
+</ul>
+<h3>Altered specifiers</h3>
+<dl>
+<dt>o,u,x,X</dt><dd><p>
+In scanf for Ruby, all of these specifiers scan for an optionally signed
+integer, rather than for an unsigned integer like their C counterparts.
+</p>
+</dd>
+</dl>
+<h3>Return values</h3>
+<p>
+scanf for Ruby returns an array of successful conversions, whereas scanf(3)
+returns the number of conversions successfully completed. (See below for
+more details on scanf for Ruby&#8217;s return values.)
+</p>
+<h2>Return values</h2>
+<p>
+Without a block, scanf returns an array containing all the conversions it
+has found. If none are found, scanf will return an empty array. An
+unsuccesful match is never ignored, but rather always signals the end of
+the scanning operation. If the first unsuccessful match takes place after
+one or more successful matches have already taken place, the returned array
+will contain the results of those successful matches.
+</p>
+<p>
+With a block scanf returns a &#8216;map&#8217;-like array of
+transformations from the block &#8212; that is, an array reflecting what
+the block did with each yielded result from the iterative scanf operation. 
+(See &#8220;Block usage&#8221;, above.)
+</p>
+<h2>Test suite</h2>
+<p>
+scanf for Ruby includes a suite of unit tests (requiring the
+<tt>TestUnit</tt> package), which can be run with the command <tt>ruby
+tests/scanftests.rb</tt> or the command <tt>make test</tt>.
+</p>
+<h2>Current limitations and bugs</h2>
+<p>
+When using IO#scanf under Windows, make sure you open your files in binary
+mode:
+</p>
+<pre class="code">
+    <span class='const'>File</span><span class='period'>.</span><span class='id open'>open</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>filename</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>rb</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+so that scanf can keep track of characters correctly.
+</p>
+<p>
+Support for character classes is reasonably complete (since it essentially
+piggy-backs on Ruby&#8217;s regular expression handling of character
+classes), but users are advised that character class testing has not been
+exhaustive, and that they should exercise some caution in using any of the
+more complex and/or arcane character class idioms.
+</p>
+<h2>Technical notes</h2>
+<h3>Rationale behind scanf for Ruby</h3>
+<p>
+The impetus for a scanf implementation in Ruby comes chiefly from the fact
+that existing pattern matching operations, such as Regexp#match and
+String#scan, return all results as strings, which have to be converted to
+integers or floats explicitly in cases where what&#8217;s ultimately wanted
+are integer or float values.
+</p>
+<h3>Design of scanf for Ruby</h3>
+<p>
+scanf for Ruby is essentially a <format string>-to-<regular expression>
+converter.
+</p>
+<p>
+When scanf is called, a FormatString object is generated from the format
+string (&#8220;%d%s&#8230;&#8221;) argument. The FormatString object breaks
+the format string down into atoms (&#8220;%d&#8221;, &#8220;%5f&#8221;,
+&#8220;blah&#8221;, etc.), and from each atom it creates a FormatSpecifier
+object, which it saves.
+</p>
+<p>
+Each FormatSpecifier has a regular expression fragment and a
+&#8220;handler&#8221; associated with it. For example, the regular
+expression fragment associated with the format &#8220;%d&#8221; is
+&#8220;([-<tt>]?\d</tt>)&#8221;, and the handler associated with it is a wrapper
+around String#to_i. scanf itself calls FormatString#match, passing in the
+input string. FormatString#match iterates through its FormatSpecifiers; for
+each one, it matches the corresponding regular expression fragment against
+the string. If there&#8217;s a match, it sends the matched string to the
+handler associated with the FormatSpecifier.
+</p>
+<p>
+Thus, to follow up the &#8220;%d&#8221; example: if &#8220;123&#8221;
+occurs in the input string when a FormatSpecifier consisting of
+&#8220;%d&#8221; is reached, the &#8220;123&#8221; will be matched against
+&#8220;([-<tt>]?\d</tt>)&#8221;, and the matched string will be rendered into an
+integer by a call to to_i.
+</p>
+<p>
+The rendered match is then saved to an accumulator array, and the input
+string is reduced to the post-match substring. Thus the string is
+&#8220;eaten&#8221; from the left as the FormatSpecifiers are applied in
+sequence.  (This is done to a duplicate string; the original string is not
+altered.)
+</p>
+<p>
+As soon as a regular expression fragment fails to match the string, or when
+the FormatString object runs out of FormatSpecifiers, scanning stops and
+results accumulated so far are returned in an array.
+</p>
+<h2>License and copyright</h2>
+<table>
+<tr><td valign="top">Copyright</td><td><p>
+&#169; 2002-2003 David Alan Black
+</p>
+</td></tr>
+<tr><td valign="top">License</td><td><p>
+Distributed on the same licensing terms as Ruby itself
+</p>
+</td></tr>
+</table>
+<h2>Warranty disclaimer</h2>
+<p>
+This software is provided &#8220;as is&#8221; and without any express or
+implied warranties, including, without limitation, the implied warranties
+of merchantibility and fitness for a particular purpose.
+</p>
+<h2>Credits and acknowledgements</h2>
+<p>
+scanf for Ruby was developed as the major activity of the Austin Ruby
+Codefest (Austin, Texas, August 2002).
+</p>
+<table>
+<tr><td valign="top">Principal author</td><td><p>
+David Alan Black (<a
+href="mailto:dblack@superlink.net">dblack@superlink.net</a>)
+</p>
+</td></tr>
+<tr><td valign="top">Co-author</td><td><p>
+Hal Fulton (<a
+href="mailto:hal9000@hypermetrics.com">hal9000@hypermetrics.com</a>)
+</p>
+</td></tr>
+<tr><td valign="top">Project contributors</td><td><p>
+Nolan Darilek, Jason Johnston
+</p>
+</td></tr>
+</table>
+<p>
+Thanks to Hal Fulton for hosting the Codefest.
+</p>
+<p>
+Thanks to Matz for suggestions about the class design.
+</p>
+<p>
+Thanks to Gavin Sinclair for some feedback on the documentation.
+</p>
+<p>
+The text for parts of this document, especially the Description and
+Conversions sections, above, were adapted from the Linux Programmer&#8217;s
+Manual manpage for scanf(3), dated 1995-11-01.
+</p>
+<h2>Bugs and bug reports</h2>
+<p>
+scanf for Ruby is based on something of an amalgam of C scanf
+implementations and documentation, rather than on a single canonical
+description. Suggestions for features and behaviors which appear in other
+scanfs, and would be meaningful in Ruby, are welcome, as are reports of
+suspicious behaviors and/or bugs. (Please see &#8220;Credits and
+acknowledgements&#8221;, above, for email addresses.)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Scanf/FormatSpecifier.html" title="Scanf::FormatSpecifier (class)">FormatSpecifier</a></span>, <span class='object_link'><a href="Scanf/FormatString.html" title="Scanf::FormatString (class)">FormatString</a></span>
+    
+  
+</p>
+
+
+
+
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:01:26 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

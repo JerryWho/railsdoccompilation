@@ -1,0 +1,1858 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: ActionMailer::Base</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (B)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActionMailer.html" title="ActionMailer (module)">ActionMailer</a></span></span>
+     &raquo; 
+    <span class="title">Base</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: ActionMailer::Base
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../AbstractController/Base.html" title="AbstractController::Base (class)">AbstractController::Base</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="../AbstractController/Base.html" title="AbstractController::Base (class)">AbstractController::Base</a></span></li>
+          
+            <li class="next">ActionMailer::Base</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+      <dt class="r2">Extended by:</dt>
+      <dd class="r2"><span class='object_link'><a href="Base/DeprecatedUrlOptions.html" title="ActionMailer::Base::DeprecatedUrlOptions (module)">Base::DeprecatedUrlOptions</a></span></dd>
+      
+    
+  
+    
+      <dt class="r1">Includes:</dt>
+      <dd class="r1"><span class='object_link'><a href="../AbstractController/AssetPaths.html" title="AbstractController::AssetPaths (module)">AbstractController::AssetPaths</a></span>, <span class='object_link'><a href="../AbstractController/Helpers.html" title="AbstractController::Helpers (module)">AbstractController::Helpers</a></span>, <span class='object_link'><a href="../AbstractController/Layouts.html" title="AbstractController::Layouts (module)">AbstractController::Layouts</a></span>, <span class='object_link'><a href="../AbstractController/Logger.html" title="AbstractController::Logger (module)">AbstractController::Logger</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html" title="AbstractController::Rendering (module)">AbstractController::Rendering</a></span>, <span class='object_link'><a href="../AbstractController/Translation.html" title="AbstractController::Translation (module)">AbstractController::Translation</a></span>, <span class='object_link'><a href="DeliveryMethods.html" title="ActionMailer::DeliveryMethods (module)">DeliveryMethods</a></span>, <span class='object_link'><a href="DeprecatedApi.html" title="ActionMailer::DeprecatedApi (module)">DeprecatedApi</a></span>, <span class='object_link'><a href="OldApi.html" title="ActionMailer::OldApi (module)">OldApi</a></span></dd>
+      
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">actionmailer/lib/action_mailer/base.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Action Mailer allows you to send email from your application using a mailer
+model and views.
+</p>
+<h1>Mailer Models</h1>
+<p>
+To use Action Mailer, you need to create a mailer model.
+</p>
+<pre class="code">
+  $ rails generate mailer Notifier
+</pre>
+<p>
+The generated model inherits from <tt>ActionMailer::Base</tt>. Emails are
+defined by creating methods within the model which are then used to set
+variables to be used in the mail template, to change options on the mail,
+or to add attachments.
+</p>
+<p>
+Examples:
+</p>
+<pre class="code">
+ <span class='kw'>class</span> <span class='const'>Notifier</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+   <span class='id default'>default</span> <span class='symbol'>:from</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>no-reply@example.com</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+           <span class='symbol'>:return_path</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>system@example.com</span><span class='tstring_end'>'</span></span>
+
+   <span class='kw'>def</span> <span class='id welcome'>welcome</span><span class='lparen'>(</span><span class='id recipient'>recipient</span><span class='rparen'>)</span>
+     <span class='ivar'>@account</span> <span class='op'>=</span> <span class='id recipient'>recipient</span>
+     <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id recipient'>recipient</span><span class='period'>.</span><span class='id email_address_with_name'>email_address_with_name</span><span class='comma'>,</span>
+          <span class='symbol'>:bcc</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>bcc@example.com</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Order Watcher &lt;watcher@example.com&gt;</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+     <span class='kw'>end</span>
+   <span class='kw'>end</span>
+</pre>
+<p>
+Within the mailer method, you have access to the following methods:
+</p>
+<ul>
+<li><p>
+<tt>attachments[]=</tt> - Allows you to add attachments to your email in an
+intuitive manner; <tt><a href="http://'filename.png'">attachments</a> =
+File.read('path/to/filename.png')</tt>
+</p>
+</li>
+<li><p>
+<tt>attachments.inline[]=</tt> - Allows you to add an inline attachment to
+your email in the same manner as <tt>attachments[]=</tt>
+</p>
+</li>
+<li><p>
+<tt>headers[]=</tt> - Allows you to specify any header field in your email
+such as <tt>headers['X-No-Spam'] = 'True'</tt>. Note, while most fields
+like <tt>To:</tt> <tt>From:</tt> can only appear once in an email header,
+other fields like <tt>X-Anything</tt> can appear multiple times. If you
+want to change a field that can appear multiple times, you need to set it
+to nil first so that Mail knows you are replacing it and not adding another
+field of the same name.
+</p>
+</li>
+<li><p>
+<tt>headers(hash)</tt> - Allows you to specify multiple headers in your
+email such as <tt>headers({'X-No-Spam' =&gt; 'True', 'In-Reply-To' =&gt;
+'1234@message.id'})</tt>
+</p>
+</li>
+<li><p>
+<tt>mail</tt> - Allows you to specify email to be sent.
+</p>
+</li>
+</ul>
+<p>
+The hash passed to the mail method allows you to specify any header that a
+Mail::Message will accept (any valid Email header including optional
+fields).
+</p>
+<p>
+The mail method, if not passed a block, will inspect your views and send
+all the views with the same name as the method, so the above action would
+send the <tt>welcome.text.plain.erb</tt> view file as well as the
+<tt>welcome.text.html.erb</tt> view file in a
+<tt>multipart/alternative</tt> email.
+</p>
+<p>
+If you want to explicitly render only certain templates, pass a block:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id user'>user</span><span class='period'>.</span><span class='id email'>email</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The block syntax is also useful in providing information specific to a
+part:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id user'>user</span><span class='period'>.</span><span class='id email'>email</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span><span class='lparen'>(</span><span class='symbol'>:content_transfer_encoding</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>base64</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Or even to render a special view:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id user'>user</span><span class='period'>.</span><span class='id email'>email</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span> <span class='lbrace'>{</span> <span class='id render'>render</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>some_other_template</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+</pre>
+<h1>Mailer views</h1>
+<p>
+Like Action Controller, each mailer class has a corresponding view
+directory in which each method of the class looks for a template with its
+name.
+</p>
+<p>
+To define a template to be used with a mailing, create an <tt>.erb</tt>
+file with the same name as the method in your mailer model. For example, in
+the mailer defined above, the template at
+<tt>app/views/notifier/signup_notification.text.plain.erb</tt> would be
+used to generate the email.
+</p>
+<p>
+Variables defined in the model are accessible as instance variables in the
+view.
+</p>
+<p>
+Emails by default are sent in plain text, so a sample view for our model
+example might look like this:
+</p>
+<pre class="code">
+  <span class='const'>Hi</span> <span class='op'>&lt;</span><span class='tstring'><span class='tstring_beg'>%=</span><span class='tstring_end'> @account.name %&gt;,
+</span></span><span class='tstring_end'>  Thanks for joining our service! Please check back often.
+</span></span></pre>
+<p>
+You can even use Action Pack helpers in these views. For example:
+</p>
+<pre class="code">
+  You got a new note!
+  &lt;%= truncate(@note.body, 25) %&gt;
+</pre>
+<p>
+If you need to access the subject, from or the recipients in the view, you
+can do that through message object:
+</p>
+<pre class="code">
+  You got a new note from &lt;%= message.from %&gt;!
+  &lt;%= truncate(@note.body, 25) %&gt;
+</pre>
+<h1>Generating URLs</h1>
+<p>
+URLs can be generated in mailer views using <tt>url_for</tt> or named
+routes. Unlike controllers from Action Pack, the mailer instance
+doesn&#8217;t have any context about the incoming request, so you&#8217;ll
+need to provide all of the details needed to generate a URL.
+</p>
+<p>
+When using <tt>url_for</tt> you&#8217;ll need to provide the
+<tt>:host</tt>, <tt>:controller</tt>, and <tt>:action</tt>:
+</p>
+<pre class="code">
+  &lt;%= url_for(:host =&gt; &quot;example.com&quot;, :controller =&gt; &quot;welcome&quot;, :action =&gt; &quot;greeting&quot;) %&gt;
+</pre>
+<p>
+When using named routes you only need to supply the <tt>:host</tt>:
+</p>
+<pre class="code">
+  &lt;%= users_url(:host =&gt; &quot;example.com&quot;) %&gt;
+</pre>
+<p>
+You want to avoid using the <tt>name_of_route_path</tt> form of named
+routes because it doesn&#8217;t make sense to generate relative URLs in
+email messages.
+</p>
+<p>
+It is also possible to set a default host that will be used in all mailers
+by setting the <tt>:host</tt> option as a configuration option in
+<tt>config/application.rb</tt>:
+</p>
+<pre class="code">
+  <span class='id config'>config</span><span class='period'>.</span><span class='id action_mailer'>action_mailer</span><span class='period'>.</span><span class='id default_url_options'>default_url_options</span> <span class='op'>=</span> <span class='lbrace'>{</span> <span class='symbol'>:host</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>example.com</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+</pre>
+<p>
+Setting <tt>ActionMailer::Base.default_url_options</tt> directly is now
+deprecated, use the configuration option mentioned above to set the default
+host.
+</p>
+<p>
+If you do decide to set a default <tt>:host</tt> for your mailers you want
+to use the <tt>:only_path =&gt; false</tt> option when using
+<tt>url_for</tt>. This will ensure that absolute URLs are generated because
+the <tt>url_for</tt> view helper will, by default, generate relative URLs
+when a <tt>:host</tt> option isn&#8217;t explicitly provided.
+</p>
+<h1>Sending mail</h1>
+<p>
+Once a mailer action and template are defined, you can deliver your message
+or create it and save it for delivery later:
+</p>
+<pre class="code">
+  <span class='const'>Notifier</span><span class='period'>.</span><span class='id welcome'>welcome</span><span class='lparen'>(</span><span class='id david'>david</span><span class='rparen'>)</span><span class='period'>.</span><span class='id deliver'>deliver</span> <span class='comment'># sends the email
+</span>  <span class='id mail'>mail</span> <span class='op'>=</span> <span class='const'>Notifier</span><span class='period'>.</span><span class='id welcome'>welcome</span><span class='lparen'>(</span><span class='id david'>david</span><span class='rparen'>)</span>  <span class='comment'># =&gt; a Mail::Message object
+</span>  <span class='id mail'>mail</span><span class='period'>.</span><span class='id deliver'>deliver</span>                    <span class='comment'># sends the email
+</span></pre>
+<p>
+You never instantiate your mailer class. Rather, you just call the method
+you defined on the class itself.
+</p>
+<h1>Multipart Emails</h1>
+<p>
+Multipart messages can also be used implicitly because Action Mailer will
+automatically detect and use multipart templates, where each template is
+named after the name of the action, followed by the content type. Each such
+detected template will be added as separate part to the message.
+</p>
+<p>
+For example, if the following templates exist:
+</p>
+<ul>
+<li><p>
+signup_notification.text.plain.erb
+</p>
+</li>
+<li><p>
+signup_notification.text.html.erb
+</p>
+</li>
+<li><p>
+signup_notification.text.xml.builder
+</p>
+</li>
+<li><p>
+signup_notification.text.yaml.erb
+</p>
+</li>
+</ul>
+<p>
+Each would be rendered and added as a separate part to the message, with
+the corresponding content type. The content type for the entire message is
+automatically set to <tt>multipart/alternative</tt>, which indicates that
+the email contains multiple different representations of the same email
+body. The same instance variables defined in the action are passed to all
+email templates.
+</p>
+<p>
+Implicit template rendering is not performed if any attachments or parts
+have been added to the email. This means that you&#8217;ll have to manually
+add each part to the email and set the content type of the email to
+<tt>multipart/alternative</tt>.
+</p>
+<h1>Attachments</h1>
+<p>
+Sending attachment in emails is easy:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>ApplicationMailer</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='kw'>def</span> <span class='id welcome'>welcome</span><span class='lparen'>(</span><span class='id recipient'>recipient</span><span class='rparen'>)</span>
+      <span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>free_book.pdf</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>path/to/file.pdf</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id recipient'>recipient</span><span class='comma'>,</span> <span class='symbol'>:subject</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>New account information</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Which will (if it had both a <tt>welcome.text.plain.erb</tt> and
+<tt>welcome.text.html.erb</tt> template in the view directory), send a
+complete <tt>multipart/mixed</tt> email with two parts, the first part
+being a <tt>multipart/alternative</tt> with the text and HTML email parts
+inside, and the second being a <tt>application/pdf</tt> with a Base64
+encoded copy of the file.pdf book with the filename <tt>free_book.pdf</tt>.
+</p>
+<h1>Inline Attachments</h1>
+<p>
+You can also specify that a file should be displayed inline with other
+HTML. This is useful if you want to display a corporate logo or a photo.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>ApplicationMailer</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='kw'>def</span> <span class='id welcome'>welcome</span><span class='lparen'>(</span><span class='id recipient'>recipient</span><span class='rparen'>)</span>
+      <span class='id attachments'>attachments</span><span class='period'>.</span><span class='id inline'>inline</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>photo.png</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>path/to/photo.png</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+      <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='id recipient'>recipient</span><span class='comma'>,</span> <span class='symbol'>:subject</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Here is what we look like</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+And then to reference the image in the view, you create a
+<tt>welcome.html.erb</tt> file and make a call to <tt>image_tag</tt>
+passing in the attachment you want to display and then call <tt>url</tt> on
+the attachment to get the relative content id path for the image source:
+</p>
+<pre class="code">
+  &lt;h1&gt;Please Don't Cringe&lt;/h1&gt;
+
+  &lt;%= image_tag attachments['photo.png'].url -%&gt;
+</pre>
+<p>
+As we are using Action View&#8217;s <tt>image_tag</tt> method, you can pass
+in any other options you want:
+</p>
+<pre class="code">
+  &lt;h1&gt;Please Don't Cringe&lt;/h1&gt;
+
+  &lt;%= image_tag attachments['photo.png'].url, :alt =&gt; 'Our Photo', :class =&gt; 'photo' -%&gt;
+</pre>
+<h1>Observing and Intercepting Mails</h1>
+<p>
+Action Mailer provides hooks into the Mail observer and interceptor
+methods.  These allow you to register objects that are called during the
+mail delivery life cycle.
+</p>
+<p>
+An observer object must implement the <tt>:delivered_email(message)</tt>
+method which will be called once for every email sent after the email has
+been sent.
+</p>
+<p>
+An interceptor object must implement the
+<tt>:delivering_email(message)</tt> method which will be called before the
+email is sent, allowing you to make modifications to the email before it
+hits the delivery agents.  Your object should make and needed modifications
+directly to the passed in Mail::Message instance.
+</p>
+<h1>Default Hash</h1>
+<p>
+Action Mailer provides some intelligent defaults for your emails, these are
+usually specified in a default method inside the class definition:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Notifier</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id default'>default</span> <span class='symbol'>:sender</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>system@example.com</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+You can pass in any header value that a <tt>Mail::Message</tt>, out of the
+box, <tt>ActionMailer::Base</tt> sets the following:
+</p>
+<ul>
+<li><p>
+<tt>:mime_version =&gt; &quot;1.0&quot;</tt>
+</p>
+</li>
+<li><p>
+<tt>:charset      =&gt; &quot;UTF-8&quot;,</tt>
+</p>
+</li>
+<li><p>
+<tt>:content_type =&gt; &quot;text/plain&quot;,</tt>
+</p>
+</li>
+<li><p>
+<tt>:parts_order  =&gt; [ &quot;text/plain&quot;,
+&quot;text/enriched&quot;, &quot;text/html&quot; ]</tt>
+</p>
+</li>
+</ul>
+<p>
+<tt>parts_order</tt> and <tt>charset</tt> are not actually valid
+<tt>Mail::Message</tt> header fields, but Action Mailer translates them
+appropriately and sets the correct values.
+</p>
+<p>
+As you can pass in any header, you need to either quote the header as a
+string, or pass it in as an underscorised symbol, so the following will
+work:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Notifier</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id default'>default</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Content-Transfer-Encoding</span><span class='tstring_end'>'</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>7bit</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+            <span class='symbol'>:content_description</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>This is a description</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Finally, Action Mailer also supports passing <tt>Proc</tt> objects into the
+default hash, so you can define methods that evaluate as the message is
+being generated:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Notifier</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id default'>default</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>X-Special-Header</span><span class='tstring_end'>'</span></span> <span class='op'>=&gt;</span> <span class='const'>Proc</span><span class='period'>.</span><span class='id new'>new</span> <span class='lbrace'>{</span> <span class='id my_method'>my_method</span> <span class='rbrace'>}</span>
+
+    <span class='id private'>private</span>
+
+      <span class='kw'>def</span> <span class='id my_method'>my_method</span>
+        <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>some complex call</span><span class='tstring_end'>'</span></span>
+      <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Note that the proc is evaluated right at the start of the mail message
+generation, so if you set something in the defaults using a proc, and then
+set the same thing inside of your mailer method, it will get over written
+by the mailer method.
+</p>
+<h1>Configuration options</h1>
+<p>
+These options are specified on the class level, like
+<tt>ActionMailer::Base.template_root = &quot;/my/templates&quot;</tt>
+</p>
+<ul>
+<li><p>
+<tt>default</tt> - You can pass this in at a class level as well as within
+the class itself as per the above section.
+</p>
+</li>
+<li><p>
+<tt>logger</tt> - the logger is used for generating information on the
+mailing run if available. Can be set to nil for no logging. Compatible with
+both Ruby&#8217;s own Logger and Log4r loggers.
+</p>
+</li>
+<li><p>
+<tt>smtp_settings</tt> - Allows detailed configuration for <tt>:smtp</tt>
+delivery method:
+</p>
+<ul>
+<li><p>
+<tt>:address</tt> - Allows you to use a remote mail server. Just change it
+from its default &#8220;localhost&#8221; setting.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:port</tt> - On the off chance that your mail server doesn&#8217;t run
+on port 25, you can change it.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:domain</tt> - If you need to specify a HELO domain, you can do it
+here.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:user_name</tt> - If your mail server requires authentication, set the
+username in this setting.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:password</tt> - If your mail server requires authentication, set the
+password in this setting.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:authentication</tt> - If your mail server requires authentication, you
+need to specify the authentication type here. This is a symbol and one of
+<tt>:plain</tt>, <tt>:login</tt>, <tt>:cram_md5</tt>.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:enable_starttls_auto</tt> - When set to true, detects if STARTTLS is
+enabled in your SMTP server and starts to use it.
+</p>
+</li>
+</ul>
+</li>
+<li><p>
+<tt>sendmail_settings</tt> - Allows you to override options for the
+<tt>:sendmail</tt> delivery method.
+</p>
+<ul>
+<li><p>
+<tt>:location</tt> - The location of the sendmail executable. Defaults to
+<tt>/usr/sbin/sendmail</tt>.
+</p>
+</li>
+</ul>
+<ul>
+<li><p>
+<tt>:arguments</tt> - The command line arguments. Defaults to <tt>-i
+-t</tt> with <tt>-f sender@addres</tt> added automatically before the
+message is sent.
+</p>
+</li>
+</ul>
+</li>
+<li><p>
+<tt>file_settings</tt> - Allows you to override options for the
+<tt>:file</tt> delivery method.
+</p>
+<ul>
+<li><p>
+<tt>:location</tt> - The directory into which emails will be written.
+Defaults to the application <tt>tmp/mails</tt>.
+</p>
+</li>
+</ul>
+</li>
+<li><p>
+<tt>raise_delivery_errors</tt> - Whether or not errors should be raised if
+the email fails to be delivered.
+</p>
+</li>
+<li><p>
+<tt>delivery_method</tt> - Defines a delivery method. Possible values are
+<tt>:smtp</tt> (default), <tt>:sendmail</tt>, <tt>:test</tt>, and
+<tt>:file</tt>. Or you may provide a custom delivery method object eg.
+MyOwnDeliveryMethodClass.new.  See the Mail gem documentation on the
+interface you need to implement for a custom delivery agent.
+</p>
+</li>
+<li><p>
+<tt>perform_deliveries</tt> - Determines whether emails are actually sent
+from Action Mailer when you call <tt>.deliver</tt> on an mail message or on
+an Action Mailer method.  This is on by default but can be turned off to
+aid in functional testing.
+</p>
+</li>
+<li><p>
+<tt>deliveries</tt> - Keeps an array of all the emails sent out through the
+Action Mailer with <tt>delivery_method :test</tt>. Most useful for unit and
+functional testing.
+</p>
+</li>
+<li><p>
+<tt>default_charset</tt> - This is now deprecated, use the <tt>default</tt>
+method above to set the default <tt>:charset</tt>.
+</p>
+</li>
+<li><p>
+<tt>default_content_type</tt> - This is now deprecated, use the
+<tt>default</tt> method above to set the default <tt>:content_type</tt>.
+</p>
+</li>
+<li><p>
+<tt>default_mime_version</tt> - This is now deprecated, use the
+<tt>default</tt> method above to set the default <tt>:mime_version</tt>.
+</p>
+</li>
+<li><p>
+<tt>default_implicit_parts_order</tt> - This is now deprecated, use the
+<tt>default</tt> method above to set the default <tt>:parts_order</tt>. 
+Parts Order is used when a message is built implicitly (i.e. multiple parts
+are assembled from templates which specify the content type in their
+filenames) this variable controls how the parts are ordered.
+</p>
+</li>
+</ul>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Base/DeprecatedUrlOptions.html" title="ActionMailer::Base::DeprecatedUrlOptions (module)">DeprecatedUrlOptions</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Base/DeprecatedHeaderProxy.html" title="ActionMailer::Base::DeprecatedHeaderProxy (class)">DeprecatedHeaderProxy</a></span>
+    
+  
+</p>
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h2>Class Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mailer_name-class_method" title="mailer_name (class method)">+ (Object) <strong>mailer_name</strong> </a>
+    
+
+    
+      (also: controller_path)
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#default-class_method" title="default (class method)">+ (Object) <strong>default</strong>(value = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#deliver_mail-class_method" title="deliver_mail (class method)">+ (Object) <strong>deliver_mail</strong>(mail) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Wraps an email delivery inside of Active Support Notifications
+instrumentation.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#receive-class_method" title="receive (class method)">+ (Object) <strong>receive</strong>(raw_mail) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Receives a raw email, parses it into an email object, decodes it,
+instantiates a new mailer, and passes the email object to the mailer
+object&#8217;s <tt>receive</tt> method.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#respond_to%3F-class_method" title="respond_to? (class method)">+ (Boolean) <strong>respond_to?</strong>(method, *args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#attachments-instance_method" title="#attachments (instance method)">- (Object) <strong>attachments</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Allows you to add attachments to an email, like so:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#headers-instance_method" title="#headers (instance method)">- (Object) <strong>headers</strong>(args = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Allows you to pass random and unusual headers to the new <tt>Mail::Message</tt>
+object which will add them to itself.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#initialize-instance_method" title="#initialize (instance method)">- (Base) <strong>initialize</strong>(method_name = nil, *args) </a>
+    
+
+    
+  </span>
+  
+    <span class="note title constructor">constructor</span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Instantiate a new mailer object.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mail-instance_method" title="#mail (instance method)">- (Object) <strong>mail</strong>(headers = {}, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+The main method that creates the message and renders the email templates.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#process-instance_method" title="#process (instance method)">- (Object) <strong>process</strong>(*args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="Base/DeprecatedUrlOptions.html" title="ActionMailer::Base::DeprecatedUrlOptions (module)">Base::DeprecatedUrlOptions</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Base/DeprecatedUrlOptions.html#default_url_options-instance_method" title="ActionMailer::Base::DeprecatedUrlOptions#default_url_options (method)">default_url_options</a></span>, <span class='object_link'><a href="Base/DeprecatedUrlOptions.html#default_url_options%3D-instance_method" title="ActionMailer::Base::DeprecatedUrlOptions#default_url_options= (method)">default_url_options=</a></span>, <span class='object_link'><a href="Base/DeprecatedUrlOptions.html#deprecated_url_options-instance_method" title="ActionMailer::Base::DeprecatedUrlOptions#deprecated_url_options (method)">deprecated_url_options</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="DeprecatedApi.html" title="ActionMailer::DeprecatedApi (module)">DeprecatedApi</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="DeprecatedApi.html#deliver%21-instance_method" title="ActionMailer::DeprecatedApi#deliver! (method)">#deliver!</a></span>, <span class='object_link'><a href="DeprecatedApi.html#render-instance_method" title="ActionMailer::DeprecatedApi#render (method)">#render</a></span>, <span class='object_link'><a href="DeprecatedApi.html#render_message-instance_method" title="ActionMailer::DeprecatedApi#render_message (method)">#render_message</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">#append_features</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">#included</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="OldApi.html" title="ActionMailer::OldApi (module)">OldApi</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="OldApi.html#attachment-instance_method" title="ActionMailer::OldApi#attachment (method)">#attachment</a></span>, <span class='object_link'><a href="OldApi.html#part-instance_method" title="ActionMailer::OldApi#part (method)">#part</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../AbstractController/Translation.html" title="AbstractController::Translation (module)">AbstractController::Translation</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../AbstractController/Translation.html#localize-instance_method" title="AbstractController::Translation#localize (method)">#localize</a></span>, <span class='object_link'><a href="../AbstractController/Translation.html#translate-instance_method" title="AbstractController::Translation#translate (method)">#translate</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../AbstractController/Rendering.html" title="AbstractController::Rendering (module)">AbstractController::Rendering</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../AbstractController/Rendering.html#_prefix-instance_method" title="AbstractController::Rendering#_prefix (method)">#_prefix</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html#_render_template-instance_method" title="AbstractController::Rendering#_render_template (method)">#_render_template</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html#render-instance_method" title="AbstractController::Rendering#render (method)">#render</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html#render_to_body-instance_method" title="AbstractController::Rendering#render_to_body (method)">#render_to_body</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html#render_to_string-instance_method" title="AbstractController::Rendering#render_to_string (method)">#render_to_string</a></span>, <span class='object_link'><a href="../AbstractController/Rendering.html#view_context-instance_method" title="AbstractController::Rendering#view_context (method)">#view_context</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../AbstractController/ViewPaths.html" title="AbstractController::ViewPaths (module)">AbstractController::ViewPaths</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../AbstractController/ViewPaths.html#append_view_path-instance_method" title="AbstractController::ViewPaths#append_view_path (method)">#append_view_path</a></span>, <span class='object_link'><a href="../AbstractController/ViewPaths.html#details_for_lookup-instance_method" title="AbstractController::ViewPaths#details_for_lookup (method)">#details_for_lookup</a></span>, <span class='object_link'><a href="../AbstractController/ViewPaths.html#lookup_context-instance_method" title="AbstractController::ViewPaths#lookup_context (method)">#lookup_context</a></span>, <span class='object_link'><a href="../AbstractController/ViewPaths.html#prepend_view_path-instance_method" title="AbstractController::ViewPaths#prepend_view_path (method)">#prepend_view_path</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../AbstractController/Layouts.html" title="AbstractController::Layouts (module)">AbstractController::Layouts</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../AbstractController/Layouts.html#_normalize_options-instance_method" title="AbstractController::Layouts#_normalize_options (method)">#_normalize_options</a></span>, <span class='object_link'><a href="../AbstractController/Layouts.html#action_has_layout%3F-instance_method" title="AbstractController::Layouts#action_has_layout? (method)">#action_has_layout?</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="DeliveryMethods.html" title="ActionMailer::DeliveryMethods (module)">DeliveryMethods</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="DeliveryMethods.html#wrap_delivery_behavior%21-instance_method" title="ActionMailer::DeliveryMethods#wrap_delivery_behavior! (method)">#wrap_delivery_behavior!</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="../AbstractController/Base.html" title="AbstractController::Base (class)">AbstractController::Base</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../AbstractController/Base.html#abstract%21-class_method" title="AbstractController::Base.abstract! (method)">abstract!</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#action_methods-class_method" title="AbstractController::Base.action_methods (method)">action_methods</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#action_methods-instance_method" title="AbstractController::Base#action_methods (method)">#action_methods</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#clear_action_methods%21-class_method" title="AbstractController::Base.clear_action_methods! (method)">clear_action_methods!</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#controller_path-instance_method" title="AbstractController::Base#controller_path (method)">#controller_path</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#hidden_actions-class_method" title="AbstractController::Base.hidden_actions (method)">hidden_actions</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#internal_methods-class_method" title="AbstractController::Base.internal_methods (method)">internal_methods</a></span>, <span class='object_link'><a href="../AbstractController/Base.html#method_added-class_method" title="AbstractController::Base.method_added (method)">method_added</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html" title="ActiveSupport::DescendantsTracker (module)">ActiveSupport::DescendantsTracker</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#clear-class_method" title="ActiveSupport::DescendantsTracker.clear (method)">clear</a></span>, <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#descendants-instance_method" title="ActiveSupport::DescendantsTracker#descendants (method)">#descendants</a></span>, <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#descendants-class_method" title="ActiveSupport::DescendantsTracker.descendants (method)">descendants</a></span>, <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#direct_descendants-instance_method" title="ActiveSupport::DescendantsTracker#direct_descendants (method)">#direct_descendants</a></span>, <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#direct_descendants-class_method" title="ActiveSupport::DescendantsTracker.direct_descendants (method)">direct_descendants</a></span>, <span class='object_link'><a href="../ActiveSupport/DescendantsTracker.html#inherited-instance_method" title="ActiveSupport::DescendantsTracker#inherited (method)">#inherited</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/Configurable.html" title="ActiveSupport::Configurable (module)">ActiveSupport::Configurable</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/Configurable.html#config-instance_method" title="ActiveSupport::Configurable#config (method)">#config</a></span></p>
+<div id="constructor_details" class="method_details_list">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><span class='object_link'><a href="" title="ActionMailer::Base (class)">Base</a></span></tt>) <strong>initialize</strong>(method_name = nil, *args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Instantiate a new mailer object. If <tt>method_name</tt> is not
+<tt>nil</tt>, the mailer will be initialized according to the named method.
+If not, the mailer will remain uninitialized (useful when you only need to
+invoke the &#8220;receive&#8221; method, for instance).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+438
+439
+440
+441
+442</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 438</span>
+
+<span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id method_name'>method_name</span><span class='op'>=</span><span class='kw'>nil</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='kw'>super</span><span class='lparen'>(</span><span class='rparen'>)</span>
+  <span class='ivar'>@_message</span> <span class='op'>=</span> <span class='const'>Mail</span><span class='period'>.</span><span class='id new'>new</span>
+  <span class='id process'>process</span><span class='lparen'>(</span><span class='id method_name'>method_name</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id method_name'>method_name</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+  <div id="class_attr_details" class="attr_details">
+    <h2>Class Attribute Details</h2>
+    
+      
+      <span id="mailer_name=-class_method"></span>
+      <span id="mailer_name-class_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="mailer_name-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>mailer_name</strong> 
+  
+
+  
+    <span class="aliases">Also known as:
+    <span class="names"><span id='controller_path-class_method'>controller_path</span></span>
+    </span>
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+364
+365
+366</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 364</span>
+
+<span class='kw'>def</span> <span class='id mailer_name'>mailer_name</span>
+  <span class='ivar'>@mailer_name</span> <span class='op'>||=</span> <span class='id name'>name</span><span class='period'>.</span><span class='id underscore'>underscore</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="default-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>default</strong>(value = nil) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+370
+371
+372
+373</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 370</span>
+
+<span class='kw'>def</span> <span class='id default'>default</span><span class='lparen'>(</span><span class='id value'>value</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id default_params'>default_params</span> <span class='op'>=</span> <span class='id default_params'>default_params</span><span class='period'>.</span><span class='id merge'>merge</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span><span class='period'>.</span><span class='id freeze'>freeze</span> <span class='kw'>if</span> <span class='id value'>value</span>
+  <span class='id default_params'>default_params</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="deliver_mail-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>deliver_mail</strong>(mail) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Wraps an email delivery inside of Active Support Notifications
+instrumentation. This method is actually called by the
+<tt>Mail::Message</tt> object itself through a callback when you call
+<tt>:deliver</tt> on the Mail::Message, calling <tt>deliver_mail</tt>
+directly and passing a Mail::Message will do nothing except tell the logger
+you sent the email.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+398
+399
+400
+401
+402
+403</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 398</span>
+
+<span class='kw'>def</span> <span class='id deliver_mail'>deliver_mail</span><span class='lparen'>(</span><span class='id mail'>mail</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='const'>ActiveSupport</span><span class='op'>::</span><span class='const'>Notifications</span><span class='period'>.</span><span class='id instrument'>instrument</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>deliver.action_mailer</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id payload'>payload</span><span class='op'>|</span>
+    <span class='kw'>self</span><span class='period'>.</span><span class='id set_payload_for_mail'>set_payload_for_mail</span><span class='lparen'>(</span><span class='id payload'>payload</span><span class='comma'>,</span> <span class='id mail'>mail</span><span class='rparen'>)</span>
+    <span class='kw'>yield</span> <span class='comment'># Let Mail do the delivery actions
+</span>  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="receive-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>receive</strong>(raw_mail) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Receives a raw email, parses it into an email object, decodes it,
+instantiates a new mailer, and passes the email object to the mailer
+object&#8217;s <tt>receive</tt> method. If you want your mailer to be able
+to process incoming messages, you&#8217;ll need to implement a
+<tt>receive</tt> method that accepts the raw email string as a parameter:
+</p>
+<pre class="code">
+  class MyMailer &lt; ActionMailer::Base
+    def receive(mail)
+      ...
+    end
+  end</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+386
+387
+388
+389
+390
+391
+392</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 386</span>
+
+<span class='kw'>def</span> <span class='id receive'>receive</span><span class='lparen'>(</span><span class='id raw_mail'>raw_mail</span><span class='rparen'>)</span>
+  <span class='const'>ActiveSupport</span><span class='op'>::</span><span class='const'>Notifications</span><span class='period'>.</span><span class='id instrument'>instrument</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>receive.action_mailer</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id payload'>payload</span><span class='op'>|</span>
+    <span class='id mail'>mail</span> <span class='op'>=</span> <span class='const'>Mail</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id raw_mail'>raw_mail</span><span class='rparen'>)</span>
+    <span class='id set_payload_for_mail'>set_payload_for_mail</span><span class='lparen'>(</span><span class='id payload'>payload</span><span class='comma'>,</span> <span class='id mail'>mail</span><span class='rparen'>)</span>
+    <span class='id new'>new</span><span class='period'>.</span><span class='id receive'>receive</span><span class='lparen'>(</span><span class='id mail'>mail</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="respond_to?-class_method">
+  
+    + (<tt>Boolean</tt>) <strong>respond_to?</strong>(method, *args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+405
+406
+407</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 405</span>
+
+<span class='kw'>def</span> <span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='id method'>method</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='kw'>super</span> <span class='op'>||</span> <span class='id action_methods'>action_methods</span><span class='period'>.</span><span class='id include?'>include?</span><span class='lparen'>(</span><span class='id method'>method</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="attachments-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>attachments</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Allows you to add attachments to an email, like so:
+</p>
+<pre class="code">
+ <span class='id mail'>mail</span><span class='period'>.</span><span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>filename.jpg</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>/path/to/filename.jpg</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+If you do this, then Mail will take the file name and work out the mime
+type set the Content-Type, Content-Disposition, Content-Transfer-Encoding
+and base64 encode the contents of the attachment all for you.
+</p>
+<p>
+You can also specify overrides if you want by passing a hash instead of a
+string:
+</p>
+<pre class="code">
+ <span class='id mail'>mail</span><span class='period'>.</span><span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>filename.jpg</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='symbol'>:mime_type</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>application/x-gzip</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                                     <span class='symbol'>:content</span> <span class='op'>=&gt;</span> <span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>/path/to/filename.jpg</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='rbrace'>}</span>
+</pre>
+<p>
+If you want to use a different encoding than Base64, you can pass an
+encoding in, but then it is up to you to pass in the content pre-encoded,
+and don&#8217;t expect Mail to know how to decode this data:
+</p>
+<pre class="code">
+ <span class='id file_content'>file_content</span> <span class='op'>=</span> <span class='const'>SpecialEncode</span><span class='lparen'>(</span><span class='const'>File</span><span class='period'>.</span><span class='id read'>read</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>/path/to/filename.jpg</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+ <span class='id mail'>mail</span><span class='period'>.</span><span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>filename.jpg</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='symbol'>:mime_type</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>application/x-gzip</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                                     <span class='symbol'>:encoding</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>SpecialEncoding</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                                     <span class='symbol'>:content</span> <span class='op'>=&gt;</span> <span class='id file_content'>file_content</span> <span class='rbrace'>}</span>
+</pre>
+<p>
+You can also search for specific attachments:
+</p>
+<pre class="code">
+ <span class='comment'># By Filename
+</span> <span class='id mail'>mail</span><span class='period'>.</span><span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>filename.jpg</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span>   <span class='comment'># =&gt; Mail::Part object or nil
+</span>
+ <span class='comment'># or by index
+</span> <span class='id mail'>mail</span><span class='period'>.</span><span class='id attachments'>attachments</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>                <span class='comment'># =&gt; Mail::Part (first attachment)</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+528
+529
+530</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 528</span>
+
+<span class='kw'>def</span> <span class='id attachments'>attachments</span>
+  <span class='ivar'>@_message</span><span class='period'>.</span><span class='id attachments'>attachments</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="headers-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>headers</strong>(args = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Allows you to pass random and unusual headers to the new <tt>Mail::Message</tt>
+object which will add them to itself.
+</p>
+<pre class="code">
+  <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>X-Special-Domain-Specific-Header</span><span class='tstring_end'>'</span></span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SecretValue</span><span class='tstring_end'>&quot;</span></span>
+</pre>
+<p>
+You can also pass a hash into headers of header field names and values,
+which will then be set on the Mail::Message object:
+</p>
+<pre class="code">
+  <span class='id headers'>headers</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>X-Special-Domain-Specific-Header</span><span class='tstring_end'>'</span></span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SecretValue</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+          <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>In-Reply-To</span><span class='tstring_end'>'</span></span> <span class='op'>=&gt;</span> <span class='id incoming'>incoming</span><span class='period'>.</span><span class='id message_id'>message_id</span>
+</pre>
+<p>
+The resulting Mail::Message will have the following in it&#8217;s header:
+</p>
+<pre class="code">
+  X-Special-Domain-Specific-Header: SecretValue</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+490
+491
+492
+493
+494
+495
+496</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 490</span>
+
+<span class='kw'>def</span> <span class='id headers'>headers</span><span class='lparen'>(</span><span class='id args'>args</span><span class='op'>=</span><span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id args'>args</span>
+    <span class='const'>DeprecatedHeaderProxy</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='ivar'>@_message</span><span class='rparen'>)</span><span class='period'>.</span><span class='id headers'>headers</span><span class='lparen'>(</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='const'>DeprecatedHeaderProxy</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='ivar'>@_message</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="mail-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>mail</strong>(headers = {}, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+The main method that creates the message and renders the email templates.
+There are two ways to call this method, with a block, or without a block.
+</p>
+<p>
+Both methods accept a headers hash. This hash allows you to specify the
+most used headers in an email message, these are:
+</p>
+<ul>
+<li><p>
+<tt>:subject</tt> - The subject of the message, if this is omitted, Action
+Mailer will ask the Rails I18n class for a translated <tt>:subject</tt> in
+the scope of <tt>[:actionmailer, mailer_scope, action_name]</tt> or if this
+is missing, will translate the humanized version of the
+<tt>action_name</tt>
+</p>
+</li>
+<li><p>
+<tt>:to</tt> - Who the message is destined for, can be a string of
+addresses, or an array of addresses.
+</p>
+</li>
+<li><p>
+<tt>:from</tt> - Who the message is from
+</p>
+</li>
+<li><p>
+<tt>:cc</tt> - Who you would like to Carbon-Copy on this email, can be a
+string of addresses, or an array of addresses.
+</p>
+</li>
+<li><p>
+<tt>:bcc</tt> - Who you would like to Blind-Carbon-Copy on this email, can
+be a string of addresses, or an array of addresses.
+</p>
+</li>
+<li><p>
+<tt>:reply_to</tt> - Who to set the Reply-To header of the email to.
+</p>
+</li>
+<li><p>
+<tt>:date</tt> - The date to say the email was sent on.
+</p>
+</li>
+</ul>
+<p>
+You can set default values for any of the above headers (except :date) by
+using the <tt>default</tt> class method:
+</p>
+<pre class="code">
+ <span class='kw'>class</span> <span class='const'>Notifier</span> <span class='op'>&lt;</span> <span class='const'>ActionMailer</span><span class='op'>::</span><span class='const'>Base</span>
+   <span class='kw'>self</span><span class='period'>.</span><span class='id default'>default</span> <span class='symbol'>:from</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>no-reply@test.lindsaar.net</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                <span class='symbol'>:bcc</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>email_logger@test.lindsaar.net</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                <span class='symbol'>:reply_to</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>bounces@test.lindsaar.net</span><span class='tstring_end'>'</span></span>
+ <span class='kw'>end</span>
+</pre>
+<p>
+If you need other headers not listed above, you can either pass them in as
+part of the headers hash or use the <tt>headers['name'] = value</tt>
+method.
+</p>
+<p>
+When a <tt>:return_path</tt> is specified as header, that value will be
+used as the &#8216;envelope from&#8217; address for the Mail message. 
+Setting this is useful when you want delivery notifications sent to a
+different address than the one in <tt>:from</tt>.  Mail will actually use
+the <tt>:return_path</tt> in preference to the <tt>:sender</tt> in
+preference to the <tt>:from</tt> field for the &#8216;envelope from&#8217;
+value.
+</p>
+<p>
+If you do not pass a block to the <tt>mail</tt> method, it will find all
+templates in the view paths using by default the mailer name and the method
+name that it is being called from, it will then create parts for each of
+these templates intelligently, making educated guesses on correct content
+type and sequence, and return a fully prepared Mail::Message ready to call
+<tt>:deliver</tt> on to send.
+</p>
+<p>
+For example:
+</p>
+<pre class="code">
+  class Notifier &lt; ActionMailer::Base
+    default :from =&gt; 'no-reply@test.lindsaar.net',
+
+    def welcome
+      mail(:to =&gt; 'mikel@test.lindsaar.net')
+    end
+  end
+</pre>
+<p>
+Will look for all templates at &#8220;app/views/notifier&#8221; with name
+&#8220;welcome&#8221;. However, those can be customized:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:template_path</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>notifications</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:template_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>another</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+</pre>
+<p>
+And now it will look for all templates at
+&#8220;app/views/notifications&#8221; with name &#8220;another&#8221;.
+</p>
+<p>
+If you do pass a block, you can render specific templates of your choice:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>mikel@test.lindsaar.net</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+You can even render text directly without using a template:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>mikel@test.lindsaar.net</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span> <span class='lbrace'>{</span> <span class='id render'>render</span> <span class='symbol'>:text</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Hello Mikel!</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span> <span class='lbrace'>{</span> <span class='id render'>render</span> <span class='symbol'>:text</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&lt;h1&gt;Hello Mikel!&lt;/h1&gt;</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Which will render a <tt>multipart/alternative</tt> email with
+<tt>text/plain</tt> and <tt>text/html</tt> parts.
+</p>
+<p>
+The block syntax also allows you to customize the part headers if desired:
+</p>
+<pre class="code">
+  <span class='id mail'>mail</span><span class='lparen'>(</span><span class='symbol'>:to</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>mikel@test.lindsaar.net</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id format'>format</span><span class='op'>|</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id text'>text</span><span class='lparen'>(</span><span class='symbol'>:content_transfer_encoding</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>base64</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id format'>format</span><span class='period'>.</span><span class='id html'>html</span>
+  <span class='kw'>end</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 618</span>
+
+<span class='kw'>def</span> <span class='id mail'>mail</span><span class='lparen'>(</span><span class='id headers'>headers</span><span class='op'>=</span><span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='comment'># Guard flag to prevent both the old and the new API from firing
+</span>  <span class='comment'># Should be removed when old API is removed
+</span>  <span class='ivar'>@mail_was_called</span> <span class='op'>=</span> <span class='kw'>true</span>
+  <span class='id m'>m</span> <span class='op'>=</span> <span class='ivar'>@_message</span>
+
+  <span class='comment'># At the beginning, do not consider class default for parts order neither content_type
+</span>  <span class='id content_type'>content_type</span> <span class='op'>=</span> <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:content_type</span><span class='rbracket'>]</span>
+  <span class='id parts_order'>parts_order</span>  <span class='op'>=</span> <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:parts_order</span><span class='rbracket'>]</span>
+
+  <span class='comment'># Call all the procs (if any)
+</span>  <span class='id default_values'>default_values</span> <span class='op'>=</span> <span class='kw'>self</span><span class='period'>.</span><span class='id class'>class</span><span class='period'>.</span><span class='id default'>default</span><span class='period'>.</span><span class='id merge'>merge</span><span class='lparen'>(</span><span class='kw'>self</span><span class='period'>.</span><span class='id class'>class</span><span class='period'>.</span><span class='id default'>default</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id k'>k</span><span class='comma'>,</span><span class='id v'>v</span><span class='op'>|</span>
+    <span class='id v'>v</span><span class='period'>.</span><span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='symbol'>:call</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='id v'>v</span><span class='period'>.</span><span class='id bind'>bind</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span><span class='period'>.</span><span class='id call'>call</span> <span class='op'>:</span> <span class='id v'>v</span>
+  <span class='kw'>end</span>
+
+  <span class='comment'># Handle defaults
+</span>  <span class='id headers'>headers</span> <span class='op'>=</span> <span class='id headers'>headers</span><span class='period'>.</span><span class='id reverse_merge'>reverse_merge</span><span class='lparen'>(</span><span class='id default_values'>default_values</span><span class='rparen'>)</span>
+  <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:subject</span><span class='rbracket'>]</span> <span class='op'>||=</span> <span class='id default_i18n_subject'>default_i18n_subject</span>
+
+  <span class='comment'># Apply charset at the beginning so all fields are properly quoted
+</span>  <span class='id m'>m</span><span class='period'>.</span><span class='id charset'>charset</span> <span class='op'>=</span> <span class='id charset'>charset</span> <span class='op'>=</span> <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:charset</span><span class='rbracket'>]</span>
+
+  <span class='comment'># Set configure delivery behavior
+</span>  <span class='id wrap_delivery_behavior!'>wrap_delivery_behavior!</span><span class='lparen'>(</span><span class='id headers'>headers</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='symbol'>:delivery_method</span><span class='rparen'>)</span><span class='rparen'>)</span>
+
+  <span class='comment'># Assign all headers except parts_order, content_type and body
+</span>  <span class='id assignable'>assignable</span> <span class='op'>=</span> <span class='id headers'>headers</span><span class='period'>.</span><span class='id except'>except</span><span class='lparen'>(</span><span class='symbol'>:parts_order</span><span class='comma'>,</span> <span class='symbol'>:content_type</span><span class='comma'>,</span> <span class='symbol'>:body</span><span class='comma'>,</span> <span class='symbol'>:template_name</span><span class='comma'>,</span> <span class='symbol'>:template_path</span><span class='rparen'>)</span>
+  <span class='id assignable'>assignable</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id k'>k</span><span class='comma'>,</span> <span class='id v'>v</span><span class='op'>|</span> <span class='id m'>m</span><span class='lbracket'>[</span><span class='id k'>k</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id v'>v</span> <span class='rbrace'>}</span>
+
+  <span class='comment'># Render the templates and blocks
+</span>  <span class='id responses'>responses</span><span class='comma'>,</span> <span class='id explicit_order'>explicit_order</span> <span class='op'>=</span> <span class='id collect_responses_and_parts_order'>collect_responses_and_parts_order</span><span class='lparen'>(</span><span class='id headers'>headers</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id create_parts_from_responses'>create_parts_from_responses</span><span class='lparen'>(</span><span class='id m'>m</span><span class='comma'>,</span> <span class='id responses'>responses</span><span class='rparen'>)</span>
+
+  <span class='comment'># Setup content type, reapply charset and handle parts order
+</span>  <span class='id m'>m</span><span class='period'>.</span><span class='id content_type'>content_type</span> <span class='op'>=</span> <span class='id set_content_type'>set_content_type</span><span class='lparen'>(</span><span class='id m'>m</span><span class='comma'>,</span> <span class='id content_type'>content_type</span><span class='comma'>,</span> <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:content_type</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='id m'>m</span><span class='period'>.</span><span class='id charset'>charset</span>      <span class='op'>=</span> <span class='id charset'>charset</span>
+
+  <span class='kw'>if</span> <span class='id m'>m</span><span class='period'>.</span><span class='id multipart?'>multipart?</span>
+    <span class='id parts_order'>parts_order</span> <span class='op'>||=</span> <span class='id explicit_order'>explicit_order</span> <span class='op'>||</span> <span class='id headers'>headers</span><span class='lbracket'>[</span><span class='symbol'>:parts_order</span><span class='rbracket'>]</span>
+    <span class='id m'>m</span><span class='period'>.</span><span class='id body'>body</span><span class='period'>.</span><span class='id set_sort_order'>set_sort_order</span><span class='lparen'>(</span><span class='id parts_order'>parts_order</span><span class='rparen'>)</span>
+    <span class='id m'>m</span><span class='period'>.</span><span class='id body'>body</span><span class='period'>.</span><span class='id sort_parts!'>sort_parts!</span>
+  <span class='kw'>end</span>
+
+  <span class='id m'>m</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="process-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>process</strong>(*args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+444
+445
+446
+447</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionmailer/lib/action_mailer/base.rb', line 444</span>
+
+<span class='kw'>def</span> <span class='id process'>process</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='id lookup_context'>lookup_context</span><span class='period'>.</span><span class='id skip_default_locale!'>skip_default_locale!</span>
+  <span class='kw'>super</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:19 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

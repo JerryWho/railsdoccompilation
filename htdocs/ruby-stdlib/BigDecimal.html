@@ -1,0 +1,5327 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: BigDecimal</title>
+<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html">Index (B)</a> &raquo; 
+    
+    
+    <span class="title">BigDecimal</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: BigDecimal
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="Numeric.html" title="Numeric (class)">Numeric</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next"><span class='object_link'><a href="Numeric.html" title="Numeric (class)">Numeric</a></span></li>
+          
+            <li class="next">BigDecimal</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">ext/bigdecimal/bigdecimal.c</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Document-class: BigDecimal BigDecimal provides arbitrary-precision floating
+point decimal arithmetic.
+</p>
+<p>
+Copyright (C) 2002 by Shigeo Kobayashi <shigeo@tinyforest.gr.jp>. You may
+distribute under the terms of either the GNU General Public License or the
+Artistic License, as specified in the README file of the BigDecimal
+distribution.
+</p>
+<p>
+Documented by mathew <meta@pobox.com>.
+</p>
+<h1>Introduction</h1>
+<p>
+Ruby provides built-in support for arbitrary precision integer arithmetic.
+For example:
+</p>
+<p>
+42**13   ->   1265437718438866624512
+</p>
+<p>
+BigDecimal provides similar support for very large or very accurate
+floating point numbers.
+</p>
+<p>
+Decimal arithmetic is also useful for general calculation, because it
+provides the correct answers people expect--whereas normal binary
+floating point arithmetic often introduces subtle errors because of the
+conversion between base 10 and base 2. For example, try:
+</p>
+<pre class="code">
+  <span class='id sum'>sum</span> <span class='op'>=</span> <span class='int'>0</span>
+  <span class='kw'>for</span> <span class='id i'>i</span> <span class='kw'>in</span> <span class='lparen'>(</span><span class='int'>1</span><span class='op'>..</span><span class='int'>10000</span><span class='rparen'>)</span>
+    <span class='id sum'>sum</span> <span class='op'>=</span> <span class='id sum'>sum</span> <span class='op'>+</span> <span class='float'>0.0001</span>
+  <span class='kw'>end</span>
+  <span class='id print'>print</span> <span class='id sum'>sum</span>
+</pre>
+<p>
+and contrast with the output from:
+</p>
+<pre class="code">
+  <span class='id require'>require</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>bigdecimal</span><span class='tstring_end'>'</span></span>
+
+  <span class='id sum'>sum</span> <span class='op'>=</span> <span class='const'>BigDecimal</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>for</span> <span class='id i'>i</span> <span class='kw'>in</span> <span class='lparen'>(</span><span class='int'>1</span><span class='op'>..</span><span class='int'>10000</span><span class='rparen'>)</span>
+    <span class='id sum'>sum</span> <span class='op'>=</span> <span class='id sum'>sum</span> <span class='op'>+</span> <span class='const'>BigDecimal</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>0.0001</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id print'>print</span> <span class='id sum'>sum</span>
+</pre>
+<p>
+Similarly:
+</p>
+<p>
+(BigDecimal.new(&#8220;1.2&#8221;) - BigDecimal(&#8220;1.0&#8221;)) ==
+BigDecimal(&#8220;0.2&#8221;) -> true
+</p>
+<p>
+(1.2 - 1.0) == 0.2 -> false
+</p>
+<h1>Special features of accurate decimal arithmetic</h1>
+<p>
+Because BigDecimal is more accurate than normal binary floating point
+arithmetic, it requires some special values.
+</p>
+<h2>Infinity</h2>
+<p>
+BigDecimal sometimes needs to return infinity, for example if you divide a
+value by zero.
+</p>
+<p>
+BigDecimal.new(&#8220;1.0&#8221;) / BigDecimal.new(&#8220;0.0&#8221;)  ->
+infinity
+</p>
+<p>
+BigDecimal.new(&#8220;-1.0&#8221;) / BigDecimal.new(&#8220;0.0&#8221;)  ->
+-infinity
+</p>
+<p>
+You can represent infinite numbers to BigDecimal using the strings
+&#8216;Infinity&#8217;, &#8217;+Infinity&#8217; and &#8217;-Infinity&#8217;
+(case-sensitive)
+</p>
+<h2>Not a Number</h2>
+<p>
+When a computation results in an undefined value, the special value NaN
+(for &#8216;not a number&#8217;) is returned.
+</p>
+<p>
+Example:
+</p>
+<p>
+BigDecimal.new(&#8220;0.0&#8221;) / BigDecimal.new(&#8220;0.0&#8221;) ->
+NaN
+</p>
+<p>
+You can also create undefined values.  NaN is never considered to be the
+same as any other value, even NaN itself:
+</p>
+<p>
+n = BigDecimal.new(&#8216;NaN&#8217;)
+</p>
+<p>
+n == 0.0 -> nil
+</p>
+<p>
+n == n -> nil
+</p>
+<h2>Positive and negative zero</h2>
+<p>
+If a computation results in a value which is too small to be represented as
+a BigDecimal within the currently specified limits of precision, zero must
+be returned.
+</p>
+<p>
+If the value which is too small to be represented is negative, a BigDecimal
+value of negative zero is returned. If the value is positive, a value of
+positive zero is returned.
+</p>
+<p>
+BigDecimal.new(&#8220;1.0&#8221;) / BigDecimal.new(&#8220;-Infinity&#8221;)
+-> -0.0
+</p>
+<p>
+BigDecimal.new(&#8220;1.0&#8221;) / BigDecimal.new(&#8220;Infinity&#8221;)
+-> 0.0
+</p>
+<p>
+(See BigDecimal.mode for how to specify limits of precision.)
+</p>
+<p>
+Note that -0.0 and 0.0 are considered to be the same for the purposes of
+comparison.
+</p>
+<p>
+Note also that in mathematics, there is no particular concept of negative
+or positive zero; true mathematical zero has no sign.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#_load-class_method" title="_load (class method)">+ (Object) <strong>_load</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Internal method used to provide marshalling support.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#double_fig-class_method" title="double_fig (class method)">+ (Object) <strong>double_fig</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+BigDecimal.double_fig.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#limit-class_method" title="limit (class method)">+ (Object) <strong>limit</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+BigDecimal.limit(digits).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mode-class_method" title="mode (class method)">+ (Object) <strong>mode</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+BigDecimal.mode(mode, value).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#new-class_method" title="new (class method)">+ (Object) <strong>new</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+new(initial, digits).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ver-class_method" title="ver (class method)">+ (Object) <strong>ver</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the BigDecimal version number.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%25-instance_method" title="#% (instance method)">- (Object) <strong>%</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a % b a.modulo(b).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%2A-instance_method" title="#* (instance method)">- (Object) <strong>*</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+mult(value, digits).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%2A%2A-instance_method" title="#** (instance method)">- (Object) <strong>**</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+power(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%2B-instance_method" title="#+ (instance method)">- (Object) <strong>+</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+add(value, digits).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%2B%40-instance_method" title="#+@ (instance method)">- (Object) <strong>+@</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#--instance_method" title="#- (instance method)">- (Object) <strong>-</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+sub(value, digits).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#-%40-instance_method" title="#-@ (instance method)">- (Object) <strong>-@</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%2F-instance_method" title="#/ (instance method)">- (Object) <strong>/</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+div(value, digits) quo(value).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3C-instance_method" title="#&lt; (instance method)">- (Object) <strong>&lt;</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a < b.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3C%3D-instance_method" title="#&lt;= (instance method)">- (Object) <strong>&lt;=</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a <= b.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3C%3D%3E-instance_method" title="#&lt;=&gt; (instance method)">- (Object) <strong>&lt;=&gt;</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+The comparison operator.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3D%3D-instance_method" title="#== (instance method)">- (Object) <strong>==</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Tests for value equality; returns true if the values are equal.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3D%3D%3D-instance_method" title="#=== (instance method)">- (Object) <strong>===</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Tests for value equality; returns true if the values are equal.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3E-instance_method" title="#&gt; (instance method)">- (Object) <strong>&gt;</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a > b.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#%3E%3D-instance_method" title="#&gt;= (instance method)">- (Object) <strong>&gt;=</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a >= b.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#_dump-instance_method" title="#_dump (instance method)">- (Object) <strong>_dump</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#abs-instance_method" title="#abs (instance method)">- (Object) <strong>abs</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the absolute value.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#add-instance_method" title="#add (instance method)">- (Object) <strong>add</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#ceil-instance_method" title="#ceil (instance method)">- (Object) <strong>ceil</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+ceil(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#coerce-instance_method" title="#coerce (instance method)">- (Object) <strong>coerce</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+The coerce method provides support for Ruby type coercion.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#div-instance_method" title="#div (instance method)">- (Object) <strong>div</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#divmod-instance_method" title="#divmod (instance method)">- (Object) <strong>divmod</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Divides by the specified value, and returns the quotient and modulus as
+BigDecimal numbers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#dup-instance_method" title="#dup (instance method)">- (Object) <strong>dup</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#eql%3F-instance_method" title="#eql? (instance method)">- (Object) <strong>eql?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Tests for value equality; returns true if the values are equal.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#exponent-instance_method" title="#exponent (instance method)">- (Object) <strong>exponent</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the exponent of the BigDecimal number, as an Integer.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#finite%3F-instance_method" title="#finite? (instance method)">- (Object) <strong>finite?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns True if the value is finite (not NaN or infinite).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fix-instance_method" title="#fix (instance method)">- (Object) <strong>fix</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Return the integer part of the number.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#floor-instance_method" title="#floor (instance method)">- (Object) <strong>floor</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+floor(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#frac-instance_method" title="#frac (instance method)">- (Object) <strong>frac</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Return the fractional part of the number.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#hash-instance_method" title="#hash (instance method)">- (Object) <strong>hash</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#infinite%3F-instance_method" title="#infinite? (instance method)">- (Object) <strong>infinite?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns nil, -1, or +1 depending on whether the value is finite, -infinity,
+or +infinity.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#inspect-instance_method" title="#inspect (instance method)">- (Object) <strong>inspect</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns debugging information about the value as a string of
+comma-separated values in angle brackets with a leading #:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#modulo-instance_method" title="#modulo (instance method)">- (Object) <strong>modulo</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+a % b a.modulo(b).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#mult-instance_method" title="#mult (instance method)">- (Object) <strong>mult</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#nan%3F-instance_method" title="#nan? (instance method)">- (Object) <strong>nan?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns True if the value is Not a Number.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#nonzero%3F-instance_method" title="#nonzero? (instance method)">- (Object) <strong>nonzero?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns self if the value is non-zero, nil otherwise.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#power-instance_method" title="#power (instance method)">- (Object) <strong>power</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+power(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#precs-instance_method" title="#precs (instance method)">- (Object) <strong>precs</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+precs.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#quo-instance_method" title="#quo (instance method)">- (Object) <strong>quo</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+div(value, digits) quo(value).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remainder-instance_method" title="#remainder (instance method)">- (Object) <strong>remainder</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the remainder from dividing by the value.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#round-instance_method" title="#round (instance method)">- (Object) <strong>round</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+round(n,mode).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#sign-instance_method" title="#sign (instance method)">- (Object) <strong>sign</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the sign of the value.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#split-instance_method" title="#split (instance method)">- (Object) <strong>split</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Splits a BigDecimal number into four parts, returned as an array of values.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#sqrt-instance_method" title="#sqrt (instance method)">- (Object) <strong>sqrt</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+sqrt(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#sub-instance_method" title="#sub (instance method)">- (Object) <strong>sub</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_f-instance_method" title="#to_f (instance method)">- (Object) <strong>to_f</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns a new Float object having approximately the same value as the
+BigDecimal number.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_i-instance_method" title="#to_i (instance method)">- (Object) <strong>to_i</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the value as an integer (Fixnum or Bignum).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_int-instance_method" title="#to_int (instance method)">- (Object) <strong>to_int</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the value as an integer (Fixnum or Bignum).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_r-instance_method" title="#to_r (instance method)">- (Object) <strong>to_r</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Converts a BigDecimal to a Rational.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#to_s-instance_method" title="#to_s (instance method)">- (Object) <strong>to_s</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+to_s(s).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#truncate-instance_method" title="#truncate (instance method)">- (Object) <strong>truncate</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+truncate(n).
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#zero%3F-instance_method" title="#zero? (instance method)">- (Object) <strong>zero?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns True if the value is zero.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods inherited from <span class='object_link'><a href="Numeric.html" title="Numeric (class)">Numeric</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="Numeric.html#im-instance_method" title="Numeric#im (method)">#im</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="TimeConstantMethods.html" title="TimeConstantMethods (module)">TimeConstantMethods</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="TimeConstantMethods.html#after-instance_method" title="TimeConstantMethods#after (method)">#after</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#ago-instance_method" title="TimeConstantMethods#ago (method)">#ago</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#before-instance_method" title="TimeConstantMethods#before (method)">#before</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#days-instance_method" title="TimeConstantMethods#days (method)">#days</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#fortnights-instance_method" title="TimeConstantMethods#fortnights (method)">#fortnights</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#from_now-instance_method" title="TimeConstantMethods#from_now (method)">#from_now</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#hours-instance_method" title="TimeConstantMethods#hours (method)">#hours</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#minutes-instance_method" title="TimeConstantMethods#minutes (method)">#minutes</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#months-instance_method" title="TimeConstantMethods#months (method)">#months</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#seconds-instance_method" title="TimeConstantMethods#seconds (method)">#seconds</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#weeks-instance_method" title="TimeConstantMethods#weeks (method)">#weeks</a></span>, <span class='object_link'><a href="TimeConstantMethods.html#years-instance_method" title="TimeConstantMethods#years (method)">#years</a></span></p>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="_load-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>_load</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Internal method used to provide marshalling support. See the Marshal
+module.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/*
+ * Internal method used to provide marshalling support. See the Marshal module.
+ */
+static VALUE
+BigDecimal_load(VALUE self, VALUE str)
+{
+    ENTER(2);
+    Real *pv;
+    unsigned char *pch;
+    unsigned char ch;
+    unsigned long m=0;
+
+    SafeStringValue(str);
+    pch = (unsigned char *)RSTRING_PTR(str);
+    /* First get max prec */
+    while((*pch)!=(unsigned char)'\0' &amp;&amp; (ch=*pch++)!=(unsigned char)':') {
+        if(!ISDIGIT(ch)) {
+            rb_raise(rb_eTypeError, &quot;load failed: invalid character in the marshaled string&quot;);
+        }
+        m = m*10 + (unsigned long)(ch-'0');
+    }
+    if(m&gt;VpBaseFig()) m -= VpBaseFig();
+    GUARD_OBJ(pv,VpNewRbClass(m,(char *)pch,self));
+    m /= VpBaseFig();
+    if(m &amp;&amp; pv-&gt;MaxPrec&gt;m) pv-&gt;MaxPrec = m+1;
+    return ToValue(pv);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="double_fig-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>double_fig</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+BigDecimal.double_fig
+</p>
+<p>
+The BigDecimal.double_fig class method returns the number of digits a Float
+number is allowed to have. The result depends upon the CPU and OS in use.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * BigDecimal.double_fig
+ *
+ * The BigDecimal.double_fig class method returns the number of digits a
+ * Float number is allowed to have. The result depends upon the CPU and OS
+ * in use.
+ */
+static VALUE
+BigDecimal_double_fig(VALUE self)
+{
+    return INT2FIX(VpDblFig());
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="limit-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>limit</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+BigDecimal.limit(digits)
+</p>
+<p>
+Limit the number of significant digits in newly created BigDecimal numbers
+to the specified value. Rounding is performed as necessary, as specified by
+BigDecimal.mode.
+</p>
+<p>
+A limit of 0, the default, means no upper limit.
+</p>
+<p>
+The limit specified by this method takes less priority over any limit
+specified to instance methods such as ceil, floor, truncate, or round.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * BigDecimal.limit(digits)
+  *
+  * Limit the number of significant digits in newly created BigDecimal
+  * numbers to the specified value. Rounding is performed as necessary,
+  * as specified by BigDecimal.mode.
+  *
+  * A limit of 0, the default, means no upper limit.
+  *
+  * The limit specified by this method takes less priority over any limit
+  * specified to instance methods such as ceil, floor, truncate, or round.
+  */
+static VALUE
+BigDecimal_limit(int argc, VALUE *argv, VALUE self)
+{
+    VALUE  nFig;
+    VALUE  nCur = INT2NUM(VpGetPrecLimit());
+
+    if(rb_scan_args(argc,argv,&quot;01&quot;,&amp;nFig)==1) {
+        int nf;
+        if(nFig==Qnil) return nCur;
+        Check_Type(nFig, T_FIXNUM);
+        nf = FIX2INT(nFig);
+        if(nf&lt;0) {
+            rb_raise(rb_eArgError, &quot;argument must be positive&quot;);
+        }
+        VpSetPrecLimit(nf);
+    }
+    return nCur;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="mode-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>mode</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+BigDecimal.mode(mode, value)
+</p>
+<p>
+Controls handling of arithmetic exceptions and rounding. If no value is
+supplied, the current value is returned.
+</p>
+<p>
+Six values of the mode parameter control the handling of arithmetic
+exceptions:
+</p>
+<p>
+BigDecimal::EXCEPTION_NaN BigDecimal::EXCEPTION_INFINITY
+BigDecimal::EXCEPTION_UNDERFLOW BigDecimal::EXCEPTION_OVERFLOW
+BigDecimal::EXCEPTION_ZERODIVIDE BigDecimal::EXCEPTION_ALL
+</p>
+<p>
+For each mode parameter above, if the value set is false, computation
+continues after an arithmetic exception of the appropriate type. When
+computation continues, results are as follows:
+</p>
+<table>
+<tr><td valign="top">EXCEPTION_NaN</td><td><p>
+NaN
+</p>
+</td></tr>
+<tr><td valign="top">EXCEPTION_INFINITY</td><td><p>
++infinity or -infinity
+</p>
+</td></tr>
+<tr><td valign="top">EXCEPTION_UNDERFLOW</td><td><p>
+0
+</p>
+</td></tr>
+<tr><td valign="top">EXCEPTION_OVERFLOW</td><td><p>
++infinity or -infinity
+</p>
+</td></tr>
+<tr><td valign="top">EXCEPTION_ZERODIVIDE</td><td><p>
++infinity or -infinity
+</p>
+</td></tr>
+</table>
+<p>
+One value of the mode parameter controls the rounding of numeric values:
+BigDecimal::ROUND_MODE. The values it can take are:
+</p>
+<table>
+<tr><td valign="top">ROUND_UP</td><td><p>
+round away from zero
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_DOWN</td><td><p>
+round towards zero (truncate)
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_HALF_UP</td><td><p>
+round up if the appropriate digit >= 5, otherwise truncate (default)
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_HALF_DOWN</td><td><p>
+round up if the appropriate digit >= 6, otherwise truncate
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_HALF_EVEN</td><td><p>
+round towards the even neighbor (Banker&#8217;s rounding)
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_CEILING</td><td><p>
+round towards positive infinity (ceil)
+</p>
+</td></tr>
+<tr><td valign="top">ROUND_FLOOR</td><td><p>
+round towards negative infinity (floor)
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * BigDecimal.mode(mode, value)
+  *
+  * Controls handling of arithmetic exceptions and rounding. If no value
+  * is supplied, the current value is returned.
+  *
+  * Six values of the mode parameter control the handling of arithmetic
+  * exceptions:
+  *
+  * BigDecimal::EXCEPTION_NaN
+  * BigDecimal::EXCEPTION_INFINITY
+  * BigDecimal::EXCEPTION_UNDERFLOW
+  * BigDecimal::EXCEPTION_OVERFLOW
+  * BigDecimal::EXCEPTION_ZERODIVIDE
+  * BigDecimal::EXCEPTION_ALL
+  *
+  * For each mode parameter above, if the value set is false, computation
+  * continues after an arithmetic exception of the appropriate type.
+  * When computation continues, results are as follows:
+  *
+  * EXCEPTION_NaN:: NaN
+  * EXCEPTION_INFINITY:: +infinity or -infinity
+  * EXCEPTION_UNDERFLOW:: 0
+  * EXCEPTION_OVERFLOW:: +infinity or -infinity
+  * EXCEPTION_ZERODIVIDE:: +infinity or -infinity
+  *
+  * One value of the mode parameter controls the rounding of numeric values:
+  * BigDecimal::ROUND_MODE. The values it can take are:
+  *
+  * ROUND_UP:: round away from zero
+  * ROUND_DOWN:: round towards zero (truncate)
+  * ROUND_HALF_UP:: round up if the appropriate digit &gt;= 5, otherwise truncate (default)
+  * ROUND_HALF_DOWN:: round up if the appropriate digit &gt;= 6, otherwise truncate
+  * ROUND_HALF_EVEN:: round towards the even neighbor (Banker's rounding)
+  * ROUND_CEILING:: round towards positive infinity (ceil)
+  * ROUND_FLOOR:: round towards negative infinity (floor)
+  *
+  */
+static VALUE
+BigDecimal_mode(int argc, VALUE *argv, VALUE self)
+{
+    VALUE which;
+    VALUE val;
+    unsigned long f,fo;
+
+    if(rb_scan_args(argc,argv,&quot;11&quot;,&amp;which,&amp;val)==1) val = Qnil;
+
+    Check_Type(which, T_FIXNUM);
+    f = (unsigned long)FIX2INT(which);
+
+    if(f&amp;VP_EXCEPTION_ALL) {
+        /* Exception mode setting */
+        fo = VpGetException();
+        if(val==Qnil) return INT2FIX(fo);
+        if(val!=Qfalse &amp;&amp; val!=Qtrue) {
+            rb_raise(rb_eTypeError, &quot;second argument must be true or false&quot;);
+            return Qnil; /* Not reached */
+        }
+        if(f&amp;VP_EXCEPTION_INFINITY) {
+            VpSetException((unsigned short)((val==Qtrue)?(fo|VP_EXCEPTION_INFINITY):
+                           (fo&amp;(~VP_EXCEPTION_INFINITY))));
+        }
+        fo = VpGetException();
+        if(f&amp;VP_EXCEPTION_NaN) {
+            VpSetException((unsigned short)((val==Qtrue)?(fo|VP_EXCEPTION_NaN):
+                           (fo&amp;(~VP_EXCEPTION_NaN))));
+        }
+        fo = VpGetException();
+        if(f&amp;VP_EXCEPTION_UNDERFLOW) {
+            VpSetException((unsigned short)((val==Qtrue)?(fo|VP_EXCEPTION_UNDERFLOW):
+                           (fo&amp;(~VP_EXCEPTION_UNDERFLOW))));
+        }
+        fo = VpGetException();
+        if(f&amp;VP_EXCEPTION_ZERODIVIDE) {
+            VpSetException((unsigned short)((val==Qtrue)?(fo|VP_EXCEPTION_ZERODIVIDE):
+                           (fo&amp;(~VP_EXCEPTION_ZERODIVIDE))));
+        }
+        fo = VpGetException();
+        return INT2FIX(fo);
+    }
+    if(VP_ROUND_MODE==f) {
+        /* Rounding mode setting */
+        fo = VpGetRoundMode();
+        if(val==Qnil) return INT2FIX(fo);
+        Check_Type(val, T_FIXNUM);
+        if(!VpIsRoundMode(FIX2INT(val))) {
+            rb_raise(rb_eTypeError, &quot;invalid rounding mode&quot;);
+            return Qnil;
+        }
+        fo = VpSetRoundMode((unsigned long)FIX2INT(val));
+        return INT2FIX(fo);
+    }
+    rb_raise(rb_eTypeError, &quot;first argument for BigDecimal#mode invalid&quot;);
+    return Qnil;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="new-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>new</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+new(initial, digits)
+</p>
+<p>
+Create a new BigDecimal object.
+</p>
+<table>
+<tr><td valign="top">initial</td><td><p>
+The initial value, as a String. Spaces are ignored, unrecognized characters
+terminate the value.
+</p>
+</td></tr>
+<tr><td valign="top">digits</td><td><p>
+The number of significant digits, as a Fixnum. If omitted or 0, the number
+of significant digits is determined from the initial value.
+</p>
+</td></tr>
+</table>
+<p>
+The actual number of significant digits used in computation is usually
+larger than the specified number.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * new(initial, digits)
+  *
+  * Create a new BigDecimal object.
+  *
+  * initial:: The initial value, as a String. Spaces are ignored, unrecognized characters terminate the value.
+  *
+  * digits:: The number of significant digits, as a Fixnum. If omitted or 0, the number of significant digits is determined from the initial value.
+  *
+  * The actual number of significant digits used in computation is usually
+  * larger than the specified number.
+  */
+static VALUE
+BigDecimal_new(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    Real *pv;
+    S_LONG mf;
+    VALUE  nFig;
+    VALUE  iniValue;
+
+    if(rb_scan_args(argc,argv,&quot;11&quot;,&amp;iniValue,&amp;nFig)==1) {
+        mf = 0;
+    } else {
+        mf = GetPositiveInt(nFig);
+    }
+    SafeStringValue(iniValue);
+    GUARD_OBJ(pv,VpNewRbClass(mf, RSTRING_PTR(iniValue),self));
+    return ToValue(pv);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="ver-class_method">
+  
+    + (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>ver</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the BigDecimal version number.
+</p>
+<p>
+Ruby 1.8.0 returns 1.0.0. Ruby 1.8.1 thru 1.8.3 return 1.0.1.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/*
+ * Returns the BigDecimal version number.
+ *
+ * Ruby 1.8.0 returns 1.0.0.
+ * Ruby 1.8.1 thru 1.8.3 return 1.0.1.
+ */
+static VALUE
+BigDecimal_version(VALUE self)
+{
+    /*
+     * 1.0.0: Ruby 1.8.0
+     * 1.0.1: Ruby 1.8.1
+    */
+    return rb_str_new2(&quot;1.0.1&quot;);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="%-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>%</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a % b a.modulo(b)
+</p>
+<p>
+Returns the modulus from dividing by b. See divmod.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a % b
+ * a.modulo(b)
+ *
+ * Returns the modulus from dividing by b. See divmod.
+ */
+static VALUE
+BigDecimal_mod(VALUE self, VALUE r) </pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="*-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>*</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+mult(value, digits)
+</p>
+<p>
+Multiply by the specified value.
+</p>
+<p>
+e.g.
+</p>
+<pre class="code">
+  c = a.mult(b,n)
+  c = a * b
+</pre>
+<table>
+<tr><td valign="top">digits</td><td><p>
+If specified and less than the number of significant digits of the result,
+the result is rounded to that number of digits, according to
+BigDecimal.mode.
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * mult(value, digits)
+  *
+  * Multiply by the specified value.
+  *
+  * e.g.
+  *   c = a.mult(b,n)
+  *   c = a * b
+  *
+  * digits:: If specified and less than the number of significant digits of the result, the result is rounded to that number of digits, according to BigDecimal.mode.
+  */
+static VALUE
+BigDecimal_mult(VALUE self, VALUE r)
+{
+    ENTER(5);
+    Real *c, *a, *b;
+    U_LONG mx;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    b = GetVpValue(r,0);
+    if(!b) return DoSomeOne(self,r,'*');
+    SAVE(b);
+
+    mx = a-&gt;Prec + b-&gt;Prec;
+    GUARD_OBJ(c,VpCreateRbObject(mx *(VpBaseFig() + 1), &quot;0&quot;));
+    VpMult(c, a, b);
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="**-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>**</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+power(n)
+</p>
+<p>
+Returns the value raised to the power of n. Note that n must be an Integer.
+</p>
+<p>
+Also available as the operator **
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * power(n)
+ *
+ * Returns the value raised to the power of n. Note that n must be an Integer.
+ *
+ * Also available as the operator **
+ */
+static VALUE
+BigDecimal_power(VALUE self, VALUE p)
+{
+    ENTER(5);
+    Real *x, *y;
+    S_LONG mp, ma;
+    S_INT n;
+
+    Check_Type(p, T_FIXNUM);
+    n = FIX2INT(p);
+    ma = n;
+    if(ma &lt; 0)  ma = -ma;
+    if(ma == 0) ma = 1;
+
+    GUARD_OBJ(x,GetVpValue(self,1));
+    if(VpIsDef(x)) {
+        mp = x-&gt;Prec *(VpBaseFig() + 1);
+        GUARD_OBJ(y,VpCreateRbObject(mp *(ma + 1), &quot;0&quot;));
+    } else {
+        GUARD_OBJ(y,VpCreateRbObject(1, &quot;0&quot;));
+    }
+    VpPower(y, x, n);
+    return ToValue(y);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="+-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>+</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+add(value, digits)
+</p>
+<p>
+Add the specified value.
+</p>
+<p>
+e.g.
+</p>
+<pre class="code">
+  c = a.add(b,n)
+  c = a + b
+</pre>
+<table>
+<tr><td valign="top">digits</td><td><p>
+If specified and less than the number of significant digits of the result,
+the result is rounded to that number of digits, according to
+BigDecimal.mode.
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * add(value, digits)
+  *
+  * Add the specified value.
+  *
+  * e.g.
+  *   c = a.add(b,n)
+  *   c = a + b
+  *
+  * digits:: If specified and less than the number of significant digits of the result, the result is rounded to that number of digits, according to BigDecimal.mode.
+  */
+static VALUE
+BigDecimal_add(VALUE self, VALUE r)
+{
+    ENTER(5);
+    Real *c, *a, *b;
+    U_LONG mx;
+    GUARD_OBJ(a,GetVpValue(self,1));
+    b = GetVpValue(r,0);
+    if(!b) return DoSomeOne(self,r,'+');
+    SAVE(b);
+    if(VpIsNaN(b)) return b-&gt;obj;
+    if(VpIsNaN(a)) return a-&gt;obj;
+    mx = GetAddSubPrec(a,b);
+    if(mx==(U_LONG)-1L) {
+        GUARD_OBJ(c,VpCreateRbObject(VpBaseFig() + 1, &quot;0&quot;));
+        VpAddSub(c, a, b, 1);
+    } else {
+        GUARD_OBJ(c,VpCreateRbObject(mx *(VpBaseFig() + 1), &quot;0&quot;));
+        if(!mx) {
+            VpSetInf(c,VpGetSign(a));
+        } else {
+            VpAddSub(c, a, b, 1);
+        }
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="+@-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>+@</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="--instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>-</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+sub(value, digits)
+</p>
+<p>
+Subtract the specified value.
+</p>
+<p>
+e.g.
+</p>
+<pre class="code">
+  c = a.sub(b,n)
+  c = a - b
+</pre>
+<table>
+<tr><td valign="top">digits</td><td><p>
+If specified and less than the number of significant digits of the result,
+the result is rounded to that number of digits, according to
+BigDecimal.mode.
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * sub(value, digits)
+  *
+  * Subtract the specified value.
+  *
+  * e.g.
+  *   c = a.sub(b,n)
+  *   c = a - b
+  *
+  * digits:: If specified and less than the number of significant digits of the result, the result is rounded to that number of digits, according to BigDecimal.mode.
+  */
+static VALUE
+BigDecimal_sub(VALUE self, VALUE r)
+{
+    ENTER(5);
+    Real *c, *a, *b;
+    U_LONG mx;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    b = GetVpValue(r,0);
+    if(!b) return DoSomeOne(self,r,'-');
+    SAVE(b);
+
+    if(VpIsNaN(b)) return b-&gt;obj;
+    if(VpIsNaN(a)) return a-&gt;obj;
+
+    mx = GetAddSubPrec(a,b);
+    if(mx==(U_LONG)-1L) {
+        GUARD_OBJ(c,VpCreateRbObject(VpBaseFig() + 1, &quot;0&quot;));
+        VpAddSub(c, a, b, -1);
+    } else {
+        GUARD_OBJ(c,VpCreateRbObject(mx *(VpBaseFig() + 1), &quot;0&quot;));
+        if(!mx) {
+            VpSetInf(c,VpGetSign(a));
+        } else {
+            VpAddSub(c, a, b, -1);
+        }
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="-@-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>-@</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="/-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>/</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+div(value, digits) quo(value)
+</p>
+<p>
+Divide by the specified value.
+</p>
+<p>
+e.g.
+</p>
+<pre class="code">
+  c = a.div(b,n)
+</pre>
+<table>
+<tr><td valign="top">digits</td><td><p>
+If specified and less than the number of significant digits of the result,
+the result is rounded to that number of digits, according to
+BigDecimal.mode.
+</p>
+</td></tr>
+</table>
+<p>
+If digits is 0, the result is the same as the / operator. If not, the
+result is an integer BigDecimal, by analogy with Float#div.
+</p>
+<p>
+The alias quo is provided since div(value, 0) is the same as computing the
+quotient; see divmod.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * div(value, digits)
+  * quo(value)
+  *
+  * Divide by the specified value.
+  *
+  * e.g.
+  *   c = a.div(b,n)
+  *
+  * digits:: If specified and less than the number of significant digits of the result, the result is rounded to that number of digits, according to BigDecimal.mode.
+  *
+  * If digits is 0, the result is the same as the / operator. If not, the
+  * result is an integer BigDecimal, by analogy with Float#div.
+  *
+  * The alias quo is provided since div(value, 0) is the same as computing
+  * the quotient; see divmod.
+  */
+static VALUE
+BigDecimal_div(VALUE self, VALUE r)
+/* For c = self/r: with round operation */
+{
+    ENTER(5);
+    Real *c=NULL, *res=NULL, *div = NULL;
+    r = BigDecimal_divide(&amp;c, &amp;res, &amp;div, self, r);
+    if(r!=(VALUE)0) return r; /* coerced by other */
+    SAVE(c);SAVE(res);SAVE(div);
+    /* a/b = c + r/b */
+    /* c xxxxx
+       r 00000yyyyy  ==&gt; (y/b)*BASE &gt;= HALF_BASE
+     */
+    /* Round */
+    if(VpHasVal(div)) { /* frac[0] must be zero for NaN,INF,Zero */
+    VpInternalRound(c,0,c-&gt;frac[c-&gt;Prec-1],(VpBaseVal()*res-&gt;frac[0])/div-&gt;frac[0]);
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="<-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>&lt;</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a < b
+</p>
+<p>
+Returns true if a is less than b. Values may be coerced to perform the
+comparison (see ==, coerce).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a &lt; b
+ *
+ * Returns true if a is less than b. Values may be coerced to perform the
+ * comparison (see ==, coerce).
+ */
+static VALUE
+BigDecimal_lt(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '&lt;');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="<=-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>&lt;=</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a <= b
+</p>
+<p>
+Returns true if a is less than or equal to b. Values may be coerced to
+perform the comparison (see ==, coerce).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a &lt;= b
+ *
+ * Returns true if a is less than or equal to b. Values may be coerced to
+ * perform the comparison (see ==, coerce).
+ */
+static VALUE
+BigDecimal_le(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, 'L');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="<=>-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>&lt;=&gt;</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+The comparison operator. a <=> b is 0 if a == b, 1 if a > b, -1 if a < b.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* The comparison operator.
+ * a &lt;=&gt; b is 0 if a == b, 1 if a &gt; b, -1 if a &lt; b.
+ */
+static VALUE
+BigDecimal_comp(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '*');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="==-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>==</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Tests for value equality; returns true if the values are equal.
+</p>
+<p>
+The == and === operators and the eql? method have the same implementation
+for BigDecimal.
+</p>
+<p>
+Values may be coerced to perform the comparison:
+</p>
+<p>
+BigDecimal.new(&#8216;1.0&#8217;) == 1.0  -> true
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/*
+ * Tests for value equality; returns true if the values are equal.
+ *
+ * The == and === operators and the eql? method have the same implementation
+ * for BigDecimal.
+ *
+ * Values may be coerced to perform the comparison:
+ *
+ * BigDecimal.new('1.0') == 1.0  -&gt; true
+ */
+static VALUE
+BigDecimal_eq(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '=');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="===-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>===</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Tests for value equality; returns true if the values are equal.
+</p>
+<p>
+The == and === operators and the eql? method have the same implementation
+for BigDecimal.
+</p>
+<p>
+Values may be coerced to perform the comparison:
+</p>
+<p>
+BigDecimal.new(&#8216;1.0&#8217;) == 1.0  -> true
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/*
+ * Tests for value equality; returns true if the values are equal.
+ *
+ * The == and === operators and the eql? method have the same implementation
+ * for BigDecimal.
+ *
+ * Values may be coerced to perform the comparison:
+ *
+ * BigDecimal.new('1.0') == 1.0  -&gt; true
+ */
+static VALUE
+BigDecimal_eq(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '=');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id=">-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>&gt;</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a > b
+</p>
+<p>
+Returns true if a is greater than b.  Values may be coerced to perform the
+comparison (see ==, coerce).
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a &gt; b
+ *
+ * Returns true if a is greater than b.  Values may be coerced to
+ * perform the comparison (see ==, coerce).
+ */
+static VALUE
+BigDecimal_gt(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '&gt;');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id=">=-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>&gt;=</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a >= b
+</p>
+<p>
+Returns true if a is greater than or equal to b. Values may be coerced to
+perform the comparison (see ==, coerce)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a &gt;= b
+ *
+ * Returns true if a is greater than or equal to b. Values may be coerced to
+ * perform the comparison (see ==, coerce)
+ */
+static VALUE
+BigDecimal_ge(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, 'G');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="_dump-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>_dump</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="abs-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>abs</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the absolute value.
+</p>
+<p>
+BigDecimal(&#8216;5&#8217;).abs -> 5
+</p>
+<p>
+BigDecimal(&#8217;-3&#8217;).abs -> 3
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the absolute value.
+ *
+ * BigDecimal('5').abs -&gt; 5
+ *
+ * BigDecimal('-3').abs -&gt; 3
+ */
+static VALUE
+BigDecimal_abs(VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpAsgn(c, a, 1);
+    VpChangeSign(c,(S_INT)1);
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="add-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>add</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="ceil-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>ceil</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+ceil(n)
+</p>
+<p>
+Return the smallest integer greater than or equal to the value, as a
+BigDecimal.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).ceil -> 4
+</p>
+<p>
+BigDecimal(&#8217;-9.1&#8217;).ceil -> -9
+</p>
+<p>
+If n is specified and positive, the fractional part of the result has no
+more than that many digits.
+</p>
+<p>
+If n is specified and negative, at least that many digits to the left of
+the decimal point will be 0 in the result.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).ceil(3) -> 3.142
+</p>
+<p>
+BigDecimal(&#8216;13345.234&#8217;).ceil(-2) -> 13400.0
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * ceil(n)
+ *
+ * Return the smallest integer greater than or equal to the value, as a BigDecimal.
+ *
+ * BigDecimal('3.14159').ceil -&gt; 4
+ *
+ * BigDecimal('-9.1').ceil -&gt; -9
+ *
+ * If n is specified and positive, the fractional part of the result has no
+ * more than that many digits.
+ *
+ * If n is specified and negative, at least that
+ * many digits to the left of the decimal point will be 0 in the result.
+ *
+ * BigDecimal('3.14159').ceil(3) -&gt; 3.142
+ *
+ * BigDecimal('13345.234').ceil(-2) -&gt; 13400.0
+ */
+static VALUE
+BigDecimal_ceil(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx;
+    int iLoc;
+    VALUE vLoc;
+    U_LONG pl = VpSetPrecLimit(0);
+
+    if(rb_scan_args(argc,argv,&quot;01&quot;,&amp;vLoc)==0) {
+        iLoc = 0;
+    } else {
+        Check_Type(vLoc, T_FIXNUM);
+        iLoc = FIX2INT(vLoc);
+    }
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpSetPrecLimit(pl);
+    VpActiveRound(c,a,VP_ROUND_CEIL,iLoc);
+    if (argc == 0) {
+    return BigDecimal_to_i(ToValue(c));
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="coerce-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>coerce</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+The coerce method provides support for Ruby type coercion. It is not
+enabled by default.
+</p>
+<p>
+This means that binary operations like + * / or - can often be performed on
+a BigDecimal and an object of another type, if the other object can be
+coerced into a BigDecimal value.
+</p>
+<p>
+e.g. a = BigDecimal.new(&#8220;1.0&#8221;) b = a / 2.0  -> 0.5
+</p>
+<p>
+Note that coercing a String to a BigDecimal is not supported by default; it
+requires a special compile-time option when building Ruby.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* The coerce method provides support for Ruby type coercion. It is not
+ * enabled by default.
+ *
+ * This means that binary operations like + * / or - can often be performed
+ * on a BigDecimal and an object of another type, if the other object can
+ * be coerced into a BigDecimal value.
+ *
+ * e.g.
+ * a = BigDecimal.new(&quot;1.0&quot;)
+ * b = a / 2.0  -&gt; 0.5
+ *
+ * Note that coercing a String to a BigDecimal is not supported by default;
+ * it requires a special compile-time option when building Ruby.
+ */
+static VALUE
+BigDecimal_coerce(VALUE self, VALUE other)
+{
+    ENTER(2);
+    VALUE obj;
+    Real *b;
+    if (TYPE(other) == T_FLOAT) {
+    obj = rb_assoc_new(other, BigDecimal_to_f(self));
+    } else {
+    GUARD_OBJ(b,GetVpValue(other,1));
+    obj = rb_assoc_new(b-&gt;obj, self);
+    }
+    return obj;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="div-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>div</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="divmod-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>divmod</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Divides by the specified value, and returns the quotient and modulus as
+BigDecimal numbers. The quotient is rounded towards negative infinity.
+</p>
+<p>
+For example:
+</p>
+<p>
+require &#8216;bigdecimal&#8217;
+</p>
+<p>
+a = BigDecimal.new(&#8220;42&#8221;) b = BigDecimal.new(&#8220;9&#8221;)
+</p>
+<p>
+q,m = a.divmod(b)
+</p>
+<p>
+c = q * b + m
+</p>
+<p>
+a == c  -> true
+</p>
+<p>
+The quotient q is (a/b).floor, and the modulus is the amount that must be
+added to q * b to get a.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Divides by the specified value, and returns the quotient and modulus
+ * as BigDecimal numbers. The quotient is rounded towards negative infinity.
+ *
+ * For example:
+ *
+ * require 'bigdecimal'
+ *
+ * a = BigDecimal.new(&quot;42&quot;)
+ * b = BigDecimal.new(&quot;9&quot;)
+ *
+ * q,m = a.divmod(b)
+ *
+ * c = q * b + m
+ *
+ * a == c  -&gt; true
+ *
+ * The quotient q is (a/b).floor, and the modulus is the amount that must be
+ * added to q * b to get a.
+ */
+static VALUE
+BigDecimal_divmod(VALUE self, VALUE r)
+{
+    ENTER(5);
+    Real *div=NULL, *mod=NULL;
+
+    if(BigDecimal_DoDivmod(self,r,&amp;div,&amp;mod)) {
+    SAVE(div); SAVE(mod);
+    return rb_assoc_new(ToValue(div), ToValue(mod));
+    }
+    return DoSomeOne(self,r,rb_intern(&quot;divmod&quot;));
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="dup-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>dup</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="eql?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>eql?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Tests for value equality; returns true if the values are equal.
+</p>
+<p>
+The == and === operators and the eql? method have the same implementation
+for BigDecimal.
+</p>
+<p>
+Values may be coerced to perform the comparison:
+</p>
+<p>
+BigDecimal.new(&#8216;1.0&#8217;) == 1.0  -> true
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/*
+ * Tests for value equality; returns true if the values are equal.
+ *
+ * The == and === operators and the eql? method have the same implementation
+ * for BigDecimal.
+ *
+ * Values may be coerced to perform the comparison:
+ *
+ * BigDecimal.new('1.0') == 1.0  -&gt; true
+ */
+static VALUE
+BigDecimal_eq(VALUE self, VALUE r)
+{
+    return BigDecimalCmp(self, r, '=');
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="exponent-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>exponent</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the exponent of the BigDecimal number, as an Integer.
+</p>
+<p>
+If the number can be represented as 0.xxxxxx*10**n where xxxxxx is a string
+of digits with no leading zeros, then n is the exponent.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the exponent of the BigDecimal number, as an Integer.
+ *
+ * If the number can be represented as 0.xxxxxx*10**n where xxxxxx is a string
+ * of digits with no leading zeros, then n is the exponent.
+ */
+static VALUE
+BigDecimal_exponent(VALUE self)
+{
+    S_LONG e = VpExponent10(GetVpValue(self,1));
+    return INT2NUM(e);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="finite?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>finite?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns True if the value is finite (not NaN or infinite)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns True if the value is finite (not NaN or infinite) */
+static VALUE
+BigDecimal_IsFinite(VALUE self)
+{
+    Real *p = GetVpValue(self,1);
+    if(VpIsNaN(p)) return Qfalse;
+    if(VpIsInf(p)) return Qfalse;
+    return Qtrue;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="fix-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>fix</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Return the integer part of the number.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Return the integer part of the number.
+ */
+static VALUE
+BigDecimal_fix(VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpActiveRound(c,a,VP_ROUND_DOWN,0); /* 0: round off */
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="floor-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>floor</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+floor(n)
+</p>
+<p>
+Return the largest integer less than or equal to the value, as a
+BigDecimal.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).floor -> 3
+</p>
+<p>
+BigDecimal(&#8217;-9.1&#8217;).floor -> -10
+</p>
+<p>
+If n is specified and positive, the fractional part of the result has no
+more than that many digits.
+</p>
+<p>
+If n is specified and negative, at least that many digits to the left of
+the decimal point will be 0 in the result.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).floor(3) -> 3.141
+</p>
+<p>
+BigDecimal(&#8216;13345.234&#8217;).floor(-2) -> 13300.0
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * floor(n)
+ *
+ * Return the largest integer less than or equal to the value, as a BigDecimal.
+ *
+ * BigDecimal('3.14159').floor -&gt; 3
+ *
+ * BigDecimal('-9.1').floor -&gt; -10
+ *
+ * If n is specified and positive, the fractional part of the result has no
+ * more than that many digits.
+ *
+ * If n is specified and negative, at least that
+ * many digits to the left of the decimal point will be 0 in the result.
+ *
+ * BigDecimal('3.14159').floor(3) -&gt; 3.141
+ *
+ * BigDecimal('13345.234').floor(-2) -&gt; 13300.0
+ */
+static VALUE
+BigDecimal_floor(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx;
+    int iLoc;
+    VALUE vLoc;
+    U_LONG pl = VpSetPrecLimit(0);
+
+    if(rb_scan_args(argc,argv,&quot;01&quot;,&amp;vLoc)==0) {
+        iLoc = 0;
+    } else {
+        Check_Type(vLoc, T_FIXNUM);
+        iLoc = FIX2INT(vLoc);
+    }
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpSetPrecLimit(pl);
+    VpActiveRound(c,a,VP_ROUND_FLOOR,iLoc);
+    if (argc == 0) {
+    return BigDecimal_to_i(ToValue(c));
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="frac-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>frac</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Return the fractional part of the number.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Return the fractional part of the number.
+ */
+static VALUE
+BigDecimal_frac(VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpFrac(c, a);
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="hash-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>hash</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="infinite?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>infinite?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns nil, -1, or +1 depending on whether the value is finite, -infinity,
+or +infinity.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns nil, -1, or +1 depending on whether the value is finite,
+ * -infinity, or +infinity.
+ */
+static VALUE
+BigDecimal_IsInfinite(VALUE self)
+{
+    Real *p = GetVpValue(self,1);
+    if(VpIsPosInf(p)) return INT2FIX(1);
+    if(VpIsNegInf(p)) return INT2FIX(-1);
+    return Qnil;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="inspect-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>inspect</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns debugging information about the value as a string of
+comma-separated values in angle brackets with a leading #:
+</p>
+<p>
+BigDecimal.new(&#8220;1234.5678&#8221;).inspect ->
+&#8220;#<BigDecimal:b7ea1130,&#8217;0.12345678E4&#8217;,8(12)>&#8220;
+</p>
+<p>
+The first part is the address, the second is the value as a string, and the
+final part ss(mm) is the current number of significant digits and the
+maximum number of significant digits, respectively.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns debugging information about the value as a string of comma-separated
+ * values in angle brackets with a leading #:
+ *
+ * BigDecimal.new(&quot;1234.5678&quot;).inspect -&gt;
+ * &quot;#&lt;BigDecimal:b7ea1130,'0.12345678E4',8(12)&gt;&quot;
+ *
+ * The first part is the address, the second is the value as a string, and
+ * the final part ss(mm) is the current number of significant digits and the
+ * maximum number of significant digits, respectively.
+ */
+static VALUE
+BigDecimal_inspect(VALUE self)
+{
+    ENTER(5);
+    Real *vp;
+    volatile VALUE obj;
+    U_LONG nc;
+    char *psz, *tmp;
+
+    GUARD_OBJ(vp,GetVpValue(self,1));
+    nc = VpNumOfChars(vp,&quot;E&quot;);
+    nc +=(nc + 9) / 10;
+
+    obj = rb_str_new(0, nc+256);
+    psz = RSTRING_PTR(obj);
+    sprintf(psz,&quot;#&lt;BigDecimal:%lx,'&quot;,self);
+    tmp = psz + strlen(psz);
+    VpToString(vp, tmp, 10, 0);
+    tmp += strlen(tmp);
+    sprintf(tmp,&quot;',%lu(%lu)&gt;&quot;,VpPrec(vp)*VpBaseFig(),VpMaxPrec(vp)*VpBaseFig());
+    rb_str_resize(obj, strlen(psz));
+    return obj;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="modulo-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>modulo</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+a % b a.modulo(b)
+</p>
+<p>
+Returns the modulus from dividing by b. See divmod.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * a % b
+ * a.modulo(b)
+ *
+ * Returns the modulus from dividing by b. See divmod.
+ */
+static VALUE
+BigDecimal_mod(VALUE self, VALUE r) </pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="mult-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>mult</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="nan?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>nan?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns True if the value is Not a Number
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns True if the value is Not a Number */
+static VALUE
+BigDecimal_IsNaN(VALUE self)
+{
+    Real *p = GetVpValue(self,1);
+    if(VpIsNaN(p))  return Qtrue;
+    return Qfalse;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="nonzero?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>nonzero?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns self if the value is non-zero, nil otherwise.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns self if the value is non-zero, nil otherwise. */
+static VALUE
+BigDecimal_nonzero(VALUE self)
+{
+    Real *a = GetVpValue(self,1);
+    return VpIsZero(a) ? Qnil : self;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="power-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>power</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+power(n)
+</p>
+<p>
+Returns the value raised to the power of n. Note that n must be an Integer.
+</p>
+<p>
+Also available as the operator **
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * power(n)
+ *
+ * Returns the value raised to the power of n. Note that n must be an Integer.
+ *
+ * Also available as the operator **
+ */
+static VALUE
+BigDecimal_power(VALUE self, VALUE p)
+{
+    ENTER(5);
+    Real *x, *y;
+    S_LONG mp, ma;
+    S_INT n;
+
+    Check_Type(p, T_FIXNUM);
+    n = FIX2INT(p);
+    ma = n;
+    if(ma &lt; 0)  ma = -ma;
+    if(ma == 0) ma = 1;
+
+    GUARD_OBJ(x,GetVpValue(self,1));
+    if(VpIsDef(x)) {
+        mp = x-&gt;Prec *(VpBaseFig() + 1);
+        GUARD_OBJ(y,VpCreateRbObject(mp *(ma + 1), &quot;0&quot;));
+    } else {
+        GUARD_OBJ(y,VpCreateRbObject(1, &quot;0&quot;));
+    }
+    VpPower(y, x, n);
+    return ToValue(y);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="precs-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>precs</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+precs
+</p>
+<p>
+Returns an Array of two Integer values.
+</p>
+<p>
+The first value is the current number of significant digits in the
+BigDecimal. The second value is the maximum number of significant digits
+for the BigDecimal.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * precs
+ *
+ * Returns an Array of two Integer values.
+ *
+ * The first value is the current number of significant digits in the
+ * BigDecimal. The second value is the maximum number of significant digits
+ * for the BigDecimal.
+ */
+static VALUE
+BigDecimal_prec(VALUE self)
+{
+    ENTER(1);
+    Real *p;
+    VALUE obj;
+
+    GUARD_OBJ(p,GetVpValue(self,1));
+    obj = rb_assoc_new(INT2NUM(p-&gt;Prec*VpBaseFig()),
+               INT2NUM(p-&gt;MaxPrec*VpBaseFig()));
+    return obj;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="quo-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>quo</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+div(value, digits) quo(value)
+</p>
+<p>
+Divide by the specified value.
+</p>
+<p>
+e.g.
+</p>
+<pre class="code">
+  c = a.div(b,n)
+</pre>
+<table>
+<tr><td valign="top">digits</td><td><p>
+If specified and less than the number of significant digits of the result,
+the result is rounded to that number of digits, according to
+BigDecimal.mode.
+</p>
+</td></tr>
+</table>
+<p>
+If digits is 0, the result is the same as the / operator. If not, the
+result is an integer BigDecimal, by analogy with Float#div.
+</p>
+<p>
+The alias quo is provided since div(value, 0) is the same as computing the
+quotient; see divmod.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+  * div(value, digits)
+  * quo(value)
+  *
+  * Divide by the specified value.
+  *
+  * e.g.
+  *   c = a.div(b,n)
+  *
+  * digits:: If specified and less than the number of significant digits of the result, the result is rounded to that number of digits, according to BigDecimal.mode.
+  *
+  * If digits is 0, the result is the same as the / operator. If not, the
+  * result is an integer BigDecimal, by analogy with Float#div.
+  *
+  * The alias quo is provided since div(value, 0) is the same as computing
+  * the quotient; see divmod.
+  */
+static VALUE
+BigDecimal_div(VALUE self, VALUE r)
+/* For c = self/r: with round operation */
+{
+    ENTER(5);
+    Real *c=NULL, *res=NULL, *div = NULL;
+    r = BigDecimal_divide(&amp;c, &amp;res, &amp;div, self, r);
+    if(r!=(VALUE)0) return r; /* coerced by other */
+    SAVE(c);SAVE(res);SAVE(div);
+    /* a/b = c + r/b */
+    /* c xxxxx
+       r 00000yyyyy  ==&gt; (y/b)*BASE &gt;= HALF_BASE
+     */
+    /* Round */
+    if(VpHasVal(div)) { /* frac[0] must be zero for NaN,INF,Zero */
+    VpInternalRound(c,0,c-&gt;frac[c-&gt;Prec-1],(VpBaseVal()*res-&gt;frac[0])/div-&gt;frac[0]);
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remainder-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>remainder</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the remainder from dividing by the value.
+</p>
+<p>
+x.remainder(y) means x-y*(x/y).truncate
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the remainder from dividing by the value.
+ *
+ * x.remainder(y) means x-y*(x/y).truncate
+ */
+static VALUE
+BigDecimal_remainder(VALUE self, VALUE r) /* remainder */
+{
+    VALUE  f;
+    Real  *d,*rv=0;
+    f = BigDecimal_divremain(self,r,&amp;d,&amp;rv);
+    if(f!=(VALUE)0) return f;
+    return ToValue(rv);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="round-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>round</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+round(n,mode)
+</p>
+<p>
+Round to the nearest 1 (by default), returning the result as a BigDecimal.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).round -> 3
+</p>
+<p>
+BigDecimal(&#8216;8.7&#8217;).round -> 9
+</p>
+<p>
+If n is specified and positive, the fractional part of the result has no
+more than that many digits.
+</p>
+<p>
+If n is specified and negative, at least that many digits to the left of
+the decimal point will be 0 in the result.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).round(3) -> 3.142
+</p>
+<p>
+BigDecimal(&#8216;13345.234&#8217;).round(-2) -> 13300.0
+</p>
+<p>
+The value of the optional mode argument can be used to determine how
+rounding is performed; see BigDecimal.mode.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * round(n,mode)
+ *
+ * Round to the nearest 1 (by default), returning the result as a BigDecimal.
+ *
+ * BigDecimal('3.14159').round -&gt; 3
+ *
+ * BigDecimal('8.7').round -&gt; 9
+ *
+ * If n is specified and positive, the fractional part of the result has no
+ * more than that many digits.
+ *
+ * If n is specified and negative, at least that many digits to the left of the
+ * decimal point will be 0 in the result.
+ *
+ * BigDecimal('3.14159').round(3) -&gt; 3.142
+ *
+ * BigDecimal('13345.234').round(-2) -&gt; 13300.0
+ *
+ * The value of the optional mode argument can be used to determine how
+ * rounding is performed; see BigDecimal.mode.
+ */
+static VALUE
+BigDecimal_round(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    Real   *c, *a;
+    int    iLoc = 0;
+    U_LONG mx;
+    VALUE  vLoc;
+    VALUE  vRound;
+    U_LONG pl;
+
+    int    sw = (int)VpGetRoundMode();
+
+    int na = rb_scan_args(argc,argv,&quot;02&quot;,&amp;vLoc,&amp;vRound);
+    switch(na) {
+    case 0:
+        iLoc = 0;
+        break;
+    case 1:
+        Check_Type(vLoc, T_FIXNUM);
+        iLoc = FIX2INT(vLoc);
+        break;
+    case 2:
+        Check_Type(vLoc, T_FIXNUM);
+        iLoc = FIX2INT(vLoc);
+        Check_Type(vRound, T_FIXNUM);
+        sw   = FIX2INT(vRound);
+        if(!VpIsRoundMode(sw)) {
+            rb_raise(rb_eTypeError, &quot;invalid rounding mode&quot;);
+            return Qnil;
+        }
+        break;
+    }
+
+    pl = VpSetPrecLimit(0);
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpSetPrecLimit(pl);
+    VpActiveRound(c,a,sw,iLoc);
+    if (argc == 0) {
+    return BigDecimal_to_i(ToValue(c));
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="sign-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>sign</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the sign of the value.
+</p>
+<p>
+Returns a positive value if > 0, a negative value if < 0, and a zero if ==
+0.
+</p>
+<p>
+The specific value returned indicates the type and sign of the BigDecimal,
+as follows:
+</p>
+<table>
+<tr><td valign="top">BigDecimal::SIGN_NaN</td><td><p>
+value is Not a Number
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_POSITIVE_ZERO</td><td><p>
+value is +0
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_NEGATIVE_ZERO</td><td><p>
+value is -0
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_POSITIVE_INFINITE</td><td><p>
+value is +infinity
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_NEGATIVE_INFINITE</td><td><p>
+value is -infinity
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_POSITIVE_FINITE</td><td><p>
+value is positive
+</p>
+</td></tr>
+<tr><td valign="top">BigDecimal::SIGN_NEGATIVE_FINITE</td><td><p>
+value is negative
+</p>
+</td></tr>
+</table>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the sign of the value.
+ *
+ * Returns a positive value if &gt; 0, a negative value if &lt; 0, and a
+ * zero if == 0.
+ *
+ * The specific value returned indicates the type and sign of the BigDecimal,
+ * as follows:
+ *
+ * BigDecimal::SIGN_NaN:: value is Not a Number
+ * BigDecimal::SIGN_POSITIVE_ZERO:: value is +0
+ * BigDecimal::SIGN_NEGATIVE_ZERO:: value is -0
+ * BigDecimal::SIGN_POSITIVE_INFINITE:: value is +infinity
+ * BigDecimal::SIGN_NEGATIVE_INFINITE:: value is -infinity
+ * BigDecimal::SIGN_POSITIVE_FINITE:: value is positive
+ * BigDecimal::SIGN_NEGATIVE_FINITE:: value is negative
+ */
+static VALUE
+BigDecimal_sign(VALUE self)
+{ /* sign */
+    int s = GetVpValue(self,1)-&gt;sign;
+    return INT2FIX(s);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="split-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>split</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Splits a BigDecimal number into four parts, returned as an array of values.
+</p>
+<p>
+The first value represents the sign of the BigDecimal, and is -1 or 1, or 0
+if the BigDecimal is Not a Number.
+</p>
+<p>
+The second value is a string representing the significant digits of the
+BigDecimal, with no leading zeros.
+</p>
+<p>
+The third value is the base used for arithmetic (currently always 10) as an
+Integer.
+</p>
+<p>
+The fourth value is an Integer exponent.
+</p>
+<p>
+If the BigDecimal can be represented as 0.xxxxxx*10**n, then xxxxxx is the
+string of significant digits with no leading zeros, and n is the exponent.
+</p>
+<p>
+From these values, you can translate a BigDecimal to a float as follows:
+</p>
+<pre class="code">
+  sign, significant_digits, base, exponent = a.split
+  f = sign * &quot;0.#{significant_digits}&quot;.to_f * (base ** exponent)
+</pre>
+<p>
+(Note that the to_f method is provided as a more convenient way to
+translate a BigDecimal to a Float.)
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Splits a BigDecimal number into four parts, returned as an array of values.
+ *
+ * The first value represents the sign of the BigDecimal, and is -1 or 1, or 0
+ * if the BigDecimal is Not a Number.
+ *
+ * The second value is a string representing the significant digits of the
+ * BigDecimal, with no leading zeros.
+ *
+ * The third value is the base used for arithmetic (currently always 10) as an
+ * Integer.
+ *
+ * The fourth value is an Integer exponent.
+ *
+ * If the BigDecimal can be represented as 0.xxxxxx*10**n, then xxxxxx is the
+ * string of significant digits with no leading zeros, and n is the exponent.
+ *
+ * From these values, you can translate a BigDecimal to a float as follows:
+ *
+ *   sign, significant_digits, base, exponent = a.split
+ *   f = sign * &quot;0.#{significant_digits}&quot;.to_f * (base ** exponent)
+ *
+ * (Note that the to_f method is provided as a more convenient way to translate
+ * a BigDecimal to a Float.)
+ */
+static VALUE
+BigDecimal_split(VALUE self)
+{
+    ENTER(5);
+    Real *vp;
+    VALUE obj,str;
+    S_LONG e;
+    S_LONG s;
+    char *psz1;
+
+    GUARD_OBJ(vp,GetVpValue(self,1));
+    str = rb_str_new(0, VpNumOfChars(vp,&quot;E&quot;));
+    psz1 = RSTRING_PTR(str);
+    VpSzMantissa(vp,psz1);
+    s = 1;
+    if(psz1[0]=='-') {
+    size_t len = strlen(psz1+1);
+
+    memmove(psz1, psz1+1, len);
+    psz1[len] = '\0';
+        s = -1;
+    }
+    if(psz1[0]=='N') s=0; /* NaN */
+    e = VpExponent10(vp);
+    obj  = rb_ary_new2(4);
+    rb_ary_push(obj, INT2FIX(s));
+    rb_ary_push(obj, str);
+    rb_str_resize(str, strlen(psz1));
+    rb_ary_push(obj, INT2FIX(10));
+    rb_ary_push(obj, INT2NUM(e));
+    return obj;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="sqrt-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>sqrt</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+sqrt(n)
+</p>
+<p>
+Returns the square root of the value.
+</p>
+<p>
+If n is specified, returns at least that many significant digits.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * sqrt(n)
+ *
+ * Returns the square root of the value.
+ *
+ * If n is specified, returns at least that many significant digits.
+ */
+static VALUE
+BigDecimal_sqrt(VALUE self, VALUE nFig)
+{
+    ENTER(5);
+    Real *c, *a;
+    U_LONG mx, n;
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+
+    n = GetPositiveInt(nFig) + VpDblFig() + 1;
+    if(mx &lt;= n) mx = n;
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpSqrt(c, a);
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="sub-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>sub</strong> 
+  
+
+  
+</p>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_f-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_f</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns a new Float object having approximately the same value as the
+BigDecimal number. Normal accuracy limits and built-in errors of binary
+Float arithmetic apply.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns a new Float object having approximately the same value as the
+ * BigDecimal number. Normal accuracy limits and built-in errors of binary
+ * Float arithmetic apply.
+ */
+static VALUE
+BigDecimal_to_f(VALUE self)
+{
+    ENTER(1);
+    Real *p;
+    double d;
+    S_LONG e;
+    char *buf;
+    volatile VALUE str;
+
+    GUARD_OBJ(p,GetVpValue(self,1));
+    if (VpVtoD(&amp;d, &amp;e, p)!=1) return rb_float_new(d);
+    if (e &gt; DBL_MAX_10_EXP+BASE_FIG) goto erange;
+    str = rb_str_new(0, VpNumOfChars(p,&quot;E&quot;));
+    buf = RSTRING_PTR(str);
+    VpToString(p, buf, 0, 0);
+    errno = 0;
+    d = strtod(buf, 0);
+    if(errno == ERANGE) {
+      erange:
+       VpException(VP_EXCEPTION_OVERFLOW,&quot;BigDecimal to Float conversion&quot;,0);
+       if(d&gt;0.0) d = VpGetDoublePosInf();
+       else      d = VpGetDoubleNegInf();
+    }
+    return rb_float_new(d);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_i-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_i</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the value as an integer (Fixnum or Bignum).
+</p>
+<p>
+If the BigNumber is infinity or NaN, raises FloatDomainError.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the value as an integer (Fixnum or Bignum).
+ *
+ * If the BigNumber is infinity or NaN, raises FloatDomainError.
+ */
+static VALUE
+BigDecimal_to_i(VALUE self)
+{
+    ENTER(5);
+    S_LONG e,nf;
+    Real *p;
+
+    GUARD_OBJ(p,GetVpValue(self,1));
+    BigDecimal_check_num(p);
+
+    e = VpExponent10(p);
+    if(e&lt;=0) return INT2FIX(0);
+    nf = VpBaseFig();
+    if(e&lt;=nf) {
+        e = VpGetSign(p)*p-&gt;frac[0];
+        return INT2FIX(e);
+    }
+    else {
+    VALUE a = BigDecimal_split(self);
+    VALUE digits = RARRAY_PTR(a)[1];
+    VALUE numerator = rb_funcall(digits, rb_intern(&quot;to_i&quot;), 0);
+    S_LONG dpower = e - RSTRING_LEN(digits);
+
+    if (VpGetSign(p) &lt; 0) {
+        numerator = rb_funcall(numerator, '*', 1, INT2FIX(-1));
+    }
+    if (dpower &lt; 0) {
+        return rb_funcall(numerator, rb_intern(&quot;div&quot;), 1,
+                  rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                     INT2FIX(-dpower)));
+    }
+        return rb_funcall(numerator, '*', 1,
+              rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                     INT2FIX(dpower)));
+    }
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_int-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_int</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the value as an integer (Fixnum or Bignum).
+</p>
+<p>
+If the BigNumber is infinity or NaN, raises FloatDomainError.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns the value as an integer (Fixnum or Bignum).
+ *
+ * If the BigNumber is infinity or NaN, raises FloatDomainError.
+ */
+static VALUE
+BigDecimal_to_i(VALUE self)
+{
+    ENTER(5);
+    S_LONG e,nf;
+    Real *p;
+
+    GUARD_OBJ(p,GetVpValue(self,1));
+    BigDecimal_check_num(p);
+
+    e = VpExponent10(p);
+    if(e&lt;=0) return INT2FIX(0);
+    nf = VpBaseFig();
+    if(e&lt;=nf) {
+        e = VpGetSign(p)*p-&gt;frac[0];
+        return INT2FIX(e);
+    }
+    else {
+    VALUE a = BigDecimal_split(self);
+    VALUE digits = RARRAY_PTR(a)[1];
+    VALUE numerator = rb_funcall(digits, rb_intern(&quot;to_i&quot;), 0);
+    S_LONG dpower = e - RSTRING_LEN(digits);
+
+    if (VpGetSign(p) &lt; 0) {
+        numerator = rb_funcall(numerator, '*', 1, INT2FIX(-1));
+    }
+    if (dpower &lt; 0) {
+        return rb_funcall(numerator, rb_intern(&quot;div&quot;), 1,
+                  rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                     INT2FIX(-dpower)));
+    }
+        return rb_funcall(numerator, '*', 1,
+              rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                     INT2FIX(dpower)));
+    }
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_r-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_r</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Converts a BigDecimal to a Rational.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Converts a BigDecimal to a Rational.
+ */
+static VALUE
+BigDecimal_to_r(VALUE self)
+{
+    Real *p;
+    S_LONG sign, power, denomi_power;
+    VALUE a, digits, numerator;
+
+    p = GetVpValue(self,1);
+    BigDecimal_check_num(p);
+
+    sign = VpGetSign(p);
+    power = VpExponent10(p);
+    a = BigDecimal_split(self);
+    digits = RARRAY_PTR(a)[1];
+    denomi_power = power - RSTRING_LEN(digits);
+    numerator = rb_funcall(digits, rb_intern(&quot;to_i&quot;), 0);
+
+    if (sign &lt; 0) {
+    numerator = rb_funcall(numerator, '*', 1, INT2FIX(-1));
+    }
+    if (denomi_power &lt; 0) {
+    return rb_Rational(numerator,
+               rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                      INT2FIX(-denomi_power)));
+    }
+    else {
+        return rb_Rational1(rb_funcall(numerator, '*', 1,
+                       rb_funcall(INT2FIX(10), rb_intern(&quot;**&quot;), 1,
+                          INT2FIX(denomi_power))));
+    }
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_s-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>to_s</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+to_s(s)
+</p>
+<p>
+Converts the value to a string.
+</p>
+<p>
+The default format looks like  0.xxxxEnn.
+</p>
+<p>
+The optional parameter s consists of either an integer; or an optional
+&#8217;+&#8217; or &#8217; &#8217;, followed by an optional number,
+followed by an optional &#8216;E&#8217; or &#8216;F&#8217;.
+</p>
+<p>
+If there is a &#8217;+&#8217; at the start of s, positive values are
+returned with a leading &#8217;+&#8217;.
+</p>
+<p>
+A space at the start of s returns positive values with a leading space.
+</p>
+<p>
+If s contains a number, a space is inserted after each group of that many
+fractional digits.
+</p>
+<p>
+If s ends with an &#8216;E&#8217;, engineering notation (0.xxxxEnn) is
+used.
+</p>
+<p>
+If s ends with an &#8216;F&#8217;, conventional floating point notation is
+used.
+</p>
+<p>
+Examples:
+</p>
+<p>
+BigDecimal.new(&#8217;-123.45678901234567890&#8217;).to_s(&#8216;5F&#8217;)
+-> &#8217;-123.45678 90123 45678 9&#8217;
+</p>
+<p>
+BigDecimal.new(&#8216;123.45678901234567890&#8217;).to_s(&#8217;+8F&#8217;)
+-> &#8217;+123.45678901 23456789&#8217;
+</p>
+<p>
+BigDecimal.new(&#8216;123.45678901234567890&#8217;).to_s(&#8217; F&#8217;)
+-> &#8217; 123.4567890123456789&#8217;
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * to_s(s)
+ *
+ * Converts the value to a string.
+ *
+ * The default format looks like  0.xxxxEnn.
+ *
+ * The optional parameter s consists of either an integer; or an optional '+'
+ * or ' ', followed by an optional number, followed by an optional 'E' or 'F'.
+ *
+ * If there is a '+' at the start of s, positive values are returned with
+ * a leading '+'.
+ *
+ * A space at the start of s returns positive values with a leading space.
+ *
+ * If s contains a number, a space is inserted after each group of that many
+ * fractional digits.
+ *
+ * If s ends with an 'E', engineering notation (0.xxxxEnn) is used.
+ *
+ * If s ends with an 'F', conventional floating point notation is used.
+ *
+ * Examples:
+ *
+ * BigDecimal.new('-123.45678901234567890').to_s('5F') -&gt; '-123.45678 90123 45678 9'
+ *
+ * BigDecimal.new('123.45678901234567890').to_s('+8F') -&gt; '+123.45678901 23456789'
+ *
+ * BigDecimal.new('123.45678901234567890').to_s(' F') -&gt; ' 123.4567890123456789'
+ */
+static VALUE
+BigDecimal_to_s(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    int   fmt=0;   /* 0:E format */
+    int   fPlus=0; /* =0:default,=1: set ' ' before digits ,set '+' before digits. */
+    Real  *vp;
+    volatile VALUE str;
+    char  *psz;
+    char   ch;
+    U_LONG nc;
+    S_INT  mc = 0;
+    VALUE  f;
+
+    GUARD_OBJ(vp,GetVpValue(self,1));
+
+    if(rb_scan_args(argc,argv,&quot;01&quot;,&amp;f)==1) {
+        if(TYPE(f)==T_STRING) {
+            SafeStringValue(f);
+            psz = RSTRING_PTR(f);
+            if(*psz==' ') {
+                fPlus = 1; psz++;
+            } else if(*psz=='+') {
+                fPlus = 2; psz++;
+            }
+            while((ch=*psz++)!=0) {
+                if(ISSPACE(ch)) continue;
+                if(!ISDIGIT(ch)) {
+                    if(ch=='F' || ch=='f') fmt = 1; /* F format */
+                    break;
+                }
+                mc = mc * 10 + ch - '0';
+            }
+        } else {
+            mc  = GetPositiveInt(f);
+        }
+    }
+    if(fmt) {
+        nc = VpNumOfChars(vp,&quot;F&quot;);
+    } else {
+        nc = VpNumOfChars(vp,&quot;E&quot;);
+    }
+    if(mc&gt;0) nc += (nc + mc - 1) / mc + 1;
+
+    str = rb_str_new(0, nc);
+    psz = RSTRING_PTR(str);
+
+    if(fmt) {
+        VpToFString(vp, psz, mc, fPlus);
+    } else {
+        VpToString (vp, psz, mc, fPlus);
+    }
+    rb_str_resize(str, strlen(psz));
+    return str;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="truncate-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>truncate</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+truncate(n)
+</p>
+<p>
+Truncate to the nearest 1, returning the result as a BigDecimal.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).truncate -> 3
+</p>
+<p>
+BigDecimal(&#8216;8.7&#8217;).truncate -> 8
+</p>
+<p>
+If n is specified and positive, the fractional part of the result has no
+more than that many digits.
+</p>
+<p>
+If n is specified and negative, at least that many digits to the left of
+the decimal point will be 0 in the result.
+</p>
+<p>
+BigDecimal(&#8216;3.14159&#8217;).truncate(3) -> 3.141
+</p>
+<p>
+BigDecimal(&#8216;13345.234&#8217;).truncate(-2) -> 13300.0
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* call-seq:
+ * truncate(n)
+ *
+ * Truncate to the nearest 1, returning the result as a BigDecimal.
+ *
+ * BigDecimal('3.14159').truncate -&gt; 3
+ *
+ * BigDecimal('8.7').truncate -&gt; 8
+ *
+ * If n is specified and positive, the fractional part of the result has no
+ * more than that many digits.
+ *
+ * If n is specified and negative, at least that many digits to the left of the
+ * decimal point will be 0 in the result.
+ *
+ * BigDecimal('3.14159').truncate(3) -&gt; 3.141
+ *
+ * BigDecimal('13345.234').truncate(-2) -&gt; 13300.0
+ */
+static VALUE
+BigDecimal_truncate(int argc, VALUE *argv, VALUE self)
+{
+    ENTER(5);
+    Real *c, *a;
+    int iLoc;
+    U_LONG mx;
+    VALUE vLoc;
+    U_LONG pl = VpSetPrecLimit(0);
+
+    if(rb_scan_args(argc,argv,&quot;01&quot;,&amp;vLoc)==0) {
+        iLoc = 0;
+    } else {
+        Check_Type(vLoc, T_FIXNUM);
+        iLoc = FIX2INT(vLoc);
+    }
+
+    GUARD_OBJ(a,GetVpValue(self,1));
+    mx = a-&gt;Prec *(VpBaseFig() + 1);
+    GUARD_OBJ(c,VpCreateRbObject(mx, &quot;0&quot;));
+    VpSetPrecLimit(pl);
+    VpActiveRound(c,a,VP_ROUND_DOWN,iLoc); /* 0: truncate */
+    if (argc == 0) {
+    return BigDecimal_to_i(ToValue(c));
+    }
+    return ToValue(c);
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="zero?-instance_method">
+  
+    - (<tt><span class='object_link'><a href="Object.html" title="Object (class)">Object</a></span></tt>) <strong>zero?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns True if the value is zero.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'ext/bigdecimal/bigdecimal.c'</span>
+
+/* Returns True if the value is zero. */
+static VALUE
+BigDecimal_zero(VALUE self)
+{
+    Real *a = GetVpValue(self,1);
+    return VpIsZero(a) ? Qtrue : Qfalse;
+}</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:01:47 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

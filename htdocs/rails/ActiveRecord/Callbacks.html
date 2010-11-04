@@ -1,0 +1,653 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActiveRecord::Callbacks</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (C)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActiveRecord.html" title="ActiveRecord (module)">ActiveRecord</a></span></span>
+     &raquo; 
+    <span class="title">Callbacks</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActiveRecord::Callbacks
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+      <dt class="r1">Extended by:</dt>
+      <dd class="r1"><span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></dd>
+      
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">activerecord/lib/active_record/callbacks.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>Active Record Callbacks</h1>
+<p>
+Callbacks are hooks into the life cycle of an Active Record object that
+allow you to trigger logic before or after an alteration of the object
+state. This can be used to make sure that associated and dependent objects
+are deleted when <tt>destroy</tt> is called (by overwriting
+<tt>before_destroy</tt>) or to massage attributes before they&#8217;re
+validated (by overwriting <tt>before_validation</tt>). As an example of the
+callbacks initiated, consider the <tt>Base#save</tt> call for a new record:
+</p>
+<ul>
+<li><p>
+(-) <tt>save</tt>
+</p>
+</li>
+<li><p>
+(-) <tt>valid</tt>
+</p>
+</li>
+<li><p>
+(1) <tt>before_validation</tt>
+</p>
+</li>
+<li><p>
+(-) <tt>validate</tt>
+</p>
+</li>
+<li><p>
+(2) <tt>after_validation</tt>
+</p>
+</li>
+<li><p>
+(3) <tt>before_save</tt>
+</p>
+</li>
+<li><p>
+(4) <tt>before_create</tt>
+</p>
+</li>
+<li><p>
+(-) <tt>create</tt>
+</p>
+</li>
+<li><p>
+(5) <tt>after_create</tt>
+</p>
+</li>
+<li><p>
+(6) <tt>after_save</tt>
+</p>
+</li>
+<li><p>
+(7) <tt>after_commit</tt>
+</p>
+</li>
+</ul>
+<p>
+Also, an <tt>after_rollback</tt> callback can be configured to be triggered
+whenever a rollback is issued. Check out
+<tt>ActiveRecord::Transactions</tt> for more details about
+<tt>after_commit</tt> and <tt>after_rollback</tt>.
+</p>
+<p>
+That&#8217;s a total of ten callbacks, which gives you immense power to
+react and prepare for each state in the Active Record life cycle. The
+sequence for calling <tt>Base#save</tt> for an existing record is similar,
+except that each <tt>_on_create</tt> callback is replaced by the
+corresponding <tt>_on_update</tt> callback.
+</p>
+<p>
+Examples:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>CreditCard</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='comment'># Strip everything but digits, so the user can specify &quot;555 234 34&quot; or
+</span>    <span class='comment'># &quot;5552-3434&quot; or both will mean &quot;55523434&quot;
+</span>    <span class='id before_validation'>before_validation</span><span class='lparen'>(</span><span class='symbol'>:on</span> <span class='op'>=&gt;</span> <span class='symbol'>:create</span><span class='rparen'>)</span> <span class='kw'>do</span>
+      <span class='kw'>self</span><span class='period'>.</span><span class='id number'>number</span> <span class='op'>=</span> <span class='id number'>number</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>[^0-9]</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id attribute_present?'>attribute_present?</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>number</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Subscription</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_create'>before_create</span> <span class='symbol'>:record_signup</span>
+
+    <span class='id private'>private</span>
+      <span class='kw'>def</span> <span class='id record_signup'>record_signup</span>
+        <span class='kw'>self</span><span class='period'>.</span><span class='id signed_up_on'>signed_up_on</span> <span class='op'>=</span> <span class='const'>Date</span><span class='period'>.</span><span class='id today'>today</span>
+      <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Firm</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='comment'># Destroys the associated clients and people when the firm is destroyed
+</span>    <span class='id before_destroy'>before_destroy</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id record'>record</span><span class='op'>|</span> <span class='const'>Person</span><span class='period'>.</span><span class='id destroy_all'>destroy_all</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>firm_id = </span><span class='embexpr_beg'>#{</span><span class='id record'>record</span><span class='period'>.</span><span class='id id'>id</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>   <span class='rbrace'>}</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id record'>record</span><span class='op'>|</span> <span class='const'>Client</span><span class='period'>.</span><span class='id destroy_all'>destroy_all</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>client_of = </span><span class='embexpr_beg'>#{</span><span class='id record'>record</span><span class='period'>.</span><span class='id id'>id</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span> <span class='rbrace'>}</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Inheritable callback queues</h2>
+<p>
+Besides the overwritable callback methods, it&#8217;s also possible to
+register callbacks through the use of the callback macros. Their main
+advantage is that the macros add behavior into a callback queue that is
+kept intact down through an inheritance hierarchy.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Topic</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='symbol'>:destroy_author</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Reply</span> <span class='op'>&lt;</span> <span class='const'>Topic</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='symbol'>:destroy_readers</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Now, when <tt>Topic#destroy</tt> is run only <tt>destroy_author</tt> is
+called. When <tt>Reply#destroy</tt> is run, both <tt>destroy_author</tt>
+and <tt>destroy_readers</tt> are called. Contrast this to the following
+situation where the <tt>before_destroy</tt> methis is overriden:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Topic</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='kw'>def</span> <span class='id before_destroy'>before_destroy</span><span class='lparen'>(</span><span class='rparen'>)</span> <span class='id destroy_author'>destroy_author</span> <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Reply</span> <span class='op'>&lt;</span> <span class='const'>Topic</span>
+    <span class='kw'>def</span> <span class='id before_destroy'>before_destroy</span><span class='lparen'>(</span><span class='rparen'>)</span> <span class='id destroy_readers'>destroy_readers</span> <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+In that case, <tt>Reply#destroy</tt> would only run
+<tt>destroy_readers</tt> and <em>not</em> <tt>destroy_author</tt>. So, use
+the callback macros when you want to ensure that a certain callback is
+called for the entire hierarchy, and use the regular overwriteable methods
+when you want to leave it up to each descendant to decide whether they want
+to call <tt>super</tt> and trigger the inherited callbacks.
+</p>
+<p>
+<b>IMPORTANT:</b> In order for inheritance to work for the callback queues,
+you must specify the callbacks before specifying the associations.
+Otherwise, you might trigger the loading of a child before the parent has
+registered the callbacks and they won&#8217;t be inherited.
+</p>
+<h2>Types of callbacks</h2>
+<p>
+There are four types of callbacks accepted by the callback macros: Method
+references (symbol), callback objects, inline methods (using a proc), and
+inline eval methods (using a string). Method references and callback
+objects are the recommended approaches, inline methods using a proc are
+sometimes appropriate (such as for creating mix-ins), and inline eval
+methods are deprecated.
+</p>
+<p>
+The method reference callbacks work by specifying a protected or private
+method available in the object, like this:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Topic</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='symbol'>:delete_parents</span>
+
+    <span class='id private'>private</span>
+      <span class='kw'>def</span> <span class='id delete_parents'>delete_parents</span>
+        <span class='kw'>self</span><span class='period'>.</span><span class='id class'>class</span><span class='period'>.</span><span class='id delete_all'>delete_all</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>parent_id = </span><span class='embexpr_beg'>#{</span><span class='id id'>id</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The callback objects have methods named after the callback called with the
+record as the only parameter, such as:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>BankAccount</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_save'>before_save</span>      <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span>
+    <span class='id after_save'>after_save</span>       <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span>
+    <span class='id after_initialize'>after_initialize</span> <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>EncryptionWrapper</span>
+    <span class='kw'>def</span> <span class='id before_save'>before_save</span><span class='lparen'>(</span><span class='id record'>record</span><span class='rparen'>)</span>
+      <span class='id record'>record</span><span class='period'>.</span><span class='id credit_card_number'>credit_card_number</span> <span class='op'>=</span> <span class='id encrypt'>encrypt</span><span class='lparen'>(</span><span class='id record'>record</span><span class='period'>.</span><span class='id credit_card_number'>credit_card_number</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id after_save'>after_save</span><span class='lparen'>(</span><span class='id record'>record</span><span class='rparen'>)</span>
+      <span class='id record'>record</span><span class='period'>.</span><span class='id credit_card_number'>credit_card_number</span> <span class='op'>=</span> <span class='id decrypt'>decrypt</span><span class='lparen'>(</span><span class='id record'>record</span><span class='period'>.</span><span class='id credit_card_number'>credit_card_number</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='id alias_method'>alias_method</span> <span class='symbol'>:after_find</span><span class='comma'>,</span> <span class='symbol'>:after_save</span>
+
+    <span class='id private'>private</span>
+      <span class='kw'>def</span> <span class='id encrypt'>encrypt</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span>
+        <span class='comment'># Secrecy is committed
+</span>      <span class='kw'>end</span>
+
+      <span class='kw'>def</span> <span class='id decrypt'>decrypt</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span>
+        <span class='comment'># Secrecy is unveiled
+</span>      <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+So you specify the object you want messaged on a given callback. When that
+callback is triggered, the object has a method by the name of the callback
+messaged. You can make these callbacks more flexible by passing in other
+initialization data such as the name of the attribute to work with:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>BankAccount</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_save'>before_save</span>      <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>credit_card_number</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id after_save'>after_save</span>       <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>credit_card_number</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id after_initialize'>after_initialize</span> <span class='const'>EncryptionWrapper</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>credit_card_number</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>EncryptionWrapper</span>
+    <span class='kw'>def</span> <span class='id initialize'>initialize</span><span class='lparen'>(</span><span class='id attribute'>attribute</span><span class='rparen'>)</span>
+      <span class='ivar'>@attribute</span> <span class='op'>=</span> <span class='id attribute'>attribute</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id before_save'>before_save</span><span class='lparen'>(</span><span class='id record'>record</span><span class='rparen'>)</span>
+      <span class='id record'>record</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='ivar'>@attribute</span><span class='rbrace'>}</span><span class='tstring_content'>=</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id encrypt'>encrypt</span><span class='lparen'>(</span><span class='id record'>record</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='ivar'>@attribute</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='id after_save'>after_save</span><span class='lparen'>(</span><span class='id record'>record</span><span class='rparen'>)</span>
+      <span class='id record'>record</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='ivar'>@attribute</span><span class='rbrace'>}</span><span class='tstring_content'>=</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id decrypt'>decrypt</span><span class='lparen'>(</span><span class='id record'>record</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='ivar'>@attribute</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+
+    <span class='id alias_method'>alias_method</span> <span class='symbol'>:after_find</span><span class='comma'>,</span> <span class='symbol'>:after_save</span>
+
+    <span class='id private'>private</span>
+      <span class='kw'>def</span> <span class='id encrypt'>encrypt</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span>
+        <span class='comment'># Secrecy is committed
+</span>      <span class='kw'>end</span>
+
+      <span class='kw'>def</span> <span class='id decrypt'>decrypt</span><span class='lparen'>(</span><span class='id value'>value</span><span class='rparen'>)</span>
+        <span class='comment'># Secrecy is unveiled
+</span>      <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The callback macros usually accept a symbol for the method they&#8217;re
+supposed to run, but you can also pass a &#8220;method string&#8221;, which
+will then be evaluated within the binding of the callback. Example:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Topic</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>self.class.delete_all &quot;parent_id = #{id}&quot;</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Notice that single quotes (&#8217;) are used so the <tt>#{id}</tt> part
+isn&#8217;t evaluated until the callback is triggered. Also note that these
+inline callbacks can be stacked just like the regular ones:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Topic</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id before_destroy'>before_destroy</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>self.class.delete_all &quot;parent_id = #{id}&quot;</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+                   <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>puts &quot;Evaluated after parents are destroyed&quot;</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+</pre>
+<h2>The <tt>after_find</tt> and <tt>after_initialize</tt> exceptions</h2>
+<p>
+Because <tt>after_find</tt> and <tt>after_initialize</tt> are called for
+each object found and instantiated by a finder, such as
+<tt>Base.find(:all)</tt>, we&#8217;ve had to implement a simple performance
+constraint (50% more speed on a simple test case). Unlike all the other
+callbacks, <tt>after_find</tt> and <tt>after_initialize</tt> will only be
+run if an explicit implementation is defined (<tt>def after_find</tt>). In
+that case, all of the callback types will be called.
+</p>
+<h2><tt>before_validation*</tt> returning statements</h2>
+<p>
+If the returning value of a <tt>before_validation</tt> callback can be
+evaluated to <tt>false</tt>, the process will be aborted and
+<tt>Base#save</tt> will return <tt>false</tt>. If Base#save! is called it
+will raise a ActiveRecord::RecordInvalid exception. Nothing will be
+appended to the errors object.
+</p>
+<h2>Canceling callbacks</h2>
+<p>
+If a <tt>before_*</tt> callback returns <tt>false</tt>, all the later
+callbacks and the associated action are cancelled. If an <tt>after_*</tt>
+callback returns <tt>false</tt>, all the later callbacks are cancelled.
+Callbacks are generally run in the order they are defined, with the
+exception of callbacks defined as methods on the model, which are called
+last.
+</p>
+<h2>Transactions</h2>
+<p>
+The entire callback chain of a <tt>save</tt>, <tt>save!</tt>, or
+<tt>destroy</tt> call runs within a transaction. That includes
+<tt>after_*</tt> hooks. If everything goes fine a COMMIT is executed once
+the chain has been completed.
+</p>
+<p>
+If a <tt>before_*</tt> callback cancels the action a ROLLBACK is issued.
+You can also trigger a ROLLBACK raising an exception in any of the
+callbacks, including <tt>after_*</tt> hooks. Note, however, that in that
+case the client needs to be aware of it because an ordinary <tt>save</tt>
+will raise such exception instead of quietly returning <tt>false</tt>.
+</p>
+<h2>Debugging callbacks</h2>
+<p>
+To list the methods and procs registered with a particular callback, append
+<tt>_callback_chain</tt> to the callback name that you wish to list and
+send that to your class from the Rails console:
+</p>
+<pre class="code">
+  &gt;&gt; Topic.after_save_callback_chain
+  =&gt; [#&lt;ActiveSupport::Callbacks::Callback:0x3f6a448
+      @method=#&lt;Proc:0x03f9a42c@/Users/foo/bar/app/models/topic.rb:43&gt;, kind:after_save, identifiernil,
+      options{}]</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Callbacks/ClassMethods.html" title="ActiveRecord::Callbacks::ClassMethods (module)">ClassMethods</a></span>
+    
+   
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="CALLBACKS-constant" class="">CALLBACKS =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:after_initialize</span><span class='comma'>,</span> <span class='symbol'>:after_find</span><span class='comma'>,</span> <span class='symbol'>:after_touch</span><span class='comma'>,</span> <span class='symbol'>:before_validation</span><span class='comma'>,</span> <span class='symbol'>:after_validation</span><span class='comma'>,</span>
+  <span class='symbol'>:before_save</span><span class='comma'>,</span> <span class='symbol'>:around_save</span><span class='comma'>,</span> <span class='symbol'>:after_save</span><span class='comma'>,</span> <span class='symbol'>:before_create</span><span class='comma'>,</span> <span class='symbol'>:around_create</span><span class='comma'>,</span>
+  <span class='symbol'>:after_create</span><span class='comma'>,</span> <span class='symbol'>:before_update</span><span class='comma'>,</span> <span class='symbol'>:around_update</span><span class='comma'>,</span> <span class='symbol'>:after_update</span><span class='comma'>,</span>
+  <span class='symbol'>:before_destroy</span><span class='comma'>,</span> <span class='symbol'>:around_destroy</span><span class='comma'>,</span> <span class='symbol'>:after_destroy</span><span class='comma'>,</span> <span class='symbol'>:after_commit</span><span class='comma'>,</span> <span class='symbol'>:after_rollback</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+    </dl>
+  
+
+
+  
+  
+  
+  
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#deprecated_callback_method-instance_method" title="#deprecated_callback_method (instance method)">- (Object) <strong>deprecated_callback_method</strong>(symbol) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#destroy-instance_method" title="#destroy (instance method)">- (Object) <strong>destroy</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#touch-instance_method" title="#touch (instance method)">- (Object) <strong>touch</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">append_features</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">included</a></span></p>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="deprecated_callback_method-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>deprecated_callback_method</strong>(symbol) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+267
+268
+269
+270
+271
+272</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/callbacks.rb', line 267</span>
+
+<span class='kw'>def</span> <span class='id deprecated_callback_method'>deprecated_callback_method</span><span class='lparen'>(</span><span class='id symbol'>symbol</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='kw'>if</span> <span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='id symbol'>symbol</span><span class='comma'>,</span> <span class='kw'>true</span><span class='rparen'>)</span>
+    <span class='const'>ActiveSupport</span><span class='op'>::</span><span class='const'>Deprecation</span><span class='period'>.</span><span class='id warn'>warn</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Overwriting </span><span class='embexpr_beg'>#{</span><span class='id symbol'>symbol</span><span class='rbrace'>}</span><span class='tstring_content'> in your models has been deprecated, please use Base#</span><span class='embexpr_beg'>#{</span><span class='id symbol'>symbol</span><span class='rbrace'>}</span><span class='tstring_content'> :method_name instead</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id send'>send</span><span class='lparen'>(</span><span class='id symbol'>symbol</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="destroy-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>destroy</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+259
+260
+261</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/callbacks.rb', line 259</span>
+
+<span class='kw'>def</span> <span class='id destroy'>destroy</span> <span class='comment'>#:nodoc:
+</span>  <span class='id _run_destroy_callbacks'>_run_destroy_callbacks</span> <span class='lbrace'>{</span> <span class='kw'>super</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="touch-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>touch</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+263
+264
+265</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/callbacks.rb', line 263</span>
+
+<span class='kw'>def</span> <span class='id touch'>touch</span><span class='lparen'>(</span><span class='op'>*</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='id _run_touch_callbacks'>_run_touch_callbacks</span> <span class='lbrace'>{</span> <span class='kw'>super</span> <span class='rbrace'>}</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:31 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

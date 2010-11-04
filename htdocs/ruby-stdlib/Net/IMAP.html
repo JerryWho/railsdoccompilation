@@ -1,0 +1,4830 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: Net::IMAP</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (I)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../Net.html" title="Net (module)">Net</a></span></span>
+     &raquo; 
+    <span class="title">IMAP</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: Net::IMAP
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">Net::IMAP</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+      <dt class="r2">Includes:</dt>
+      <dd class="r2"><span class='object_link'><a href="../MonitorMixin.html" title="MonitorMixin (module)">MonitorMixin</a></span>, <span class='object_link'><a href="../OpenSSL.html" title="OpenSSL (module)">OpenSSL</a></span>, SSL</dd>
+      
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">lib/net/imap.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Net::IMAP implements Internet Message Access Protocol (IMAP) client
+functionality.  The protocol is described in [IMAP].
+</p>
+<h2>IMAP Overview</h2>
+<p>
+An IMAP client connects to a server, and then authenticates itself using
+either #authenticate() or #login().  Having authenticated itself, there is
+a range of commands available to it.  Most work with mailboxes, which may
+be arranged in an hierarchical namespace, and each of which contains zero
+or more messages.  How this is implemented on the server is
+implementation-dependent; on a UNIX server, it will frequently be
+implemented as a files in mailbox format within a hierarchy of directories.
+</p>
+<p>
+To work on the messages within a mailbox, the client must first select that
+mailbox, using either #select() or (for read-only access) #examine().  Once
+the client has successfully selected a mailbox, they enter
+<em>selected</em> state, and that mailbox becomes the <em>current</em>
+mailbox, on which mail-item related commands implicitly operate.
+</p>
+<p>
+Messages have two sorts of identifiers: message sequence numbers, and UIDs.
+</p>
+<p>
+Message sequence numbers number messages within a mail box from 1 up to the
+number of items in the mail box.  If new message arrives during a session,
+it receives a sequence number equal to the new size of the mail box.  If
+messages are expunged from the mailbox, remaining messages have their
+sequence numbers &#8220;shuffled down&#8221; to fill the gaps.
+</p>
+<p>
+UIDs, on the other hand, are permanently guaranteed not to identify another
+message within the same mailbox, even if the existing message is deleted. 
+UIDs are required to be assigned in ascending (but not necessarily
+sequential) order within a mailbox; this means that if a non-IMAP client
+rearranges the order of mailitems within a mailbox, the UIDs have to be
+reassigned.  An IMAP client cannot thus rearrange message orders.
+</p>
+<h2>Examples of Usage</h2>
+<h3>List sender and subject of all recent messages in the default mailbox</h3>
+<pre class="code">
+  <span class='id imap'>imap</span> <span class='op'>=</span> <span class='const'>Net</span><span class='op'>::</span><span class='const'>IMAP</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>mail.example.com</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id authenticate'>authenticate</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>LOGIN</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>joe_user</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>joes_password</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id examine'>examine</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>INBOX</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id search'>search</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>RECENT</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id message_id'>message_id</span><span class='op'>|</span>
+    <span class='id envelope'>envelope</span> <span class='op'>=</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='id message_id'>message_id</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ENVELOPE</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id attr'>attr</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ENVELOPE</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+    <span class='id puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id envelope'>envelope</span><span class='period'>.</span><span class='id from'>from</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='tstring_content'>: \t</span><span class='embexpr_beg'>#{</span><span class='id envelope'>envelope</span><span class='period'>.</span><span class='id subject'>subject</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+</pre>
+<h3>Move all messages from April 2003 from &#8220;Mail/sent-mail&#8221; to &#8220;Mail/sent-apr03&#8220;</h3>
+<pre class="code">
+  <span class='id imap'>imap</span> <span class='op'>=</span> <span class='const'>Net</span><span class='op'>::</span><span class='const'>IMAP</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>mail.example.com</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id authenticate'>authenticate</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>LOGIN</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>joe_user</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>joes_password</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id select'>select</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Mail/sent-mail</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='kw'>not</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id list'>list</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Mail/</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>sent-apr03</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+    <span class='id imap'>imap</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Mail/sent-apr03</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id search'>search</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BEFORE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>30-Apr-2003</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SINCE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>1-Apr-2003</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id message_id'>message_id</span><span class='op'>|</span>
+    <span class='id imap'>imap</span><span class='period'>.</span><span class='id copy'>copy</span><span class='lparen'>(</span><span class='id message_id'>message_id</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Mail/sent-apr03</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='id imap'>imap</span><span class='period'>.</span><span class='id store'>store</span><span class='lparen'>(</span><span class='id message_id'>message_id</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>+FLAGS</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='symbol'>:Deleted</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id expunge'>expunge</span>
+</pre>
+<h2>Thread Safety</h2>
+<p>
+Net::IMAP supports concurrent threads. For example,
+</p>
+<pre class="code">
+  <span class='id imap'>imap</span> <span class='op'>=</span> <span class='const'>Net</span><span class='op'>::</span><span class='const'>IMAP</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>imap.foo.net</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>imap2</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id authenticate'>authenticate</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>cram-md5</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>bar</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>password</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id select'>select</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>inbox</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id fetch_thread'>fetch_thread</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id start'>start</span> <span class='lbrace'>{</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='int'>1</span><span class='op'>..</span><span class='op'>-</span><span class='int'>1</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+  <span class='id search_result'>search_result</span> <span class='op'>=</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id search'>search</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BODY</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>hello</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='id fetch_result'>fetch_result</span> <span class='op'>=</span> <span class='id fetch_thread'>fetch_thread</span><span class='period'>.</span><span class='id value'>value</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id disconnect'>disconnect</span>
+</pre>
+<p>
+This script invokes the FETCH command and the SEARCH command concurrently.
+</p>
+<h2>Errors</h2>
+<p>
+An IMAP server can send three different types of responses to indicate
+failure:
+</p>
+<table>
+<tr><td valign="top">NO</td><td><p>
+the attempted command could not be successfully completed.  For instance,
+the username/password used for logging in are incorrect; the selected
+mailbox does not exists; etc.
+</p>
+</td></tr>
+<tr><td valign="top">BAD</td><td><p>
+the request from the client does not follow the server&#8217;s
+understanding of the IMAP protocol.  This includes attempting commands from
+the wrong client state; for instance, attempting to perform a SEARCH
+command without having SELECTed a current mailbox.  It can also signal an
+internal server failure (such as a disk crash) has occurred.
+</p>
+</td></tr>
+<tr><td valign="top">BYE</td><td><p>
+the server is saying goodbye.  This can be part of a normal logout
+sequence, and can be used as part of a login sequence to indicate that the
+server is (for some reason) unwilling to accept our connection.  As a
+response to any other command, it indicates either that the server is
+shutting down, or that the server is timing out the client connection due
+to inactivity.
+</p>
+</td></tr>
+</table>
+<p>
+These three error response are represented by the errors
+Net::IMAP::NoResponseError, Net::IMAP::BadResponseError, and
+Net::IMAP::ByeResponseError, all of which are subclasses of
+Net::IMAP::ResponseError.  Essentially, all methods that involve sending a
+request to the server can generate one of these errors. Only the most
+pertinent instances have been documented below.
+</p>
+<p>
+Because the IMAP class uses Sockets for communication, its methods are also
+susceptible to the various errors that can occur when working with sockets.
+These are generally represented as Errno errors.  For instance, any method
+that involves sending a request to the server and/or receiving a response
+from it could raise an Errno::EPIPE error if the network connection
+unexpectedly goes down.  See the socket(7), ip(7), tcp(7), socket(2),
+connect(2), and associated man pages.
+</p>
+<p>
+Finally, a Net::IMAP::DataFormatError is thrown if low-level data is found
+to be in an incorrect format (for instance, when converting between UTF-8
+and UTF-16), and Net::IMAP::ResponseParseError is thrown if a server
+response is non-parseable.
+</p>
+<h2>References</h2>
+<dl>
+<dt>[IMAP]</dt><dd><ol style="display: upper-alpha">
+<li><p>
+Crispin, &#8220;INTERNET MESSAGE ACCESS PROTOCOL - VERSION 4rev1&#8221;,
+</p>
+</li>
+</ol>
+<p>
+RFC 2060, December 1996.  (Note: since obsoleted by RFC 3501)
+</p>
+</dd>
+<dt>[LANGUAGE-TAGS]</dt><dd><p>
+Alvestrand, H., &#8220;Tags for the Identification of Languages&#8221;, RFC
+1766, March 1995.
+</p>
+</dd>
+<dt>[MD5]</dt><dd><p>
+Myers, J., and M. Rose, &#8220;The Content-MD5 Header Field&#8221;, RFC
+1864, October 1995.
+</p>
+</dd>
+<dt>[MIME-IMB]</dt><dd><p>
+Freed, N., and N. Borenstein, &#8220;MIME (Multipurpose Internet Mail
+Extensions) Part One: Format of Internet Message Bodies&#8221;, RFC 2045,
+November 1996.
+</p>
+</dd>
+<dt>[RFC-822]</dt><dd><p>
+Crocker, D., &#8220;Standard for the Format of ARPA Internet Text
+Messages&#8221;, STD 11, RFC 822, University of Delaware, August 1982.
+</p>
+</dd>
+<dt>[RFC-2087]</dt><dd><p>
+Myers, J., &#8220;IMAP4 QUOTA extension&#8221;, RFC 2087, January 1997.
+</p>
+</dd>
+<dt>[RFC-2086]</dt><dd><p>
+Myers, J., &#8220;IMAP4 ACL extension&#8221;, RFC 2086, January 1997.
+</p>
+</dd>
+<dt>[RFC-2195]</dt><dd><p>
+Klensin, J., Catoe, R., and Krumviede, P., &#8220;IMAP/POP AUTHorize
+Extension for Simple Challenge/Response&#8221;, RFC 2195, September 1997.
+</p>
+</dd>
+<dt>[SORT-THREAD-EXT]</dt><dd><p>
+Crispin, M., &#8220;INTERNET MESSAGE ACCESS PROTOCOL - SORT and THREAD
+Extensions&#8221;, draft-ietf-imapext-sort, May 2003.
+</p>
+</dd>
+<dt>[OSSL]</dt><dd><p>
+<a href="http://www.openssl.org">www.openssl.org</a>
+</p>
+</dd>
+<dt>[RSSL]</dt><dd><p>
+<a
+href="http://savannah.gnu.org/projects/rubypki">savannah.gnu.org/projects/rubypki</a>
+</p>
+</dd>
+<dt>[UTF7]</dt><dd><p>
+Goldsmith, D. and Davis, M., &#8220;UTF-7: A Mail-Safe Transformation
+Format of Unicode&#8221;, RFC 2152, May 1997.
+</p>
+</dd>
+</dl>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="IMAP/Address.html" title="Net::IMAP::Address (class)">Address</a></span>, <span class='object_link'><a href="IMAP/Atom.html" title="Net::IMAP::Atom (class)">Atom</a></span>, <span class='object_link'><a href="IMAP/BadResponseError.html" title="Net::IMAP::BadResponseError (class)">BadResponseError</a></span>, <span class='object_link'><a href="IMAP/BodyTypeBasic.html" title="Net::IMAP::BodyTypeBasic (class)">BodyTypeBasic</a></span>, <span class='object_link'><a href="IMAP/BodyTypeMessage.html" title="Net::IMAP::BodyTypeMessage (class)">BodyTypeMessage</a></span>, <span class='object_link'><a href="IMAP/BodyTypeMultipart.html" title="Net::IMAP::BodyTypeMultipart (class)">BodyTypeMultipart</a></span>, <span class='object_link'><a href="IMAP/BodyTypeText.html" title="Net::IMAP::BodyTypeText (class)">BodyTypeText</a></span>, <span class='object_link'><a href="IMAP/ByeResponseError.html" title="Net::IMAP::ByeResponseError (class)">ByeResponseError</a></span>, <span class='object_link'><a href="IMAP/ContentDisposition.html" title="Net::IMAP::ContentDisposition (class)">ContentDisposition</a></span>, <span class='object_link'><a href="IMAP/ContinuationRequest.html" title="Net::IMAP::ContinuationRequest (class)">ContinuationRequest</a></span>, <span class='object_link'><a href="IMAP/CramMD5Authenticator.html" title="Net::IMAP::CramMD5Authenticator (class)">CramMD5Authenticator</a></span>, <span class='object_link'><a href="IMAP/DataFormatError.html" title="Net::IMAP::DataFormatError (class)">DataFormatError</a></span>, <span class='object_link'><a href="IMAP/DigestMD5Authenticator.html" title="Net::IMAP::DigestMD5Authenticator (class)">DigestMD5Authenticator</a></span>, <span class='object_link'><a href="IMAP/Envelope.html" title="Net::IMAP::Envelope (class)">Envelope</a></span>, <span class='object_link'><a href="IMAP/Error.html" title="Net::IMAP::Error (class)">Error</a></span>, <span class='object_link'><a href="IMAP/FetchData.html" title="Net::IMAP::FetchData (class)">FetchData</a></span>, <span class='object_link'><a href="IMAP/FlagCountError.html" title="Net::IMAP::FlagCountError (class)">FlagCountError</a></span>, <span class='object_link'><a href="IMAP/Literal.html" title="Net::IMAP::Literal (class)">Literal</a></span>, <span class='object_link'><a href="IMAP/LoginAuthenticator.html" title="Net::IMAP::LoginAuthenticator (class)">LoginAuthenticator</a></span>, <span class='object_link'><a href="IMAP/MailboxACLItem.html" title="Net::IMAP::MailboxACLItem (class)">MailboxACLItem</a></span>, <span class='object_link'><a href="IMAP/MailboxList.html" title="Net::IMAP::MailboxList (class)">MailboxList</a></span>, <span class='object_link'><a href="IMAP/MailboxQuota.html" title="Net::IMAP::MailboxQuota (class)">MailboxQuota</a></span>, <span class='object_link'><a href="IMAP/MailboxQuotaRoot.html" title="Net::IMAP::MailboxQuotaRoot (class)">MailboxQuotaRoot</a></span>, <span class='object_link'><a href="IMAP/MessageSet.html" title="Net::IMAP::MessageSet (class)">MessageSet</a></span>, <span class='object_link'><a href="IMAP/NoResponseError.html" title="Net::IMAP::NoResponseError (class)">NoResponseError</a></span>, <span class='object_link'><a href="IMAP/PlainAuthenticator.html" title="Net::IMAP::PlainAuthenticator (class)">PlainAuthenticator</a></span>, <span class='object_link'><a href="IMAP/QuotedString.html" title="Net::IMAP::QuotedString (class)">QuotedString</a></span>, <span class='object_link'><a href="IMAP/RawData.html" title="Net::IMAP::RawData (class)">RawData</a></span>, <span class='object_link'><a href="IMAP/ResponseCode.html" title="Net::IMAP::ResponseCode (class)">ResponseCode</a></span>, <span class='object_link'><a href="IMAP/ResponseError.html" title="Net::IMAP::ResponseError (class)">ResponseError</a></span>, <span class='object_link'><a href="IMAP/ResponseParseError.html" title="Net::IMAP::ResponseParseError (class)">ResponseParseError</a></span>, <span class='object_link'><a href="IMAP/ResponseParser.html" title="Net::IMAP::ResponseParser (class)">ResponseParser</a></span>, <span class='object_link'><a href="IMAP/ResponseText.html" title="Net::IMAP::ResponseText (class)">ResponseText</a></span>, <span class='object_link'><a href="IMAP/StatusData.html" title="Net::IMAP::StatusData (class)">StatusData</a></span>, <span class='object_link'><a href="IMAP/TaggedResponse.html" title="Net::IMAP::TaggedResponse (class)">TaggedResponse</a></span>, <span class='object_link'><a href="IMAP/ThreadMember.html" title="Net::IMAP::ThreadMember (class)">ThreadMember</a></span>, <span class='object_link'><a href="IMAP/UntaggedResponse.html" title="Net::IMAP::UntaggedResponse (class)">UntaggedResponse</a></span>
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="SEEN-constant" class="">SEEN =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating a message has been seen
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Seen</span></pre></dd>
+      
+        <dt id="ANSWERED-constant" class="">ANSWERED =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating a message has been answered
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Answered</span></pre></dd>
+      
+        <dt id="FLAGGED-constant" class="">FLAGGED =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating a message has been flagged for special or urgent attention
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Flagged</span></pre></dd>
+      
+        <dt id="DELETED-constant" class="">DELETED =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating a message has been marked for deletion.  This will occur
+when the mailbox is closed or expunged.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Deleted</span></pre></dd>
+      
+        <dt id="DRAFT-constant" class="">DRAFT =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating a message is only a draft or work-in-progress version.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Draft</span></pre></dd>
+      
+        <dt id="RECENT-constant" class="">RECENT =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating that the message is &#8220;recent&#8221;, meaning that this
+session is the first session in which the client has been notified of this
+message.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Recent</span></pre></dd>
+      
+        <dt id="NOINFERIORS-constant" class="">NOINFERIORS =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating that a mailbox context name cannot contain children.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Noinferiors</span></pre></dd>
+      
+        <dt id="NOSELECT-constant" class="">NOSELECT =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating that a mailbox is not selected.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Noselect</span></pre></dd>
+      
+        <dt id="MARKED-constant" class="">MARKED =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating that a mailbox has been marked &#8220;interesting&#8221; by
+the server; this commonly indicates that the mailbox contains new messages.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Marked</span></pre></dd>
+      
+        <dt id="UNMARKED-constant" class="">UNMARKED =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+Flag indicating that the mailbox does not contains new messages.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='symbol'>:Unmarked</span></pre></dd>
+      
+        <dt id="CRLF-constant" class="">CRLF =
+          
+        </dt>
+        <dd><pre class="code"><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\r\n</span><span class='tstring_end'>&quot;</span></span></pre></dd>
+      
+        <dt id="PORT-constant" class="">PORT =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc: :nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>143</span></pre></dd>
+      
+        <dt id="SSL_PORT-constant" class="">SSL_PORT =
+          <div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>993</span></pre></dd>
+      
+        <dt id="DATE_MONTH-constant" class="">DATE_MONTH =
+          
+        </dt>
+        <dd><pre class="code"><span class='qwords_beg'>%w(</span><span class='tstring_end'>Jan</span></span></pre></dd>
+      
+        <dt id="debug-classvariable" class="">@@debug =
+          
+        </dt>
+        <dd><pre class="code"><span class='kw'>false</span></pre></dd>
+      
+        <dt id="authenticators-classvariable" class="">@@authenticators =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbrace'>{</span><span class='rbrace'>}</span></pre></dd>
+      
+        <dt id="max_flag_count-classvariable" class="">@@max_flag_count =
+          
+        </dt>
+        <dd><pre class="code"><span class='int'>10000</span></pre></dd>
+      
+    </dl>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <h2>Instance Attribute Summary <small>(<a href="#" class="summary_toggle">collapse</a>)</small></h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#client_thread-instance_method" title="#client_thread (instance method)">- (Object) <strong>client_thread</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+The thread to receive exceptions.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#greeting-instance_method" title="#greeting (instance method)">- (Object) <strong>greeting</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title readonly">readonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns an initial greeting response from the server.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#response_handlers-instance_method" title="#response_handlers (instance method)">- (Object) <strong>response_handlers</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title readonly">readonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns all response handlers.
+</p>
+</div></span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#responses-instance_method" title="#responses (instance method)">- (Object) <strong>responses</strong> </a>
+    
+
+    
+  </span>
+  
+  
+    <span class="note title readonly">readonly</span>
+    
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns recorded untagged responses.
+</p>
+</div></span>
+  
+</li>
+
+    
+  </ul>
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#add_authenticator-class_method" title="add_authenticator (class method)">+ (Object) <strong>add_authenticator</strong>(auth_type, authenticator) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Adds an authenticator for Net::IMAP#authenticate.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#debug-class_method" title="debug (class method)">+ (Object) <strong>debug</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the debug mode.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#debug%3D-class_method" title="debug= (class method)">+ (Object) <strong>debug=</strong>(val) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the debug mode.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#decode_utf7-class_method" title="decode_utf7 (class method)">+ (Object) <strong>decode_utf7</strong>(s) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Decode a string from modified UTF-7 format to UTF-8.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#encode_utf7-class_method" title="encode_utf7 (class method)">+ (Object) <strong>encode_utf7</strong>(s) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Encode a string from UTF-8 format to modified UTF-7.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#format_date-class_method" title="format_date (class method)">+ (Object) <strong>format_date</strong>(time) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Formats <tt>time</tt> as an IMAP-style date.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#format_datetime-class_method" title="format_datetime (class method)">+ (Object) <strong>format_datetime</strong>(time) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Formats <tt>time</tt> as an IMAP-style date-time.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_flag_count-class_method" title="max_flag_count (class method)">+ (Object) <strong>max_flag_count</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns the max number of flags interned to symbols.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#max_flag_count%3D-class_method" title="max_flag_count= (class method)">+ (Object) <strong>max_flag_count=</strong>(count) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sets the max number of flags interned to symbols.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#add_response_handler-instance_method" title="#add_response_handler (instance method)">- (Object) <strong>add_response_handler</strong>(handler = Proc.new) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Adds a response handler.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#append-instance_method" title="#append (instance method)">- (Object) <strong>append</strong>(mailbox, message, flags = nil, date_time = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a APPEND command to append the <tt>message</tt> to the end of the
+<tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#authenticate-instance_method" title="#authenticate (instance method)">- (Object) <strong>authenticate</strong>(auth_type, *args) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends an AUTHENTICATE command to authenticate the client.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#capability-instance_method" title="#capability (instance method)">- (Object) <strong>capability</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a CAPABILITY command, and returns an array of capabilities that the
+server supports.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#check-instance_method" title="#check (instance method)">- (Object) <strong>check</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a CHECK command to request a checkpoint of the currently selected
+mailbox.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#close-instance_method" title="#close (instance method)">- (Object) <strong>close</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a CLOSE command to close the currently selected mailbox.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#copy-instance_method" title="#copy (instance method)">- (Object) <strong>copy</strong>(set, mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a COPY command to copy the specified message(s) to the end of the
+specified destination <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#create-instance_method" title="#create (instance method)">- (Object) <strong>create</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a CREATE command to create a new <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#delete-instance_method" title="#delete (instance method)">- (Object) <strong>delete</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a DELETE command to remove the <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#disconnect-instance_method" title="#disconnect (instance method)">- (Object) <strong>disconnect</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Disconnects from the server.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#disconnected%3F-instance_method" title="#disconnected? (instance method)">- (Boolean) <strong>disconnected?</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Returns true if disconnected from the server.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#examine-instance_method" title="#examine (instance method)">- (Object) <strong>examine</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a EXAMINE command to select a <tt>mailbox</tt> so that messages in
+the <tt>mailbox</tt> can be accessed.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#expunge-instance_method" title="#expunge (instance method)">- (Object) <strong>expunge</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a EXPUNGE command to permanently remove from the currently selected
+mailbox all messages that have the \Deleted flag set.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#fetch-instance_method" title="#fetch (instance method)">- (Object) <strong>fetch</strong>(set, attr) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a FETCH command to retrieve data associated with a message in the
+mailbox.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getacl-instance_method" title="#getacl (instance method)">- (Object) <strong>getacl</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Send the GETACL command along with specified <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getquota-instance_method" title="#getquota (instance method)">- (Object) <strong>getquota</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends the GETQUOTA command along with specified <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#getquotaroot-instance_method" title="#getquotaroot (instance method)">- (Object) <strong>getquotaroot</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends the GETQUOTAROOT command along with specified <tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#idle-instance_method" title="#idle (instance method)">- (Object) <strong>idle</strong>(&amp;response_handler) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends an IDLE command that waits for notifications of new or expunged
+messages.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#idle_done-instance_method" title="#idle_done (instance method)">- (Object) <strong>idle_done</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Leaves IDLE.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#list-instance_method" title="#list (instance method)">- (Object) <strong>list</strong>(refname, mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a LIST command, and returns a subset of names from the complete set
+of all names available to the client.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#login-instance_method" title="#login (instance method)">- (Object) <strong>login</strong>(user, password) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a LOGIN command to identify the client and carries the plaintext
+<tt>password</tt> authenticating this <tt>user</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#logout-instance_method" title="#logout (instance method)">- (Object) <strong>logout</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a LOGOUT command to inform the server that the client is done with
+the connection.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#lsub-instance_method" title="#lsub (instance method)">- (Object) <strong>lsub</strong>(refname, mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a LSUB command, and returns a subset of names from the set of names
+that the user has declared as being &#8220;active&#8221; or
+&#8220;subscribed&#8221;.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#noop-instance_method" title="#noop (instance method)">- (Object) <strong>noop</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a NOOP command to the server.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#remove_response_handler-instance_method" title="#remove_response_handler (instance method)">- (Object) <strong>remove_response_handler</strong>(handler) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Removes the response handler.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#rename-instance_method" title="#rename (instance method)">- (Object) <strong>rename</strong>(mailbox, newname) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a RENAME command to change the name of the <tt>mailbox</tt> to
+<tt>newname</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#search-instance_method" title="#search (instance method)">- (Object) <strong>search</strong>(keys, charset = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a SEARCH command to search the mailbox for messages that match the
+given searching criteria, and returns message sequence numbers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#select-instance_method" title="#select (instance method)">- (Object) <strong>select</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a SELECT command to select a <tt>mailbox</tt> so that messages in the
+<tt>mailbox</tt> can be accessed.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setacl-instance_method" title="#setacl (instance method)">- (Object) <strong>setacl</strong>(mailbox, user, rights) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends the SETACL command along with <tt>mailbox</tt>, <tt>user</tt> and the
+<tt>rights</tt> that user is to have on that mailbox.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#setquota-instance_method" title="#setquota (instance method)">- (Object) <strong>setquota</strong>(mailbox, quota) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a SETQUOTA command along with the specified <tt>mailbox</tt> and
+<tt>quota</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#sort-instance_method" title="#sort (instance method)">- (Object) <strong>sort</strong>(sort_keys, search_keys, charset) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a SORT command to sort messages in the mailbox.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#starttls-instance_method" title="#starttls (instance method)">- (Object) <strong>starttls</strong>(options = {}, verify = true) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a STARTTLS command to start TLS session.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#status-instance_method" title="#status (instance method)">- (Object) <strong>status</strong>(mailbox, attr) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a STATUS command, and returns the status of the indicated
+<tt>mailbox</tt>.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#store-instance_method" title="#store (instance method)">- (Object) <strong>store</strong>(set, attr, flags) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a STORE command to alter data associated with messages in the
+mailbox, in particular their flags.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#subscribe-instance_method" title="#subscribe (instance method)">- (Object) <strong>subscribe</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a SUBSCRIBE command to add the specified <tt>mailbox</tt> name to the
+server&#8217;s set of &#8220;active&#8221; or &#8220;subscribed&#8221;
+mailboxes as returned by #lsub().
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#thread-instance_method" title="#thread (instance method)">- (Object) <strong>thread</strong>(algorithm, search_keys, charset) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #search(), but returns message sequence numbers in threaded format,
+as a Net::IMAP::ThreadMember tree.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_copy-instance_method" title="#uid_copy (instance method)">- (Object) <strong>uid_copy</strong>(set, mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #copy(), but <tt>set</tt> contains unique identifiers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_fetch-instance_method" title="#uid_fetch (instance method)">- (Object) <strong>uid_fetch</strong>(set, attr) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #fetch(), but <tt>set</tt> contains unique identifiers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_search-instance_method" title="#uid_search (instance method)">- (Object) <strong>uid_search</strong>(keys, charset = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #search(), but returns unique identifiers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_sort-instance_method" title="#uid_sort (instance method)">- (Object) <strong>uid_sort</strong>(sort_keys, search_keys, charset) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #sort(), but returns an array of unique identifiers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_store-instance_method" title="#uid_store (instance method)">- (Object) <strong>uid_store</strong>(set, attr, flags) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #store(), but <tt>set</tt> contains unique identifiers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#uid_thread-instance_method" title="#uid_thread (instance method)">- (Object) <strong>uid_thread</strong>(algorithm, search_keys, charset) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+As for #thread(), but returns unique identifiers instead of message
+sequence numbers.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#unsubscribe-instance_method" title="#unsubscribe (instance method)">- (Object) <strong>unsubscribe</strong>(mailbox) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Sends a UNSUBSCRIBE command to remove the specified <tt>mailbox</tt> name
+from the server&#8217;s set of &#8220;active&#8221; or
+&#8220;subscribed&#8221; mailboxes.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../OpenSSL.html" title="OpenSSL (module)">OpenSSL</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../OpenSSL.html#errors-class_method" title="OpenSSL.errors (method)">errors</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../MonitorMixin.html" title="MonitorMixin (module)">MonitorMixin</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../MonitorMixin.html#extend_object-class_method" title="MonitorMixin.extend_object (method)">extend_object</a></span>, <span class='object_link'><a href="../MonitorMixin.html#mon_enter-instance_method" title="MonitorMixin#mon_enter (method)">#mon_enter</a></span>, <span class='object_link'><a href="../MonitorMixin.html#mon_exit-instance_method" title="MonitorMixin#mon_exit (method)">#mon_exit</a></span>, <span class='object_link'><a href="../MonitorMixin.html#mon_synchronize-instance_method" title="MonitorMixin#mon_synchronize (method)">#mon_synchronize</a></span>, <span class='object_link'><a href="../MonitorMixin.html#mon_try_enter-instance_method" title="MonitorMixin#mon_try_enter (method)">#mon_try_enter</a></span>, <span class='object_link'><a href="../MonitorMixin.html#new_cond-instance_method" title="MonitorMixin#new_cond (method)">#new_cond</a></span></p>
+
+  <div id="instance_attr_details" class="attr_details">
+    <h2>Instance Attribute Details</h2>
+    
+      
+      <span id="client_thread=-instance_method"></span>
+      <span id="client_thread-instance_method"></span>
+      <div class="method_details first">
+  <p class="signature first" id="client_thread-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>client_thread</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+The thread to receive exceptions.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+224
+225
+226</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 224</span>
+
+<span class='kw'>def</span> <span class='id client_thread'>client_thread</span>
+  <span class='ivar'>@client_thread</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <span id="greeting-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="greeting-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>greeting</strong>  <span class="extras">(readonly)</span>
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns an initial greeting response from the server.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+209
+210
+211</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 209</span>
+
+<span class='kw'>def</span> <span class='id greeting'>greeting</span>
+  <span class='ivar'>@greeting</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <span id="response_handlers-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="response_handlers-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>response_handlers</strong>  <span class="extras">(readonly)</span>
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns all response handlers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+221
+222
+223</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 221</span>
+
+<span class='kw'>def</span> <span class='id response_handlers'>response_handlers</span>
+  <span class='ivar'>@response_handlers</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      
+      <span id=""></span>
+      <span id="responses-instance_method"></span>
+      <div class="method_details ">
+  <p class="signature " id="responses-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>responses</strong>  <span class="extras">(readonly)</span>
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns recorded untagged responses.  For example:
+</p>
+<pre class="code">
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id select'>select</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>inbox</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id responses'>responses</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EXISTS</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span>
+  <span class='comment'>#=&gt; 2
+</span>  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id responses'>responses</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UIDVALIDITY</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span>
+  <span class='comment'>#=&gt; 968263756</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+218
+219
+220</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 218</span>
+
+<span class='kw'>def</span> <span class='id responses'>responses</span>
+  <span class='ivar'>@responses</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="add_authenticator-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>add_authenticator</strong>(auth_type, authenticator) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Adds an authenticator for Net::IMAP#authenticate.  <tt>auth_type</tt> is
+the type of authentication this authenticator supports (for instance,
+&#8220;LOGIN&#8221;).  The <tt>authenticator</tt> is an object which
+defines a process() method to handle authentication with the server.  See
+Net::IMAP::LoginAuthenticator, Net::IMAP::CramMD5Authenticator, and
+Net::IMAP::DigestMD5Authenticator for examples.
+</p>
+<p>
+If <tt>auth_type</tt> refers to an existing authenticator, it will be
+replaced by the new one.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+294
+295
+296</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 294</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id add_authenticator'>add_authenticator</span><span class='lparen'>(</span><span class='id auth_type'>auth_type</span><span class='comma'>,</span> <span class='id authenticator'>authenticator</span><span class='rparen'>)</span>
+  <span class='cvar'>@@authenticators</span><span class='lbracket'>[</span><span class='id auth_type'>auth_type</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id authenticator'>authenticator</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="debug-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>debug</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the debug mode.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+264
+265
+266</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 264</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id debug'>debug</span>
+  <span class='kw'>return</span> <span class='cvar'>@@debug</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="debug=-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>debug=</strong>(val) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the debug mode.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+269
+270
+271</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 269</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id debug='>debug=</span><span class='lparen'>(</span><span class='id val'>val</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='cvar'>@@debug</span> <span class='op'>=</span> <span class='id val'>val</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="decode_utf7-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>decode_utf7</strong>(s) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Decode a string from modified UTF-7 format to UTF-8.
+</p>
+<p>
+UTF-7 is a 7-bit encoding of Unicode [UTF7].  IMAP uses a slightly modified
+version of this to encode mailbox names containing non-ASCII characters;
+see [IMAP] section 5.1.3.
+</p>
+<p>
+Net::IMAP does <em>not</em> automatically encode and decode mailbox names
+to and from utf7.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+904
+905
+906
+907
+908
+909
+910
+911
+912
+913
+914
+915
+916
+917</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 904</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id decode_utf7'>decode_utf7</span><span class='lparen'>(</span><span class='id s'>s</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id s'>s</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>&amp;(.*?)-</span><span class='regexp_end'>/n</span></span><span class='rparen'>)</span> <span class='lbrace'>{</span>
+    <span class='kw'>if</span> <span class='backref'>$1</span><span class='period'>.</span><span class='id empty?'>empty?</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&amp;</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>else</span>
+      <span class='id base64'>base64</span> <span class='op'>=</span> <span class='backref'>$1</span><span class='period'>.</span><span class='id tr'>tr</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>,</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>/</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+      <span class='id x'>x</span> <span class='op'>=</span> <span class='id base64'>base64</span><span class='period'>.</span><span class='id length'>length</span> <span class='op'>%</span> <span class='int'>4</span>
+      <span class='kw'>if</span> <span class='id x'>x</span> <span class='op'>&gt;</span> <span class='int'>0</span>
+        <span class='id base64'>base64</span><span class='period'>.</span><span class='id concat'>concat</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>=</span><span class='tstring_end'>&quot;</span></span> <span class='op'>*</span> <span class='lparen'>(</span><span class='int'>4</span> <span class='op'>-</span> <span class='id x'>x</span><span class='rparen'>)</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+      <span class='id base64'>base64</span><span class='period'>.</span><span class='id unpack'>unpack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>m</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id unpack'>unpack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>n*</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id pack'>pack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>U*</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id force_encoding'>force_encoding</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UTF-8</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="encode_utf7-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>encode_utf7</strong>(s) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Encode a string from UTF-8 format to modified UTF-7.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+920
+921
+922
+923
+924
+925
+926
+927
+928
+929</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 920</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id encode_utf7'>encode_utf7</span><span class='lparen'>(</span><span class='id s'>s</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id s'>s</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>(&amp;)|([^\x20-\x7e]+)</span><span class='regexp_end'>/u</span></span><span class='rparen'>)</span> <span class='lbrace'>{</span>
+    <span class='kw'>if</span> <span class='backref'>$1</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&amp;-</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>else</span>
+      <span class='id base64'>base64</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='backref'>$&amp;</span><span class='period'>.</span><span class='id unpack'>unpack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>U*</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id pack'>pack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>n*</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id pack'>pack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>m</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+      <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>&amp;</span><span class='tstring_end'>&quot;</span></span> <span class='op'>+</span> <span class='id base64'>base64</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>=\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id tr'>tr</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>/</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>,</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='op'>+</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>-</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='rbrace'>}</span><span class='period'>.</span><span class='id force_encoding'>force_encoding</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ASCII-8BIT</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="format_date-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>format_date</strong>(time) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Formats <tt>time</tt> as an IMAP-style date.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+932
+933
+934</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 932</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id format_date'>format_date</span><span class='lparen'>(</span><span class='id time'>time</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id time'>time</span><span class='period'>.</span><span class='id strftime'>strftime</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>%d-%b-%Y</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="format_datetime-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>format_datetime</strong>(time) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Formats <tt>time</tt> as an IMAP-style date-time.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+937
+938
+939</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 937</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id format_datetime'>format_datetime</span><span class='lparen'>(</span><span class='id time'>time</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id time'>time</span><span class='period'>.</span><span class='id strftime'>strftime</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>%d-%b-%Y %H:%M %z</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="max_flag_count-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>max_flag_count</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the max number of flags interned to symbols.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+274
+275
+276</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 274</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id max_flag_count'>max_flag_count</span>
+  <span class='kw'>return</span> <span class='cvar'>@@max_flag_count</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="max_flag_count=-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>max_flag_count=</strong>(count) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sets the max number of flags interned to symbols.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+279
+280
+281</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 279</span>
+
+<span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id max_flag_count='>max_flag_count=</span><span class='lparen'>(</span><span class='id count'>count</span><span class='rparen'>)</span>
+  <span class='cvar'>@@max_flag_count</span> <span class='op'>=</span> <span class='id count'>count</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="add_response_handler-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>add_response_handler</strong>(handler = Proc.new) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Adds a response handler. For example, to detect when the server sends us a
+new EXISTS response (which normally indicates new messages being added to
+the mail box), you could add the following handler after selecting the
+mailbox.
+</p>
+<pre class="code">
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id add_response_handler'>add_response_handler</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id resp'>resp</span><span class='op'>|</span>
+    <span class='kw'>if</span> <span class='id resp'>resp</span><span class='period'>.</span><span class='id kind_of?'>kind_of?</span><span class='lparen'>(</span><span class='const'>Net</span><span class='op'>::</span><span class='const'>IMAP</span><span class='op'>::</span><span class='const'>UntaggedResponse</span><span class='rparen'>)</span> <span class='kw'>and</span> <span class='id resp'>resp</span><span class='period'>.</span><span class='id name'>name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EXISTS</span><span class='tstring_end'>&quot;</span></span>
+      <span class='id puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Mailbox now has </span><span class='embexpr_beg'>#{</span><span class='id resp'>resp</span><span class='period'>.</span><span class='id data'>data</span><span class='rbrace'>}</span><span class='tstring_content'> messages</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='rbrace'>}</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+826
+827
+828</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 826</span>
+
+<span class='kw'>def</span> <span class='id add_response_handler'>add_response_handler</span><span class='lparen'>(</span><span class='id handler'>handler</span> <span class='op'>=</span> <span class='const'>Proc</span><span class='period'>.</span><span class='id new'>new</span><span class='rparen'>)</span>
+  <span class='ivar'>@response_handlers</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='id handler'>handler</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="append-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>append</strong>(mailbox, message, flags = nil, date_time = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a APPEND command to append the <tt>message</tt> to the end of the
+<tt>mailbox</tt>. The optional <tt>flags</tt> argument is an array of flags
+to initially passing to the new message.  The optional <tt>date_time</tt>
+argument specifies the creation time to assign to the new message; it
+defaults to the current time. For example:
+</p>
+<pre class="code">
+  imap.append(&quot;inbox&quot;, &lt;&lt;EOF.gsub(/\n/, &quot;\r\n&quot;), [:Seen], Time.now)
+  Subject: hello
+  From: shugo@ruby-lang.org
+  To: shugo@ruby-lang.org
+
+  hello world
+  EOF
+</pre>
+<p>
+A Net::IMAP::NoResponseError is raised if the mailbox does not exist (it is
+not created automatically), or if the flags, date_time, or message
+arguments contain errors.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+645
+646
+647
+648
+649
+650
+651
+652
+653</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 645</span>
+
+<span class='kw'>def</span> <span class='id append'>append</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id message'>message</span><span class='comma'>,</span> <span class='id flags'>flags</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='id date_time'>date_time</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='id args'>args</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+  <span class='kw'>if</span> <span class='id flags'>flags</span>
+    <span class='id args'>args</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='id flags'>flags</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id args'>args</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='id date_time'>date_time</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id date_time'>date_time</span>
+  <span class='id args'>args</span><span class='period'>.</span><span class='id push'>push</span><span class='lparen'>(</span><span class='const'>Literal</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id message'>message</span><span class='rparen'>)</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>APPEND</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="authenticate-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>authenticate</strong>(auth_type, *args) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends an AUTHENTICATE command to authenticate the client. The
+<tt>auth_type</tt> parameter is a string that represents the authentication
+mechanism to be used. Currently Net::IMAP supports authentication
+mechanisms:
+</p>
+<pre class="code">
+  LOGIN:: login using cleartext user and password.
+  CRAM-MD5:: login with cleartext user and encrypted password
+             (see [RFC-2195] for a full description).  This
+             mechanism requires that the server have the user's
+             password stored in clear-text password.
+</pre>
+<p>
+For both these mechanisms, there should be two <tt>args</tt>: username and
+(cleartext) password.  A server may not support one or other of these
+mechanisms; check #capability() for a capability of the form
+&#8220;AUTH=LOGIN&#8221; or &#8220;AUTH=CRAM-MD5&#8221;.
+</p>
+<p>
+Authentication is done using the appropriate authenticator object: see
+@@authenticators for more information on plugging in your own
+authenticator.
+</p>
+<p>
+For example:
+</p>
+<pre class="code">
+   <span class='id imap'>imap</span><span class='period'>.</span><span class='id authenticate'>authenticate</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>LOGIN</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='id user'>user</span><span class='comma'>,</span> <span class='id password'>password</span><span class='rparen'>)</span>
+</pre>
+<p>
+A Net::IMAP::NoResponseError is raised if authentication fails.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 395</span>
+
+<span class='kw'>def</span> <span class='id authenticate'>authenticate</span><span class='lparen'>(</span><span class='id auth_type'>auth_type</span><span class='comma'>,</span> <span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id auth_type'>auth_type</span> <span class='op'>=</span> <span class='id auth_type'>auth_type</span><span class='period'>.</span><span class='id upcase'>upcase</span>
+  <span class='kw'>unless</span> <span class='cvar'>@@authenticators</span><span class='period'>.</span><span class='id has_key?'>has_key?</span><span class='lparen'>(</span><span class='id auth_type'>auth_type</span><span class='rparen'>)</span>
+    <span class='id raise'>raise</span> <span class='const'>ArgumentError</span><span class='comma'>,</span>
+      <span class='id format'>format</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>unknown auth type - &quot;%s&quot;</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='id auth_type'>auth_type</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='id authenticator'>authenticator</span> <span class='op'>=</span> <span class='cvar'>@@authenticators</span><span class='lbracket'>[</span><span class='id auth_type'>auth_type</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='op'>*</span><span class='id args'>args</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>AUTHENTICATE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id auth_type'>auth_type</span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id resp'>resp</span><span class='op'>|</span>
+    <span class='kw'>if</span> <span class='id resp'>resp</span><span class='period'>.</span><span class='id instance_of?'>instance_of?</span><span class='lparen'>(</span><span class='const'>ContinuationRequest</span><span class='rparen'>)</span>
+      <span class='id data'>data</span> <span class='op'>=</span> <span class='id authenticator'>authenticator</span><span class='period'>.</span><span class='id process'>process</span><span class='lparen'>(</span><span class='id resp'>resp</span><span class='period'>.</span><span class='id data'>data</span><span class='period'>.</span><span class='id text'>text</span><span class='period'>.</span><span class='id unpack'>unpack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>m</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+      <span class='id s'>s</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='id data'>data</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id pack'>pack</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>m</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id gsub'>gsub</span><span class='lparen'>(</span><span class='tstring'><span class='regexp_beg'>/</span><span class='tstring_content'>\n</span><span class='regexp_end'>/</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+      <span class='id send_string_data'>send_string_data</span><span class='lparen'>(</span><span class='id s'>s</span><span class='rparen'>)</span>
+      <span class='id put_string'>put_string</span><span class='lparen'>(</span><span class='const'>CRLF</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="capability-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>capability</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a CAPABILITY command, and returns an array of capabilities that the
+server supports.  Each capability is a string.  See [IMAP] for a list of
+possible capabilities.
+</p>
+<p>
+Note that the Net::IMAP class does not modify its behaviour according to
+the capabilities of the server; it is up to the user of the class to ensure
+that a certain capability is supported by a server before using it.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+337
+338
+339
+340
+341
+342</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 337</span>
+
+<span class='kw'>def</span> <span class='id capability'>capability</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CAPABILITY</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CAPABILITY</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="check-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>check</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a CHECK command to request a checkpoint of the currently selected
+mailbox.  This performs implementation-specific housekeeping, for instance,
+reconciling the mailbox&#8217;s in-memory and on-disk state.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+659
+660
+661</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 659</span>
+
+<span class='kw'>def</span> <span class='id check'>check</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CHECK</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="close-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>close</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a CLOSE command to close the currently selected mailbox. The CLOSE
+command permanently removes from the mailbox all messages that have the
+\Deleted flag set.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+666
+667
+668</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 666</span>
+
+<span class='kw'>def</span> <span class='id close'>close</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CLOSE</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="copy-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>copy</strong>(set, mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a COPY command to copy the specified message(s) to the end of the
+specified destination <tt>mailbox</tt>. The <tt>set</tt> parameter is a
+number or an array of numbers or a Range object. The number is a message
+sequence number.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+787
+788
+789</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 787</span>
+
+<span class='kw'>def</span> <span class='id copy'>copy</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id copy_internal'>copy_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>COPY</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="create-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>create</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a CREATE command to create a new <tt>mailbox</tt>.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if a mailbox with that name cannot
+be created.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+458
+459
+460</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 458</span>
+
+<span class='kw'>def</span> <span class='id create'>create</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>CREATE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="delete-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>delete</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a DELETE command to remove the <tt>mailbox</tt>.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if a mailbox with that name cannot
+be deleted, either because it does not exist or because the client does not
+have permission to delete it.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+467
+468
+469</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 467</span>
+
+<span class='kw'>def</span> <span class='id delete'>delete</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>DELETE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="disconnect-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>disconnect</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Disconnects from the server.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 299</span>
+
+<span class='kw'>def</span> <span class='id disconnect'>disconnect</span>
+  <span class='kw'>begin</span>
+    <span class='kw'>begin</span>
+      <span class='comment'># try to call SSL::SSLSocket#io.
+</span>      <span class='ivar'>@sock</span><span class='period'>.</span><span class='id io'>io</span><span class='period'>.</span><span class='id shutdown'>shutdown</span>
+    <span class='kw'>rescue</span> <span class='const'>NoMethodError</span>
+      <span class='comment'># @sock is not an SSL::SSLSocket.
+</span>      <span class='ivar'>@sock</span><span class='period'>.</span><span class='id shutdown'>shutdown</span>
+    <span class='kw'>end</span>
+  <span class='kw'>rescue</span> <span class='const'>Errno</span><span class='op'>::</span><span class='const'>ENOTCONN</span>
+    <span class='comment'># ignore `Errno::ENOTCONN: Socket is not connected' on some platforms.
+</span>  <span class='kw'>rescue</span> <span class='const'>Exception</span> <span class='op'>=&gt;</span> <span class='id e'>e</span>
+    <span class='ivar'>@receiver_thread</span><span class='period'>.</span><span class='id raise'>raise</span><span class='lparen'>(</span><span class='id e'>e</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+  <span class='ivar'>@receiver_thread</span><span class='period'>.</span><span class='id join'>join</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>unless</span> <span class='ivar'>@sock</span><span class='period'>.</span><span class='id closed?'>closed?</span>
+      <span class='ivar'>@sock</span><span class='period'>.</span><span class='id close'>close</span> 
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+  <span class='id raise'>raise</span> <span class='id e'>e</span> <span class='kw'>if</span> <span class='id e'>e</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="disconnected?-instance_method">
+  
+    - (<tt>Boolean</tt>) <strong>disconnected?</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns true if disconnected from the server.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Boolean</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+323
+324
+325</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 323</span>
+
+<span class='kw'>def</span> <span class='id disconnected?'>disconnected?</span>
+  <span class='kw'>return</span> <span class='ivar'>@sock</span><span class='period'>.</span><span class='id closed?'>closed?</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="examine-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>examine</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a EXAMINE command to select a <tt>mailbox</tt> so that messages in
+the <tt>mailbox</tt> can be accessed.  Behaves the same as #select(),
+except that the selected <tt>mailbox</tt> is identified as read-only.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if the mailbox does not exist or is
+for some reason non-examinable.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+447
+448
+449
+450
+451
+452</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 447</span>
+
+<span class='kw'>def</span> <span class='id examine'>examine</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@responses</span><span class='period'>.</span><span class='id clear'>clear</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EXAMINE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="expunge-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>expunge</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a EXPUNGE command to permanently remove from the currently selected
+mailbox all messages that have the \Deleted flag set.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+672
+673
+674
+675
+676
+677</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 672</span>
+
+<span class='kw'>def</span> <span class='id expunge'>expunge</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EXPUNGE</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>EXPUNGE</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="fetch-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>fetch</strong>(set, attr) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a FETCH command to retrieve data associated with a message in the
+mailbox. The <tt>set</tt> parameter is a number or an array of numbers or a
+Range object. The number is a message sequence number.  <tt>attr</tt> is a
+list of attributes to fetch; see the documentation for Net::IMAP::FetchData
+for a list of valid attributes. The return value is an array of
+Net::IMAP::FetchData. For example:
+</p>
+<pre class="code">
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='int'>6</span><span class='op'>..</span><span class='int'>8</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;UID&quot;=&gt;98}&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::FetchData seqno=7, attr={&quot;UID&quot;=&gt;99}&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::FetchData seqno=8, attr={&quot;UID&quot;=&gt;100}&gt;]
+</span>  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='int'>6</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>BODY[HEADER.FIELDS (SUBJECT)]</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;BODY[HEADER.FIELDS (SUBJECT)]&quot;=&gt;&quot;Subject: test\r\n\r\n&quot;}&gt;]
+</span>  <span class='id data'>data</span> <span class='op'>=</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id uid_fetch'>uid_fetch</span><span class='lparen'>(</span><span class='int'>98</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>RFC822.SIZE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>INTERNALDATE</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span>
+  <span class='id p'>p</span> <span class='id data'>data</span><span class='period'>.</span><span class='id seqno'>seqno</span>
+  <span class='comment'>#=&gt; 6
+</span>  <span class='id p'>p</span> <span class='id data'>data</span><span class='period'>.</span><span class='id attr'>attr</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>RFC822.SIZE</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='comment'>#=&gt; 611
+</span>  <span class='id p'>p</span> <span class='id data'>data</span><span class='period'>.</span><span class='id attr'>attr</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>INTERNALDATE</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='comment'>#=&gt; &quot;12-Oct-2000 22:40:59 +0900&quot;
+</span>  <span class='id p'>p</span> <span class='id data'>data</span><span class='period'>.</span><span class='id attr'>attr</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span>
+  <span class='comment'>#=&gt; 98</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+751
+752
+753</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 751</span>
+
+<span class='kw'>def</span> <span class='id fetch'>fetch</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id fetch_internal'>fetch_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FETCH</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getacl-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>getacl</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Send the GETACL command along with specified <tt>mailbox</tt>. If this
+mailbox exists, an array containing objects of Net::IMAP::MailboxACLItem
+will be returned.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+585
+586
+587
+588
+589
+590</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 585</span>
+
+<span class='kw'>def</span> <span class='id getacl'>getacl</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>GETACL</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ACL</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getquota-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>getquota</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends the GETQUOTA command along with specified <tt>mailbox</tt>. If this
+mailbox exists, then an array containing a Net::IMAP::MailboxQuota object
+is returned.  This command generally is only available to server admin.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+549
+550
+551
+552
+553
+554</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 549</span>
+
+<span class='kw'>def</span> <span class='id getquota'>getquota</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>GETQUOTA</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>QUOTA</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="getquotaroot-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>getquotaroot</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends the GETQUOTAROOT command along with specified <tt>mailbox</tt>. This
+command is generally available to both admin and user. If mailbox exists,
+returns an array containing objects of Net::IMAP::MailboxQuotaRoot and
+Net::IMAP::MailboxQuota.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+535
+536
+537
+538
+539
+540
+541
+542
+543</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 535</span>
+
+<span class='kw'>def</span> <span class='id getquotaroot'>getquotaroot</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>GETQUOTAROOT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+    <span class='id result'>result</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='rbracket'>]</span>
+    <span class='id result'>result</span><span class='period'>.</span><span class='id concat'>concat</span><span class='lparen'>(</span><span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>QUOTAROOT</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='id result'>result</span><span class='period'>.</span><span class='id concat'>concat</span><span class='lparen'>(</span><span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>QUOTA</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='id result'>result</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="idle-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>idle</strong>(&amp;response_handler) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends an IDLE command that waits for notifications of new or expunged
+messages.  Yields responses from the server during the IDLE.
+</p>
+<p>
+Use #idle_done() to leave IDLE.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Raises:</h3>
+<ul class="raise">
+  
+    <li>
+      
+        <span class='type'>(<tt>LocalJumpError</tt>)</span>
+      
+      
+      
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+862
+863
+864
+865
+866
+867
+868
+869
+870
+871
+872
+873
+874
+875
+876
+877
+878
+879
+880
+881
+882
+883
+884</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 862</span>
+
+<span class='kw'>def</span> <span class='id idle'>idle</span><span class='lparen'>(</span><span class='op'>&amp;</span><span class='id response_handler'>response_handler</span><span class='rparen'>)</span>
+  <span class='id raise'>raise</span> <span class='const'>LocalJumpError</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>no block given</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>unless</span> <span class='id response_handler'>response_handler</span>
+
+  <span class='id response'>response</span> <span class='op'>=</span> <span class='kw'>nil</span>
+
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id tag'>tag</span> <span class='op'>=</span> <span class='const'>Thread</span><span class='period'>.</span><span class='id current'>current</span><span class='lbracket'>[</span><span class='symbol'>:net_imap_tag</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='id generate_tag'>generate_tag</span>
+    <span class='id put_string'>put_string</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id tag'>tag</span><span class='rbrace'>}</span><span class='tstring_content'> IDLE</span><span class='embexpr_beg'>#{</span><span class='const'>CRLF</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+
+    <span class='kw'>begin</span>
+      <span class='id add_response_handler'>add_response_handler</span><span class='lparen'>(</span><span class='id response_handler'>response_handler</span><span class='rparen'>)</span>
+      <span class='ivar'>@idle_done_cond</span> <span class='op'>=</span> <span class='id new_cond'>new_cond</span>
+      <span class='ivar'>@idle_done_cond</span><span class='period'>.</span><span class='id wait'>wait</span>
+      <span class='ivar'>@idle_done_cond</span> <span class='op'>=</span> <span class='kw'>nil</span>
+    <span class='kw'>ensure</span>
+      <span class='id remove_response_handler'>remove_response_handler</span><span class='lparen'>(</span><span class='id response_handler'>response_handler</span><span class='rparen'>)</span>
+      <span class='id put_string'>put_string</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>DONE</span><span class='embexpr_beg'>#{</span><span class='const'>CRLF</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+      <span class='id response'>response</span> <span class='op'>=</span> <span class='id get_tagged_response'>get_tagged_response</span><span class='lparen'>(</span><span class='id tag'>tag</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>IDLE</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>return</span> <span class='id response'>response</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="idle_done-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>idle_done</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Leaves IDLE.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+887
+888
+889
+890
+891
+892
+893
+894</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 887</span>
+
+<span class='kw'>def</span> <span class='id idle_done'>idle_done</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='kw'>if</span> <span class='ivar'>@idle_done_cond</span><span class='period'>.</span><span class='id nil?'>nil?</span>
+      <span class='id raise'>raise</span> <span class='const'>Net</span><span class='op'>::</span><span class='const'>IMAP</span><span class='op'>::</span><span class='const'>Error</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>not during IDLE</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+    <span class='ivar'>@idle_done_cond</span><span class='period'>.</span><span class='id signal'>signal</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="list-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>list</strong>(refname, mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a LIST command, and returns a subset of names from the complete set
+of all names available to the client. <tt>refname</tt> provides a context
+(for instance, a base directory in a directory-based mailbox hierarchy). 
+<tt>mailbox</tt> specifies a mailbox or (via wildcards) mailboxes under
+that context. Two wildcards may be used in <tt>mailbox</tt>:
+&#8217;*&#8217;, which matches all characters <b>including</b> the
+hierarchy delimiter (for instance, &#8217;/&#8217; on a UNIX-hosted
+directory-based mailbox hierarchy); and &#8217;%&#8217;, which matches all
+characters <b>except</b> the hierarchy delimiter.
+</p>
+<p>
+If <tt>refname</tt> is empty, <tt>mailbox</tt> is used directly to
+determine which mailboxes to match.  If <tt>mailbox</tt> is empty, the root
+name of <tt>refname</tt> and the hierarchy delimiter are returned.
+</p>
+<p>
+The return value is an array of <tt>Net::IMAP::MailboxList</tt>. For example:
+</p>
+<pre class="code">
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>foo/bar</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id imap'>imap</span><span class='period'>.</span><span class='id create'>create</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>foo/baz</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id list'>list</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>foo/%</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [#&lt;Net::IMAP::MailboxList attr=[:Noselect], delim=&quot;/&quot;, name=&quot;foo/&quot;&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::MailboxList attr=[:Noinferiors, :Marked], delim=&quot;/&quot;, name=&quot;foo/bar&quot;&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::MailboxList attr=[:Noinferiors], delim=&quot;/&quot;, name=&quot;foo/baz&quot;&gt;]</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+524
+525
+526
+527
+528
+529</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 524</span>
+
+<span class='kw'>def</span> <span class='id list'>list</span><span class='lparen'>(</span><span class='id refname'>refname</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LIST</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id refname'>refname</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LIST</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="login-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>login</strong>(user, password) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a LOGIN command to identify the client and carries the plaintext
+<tt>password</tt> authenticating this <tt>user</tt>.  Note that, unlike
+calling #authenticate() with an <tt>auth_type</tt> of &#8220;LOGIN&#8221;,
+#login() does <b>not</b> use the login authenticator.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if authentication fails.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+418
+419
+420</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 418</span>
+
+<span class='kw'>def</span> <span class='id login'>login</span><span class='lparen'>(</span><span class='id user'>user</span><span class='comma'>,</span> <span class='id password'>password</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LOGIN</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id user'>user</span><span class='comma'>,</span> <span class='id password'>password</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="logout-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>logout</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a LOGOUT command to inform the server that the client is done with
+the connection.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+351
+352
+353</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 351</span>
+
+<span class='kw'>def</span> <span class='id logout'>logout</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LOGOUT</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="lsub-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>lsub</strong>(refname, mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a LSUB command, and returns a subset of names from the set of names
+that the user has declared as being &#8220;active&#8221; or
+&#8220;subscribed&#8221;.  <tt>refname</tt> and <tt>mailbox</tt> are
+interpreted as for #list(). The return value is an array of
+<tt>Net::IMAP::MailboxList</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+597
+598
+599
+600
+601
+602</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 597</span>
+
+<span class='kw'>def</span> <span class='id lsub'>lsub</span><span class='lparen'>(</span><span class='id refname'>refname</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LSUB</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id refname'>refname</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>LSUB</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="noop-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>noop</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a NOOP command to the server. It does nothing.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+345
+346
+347</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 345</span>
+
+<span class='kw'>def</span> <span class='id noop'>noop</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>NOOP</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="remove_response_handler-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>remove_response_handler</strong>(handler) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Removes the response handler.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+831
+832
+833</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 831</span>
+
+<span class='kw'>def</span> <span class='id remove_response_handler'>remove_response_handler</span><span class='lparen'>(</span><span class='id handler'>handler</span><span class='rparen'>)</span>
+  <span class='ivar'>@response_handlers</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='id handler'>handler</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="rename-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>rename</strong>(mailbox, newname) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a RENAME command to change the name of the <tt>mailbox</tt> to
+<tt>newname</tt>.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if a mailbox with the name
+<tt>mailbox</tt> cannot be renamed to <tt>newname</tt> for whatever reason;
+for instance, because <tt>mailbox</tt> does not exist, or because there is
+already a mailbox with the name <tt>newname</tt>.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+478
+479
+480</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 478</span>
+
+<span class='kw'>def</span> <span class='id rename'>rename</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id newname'>newname</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>RENAME</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id newname'>newname</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="search-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>search</strong>(keys, charset = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a SEARCH command to search the mailbox for messages that match the
+given searching criteria, and returns message sequence numbers. 
+<tt>keys</tt> can either be a string holding the entire search string, or a
+single-dimension array of search keywords and arguments.  The following are
+some common search criteria; see [IMAP] section 6.4.4 for a full list.
+</p>
+<table>
+<tr><td valign="top"><message set></td><td><p>
+a set of message sequence numbers.  &#8217;,&#8217; indicates an interval,
+&#8217;:&#8217; indicates a range.  For instance, &#8216;2,10:12,15&#8217;
+means &#8220;2,10,11,12,15&#8221;.
+</p>
+</td></tr>
+<tr><td valign="top">BEFORE <date></td><td><p>
+messages with an internal date strictly before <date>.  The date argument
+has a format similar to 8-Aug-2002.
+</p>
+</td></tr>
+<tr><td valign="top">BODY <string></td><td><p>
+messages that contain <string> within their body.
+</p>
+</td></tr>
+<tr><td valign="top">CC <string></td><td><p>
+messages containing <string> in their CC field.
+</p>
+</td></tr>
+<tr><td valign="top">FROM <string></td><td><p>
+messages that contain <string> in their FROM field.
+</p>
+</td></tr>
+<tr><td valign="top">NEW</td><td><p>
+messages with the \Recent, but not the \Seen, flag set.
+</p>
+</td></tr>
+<tr><td valign="top">NOT <search-key></td><td><p>
+negate the following search key.
+</p>
+</td></tr>
+<tr><td valign="top">OR <search-key> <search-key></td><td><p>
+&#8220;or&#8221; two search keys together.
+</p>
+</td></tr>
+<tr><td valign="top">ON <date></td><td><p>
+messages with an internal date exactly equal to <date>, which has a format
+similar to 8-Aug-2002.
+</p>
+</td></tr>
+<tr><td valign="top">SINCE <date></td><td><p>
+messages with an internal date on or after <date>.
+</p>
+</td></tr>
+<tr><td valign="top">SUBJECT <string></td><td><p>
+messages with <string> in their subject.
+</p>
+</td></tr>
+<tr><td valign="top">TO <string></td><td><p>
+messages with <string> in their TO field.
+</p>
+</td></tr>
+</table>
+<p>
+For example:
+</p>
+<pre class="code">
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id search'>search</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SUBJECT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>hello</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>NOT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>NEW</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [1, 6, 7, 8]</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+719
+720
+721</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 719</span>
+
+<span class='kw'>def</span> <span class='id search'>search</span><span class='lparen'>(</span><span class='id keys'>keys</span><span class='comma'>,</span> <span class='id charset'>charset</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id search_internal'>search_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SEARCH</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id keys'>keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="select-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>select</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a SELECT command to select a <tt>mailbox</tt> so that messages in the
+<tt>mailbox</tt> can be accessed.
+</p>
+<p>
+After you have selected a mailbox, you may retrieve the number of items in
+that mailbox from @responses[&#8220;EXISTS&#8221;][-1], and the number of
+recent messages from @responses[&#8220;RECENT&#8221;][-1]. Note that these
+values can change if new messages arrive during a session; see
+#add_response_handler() for a way of detecting this event.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if the mailbox does not exist or is
+for some reason non-selectable.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+434
+435
+436
+437
+438
+439</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 434</span>
+
+<span class='kw'>def</span> <span class='id select'>select</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='ivar'>@responses</span><span class='period'>.</span><span class='id clear'>clear</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SELECT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setacl-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>setacl</strong>(mailbox, user, rights) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends the SETACL command along with <tt>mailbox</tt>, <tt>user</tt> and the
+<tt>rights</tt> that user is to have on that mailbox.  If <tt>rights</tt>
+is nil, then that user will be stripped of any rights to that mailbox. The
+IMAP ACL commands are described in [RFC-2086].
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+574
+575
+576
+577
+578
+579
+580</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 574</span>
+
+<span class='kw'>def</span> <span class='id setacl'>setacl</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id user'>user</span><span class='comma'>,</span> <span class='id rights'>rights</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id rights'>rights</span><span class='period'>.</span><span class='id nil?'>nil?</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SETACL</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id user'>user</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SETACL</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id user'>user</span><span class='comma'>,</span> <span class='id rights'>rights</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="setquota-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>setquota</strong>(mailbox, quota) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a SETQUOTA command along with the specified <tt>mailbox</tt> and
+<tt>quota</tt>.  If <tt>quota</tt> is nil, then quota will be unset for
+that mailbox.  Typically one needs to be logged in as server admin for this
+to work.  The IMAP quota commands are described in [RFC-2087].
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+561
+562
+563
+564
+565
+566
+567
+568</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 561</span>
+
+<span class='kw'>def</span> <span class='id setquota'>setquota</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id quota'>quota</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id quota'>quota</span><span class='period'>.</span><span class='id nil?'>nil?</span>
+    <span class='id data'>data</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>()</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>else</span>
+    <span class='id data'>data</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>(STORAGE </span><span class='tstring_end'>'</span></span> <span class='op'>+</span> <span class='id quota'>quota</span><span class='period'>.</span><span class='id to_s'>to_s</span> <span class='op'>+</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>)</span><span class='tstring_end'>'</span></span>
+  <span class='kw'>end</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SETQUOTA</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='const'>RawData</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='id data'>data</span><span class='rparen'>)</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="sort-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>sort</strong>(sort_keys, search_keys, charset) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a SORT command to sort messages in the mailbox. Returns an array of
+message sequence numbers. For example:
+</p>
+<pre class="code">
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id sort'>sort</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>FROM</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ALL</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>US-ASCII</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [1, 2, 3, 5, 6, 7, 8, 4, 9]
+</span>  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id sort'>sort</span><span class='lparen'>(</span><span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>DATE</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SUBJECT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>hello</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>US-ASCII</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [6, 7, 8, 1]
+</span></pre>
+<p>
+See [SORT-THREAD-EXT] for more details.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+805
+806
+807</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 805</span>
+
+<span class='kw'>def</span> <span class='id sort'>sort</span><span class='lparen'>(</span><span class='id sort_keys'>sort_keys</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id sort_internal'>sort_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SORT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id sort_keys'>sort_keys</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="starttls-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>starttls</strong>(options = {}, verify = true) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a STARTTLS command to start TLS session.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 356</span>
+
+<span class='kw'>def</span> <span class='id starttls'>starttls</span><span class='lparen'>(</span><span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='id verify'>verify</span> <span class='op'>=</span> <span class='kw'>true</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>STARTTLS</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id resp'>resp</span><span class='op'>|</span>
+    <span class='kw'>if</span> <span class='id resp'>resp</span><span class='period'>.</span><span class='id kind_of?'>kind_of?</span><span class='lparen'>(</span><span class='const'>TaggedResponse</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='id resp'>resp</span><span class='period'>.</span><span class='id name'>name</span> <span class='op'>==</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>OK</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>begin</span>
+        <span class='comment'># for backward compatibility
+</span>        <span class='id certs'>certs</span> <span class='op'>=</span> <span class='id options'>options</span><span class='period'>.</span><span class='id to_str'>to_str</span>
+        <span class='id options'>options</span> <span class='op'>=</span> <span class='id create_ssl_params'>create_ssl_params</span><span class='lparen'>(</span><span class='id certs'>certs</span><span class='comma'>,</span> <span class='id verify'>verify</span><span class='rparen'>)</span>
+      <span class='kw'>rescue</span> <span class='const'>NoMethodError</span>
+      <span class='kw'>end</span>
+      <span class='id start_tls_session'>start_tls_session</span><span class='lparen'>(</span><span class='id options'>options</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="status-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>status</strong>(mailbox, attr) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a STATUS command, and returns the status of the indicated
+<tt>mailbox</tt>. <tt>attr</tt> is a list of one or more attributes that we
+are request the status of.  Supported attributes include:
+</p>
+<pre class="code">
+  MESSAGES:: the number of messages in the mailbox.
+  RECENT:: the number of recent messages in the mailbox.
+  UNSEEN:: the number of unseen messages in the mailbox.
+</pre>
+<p>
+The return value is a hash of attributes. For example:
+</p>
+<pre class="code">
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id status'>status</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>inbox</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>MESSAGES</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>RECENT</span><span class='tstring_end'>&quot;</span></span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; {&quot;RECENT&quot;=&gt;0, &quot;MESSAGES&quot;=&gt;44}
+</span></pre>
+<p>
+A Net::IMAP::NoResponseError is raised if status values for
+<tt>mailbox</tt> cannot be returned, for instance because it does not
+exist.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+620
+621
+622
+623
+624
+625</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 620</span>
+
+<span class='kw'>def</span> <span class='id status'>status</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+  <span class='id synchronize'>synchronize</span> <span class='kw'>do</span>
+    <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>STATUS</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+    <span class='kw'>return</span> <span class='ivar'>@responses</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>STATUS</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span><span class='lbracket'>[</span><span class='op'>-</span><span class='int'>1</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id attr'>attr</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="store-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>store</strong>(set, attr, flags) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a STORE command to alter data associated with messages in the
+mailbox, in particular their flags. The <tt>set</tt> parameter is a number
+or an array of numbers or a Range object. Each number is a message sequence
+number.  <tt>attr</tt> is the name of a data item to store:
+&#8216;FLAGS&#8217; means to replace the message&#8217;s flag list with the
+provided one; &#8217;+FLAGS&#8217; means to add the provided flags; and
+&#8217;-FLAGS&#8217; means to remove them.  <tt>flags</tt> is a list of
+flags.
+</p>
+<p>
+The return value is an array of Net::IMAP::FetchData. For example:
+</p>
+<pre class="code">
+  <span class='id p'>p</span> <span class='id imap'>imap</span><span class='period'>.</span><span class='id store'>store</span><span class='lparen'>(</span><span class='int'>6</span><span class='op'>..</span><span class='int'>8</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>+FLAGS</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='lbracket'>[</span><span class='symbol'>:Deleted</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+  <span class='comment'>#=&gt; [#&lt;Net::IMAP::FetchData seqno=6, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::FetchData seqno=7, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;, \\
+</span>       <span class='comment'>#&lt;Net::IMAP::FetchData seqno=8, attr={&quot;FLAGS&quot;=&gt;[:Seen, :Deleted]}&gt;]</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+774
+775
+776</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 774</span>
+
+<span class='kw'>def</span> <span class='id store'>store</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='comma'>,</span> <span class='id flags'>flags</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id store_internal'>store_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>STORE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='comma'>,</span> <span class='id flags'>flags</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="subscribe-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>subscribe</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a SUBSCRIBE command to add the specified <tt>mailbox</tt> name to the
+server&#8217;s set of &#8220;active&#8221; or &#8220;subscribed&#8221;
+mailboxes as returned by #lsub().
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if <tt>mailbox</tt> cannot be
+subscribed to, for instance because it does not exist.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+488
+489
+490</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 488</span>
+
+<span class='kw'>def</span> <span class='id subscribe'>subscribe</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>SUBSCRIBE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="thread-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>thread</strong>(algorithm, search_keys, charset) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #search(), but returns message sequence numbers in threaded format,
+as a Net::IMAP::ThreadMember tree.  The supported algorithms are:
+</p>
+<table>
+<tr><td valign="top">ORDEREDSUBJECT</td><td><p>
+split into single-level threads according to subject, ordered by date.
+</p>
+</td></tr>
+<tr><td valign="top">REFERENCES</td><td><p>
+split into threads by parent/child relationships determined by which
+message is a reply to which.
+</p>
+</td></tr>
+</table>
+<p>
+Unlike #search(), <tt>charset</tt> is a required argument.  US-ASCII and
+UTF-8 are sample values.
+</p>
+<p>
+See [SORT-THREAD-EXT] for more details.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+848
+849
+850</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 848</span>
+
+<span class='kw'>def</span> <span class='id thread'>thread</span><span class='lparen'>(</span><span class='id algorithm'>algorithm</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id thread_internal'>thread_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>THREAD</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id algorithm'>algorithm</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_copy-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_copy</strong>(set, mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #copy(), but <tt>set</tt> contains unique identifiers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+792
+793
+794</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 792</span>
+
+<span class='kw'>def</span> <span class='id uid_copy'>uid_copy</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id copy_internal'>copy_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID COPY</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_fetch-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_fetch</strong>(set, attr) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #fetch(), but <tt>set</tt> contains unique identifiers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+756
+757
+758</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 756</span>
+
+<span class='kw'>def</span> <span class='id uid_fetch'>uid_fetch</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id fetch_internal'>fetch_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID FETCH</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_search-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_search</strong>(keys, charset = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #search(), but returns unique identifiers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+724
+725
+726</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 724</span>
+
+<span class='kw'>def</span> <span class='id uid_search'>uid_search</span><span class='lparen'>(</span><span class='id keys'>keys</span><span class='comma'>,</span> <span class='id charset'>charset</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id search_internal'>search_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID SEARCH</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id keys'>keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_sort-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_sort</strong>(sort_keys, search_keys, charset) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #sort(), but returns an array of unique identifiers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+810
+811
+812</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 810</span>
+
+<span class='kw'>def</span> <span class='id uid_sort'>uid_sort</span><span class='lparen'>(</span><span class='id sort_keys'>sort_keys</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id sort_internal'>sort_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID SORT</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id sort_keys'>sort_keys</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_store-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_store</strong>(set, attr, flags) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #store(), but <tt>set</tt> contains unique identifiers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+779
+780
+781</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 779</span>
+
+<span class='kw'>def</span> <span class='id uid_store'>uid_store</span><span class='lparen'>(</span><span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='comma'>,</span> <span class='id flags'>flags</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id store_internal'>store_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID STORE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id set'>set</span><span class='comma'>,</span> <span class='id attr'>attr</span><span class='comma'>,</span> <span class='id flags'>flags</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="uid_thread-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>uid_thread</strong>(algorithm, search_keys, charset) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+As for #thread(), but returns unique identifiers instead of message
+sequence numbers.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+854
+855
+856</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 854</span>
+
+<span class='kw'>def</span> <span class='id uid_thread'>uid_thread</span><span class='lparen'>(</span><span class='id algorithm'>algorithm</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='id thread_internal'>thread_internal</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UID THREAD</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id algorithm'>algorithm</span><span class='comma'>,</span> <span class='id search_keys'>search_keys</span><span class='comma'>,</span> <span class='id charset'>charset</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="unsubscribe-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>unsubscribe</strong>(mailbox) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Sends a UNSUBSCRIBE command to remove the specified <tt>mailbox</tt> name
+from the server&#8217;s set of &#8220;active&#8221; or
+&#8220;subscribed&#8221; mailboxes.
+</p>
+<p>
+A Net::IMAP::NoResponseError is raised if <tt>mailbox</tt> cannot be
+unsubscribed from, for instance because the client is not currently
+subscribed to it.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+498
+499
+500</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/net/imap.rb', line 498</span>
+
+<span class='kw'>def</span> <span class='id unsubscribe'>unsubscribe</span><span class='lparen'>(</span><span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+  <span class='id send_command'>send_command</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>UNSUBSCRIBE</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='id mailbox'>mailbox</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Oct 14 00:01:54 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

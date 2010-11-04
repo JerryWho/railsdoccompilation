@@ -1,0 +1,428 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActionView::Partials</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (P)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActionView.html" title="ActionView (module)">ActionView</a></span></span>
+     &raquo; 
+    <span class="title">Partials</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActionView::Partials
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+      <dt class="r1">Extended by:</dt>
+      <dd class="r1"><span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></dd>
+      
+    
+  
+    
+  
+  
+    <dt class="r2">Included in:</dt>
+    <dd class="r2"><span class='object_link'><a href="Base.html" title="ActionView::Base (class)">Base</a></span></dd>
+    
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">actionpack/lib/action_view/render/partials.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>Action View Partials</h1>
+<p>
+There&#8217;s also a convenience method for rendering sub templates within
+the current controller that depends on a single object (we call this kind
+of sub templates for partials). It relies on the fact that partials should
+follow the naming convention of being prefixed with an underscore &#8212;
+as to separate them from regular templates that could be rendered on their
+own.
+</p>
+<p>
+In a template for Advertiser#account:
+</p>
+<pre class="code">
+ &lt;%= render :partial =&gt; &quot;account&quot; %&gt;
+</pre>
+<p>
+This would render &#8220;advertiser/_account.erb&#8221; and pass the
+instance variable @account in as a local variable <tt>account</tt> to the
+template for display.
+</p>
+<p>
+In another template for Advertiser#buy, we could have:
+</p>
+<pre class="code">
+  &lt;%= render :partial =&gt; &quot;account&quot;, :locals =&gt; { :account =&gt; @buyer } %&gt;
+
+  &lt;% for ad in @advertisements %&gt;
+    &lt;%= render :partial =&gt; &quot;ad&quot;, :locals =&gt; { :ad =&gt; ad } %&gt;
+  &lt;% end %&gt;
+</pre>
+<p>
+This would first render &#8220;advertiser/_account.erb&#8221; with @buyer
+passed in as the local variable <tt>account</tt>, then render
+&#8220;advertiser/_ad.erb&#8221; and pass the local variable <tt>ad</tt> to
+the template for display.
+</p>
+<h2>Rendering a collection of partials</h2>
+<p>
+The example of partial use describes a familiar pattern where a template
+needs to iterate over an array and render a sub template for each of the
+elements. This pattern has been implemented as a single method that accepts
+an array and renders a partial by the same name as the elements contained
+within. So the three-lined example in &#8220;Using partials&#8221; can be
+rewritten with a single line:
+</p>
+<pre class="code">
+  &lt;%= render :partial =&gt; &quot;ad&quot;, :collection =&gt; @advertisements %&gt;
+</pre>
+<p>
+This will render &#8220;advertiser/_ad.erb&#8221; and pass the local
+variable <tt>ad</tt> to the template for display. An iteration counter will
+automatically be made available to the template with a name of the form
+<tt>partial_name_counter</tt>. In the case of the example above, the
+template would be fed <tt>ad_counter</tt>.
+</p>
+<p>
+NOTE: Due to backwards compatibility concerns, the collection can&#8217;t
+be one of hashes. Normally you&#8217;d also just keep domain objects, like
+Active Records, in there.
+</p>
+<h2>Rendering shared partials</h2>
+<p>
+Two controllers can share a set of partials and render them like this:
+</p>
+<pre class="code">
+  &lt;%= render :partial =&gt; &quot;advertisement/ad&quot;, :locals =&gt; { :ad =&gt; @advertisement } %&gt;
+</pre>
+<p>
+This will render the partial &#8220;advertisement/_ad.erb&#8221; regardless
+of which controller this is being called from.
+</p>
+<h2>Rendering objects with the RecordIdentifier</h2>
+<p>
+Instead of explicitly naming the location of a partial, you can also let
+the RecordIdentifier do the work if you&#8217;re following its conventions
+for RecordIdentifier#partial_path. Examples:
+</p>
+<pre class="code">
+ # @account is an Account instance, so it uses the RecordIdentifier to replace
+ # &lt;%= render :partial =&gt; &quot;accounts/account&quot;, :locals =&gt; { :account =&gt; @account} %&gt;
+ &lt;%= render :partial =&gt; @account %&gt;
+
+ # @posts is an array of Post instances, so it uses the RecordIdentifier to replace
+ # &lt;%= render :partial =&gt; &quot;posts/post&quot;, :collection =&gt; @posts %&gt;
+ &lt;%= render :partial =&gt; @posts %&gt;
+</pre>
+<h2>Rendering the default case</h2>
+<p>
+If you&#8217;re not going to be using any of the options like collections
+or layouts, you can also use the short-hand defaults of render to render
+partials. Examples:
+</p>
+<pre class="code">
+ # Instead of &lt;%= render :partial =&gt; &quot;account&quot; %&gt;
+ &lt;%= render &quot;account&quot; %&gt;
+
+ # Instead of &lt;%= render :partial =&gt; &quot;account&quot;, :locals =&gt; { :account =&gt; @buyer } %&gt;
+ &lt;%= render &quot;account&quot;, :account =&gt; @buyer %&gt;
+
+ # @account is an Account instance, so it uses the RecordIdentifier to replace
+ # &lt;%= render :partial =&gt; &quot;accounts/account&quot;, :locals =&gt; { :account =&gt; @account } %&gt;
+ &lt;%= render(@account) %&gt;
+
+ # @posts is an array of Post instances, so it uses the RecordIdentifier to replace
+ # &lt;%= render :partial =&gt; &quot;posts/post&quot;, :collection =&gt; @posts %&gt;
+ &lt;%= render(@posts) %&gt;
+</pre>
+<h2>Rendering partials with layouts</h2>
+<p>
+Partials can have their own layouts applied to them. These layouts are
+different than the ones that are specified globally for the entire action,
+but they work in a similar fashion. Imagine a list with two types of users:
+</p>
+<pre class="code">
+  &lt;%# app/views/users/index.html.erb &amp;&gt;
+  Here's the administrator:
+  &lt;%= render :partial =&gt; &quot;user&quot;, :layout =&gt; &quot;administrator&quot;, :locals =&gt; { :user =&gt; administrator } %&gt;
+
+  Here's the editor:
+  &lt;%= render :partial =&gt; &quot;user&quot;, :layout =&gt; &quot;editor&quot;, :locals =&gt; { :user =&gt; editor } %&gt;
+
+  &lt;%# app/views/users/_user.html.erb &amp;&gt;
+  Name: &lt;%= user.name %&gt;
+
+  &lt;%# app/views/users/_administrator.html.erb &amp;&gt;
+  &lt;div id=&quot;administrator&quot;&gt;
+    Budget: $&lt;%= user.budget %&gt;
+    &lt;%= yield %&gt;
+  &lt;/div&gt;
+
+  &lt;%# app/views/users/_editor.html.erb &amp;&gt;
+  &lt;div id=&quot;editor&quot;&gt;
+    Deadline: &lt;%= user.deadline %&gt;
+    &lt;%= yield %&gt;
+  &lt;/div&gt;
+</pre>
+<p>
+&#8230;this will return:
+</p>
+<pre class="code">
+  Here's the administrator:
+  &lt;div id=&quot;administrator&quot;&gt;
+    Budget: $&lt;%= user.budget %&gt;
+    Name: &lt;%= user.name %&gt;
+  &lt;/div&gt;
+
+  Here's the editor:
+  &lt;div id=&quot;editor&quot;&gt;
+    Deadline: &lt;%= user.deadline %&gt;
+    Name: &lt;%= user.name %&gt;
+  &lt;/div&gt;
+</pre>
+<p>
+You can also apply a layout to a block within any template:
+</p>
+<pre class="code">
+  &lt;%# app/views/users/_chief.html.erb &amp;&gt;
+  &lt;%= render(:layout =&gt; &quot;administrator&quot;, :locals =&gt; { :user =&gt; chief }) do %&gt;
+    Title: &lt;%= chief.title %&gt;
+  &lt;% end %&gt;
+</pre>
+<p>
+&#8230;this will return:
+</p>
+<pre class="code">
+  &lt;div id=&quot;administrator&quot;&gt;
+    Budget: $&lt;%= user.budget %&gt;
+    Title: &lt;%= chief.name %&gt;
+  &lt;/div&gt;
+</pre>
+<p>
+As you can see, the <tt>:locals</tt> hash is shared between both the
+partial and its layout.
+</p>
+<p>
+If you pass arguments to &#8220;yield&#8221; then this will be passed to
+the block. One way to use this is to pass an array to layout and treat it
+as an enumerable.
+</p>
+<pre class="code">
+  &lt;%# app/views/users/_user.html.erb &amp;&gt;
+  &lt;div class=&quot;user&quot;&gt;
+    Budget: $&lt;%= user.budget %&gt;
+    &lt;%= yield user %&gt;
+  &lt;/div&gt;
+
+  &lt;%# app/views/users/index.html.erb &amp;&gt;
+  &lt;%= render :layout =&gt; @users do |user| %&gt;
+    Title: &lt;%= user.title %&gt;
+  &lt;% end %&gt;
+</pre>
+<p>
+This will render the layout for each user and yield to the block, passing
+the user, each time.
+</p>
+<p>
+You can also yield multiple times in one layout and use block arguments to
+differentiate the sections.
+</p>
+<pre class="code">
+  &lt;%# app/views/users/_user.html.erb &amp;&gt;
+  &lt;div class=&quot;user&quot;&gt;
+    &lt;%= yield user, :header %&gt;
+    Budget: $&lt;%= user.budget %&gt;
+    &lt;%= yield user, :footer %&gt;
+  &lt;/div&gt;
+
+  &lt;%# app/views/users/index.html.erb &amp;&gt;
+  &lt;%= render :layout =&gt; @users do |user, section| %&gt;
+    &lt;%- case section when :header -%&gt;
+      Title: &lt;%= user.title %&gt;
+    &lt;%- when :footer -%&gt;
+      Deadline: &lt;%= user.deadline %&gt;
+    &lt;%- end -%&gt;
+  &lt;% end %&gt;</pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Partials/PartialRenderer.html" title="ActionView::Partials::PartialRenderer (class)">PartialRenderer</a></span>
+    
+  
+</p>
+
+
+  
+  
+  
+  
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#_render_partial-instance_method" title="#_render_partial (instance method)">- (Object) <strong>_render_partial</strong>(options, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">append_features</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">included</a></span></p>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="_render_partial-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>_render_partial</strong>(options, &amp;block) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+327
+328
+329
+330
+331
+332
+333
+334
+335</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_view/render/partials.rb', line 327</span>
+
+<span class='kw'>def</span> <span class='id _render_partial'>_render_partial</span><span class='lparen'>(</span><span class='id options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='kw'>if</span> <span class='kw'>defined?</span><span class='lparen'>(</span><span class='ivar'>@renderer</span><span class='rparen'>)</span>
+    <span class='ivar'>@renderer</span><span class='period'>.</span><span class='id setup'>setup</span><span class='lparen'>(</span><span class='id options'>options</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='ivar'>@renderer</span> <span class='op'>=</span> <span class='const'>PartialRenderer</span><span class='period'>.</span><span class='id new'>new</span><span class='lparen'>(</span><span class='kw'>self</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@renderer</span><span class='period'>.</span><span class='id render'>render</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:34 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

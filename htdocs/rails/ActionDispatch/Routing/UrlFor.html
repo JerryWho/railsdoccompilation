@@ -1,0 +1,413 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActionDispatch::Routing::UrlFor</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (U)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../ActionDispatch.html" title="ActionDispatch (module)">ActionDispatch</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Routing.html" title="ActionDispatch::Routing (module)">Routing</a></span></span>
+     &raquo; 
+    <span class="title">UrlFor</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActionDispatch::Routing::UrlFor
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+      <dt class="r1">Extended by:</dt>
+      <dd class="r1"><span class='object_link'><a href="../../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></dd>
+      
+    
+  
+    
+      <dt class="r2">Includes:</dt>
+      <dd class="r2"><span class='object_link'><a href="PolymorphicRoutes.html" title="ActionDispatch::Routing::PolymorphicRoutes (module)">PolymorphicRoutes</a></span></dd>
+      
+    
+  
+  
+    <dt class="r1">Included in:</dt>
+    <dd class="r1"><span class='object_link'><a href="../../ActionController/UrlFor.html" title="ActionController::UrlFor (module)">ActionController::UrlFor</a></span>, <span class='object_link'><a href="../Integration/Runner.html" title="ActionDispatch::Integration::Runner (module)">Integration::Runner</a></span>, <span class='object_link'><a href="../Integration/Session.html" title="ActionDispatch::Integration::Session (class)">Integration::Session</a></span>, <span class='object_link'><a href="../../ActionView/Helpers/UrlHelper.html" title="ActionView::Helpers::UrlHelper (module)">ActionView::Helpers::UrlHelper</a></span></dd>
+    
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">actionpack/lib/action_dispatch/routing/url_for.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+In <b>routes.rb</b> one defines URL-to-controller mappings, but the reverse
+is also possible: an URL can be generated from one of your routing
+definitions. URL generation functionality is centralized in this module.
+</p>
+<p>
+See ActionDispatch::Routing for general information about routing and
+routes.rb.
+</p>
+<p>
+<b>Tip:</b> If you need to generate URLs from your models or some other
+place, then ActionController::UrlFor is what you&#8217;re looking for. Read
+on for an introduction.
+</p>
+<h2>URL generation from parameters</h2>
+<p>
+As you may know, some functions - such as ActionController::Base#url_for
+and ActionView::Helpers::UrlHelper#link_to, can generate URLs given a set
+of parameters. For example, you&#8217;ve probably had the chance to write
+code like this in one of your views:
+</p>
+<pre class="code">
+  &lt;%= link_to('Click here', :controller =&gt; 'users',
+          :action =&gt; 'new', :message =&gt; 'Welcome!') %&gt;
+
+  # Generates a link to /users/new?message=Welcome%21
+</pre>
+<p>
+link_to, and all other functions that require URL generation functionality,
+actually use ActionController::UrlFor under the hood. And in particular,
+they use the ActionController::UrlFor#url_for method. One can generate the
+same path as the above example by using the following code:
+</p>
+<pre class="code">
+  <span class='id include'>include</span> <span class='const'>UrlFor</span>
+  <span class='id url_for'>url_for</span><span class='lparen'>(</span><span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>users</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>new</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:message</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Welcome!</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:only_path</span> <span class='op'>=&gt;</span> <span class='kw'>true</span><span class='rparen'>)</span>
+  <span class='comment'># =&gt; &quot;/users/new?message=Welcome%21&quot;
+</span></pre>
+<p>
+Notice the <tt>:only_path =&gt; true</tt> part. This is because UrlFor has
+no information about the website hostname that your Rails app is serving.
+So if you want to include the hostname as well, then you must also pass the
+<tt>:host</tt> argument:
+</p>
+<pre class="code">
+  <span class='id include'>include</span> <span class='const'>UrlFor</span>
+  <span class='id url_for'>url_for</span><span class='lparen'>(</span><span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>users</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>new</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:message</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Welcome!</span><span class='tstring_end'>'</span></span><span class='comma'>,</span>
+          <span class='symbol'>:host</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>www.example.com</span><span class='tstring_end'>'</span></span><span class='rparen'>)</span>        <span class='comment'># Changed this.
+</span>  <span class='comment'># =&gt; &quot;http://www.example.com/users/new?message=Welcome%21&quot;
+</span></pre>
+<p>
+By default, all controllers and views have access to a special version of
+url_for, that already knows what the current hostname is. So if you use
+url_for in your controllers or your views, then you don&#8217;t need to
+explicitly pass the <tt>:host</tt> argument.
+</p>
+<p>
+For convenience reasons, mailers provide a shortcut for
+ActionController::UrlFor#url_for. So within mailers, you only have to type
+&#8216;url_for&#8217; instead of
+&#8216;ActionController::UrlFor#url_for&#8217; in full. However, mailers
+don&#8217;t have hostname information, and what&#8217;s why you&#8217;ll
+still have to specify the <tt>:host</tt> argument when generating URLs in
+mailers.
+</p>
+<h2>URL generation for named routes</h2>
+<p>
+UrlFor also allows one to access methods that have been auto-generated from
+named routes. For example, suppose that you have a &#8216;users&#8217;
+resource in your <b>routes.rb</b>:
+</p>
+<pre class="code">
+  <span class='id resources'>resources</span> <span class='symbol'>:users</span>
+</pre>
+<p>
+This generates, among other things, the method <tt>users_path</tt>. By
+default, this method is accessible from your controllers, views and
+mailers. If you need to access this auto-generated method from other places
+(such as a model), then you can do that by including
+ActionController::UrlFor in your class:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>User</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id include'>include</span> <span class='const'>Rails</span><span class='period'>.</span><span class='id application'>application</span><span class='period'>.</span><span class='id routes'>routes</span><span class='period'>.</span><span class='id url_helpers'>url_helpers</span>
+
+    <span class='kw'>def</span> <span class='id base_uri'>base_uri</span>
+      <span class='id user_path'>user_path</span><span class='lparen'>(</span><span class='kw'>self</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='const'>User</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='int'>1</span><span class='rparen'>)</span><span class='period'>.</span><span class='id base_uri'>base_uri</span> <span class='comment'># =&gt; &quot;/users/1&quot;</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#url_for-instance_method" title="#url_for (instance method)">- (Object) <strong>url_for</strong>(options = nil) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Generate a url based on the options provided, default_url_options and the
+routes defined in routes.rb.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#url_options-instance_method" title="#url_options (instance method)">- (Object) <strong>url_options</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">append_features</a></span>, <span class='object_link'><a href="../../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">included</a></span></p>
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="PolymorphicRoutes.html" title="ActionDispatch::Routing::PolymorphicRoutes (module)">PolymorphicRoutes</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="PolymorphicRoutes.html#polymorphic_path-instance_method" title="ActionDispatch::Routing::PolymorphicRoutes#polymorphic_path (method)">#polymorphic_path</a></span>, <span class='object_link'><a href="PolymorphicRoutes.html#polymorphic_url-instance_method" title="ActionDispatch::Routing::PolymorphicRoutes#polymorphic_url (method)">#polymorphic_url</a></span></p>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="url_for-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>url_for</strong>(options = nil) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Generate a url based on the options provided, default_url_options and the
+routes defined in routes.rb.  The following options are supported:
+</p>
+<ul>
+<li><p>
+<tt>:only_path</tt> - If true, the relative url is returned. Defaults to
+<tt>false</tt>.
+</p>
+</li>
+<li><p>
+<tt>:protocol</tt> - The protocol to connect to. Defaults to
+&#8216;http&#8217;.
+</p>
+</li>
+<li><p>
+<tt>:host</tt> - Specifies the host the link should be targeted at. If
+<tt>:only_path</tt> is false, this option must be provided either
+explicitly, or via <tt>default_url_options</tt>.
+</p>
+</li>
+<li><p>
+<tt>:port</tt> - Optionally specify the port to connect to.
+</p>
+</li>
+<li><p>
+<tt>:anchor</tt> - An anchor name to be appended to the path.
+</p>
+</li>
+<li><p>
+<tt>:trailing_slash</tt> - If true, adds a trailing slash, as in
+&#8220;/archive/2009/&#8220;
+</p>
+</li>
+</ul>
+<p>
+Any other key (<tt>:controller</tt>, <tt>:action</tt>, etc.) given to
+<tt>url_for</tt> is forwarded to the Routes module.
+</p>
+<p>
+Examples:
+</p>
+<pre class="code">
+   <span class='id url_for'>url_for</span> <span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>tasks</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>testing</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:host</span><span class='op'>=&gt;</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>somehost.org</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:port</span><span class='op'>=&gt;</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>8080</span><span class='tstring_end'>'</span></span>    <span class='comment'># =&gt; 'http://somehost.org:8080/tasks/testing'
+</span>   <span class='id url_for'>url_for</span> <span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>tasks</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>testing</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:host</span><span class='op'>=&gt;</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>somehost.org</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:anchor</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>ok</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:only_path</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>    <span class='comment'># =&gt; '/tasks/testing#ok'
+</span>   <span class='id url_for'>url_for</span> <span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>tasks</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>testing</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:trailing_slash</span><span class='op'>=&gt;</span><span class='kw'>true</span>  <span class='comment'># =&gt; 'http://somehost.org/tasks/testing/'
+</span>   <span class='id url_for'>url_for</span> <span class='symbol'>:controller</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>tasks</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:action</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>testing</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:host</span><span class='op'>=&gt;</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>somehost.org</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:number</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>33</span><span class='tstring_end'>'</span></span>  <span class='comment'># =&gt; 'http://somehost.org/tasks/testing?number=33'</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/routing/url_for.rb', line 127</span>
+
+<span class='kw'>def</span> <span class='id url_for'>url_for</span><span class='lparen'>(</span><span class='id options'>options</span> <span class='op'>=</span> <span class='kw'>nil</span><span class='rparen'>)</span>
+  <span class='kw'>case</span> <span class='id options'>options</span>
+  <span class='kw'>when</span> <span class='const'>String</span>
+    <span class='id options'>options</span>
+  <span class='kw'>when</span> <span class='kw'>nil</span><span class='comma'>,</span> <span class='const'>Hash</span>
+    <span class='id _routes'>_routes</span><span class='period'>.</span><span class='id url_for'>url_for</span><span class='lparen'>(</span><span class='lparen'>(</span><span class='id options'>options</span> <span class='op'>||</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span><span class='period'>.</span><span class='id reverse_merge!'>reverse_merge!</span><span class='lparen'>(</span><span class='id url_options'>url_options</span><span class='rparen'>)</span><span class='period'>.</span><span class='id symbolize_keys'>symbolize_keys</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id polymorphic_url'>polymorphic_url</span><span class='lparen'>(</span><span class='id options'>options</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="url_options-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>url_options</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+102
+103
+104</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_dispatch/routing/url_for.rb', line 102</span>
+
+<span class='kw'>def</span> <span class='id url_options'>url_options</span>
+  <span class='id default_url_options'>default_url_options</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:56 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

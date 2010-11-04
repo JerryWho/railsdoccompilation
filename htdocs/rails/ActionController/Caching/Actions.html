@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActionController::Caching::Actions</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (A)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../ActionController.html" title="ActionController (module)">ActionController</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Caching.html" title="ActionController::Caching (module)">Caching</a></span></span>
+     &raquo; 
+    <span class="title">Actions</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActionController::Caching::Actions
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+      <dt class="r1">Extended by:</dt>
+      <dd class="r1"><span class='object_link'><a href="../../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></dd>
+      
+    
+  
+    
+  
+  
+    <dt class="r2">Included in:</dt>
+    <dd class="r2"><span class='object_link'><a href="../Caching.html" title="ActionController::Caching (module)">ActionController::Caching</a></span></dd>
+    
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">actionpack/lib/action_controller/caching/actions.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Action caching is similar to page caching by the fact that the entire
+output of the response is cached, but unlike page caching, every request
+still goes through the Action Pack. The key benefit of this is that filters
+are run before the cache is served, which allows for authentication and
+other restrictions on whether someone is allowed to see the cache. Example:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>ListsController</span> <span class='op'>&lt;</span> <span class='const'>ApplicationController</span>
+    <span class='id before_filter'>before_filter</span> <span class='symbol'>:authenticate</span><span class='comma'>,</span> <span class='symbol'>:except</span> <span class='op'>=&gt;</span> <span class='symbol'>:public</span>
+    <span class='id caches_page'>caches_page</span>   <span class='symbol'>:public</span>
+    <span class='id caches_action'>caches_action</span> <span class='symbol'>:index</span><span class='comma'>,</span> <span class='symbol'>:show</span><span class='comma'>,</span> <span class='symbol'>:feed</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+In this example, the public action doesn&#8217;t require authentication, so
+it&#8217;s possible to use the faster page caching method. But both the
+show and feed action are to be shielded behind the authenticate filter, so
+we need to implement those as action caches.
+</p>
+<p>
+Action caching internally uses the fragment caching and an around filter to
+do the job. The fragment cache is named according to both the current host
+and the path. So a page that is accessed at <a
+href="http://david.somewhere.com/lists/show/1">david.somewhere.com/lists/show/1</a>
+will result in a fragment named
+&#8220;david.somewhere.com/lists/show/1&#8221;. This allows the cacher to
+differentiate between &#8220;david.somewhere.com/lists/&#8221; and
+&#8220;jamis.somewhere.com/lists/&#8221; &#8212; which is a helpful way of
+assisting the subdomain-as-account-key pattern.
+</p>
+<p>
+Different representations of the same resource, e.g. <tt><a
+href="http://david.somewhere.com/lists">david.somewhere.com/lists</a></tt>
+and <tt><a
+href="http://david.somewhere.com/lists.xml">david.somewhere.com/lists.xml</a></tt>
+are treated like separate requests and so are cached separately. Keep in
+mind when expiring an action cache that <tt>:action =&gt; 'lists'</tt> is
+not the same as <tt>:action =&gt; 'list', :format =&gt; :xml</tt>.
+</p>
+<p>
+You can set modify the default action cache path by passing a :cache_path
+option.  This will be passed directly to ActionCachePath.path_for.  This is
+handy for actions with multiple possible routes that should be cached
+differently.  If a block is given, it is called with the current controller
+instance.
+</p>
+<p>
+And you can also use :if (or :unless) to pass a Proc that specifies when
+the action should be cached.
+</p>
+<p>
+Finally, if you are using memcached, you can also pass :expires_in.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>ListsController</span> <span class='op'>&lt;</span> <span class='const'>ApplicationController</span>
+    <span class='id before_filter'>before_filter</span> <span class='symbol'>:authenticate</span><span class='comma'>,</span> <span class='symbol'>:except</span> <span class='op'>=&gt;</span> <span class='symbol'>:public</span>
+    <span class='id caches_page'>caches_page</span>   <span class='symbol'>:public</span>
+    <span class='id caches_action'>caches_action</span> <span class='symbol'>:index</span><span class='comma'>,</span> <span class='symbol'>:if</span> <span class='op'>=&gt;</span> <span class='id proc'>proc</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id c'>c</span><span class='op'>|</span>
+      <span class='op'>!</span><span class='id c'>c</span><span class='period'>.</span><span class='id request'>request</span><span class='period'>.</span><span class='id format'>format</span><span class='period'>.</span><span class='id json?'>json?</span>  <span class='comment'># cache if is not a JSON request
+</span>    <span class='kw'>end</span>
+
+    <span class='id caches_action'>caches_action</span> <span class='symbol'>:show</span><span class='comma'>,</span> <span class='symbol'>:cache_path</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:project</span> <span class='op'>=&gt;</span> <span class='int'>1</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+      <span class='symbol'>:expires_in</span> <span class='op'>=&gt;</span> <span class='int'>1</span><span class='period'>.</span><span class='id hour'>hour</span>
+
+    <span class='id caches_action'>caches_action</span> <span class='symbol'>:feed</span><span class='comma'>,</span> <span class='symbol'>:cache_path</span> <span class='op'>=&gt;</span> <span class='id proc'>proc</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id controller'>controller</span><span class='op'>|</span>
+      <span class='kw'>if</span> <span class='id controller'>controller</span><span class='period'>.</span><span class='id params'>params</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span>
+        <span class='id controller'>controller</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='symbol'>:user_list_url</span><span class='comma'>,</span>
+          <span class='id controller'>controller</span><span class='period'>.</span><span class='id params'>params</span><span class='lbracket'>[</span><span class='symbol'>:user_id</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='id controller'>controller</span><span class='period'>.</span><span class='id params'>params</span><span class='lbracket'>[</span><span class='symbol'>:id</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+      <span class='kw'>else</span>
+        <span class='id controller'>controller</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='symbol'>:list_url</span><span class='comma'>,</span> <span class='id controller'>controller</span><span class='period'>.</span><span class='id params'>params</span><span class='lbracket'>[</span><span class='symbol'>:id</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+If you pass :layout => false, it will only cache your action content. It is
+useful when your layout has dynamic information.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+      <strong class="modules">Modules:</strong> <span class='object_link'><a href="Actions/ClassMethods.html" title="ActionController::Caching::Actions::ClassMethods (module)">ClassMethods</a></span>
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="Actions/ActionCacheFilter.html" title="ActionController::Caching::Actions::ActionCacheFilter (class)">ActionCacheFilter</a></span>, <span class='object_link'><a href="Actions/ActionCachePath.html" title="ActionController::Caching::Actions::ActionCachePath (class)">ActionCachePath</a></span>
+    
+  
+</p>
+
+
+  
+  
+  
+  
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#_save_fragment-instance_method" title="#_save_fragment (instance method)">- (Object) <strong>_save_fragment</strong>(name, options) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+  <h3 class="inherited">Methods included from <span class='object_link'><a href="../../ActiveSupport/Concern.html" title="ActiveSupport::Concern (module)">ActiveSupport::Concern</a></span></h3>
+  <p class="inherited"><span class='object_link'><a href="../../ActiveSupport/Concern.html#append_features-instance_method" title="ActiveSupport::Concern#append_features (method)">append_features</a></span>, <span class='object_link'><a href="../../ActiveSupport/Concern.html#extended-class_method" title="ActiveSupport::Concern.extended (method)">extended</a></span>, <span class='object_link'><a href="../../ActiveSupport/Concern.html#included-instance_method" title="ActiveSupport::Concern#included (method)">included</a></span></p>
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="_save_fragment-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>_save_fragment</strong>(name, options) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+91
+92
+93
+94
+95
+96
+97
+98</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'actionpack/lib/action_controller/caching/actions.rb', line 91</span>
+
+<span class='kw'>def</span> <span class='id _save_fragment'>_save_fragment</span><span class='lparen'>(</span><span class='id name'>name</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id caching_allowed?'>caching_allowed?</span>
+
+  <span class='id content'>content</span> <span class='op'>=</span> <span class='id response_body'>response_body</span>
+  <span class='id content'>content</span> <span class='op'>=</span> <span class='id content'>content</span><span class='period'>.</span><span class='id join'>join</span> <span class='kw'>if</span> <span class='id content'>content</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Array</span><span class='rparen'>)</span>
+
+  <span class='id write_fragment'>write_fragment</span><span class='lparen'>(</span><span class='id name'>name</span><span class='comma'>,</span> <span class='id content'>content</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:59 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

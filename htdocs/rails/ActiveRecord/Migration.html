@@ -1,0 +1,1148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Class: ActiveRecord::Migration</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (M)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../ActiveRecord.html" title="ActiveRecord (module)">ActiveRecord</a></span></span>
+     &raquo; 
+    <span class="title">Migration</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: ActiveRecord::Migration
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName"><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></span>
+      
+        <ul class="fullTree">
+          <li><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></li>
+          
+            <li class="next">ActiveRecord::Migration</li>
+          
+        </ul>
+        <a href="#" class="inheritanceTree">show all</a>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">activerecord/lib/active_record/migration.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <h1>Active Record Migrations</h1>
+<p>
+Migrations can manage the evolution of a schema used by several physical
+databases. It&#8217;s a solution to the common problem of adding a field to
+make a new feature work in your local database, but being unsure of how to
+push that change to other developers and to the production server. With
+migrations, you can describe the transformations in self-contained classes
+that can be checked into version control systems and executed against
+another database that might be one, two, or five versions behind.
+</p>
+<p>
+Example of a simple migration:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AddSsl</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id add_column'>add_column</span> <span class='symbol'>:accounts</span><span class='comma'>,</span> <span class='symbol'>:ssl_enabled</span><span class='comma'>,</span> <span class='symbol'>:boolean</span><span class='comma'>,</span> <span class='symbol'>:default</span> <span class='op'>=&gt;</span> <span class='int'>1</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id remove_column'>remove_column</span> <span class='symbol'>:accounts</span><span class='comma'>,</span> <span class='symbol'>:ssl_enabled</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This migration will add a boolean flag to the accounts table and remove it
+if you&#8217;re backing out of the migration. It shows how all migrations
+have two class methods <tt>up</tt> and <tt>down</tt> that describes the
+transformations required to implement or remove the migration. These
+methods can consist of both the migration specific methods like add_column
+and remove_column, but may also contain regular Ruby code for generating
+data needed for the transformations.
+</p>
+<p>
+Example of a more complex migration that also needs to initialize data:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AddSystemSettings</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id create_table'>create_table</span> <span class='symbol'>:system_settings</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id t'>t</span><span class='op'>|</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id string'>string</span>  <span class='symbol'>:name</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id string'>string</span>  <span class='symbol'>:label</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id text'>text</span>  <span class='symbol'>:value</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id string'>string</span>  <span class='symbol'>:type</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id integer'>integer</span>  <span class='symbol'>:position</span>
+      <span class='kw'>end</span>
+
+      <span class='const'>SystemSetting</span><span class='period'>.</span><span class='id create'>create</span>  <span class='symbol'>:name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>notice</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                            <span class='symbol'>:label</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Use notice?</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+                            <span class='symbol'>:value</span> <span class='op'>=&gt;</span> <span class='int'>1</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id drop_table'>drop_table</span> <span class='symbol'>:system_settings</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+This migration first adds the system_settings table, then creates the very
+first row in it using the Active Record model that relies on the table. It
+also uses the more advanced create_table syntax where you can specify a
+complete table schema in one block call.
+</p>
+<h2>Available transformations</h2>
+<ul>
+<li><p>
+<tt>create_table(name, options)</tt> Creates a table called <tt>name</tt>
+and makes the table object available to a block that can then add columns
+to it, following the same format as add_column. See example above. The
+options hash is for fragments like &#8220;DEFAULT CHARSET=UTF-8&#8221; that
+are appended to the create table definition.
+</p>
+</li>
+<li><p>
+<tt>drop_table(name)</tt>: Drops the table called <tt>name</tt>.
+</p>
+</li>
+<li><p>
+<tt>rename_table(old_name, new_name)</tt>: Renames the table called
+<tt>old_name</tt> to <tt>new_name</tt>.
+</p>
+</li>
+<li><p>
+<tt>add_column(table_name, column_name, type, options)</tt>: Adds a new
+column to the table called <tt>table_name</tt> named <tt>column_name</tt>
+specified to be one of the following types: <tt>:string</tt>,
+<tt>:text</tt>, <tt>:integer</tt>, <tt>:float</tt>, <tt>:decimal</tt>,
+<tt>:datetime</tt>, <tt>:timestamp</tt>, <tt>:time</tt>, <tt>:date</tt>,
+<tt>:binary</tt>, <tt>:boolean</tt>. A default value can be specified by
+passing an <tt>options</tt> hash like <tt>{ :default =&gt; 11 }</tt>. Other
+options include <tt>:limit</tt> and <tt>:null</tt> (e.g. <tt>{ :limit =&gt;
+50, :null =&gt; false }</tt>) &#8212; see
+ActiveRecord::ConnectionAdapters::TableDefinition#column for details.
+</p>
+</li>
+<li><p>
+<tt>rename_column(table_name, column_name, new_column_name)</tt>: Renames a
+column but keeps the type and content.
+</p>
+</li>
+<li><p>
+<tt>change_column(table_name, column_name, type, options)</tt>:  Changes
+the column to a different type using the same parameters as add_column.
+</p>
+</li>
+<li><p>
+<tt>remove_column(table_name, column_name)</tt>: Removes the column named
+<tt>column_name</tt> from the table called <tt>table_name</tt>.
+</p>
+</li>
+<li><p>
+<tt>add_index(table_name, column_names, options)</tt>: Adds a new index
+with the name of the column. Other options include <tt>:name</tt> and
+<tt>:unique</tt> (e.g. <tt>{ :name =&gt; &quot;users_name_index&quot;,
+:unique =&gt; true }</tt>).
+</p>
+</li>
+<li><p>
+<tt>remove_index(table_name, index_name)</tt>: Removes the index specified
+by <tt>index_name</tt>.
+</p>
+</li>
+</ul>
+<h2>Irreversible transformations</h2>
+<p>
+Some transformations are destructive in a manner that cannot be reversed.
+Migrations of that kind should raise an
+<tt>ActiveRecord::IrreversibleMigration</tt> exception in their
+<tt>down</tt> method.
+</p>
+<h2>Running migrations from within Rails</h2>
+<p>
+The Rails package has several tools to help create and apply migrations.
+</p>
+<p>
+To generate a new migration, you can use
+</p>
+<pre class="code">
+  <span class='id rails'>rails</span> <span class='id generate'>generate</span> <span class='id migration'>migration</span> <span class='const'>MyNewMigration</span>
+</pre>
+<p>
+where MyNewMigration is the name of your migration. The generator will
+create an empty migration file <tt>timestamp_my_new_migration.rb</tt> in
+the <tt>db/migrate/</tt> directory where <tt>timestamp</tt> is the UTC
+formatted date and time that the migration was generated.
+</p>
+<p>
+You may then edit the <tt>self.up</tt> and <tt>self.down</tt> methods of
+MyNewMigration.
+</p>
+<p>
+There is a special syntactic shortcut to generate migrations that add
+fields to a table.
+</p>
+<pre class="code">
+  <span class='id rails'>rails</span> <span class='id generate'>generate</span> <span class='id migration'>migration</span> <span class='id add_fieldname_to_tablename'>add_fieldname_to_tablename</span> <span class='label'>fieldname:</span><span class='id string'>string</span>
+</pre>
+<p>
+This will generate the file <tt>timestamp_add_fieldname_to_tablename</tt>,
+which will look like this:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AddFieldnameToTablename</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id add_column'>add_column</span> <span class='symbol'>:tablenames</span><span class='comma'>,</span> <span class='symbol'>:fieldname</span><span class='comma'>,</span> <span class='symbol'>:string</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id remove_column'>remove_column</span> <span class='symbol'>:tablenames</span><span class='comma'>,</span> <span class='symbol'>:fieldname</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+To run migrations against the currently configured database, use <tt>rake
+db:migrate</tt>. This will update the database by running all of the
+pending migrations, creating the <tt>schema_migrations</tt> table (see
+&#8220;About the schema_migrations table&#8221; section below) if missing.
+It will also invoke the db:schema:dump task, which will update your
+db/schema.rb file to match the structure of your database.
+</p>
+<p>
+To roll the database back to a previous migration version, use <tt>rake
+db:migrate VERSION=X</tt> where <tt>X</tt> is the version to which you wish
+to downgrade. If any of the migrations throw an
+<tt>ActiveRecord::IrreversibleMigration</tt> exception, that step will fail
+and you&#8217;ll have some manual work to do.
+</p>
+<h2>Database support</h2>
+<p>
+Migrations are currently supported in MySQL, PostgreSQL, SQLite, SQL
+Server, Sybase, and Oracle (all supported databases except DB2).
+</p>
+<h2>More examples</h2>
+<p>
+Not all migrations change the schema. Some just fix the data:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>RemoveEmptyTags</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='const'>Tag</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='rparen'>)</span><span class='period'>.</span><span class='id each'>each</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id tag'>tag</span><span class='op'>|</span> <span class='id tag'>tag</span><span class='period'>.</span><span class='id destroy'>destroy</span> <span class='kw'>if</span> <span class='id tag'>tag</span><span class='period'>.</span><span class='id pages'>pages</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='rbrace'>}</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='comment'># not much we can do to restore deleted data
+</span>      <span class='id raise'>raise</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>IrreversibleMigration</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Can't recover the deleted tags</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Others remove columns when they migrate up instead of down:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>RemoveUnnecessaryItemAttributes</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id remove_column'>remove_column</span> <span class='symbol'>:items</span><span class='comma'>,</span> <span class='symbol'>:incomplete_items_count</span>
+      <span class='id remove_column'>remove_column</span> <span class='symbol'>:items</span><span class='comma'>,</span> <span class='symbol'>:completed_items_count</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id add_column'>add_column</span> <span class='symbol'>:items</span><span class='comma'>,</span> <span class='symbol'>:incomplete_items_count</span>
+      <span class='id add_column'>add_column</span> <span class='symbol'>:items</span><span class='comma'>,</span> <span class='symbol'>:completed_items_count</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+And sometimes you need to do something in SQL not abstracted directly by
+migrations:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>MakeJoinUnique</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id execute'>execute</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ALTER TABLE `pages_linked_pages` ADD UNIQUE `page_id_linked_page_id` (`page_id`,`linked_page_id`)</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id execute'>execute</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>ALTER TABLE `pages_linked_pages` DROP INDEX `page_id_linked_page_id`</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Using a model after changing its table</h2>
+<p>
+Sometimes you&#8217;ll want to add a column in a migration and populate it
+immediately after. In that case, you&#8217;ll need to make a call to
+<tt>Base#reset_column_information</tt> in order to ensure that the model
+has the latest column data from after the new column was added. Example:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>AddPeopleSalary</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id add_column'>add_column</span> <span class='symbol'>:people</span><span class='comma'>,</span> <span class='symbol'>:salary</span><span class='comma'>,</span> <span class='symbol'>:integer</span>
+      <span class='const'>Person</span><span class='period'>.</span><span class='id reset_column_information'>reset_column_information</span>
+      <span class='const'>Person</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='rparen'>)</span><span class='period'>.</span><span class='id each'>each</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id p'>p</span><span class='op'>|</span>
+        <span class='id p'>p</span><span class='period'>.</span><span class='id update_attribute'>update_attribute</span> <span class='symbol'>:salary</span><span class='comma'>,</span> <span class='const'>SalaryCalculator</span><span class='period'>.</span><span class='id compute'>compute</span><span class='lparen'>(</span><span class='id p'>p</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Controlling verbosity</h2>
+<p>
+By default, migrations will describe the actions they are taking, writing
+them to the console as they happen, along with benchmarks describing how
+long each step took.
+</p>
+<p>
+You can quiet them down by setting ActiveRecord::Migration.verbose = false.
+</p>
+<p>
+You can also insert your own messages and benchmarks by using the
+<tt>say_with_time</tt> method:
+</p>
+<pre class="code">
+  def self.up
+    ...
+    say_with_time &quot;Updating salaries...&quot; do
+      Person.find(:all).each do |p|
+        p.update_attribute :salary, SalaryCalculator.compute(p)
+      end
+    end
+    ...
+  end
+</pre>
+<p>
+The phrase &#8220;Updating salaries&#8230;&#8221; would then be printed,
+along with the benchmark for the block when the block completes.
+</p>
+<h2>About the schema_migrations table</h2>
+<p>
+Rails versions 2.0 and prior used to create a table called
+<tt>schema_info</tt> when using migrations. This table contained the
+version of the schema as of the last applied migration.
+</p>
+<p>
+Starting with Rails 2.1, the <tt>schema_info</tt> table is (automatically)
+replaced by the <tt>schema_migrations</tt> table, which contains the
+version numbers of all the migrations applied.
+</p>
+<p>
+As a result, it is now possible to add migration files that are numbered
+lower than the current schema version: when migrating up, those
+never-applied &#8220;interleaved&#8221; migrations will be automatically
+applied, and when migrating down, never-applied &#8220;interleaved&#8221;
+migrations will be skipped.
+</p>
+<h2>Timestamped Migrations</h2>
+<p>
+By default, Rails generates migrations that look like:
+</p>
+<pre class="code">
+   20080717013526_your_migration_name.rb
+</pre>
+<p>
+The prefix is a generation timestamp (in UTC).
+</p>
+<p>
+If you&#8217;d prefer to use numeric prefixes, you can turn timestamped
+migrations off by setting:
+</p>
+<pre class="code">
+   <span class='id config'>config</span><span class='period'>.</span><span class='id active_record'>active_record</span><span class='period'>.</span><span class='id timestamped_migrations'>timestamped_migrations</span> <span class='op'>=</span> <span class='kw'>false</span>
+</pre>
+<p>
+In application.rb.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><div id="subclasses">
+  <h2>Direct Known Subclasses</h2>
+  <p class="children"><span class='object_link'><a href="Schema.html" title="ActiveRecord::Schema (class)">Schema</a></span></p>
+</div>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="verbose-classvariable" class="">@@verbose =
+          
+        </dt>
+        <dd><pre class="code"><span class='kw'>true</span></pre></dd>
+      
+    </dl>
+  
+
+
+
+  
+    <h2>
+      Class Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#announce-class_method" title="announce (class method)">+ (Object) <strong>announce</strong>(message) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#connection-class_method" title="connection (class method)">+ (Object) <strong>connection</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#down_with_benchmarks-class_method" title="down_with_benchmarks (class method)">+ (Object) <strong>down_with_benchmarks</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#method_missing-class_method" title="method_missing (class method)">+ (Object) <strong>method_missing</strong>(method, *arguments, &amp;block) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#migrate-class_method" title="migrate (class method)">+ (Object) <strong>migrate</strong>(direction) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Execute this migration in the named direction.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#say-class_method" title="say (class method)">+ (Object) <strong>say</strong>(message, subitem = false) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#say_with_time-class_method" title="say_with_time (class method)">+ (Object) <strong>say_with_time</strong>(message) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#singleton_method_added-class_method" title="singleton_method_added (class method)">+ (Object) <strong>singleton_method_added</strong>(sym) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Because the method added may do an alias_method, it can be invoked
+recursively.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#suppress_messages-class_method" title="suppress_messages (class method)">+ (Object) <strong>suppress_messages</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#up_with_benchmarks-class_method" title="up_with_benchmarks (class method)">+ (Object) <strong>up_with_benchmarks</strong> </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+:nodoc:.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#write-class_method" title="write (class method)">+ (Object) <strong>write</strong>(text = &quot;&quot;) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'></div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="class_method_details" class="method_details_list">
+    <h2>Class Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="announce-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>announce</strong>(message) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+344
+345
+346
+347
+348
+349
+350</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 344</span>
+
+<span class='kw'>def</span> <span class='id announce'>announce</span><span class='lparen'>(</span><span class='id message'>message</span><span class='rparen'>)</span>
+  <span class='id version'>version</span> <span class='op'>=</span> <span class='kw'>defined?</span><span class='lparen'>(</span><span class='ivar'>@version</span><span class='rparen'>)</span> <span class='op'>?</span> <span class='ivar'>@version</span> <span class='op'>:</span> <span class='kw'>nil</span>
+
+  <span class='id text'>text</span> <span class='op'>=</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id version'>version</span><span class='rbrace'>}</span><span class='tstring_content'> </span><span class='embexpr_beg'>#{</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='tstring_content'>: </span><span class='embexpr_beg'>#{</span><span class='id message'>message</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id length'>length</span> <span class='op'>=</span> <span class='lbracket'>[</span><span class='int'>0</span><span class='comma'>,</span> <span class='int'>75</span> <span class='op'>-</span> <span class='id text'>text</span><span class='period'>.</span><span class='id length'>length</span><span class='rbracket'>]</span><span class='period'>.</span><span class='id max'>max</span>
+  <span class='id write'>write</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>== %s %s</span><span class='tstring_end'>&quot;</span></span> <span class='op'>%</span> <span class='lbracket'>[</span><span class='id text'>text</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>=</span><span class='tstring_end'>&quot;</span></span> <span class='op'>*</span> <span class='id length'>length</span><span class='rbracket'>]</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="connection-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>connection</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+372
+373
+374</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 372</span>
+
+<span class='kw'>def</span> <span class='id connection'>connection</span>
+  <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span><span class='period'>.</span><span class='id connection'>connection</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="down_with_benchmarks-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>down_with_benchmarks</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+298
+299
+300</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 298</span>
+
+<span class='kw'>def</span> <span class='id down_with_benchmarks'>down_with_benchmarks</span> <span class='comment'>#:nodoc:
+</span>  <span class='id migrate'>migrate</span><span class='lparen'>(</span><span class='symbol'>:down</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="method_missing-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>method_missing</strong>(method, *arguments, &amp;block) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 376</span>
+
+<span class='kw'>def</span> <span class='id method_missing'>method_missing</span><span class='lparen'>(</span><span class='id method'>method</span><span class='comma'>,</span> <span class='op'>*</span><span class='id arguments'>arguments</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='id arg_list'>arg_list</span> <span class='op'>=</span> <span class='id arguments'>arguments</span><span class='period'>.</span><span class='id map'>map</span><span class='lbrace'>{</span> <span class='op'>|</span><span class='id a'>a</span><span class='op'>|</span> <span class='id a'>a</span><span class='period'>.</span><span class='id inspect'>inspect</span> <span class='rbrace'>}</span> <span class='op'>*</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>, </span><span class='tstring_end'>'</span></span>
+
+  <span class='id say_with_time'>say_with_time</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id method'>method</span><span class='rbrace'>}</span><span class='tstring_content'>(</span><span class='embexpr_beg'>#{</span><span class='id arg_list'>arg_list</span><span class='rbrace'>}</span><span class='tstring_content'>)</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>do</span>
+    <span class='kw'>unless</span> <span class='id arguments'>arguments</span><span class='period'>.</span><span class='id empty?'>empty?</span> <span class='op'>||</span> <span class='id method'>method</span> <span class='op'>==</span> <span class='symbol'>:execute</span>
+      <span class='id arguments'>arguments</span><span class='lbracket'>[</span><span class='int'>0</span><span class='rbracket'>]</span> <span class='op'>=</span> <span class='const'>Migrator</span><span class='period'>.</span><span class='id proper_table_name'>proper_table_name</span><span class='lparen'>(</span><span class='id arguments'>arguments</span><span class='period'>.</span><span class='id first'>first</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+    <span class='id connection'>connection</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='id method'>method</span><span class='comma'>,</span> <span class='op'>*</span><span class='id arguments'>arguments</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id block'>block</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="migrate-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>migrate</strong>(direction) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Execute this migration in the named direction
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 303</span>
+
+<span class='kw'>def</span> <span class='id migrate'>migrate</span><span class='lparen'>(</span><span class='id direction'>direction</span><span class='rparen'>)</span>
+  <span class='kw'>return</span> <span class='kw'>unless</span> <span class='id respond_to?'>respond_to?</span><span class='lparen'>(</span><span class='id direction'>direction</span><span class='rparen'>)</span>
+
+  <span class='kw'>case</span> <span class='id direction'>direction</span>
+    <span class='kw'>when</span> <span class='symbol'>:up</span>   <span class='kw'>then</span> <span class='id announce'>announce</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>migrating</span><span class='tstring_end'>&quot;</span></span>
+    <span class='kw'>when</span> <span class='symbol'>:down</span> <span class='kw'>then</span> <span class='id announce'>announce</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reverting</span><span class='tstring_end'>&quot;</span></span>
+  <span class='kw'>end</span>
+
+  <span class='id result'>result</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id time'>time</span> <span class='op'>=</span> <span class='const'>Benchmark</span><span class='period'>.</span><span class='id measure'>measure</span> <span class='lbrace'>{</span> <span class='id result'>result</span> <span class='op'>=</span> <span class='id send'>send</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id direction'>direction</span><span class='rbrace'>}</span><span class='tstring_content'>_without_benchmarks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span> <span class='rbrace'>}</span>
+
+  <span class='kw'>case</span> <span class='id direction'>direction</span>
+    <span class='kw'>when</span> <span class='symbol'>:up</span>   <span class='kw'>then</span> <span class='id announce'>announce</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>migrated (%.4fs)</span><span class='tstring_end'>&quot;</span></span> <span class='op'>%</span> <span class='id time'>time</span><span class='period'>.</span><span class='id real'>real</span><span class='semicolon'>;</span> <span class='id write'>write</span>
+    <span class='kw'>when</span> <span class='symbol'>:down</span> <span class='kw'>then</span> <span class='id announce'>announce</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>reverted (%.4fs)</span><span class='tstring_end'>&quot;</span></span> <span class='op'>%</span> <span class='id time'>time</span><span class='period'>.</span><span class='id real'>real</span><span class='semicolon'>;</span> <span class='id write'>write</span>
+  <span class='kw'>end</span>
+
+  <span class='id result'>result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="say-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>say</strong>(message, subitem = false) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+352
+353
+354</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 352</span>
+
+<span class='kw'>def</span> <span class='id say'>say</span><span class='lparen'>(</span><span class='id message'>message</span><span class='comma'>,</span> <span class='id subitem'>subitem</span><span class='op'>=</span><span class='kw'>false</span><span class='rparen'>)</span>
+  <span class='id write'>write</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id subitem'>subitem</span> <span class='op'>?</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>   -&gt;</span><span class='tstring_end'>&quot;</span></span> <span class='op'>:</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>--</span><span class='tstring_end'>&quot;</span></span><span class='rbrace'>}</span><span class='tstring_content'> </span><span class='embexpr_beg'>#{</span><span class='id message'>message</span><span class='rbrace'>}</span><span class='tstring_end'>&quot;</span></span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="say_with_time-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>say_with_time</strong>(message) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+356
+357
+358
+359
+360
+361
+362
+363</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 356</span>
+
+<span class='kw'>def</span> <span class='id say_with_time'>say_with_time</span><span class='lparen'>(</span><span class='id message'>message</span><span class='rparen'>)</span>
+  <span class='id say'>say</span><span class='lparen'>(</span><span class='id message'>message</span><span class='rparen'>)</span>
+  <span class='id result'>result</span> <span class='op'>=</span> <span class='kw'>nil</span>
+  <span class='id time'>time</span> <span class='op'>=</span> <span class='const'>Benchmark</span><span class='period'>.</span><span class='id measure'>measure</span> <span class='lbrace'>{</span> <span class='id result'>result</span> <span class='op'>=</span> <span class='kw'>yield</span> <span class='rbrace'>}</span>
+  <span class='id say'>say</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>%.4fs</span><span class='tstring_end'>&quot;</span></span> <span class='op'>%</span> <span class='id time'>time</span><span class='period'>.</span><span class='id real'>real</span><span class='comma'>,</span> <span class='symbol'>:subitem</span>
+  <span class='id say'>say</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='embexpr_beg'>#{</span><span class='id result'>result</span><span class='rbrace'>}</span><span class='tstring_content'> rows</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:subitem</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id result'>result</span><span class='period'>.</span><span class='id is_a?'>is_a?</span><span class='lparen'>(</span><span class='const'>Integer</span><span class='rparen'>)</span>
+  <span class='id result'>result</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="singleton_method_added-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>singleton_method_added</strong>(sym) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Because the method added may do an alias_method, it can be invoked
+recursively. We use @ignore_new_methods as a guard to indicate whether it
+is safe for the call to proceed.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 325</span>
+
+<span class='kw'>def</span> <span class='id singleton_method_added'>singleton_method_added</span><span class='lparen'>(</span><span class='id sym'>sym</span><span class='rparen'>)</span> <span class='comment'>#:nodoc:
+</span>  <span class='kw'>return</span> <span class='kw'>if</span> <span class='kw'>defined?</span><span class='lparen'>(</span><span class='ivar'>@ignore_new_methods</span><span class='rparen'>)</span> <span class='op'>&amp;&amp;</span> <span class='ivar'>@ignore_new_methods</span>
+
+  <span class='kw'>begin</span>
+    <span class='ivar'>@ignore_new_methods</span> <span class='op'>=</span> <span class='kw'>true</span>
+
+    <span class='kw'>case</span> <span class='id sym'>sym</span>
+      <span class='kw'>when</span> <span class='symbol'>:up</span><span class='comma'>,</span> <span class='symbol'>:down</span>
+        <span class='id singleton_class'>singleton_class</span><span class='period'>.</span><span class='id send'>send</span><span class='lparen'>(</span><span class='symbol'>:alias_method_chain</span><span class='comma'>,</span> <span class='id sym'>sym</span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>benchmarks</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>ensure</span>
+    <span class='ivar'>@ignore_new_methods</span> <span class='op'>=</span> <span class='kw'>false</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="suppress_messages-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>suppress_messages</strong> 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+365
+366
+367
+368
+369
+370</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 365</span>
+
+<span class='kw'>def</span> <span class='id suppress_messages'>suppress_messages</span>
+  <span class='id save'>save</span><span class='comma'>,</span> <span class='kw'>self</span><span class='period'>.</span><span class='id verbose'>verbose</span> <span class='op'>=</span> <span class='id verbose'>verbose</span><span class='comma'>,</span> <span class='kw'>false</span>
+  <span class='kw'>yield</span>
+<span class='kw'>ensure</span>
+  <span class='kw'>self</span><span class='period'>.</span><span class='id verbose'>verbose</span> <span class='op'>=</span> <span class='id save'>save</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="up_with_benchmarks-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>up_with_benchmarks</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+:nodoc:
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+294
+295
+296</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 294</span>
+
+<span class='kw'>def</span> <span class='id up_with_benchmarks'>up_with_benchmarks</span> <span class='comment'>#:nodoc:
+</span>  <span class='id migrate'>migrate</span><span class='lparen'>(</span><span class='symbol'>:up</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="write-class_method">
+  
+    + (<tt><span class='object_link'><a href="../Object.html" title="Object (class)">Object</a></span></tt>) <strong>write</strong>(text = &quot;&quot;) 
+  
+
+  
+</p><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+340
+341
+342</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/migration.rb', line 340</span>
+
+<span class='kw'>def</span> <span class='id write'>write</span><span class='lparen'>(</span><span class='id text'>text</span><span class='op'>=</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id puts'>puts</span><span class='lparen'>(</span><span class='id text'>text</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id verbose'>verbose</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:30 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>

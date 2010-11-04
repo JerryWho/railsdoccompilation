@@ -1,0 +1,2430 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=utf-8" />
+<title>Module: ActiveRecord::Associations::ClassMethods</title>
+<link rel="stylesheet" href="../../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '../..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../js/app.js"></script>
+
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      if (window.top.frames.main) document.body.className = 'frames';
+    </script>
+    
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../../_index.html">Index (C)</a> &raquo; 
+    <span class='title'><span class='object_link'><a href="../../ActiveRecord.html" title="ActiveRecord (module)">ActiveRecord</a></span></span> &raquo; <span class='title'><span class='object_link'><a href="../Associations.html" title="ActiveRecord::Associations (module)">Associations</a></span></span>
+     &raquo; 
+    <span class="title">ClassMethods</span>
+  
+  
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Class List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Module: ActiveRecord::Associations::ClassMethods
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+  
+    <dt class="r1 last">Defined in:</dt>
+    <dd class="r1 last">activerecord/lib/active_record/associations.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Associations are a set of macro-like class methods for tying objects
+together through foreign keys. They express relationships like
+&#8220;Project has one Project Manager&#8221; or &#8220;Project belongs to
+a Portfolio&#8221;. Each macro adds a number of methods to the class which
+are specialized according to the collection or association symbol and the
+options hash. It works much the same way as Ruby&#8217;s own <tt>attr*</tt>
+methods.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Project</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span>              <span class='symbol'>:portfolio</span>
+    <span class='id has_one'>has_one</span>                 <span class='symbol'>:project_manager</span>
+    <span class='id has_many'>has_many</span>                <span class='symbol'>:milestones</span>
+    <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:categories</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The project class now has the following methods (and more) to ease the
+traversal and manipulation of its relationships:
+</p>
+<ul>
+<li><p>
+<tt>Project#portfolio, Project#portfolio=(portfolio),
+Project#portfolio.nil?</tt>
+</p>
+</li>
+<li><p>
+<tt>Project#project_manager, Project#project_manager=(project_manager),
+Project#project_manager.nil?,</tt>
+</p>
+</li>
+<li><p>
+<tt>Project#milestones.empty?, Project#milestones.size, Project#milestones,
+Project#milestones&lt;&lt;(milestone),</tt>
+<tt>Project#milestones.delete(milestone),
+Project#milestones.find(milestone_id), Project#milestones.find(:all,
+options),</tt> <tt>Project#milestones.build, Project#milestones.create</tt>
+</p>
+</li>
+<li><p>
+<tt>Project#categories.empty?, Project#categories.size, Project#categories,
+Project#categories&lt;&lt;(category1),</tt>
+<tt>Project#categories.delete(category1)</tt>
+</p>
+</li>
+</ul>
+<h3>A word of warning</h3>
+<p>
+Don&#8217;t create associations that have the same name as instance methods
+of <tt>ActiveRecord::Base</tt>. Since the association adds a method with
+that name to its model, it will override the inherited method and break
+things. For instance, <tt>attributes</tt> and <tt>connection</tt> would be
+bad choices for association names.
+</p>
+<h2>Auto-generated methods</h2>
+<h3>Singular associations (one-to-one)</h3>
+<pre class="code">
+                                    |            |  belongs_to  |
+  generated methods                 | belongs_to | :polymorphic | has_one
+  ----------------------------------+------------+--------------+---------
+  other                             |     X      |      X       |    X
+  other=(other)                     |     X      |      X       |    X
+  build_other(attributes={})        |     X      |              |    X
+  create_other(attributes={})       |     X      |              |    X
+  other.create!(attributes={})      |            |              |    X
+</pre>
+<h3>Collection associations (one-to-many / many-to-many)</h3>
+<pre class="code">
+                                    |       |          | has_many
+  generated methods                 | habtm | has_many | :through
+  ----------------------------------+-------+----------+----------
+  others                            |   X   |    X     |    X
+  others=(other,other,...)          |   X   |    X     |    X
+  other_ids                         |   X   |    X     |    X
+  other_ids=(id,id,...)             |   X   |    X     |    X
+  others&lt;&lt;                          |   X   |    X     |    X
+  others.push                       |   X   |    X     |    X
+  others.concat                     |   X   |    X     |    X
+  others.build(attributes={})       |   X   |    X     |    X
+  others.create(attributes={})      |   X   |    X     |    X
+  others.create!(attributes={})     |   X   |    X     |    X
+  others.size                       |   X   |    X     |    X
+  others.length                     |   X   |    X     |    X
+  others.count                      |   X   |    X     |    X
+  others.sum(args*,&amp;block)          |   X   |    X     |    X
+  others.empty?                     |   X   |    X     |    X
+  others.clear                      |   X   |    X     |    X
+  others.delete(other,other,...)    |   X   |    X     |    X
+  others.delete_all                 |   X   |    X     |
+  others.destroy_all                |   X   |    X     |    X
+  others.find(*args)                |   X   |    X     |    X
+  others.find_first                 |   X   |          |
+  others.exists?                    |   X   |    X     |    X
+  others.uniq                       |   X   |    X     |    X
+  others.reset                      |   X   |    X     |    X
+</pre>
+<h2>Cardinality and associations</h2>
+<p>
+Active Record associations can be used to describe one-to-one, one-to-many
+and many-to-many relationships between models. Each model uses an
+association to describe its role in the relation. The <tt>belongs_to</tt>
+association is always used in the model that has the foreign key.
+</p>
+<h3>One-to-one</h3>
+<p>
+Use <tt>has_one</tt> in the base, and <tt>belongs_to</tt> in the associated
+model.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Employee</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_one'>has_one</span> <span class='symbol'>:office</span>
+  <span class='kw'>end</span>
+  <span class='kw'>class</span> <span class='const'>Office</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:employee</span>    <span class='comment'># foreign key - employee_id
+</span>  <span class='kw'>end</span>
+</pre>
+<h3>One-to-many</h3>
+<p>
+Use <tt>has_many</tt> in the base, and <tt>belongs_to</tt> in the
+associated model.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Manager</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:employees</span>
+  <span class='kw'>end</span>
+  <span class='kw'>class</span> <span class='const'>Employee</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:manager</span>     <span class='comment'># foreign key - manager_id
+</span>  <span class='kw'>end</span>
+</pre>
+<h3>Many-to-many</h3>
+<p>
+There are two ways to build a many-to-many relationship.
+</p>
+<p>
+The first way uses a <tt>has_many</tt> association with the
+<tt>:through</tt> option and a join model, so there are two stages of
+associations.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Assignment</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:programmer</span>  <span class='comment'># foreign key - programmer_id
+</span>    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:project</span>     <span class='comment'># foreign key - project_id
+</span>  <span class='kw'>end</span>
+  <span class='kw'>class</span> <span class='const'>Programmer</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:assignments</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:projects</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:assignments</span>
+  <span class='kw'>end</span>
+  <span class='kw'>class</span> <span class='const'>Project</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:assignments</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:programmers</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:assignments</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+For the second way, use <tt>has_and_belongs_to_many</tt> in both models.
+This requires a join table that has no corresponding model or primary key.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Programmer</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:projects</span>       <span class='comment'># foreign keys in the join table
+</span>  <span class='kw'>end</span>
+  <span class='kw'>class</span> <span class='const'>Project</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:programmers</span>    <span class='comment'># foreign keys in the join table
+</span>  <span class='kw'>end</span>
+</pre>
+<p>
+Choosing which way to build a many-to-many relationship is not always
+simple. If you need to work with the relationship model as its own entity,
+use <tt>has_many :through</tt>. Use <tt>has_and_belongs_to_many</tt> when
+working with legacy schemas or when you never work directly with the
+relationship itself.
+</p>
+<h2>Is it a <tt>belongs_to</tt> or <tt>has_one</tt> association?</h2>
+<p>
+Both express a 1-1 relationship. The difference is mostly where to place
+the foreign key, which goes on the table for the class declaring the
+<tt>belongs_to</tt> relationship.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>User</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='comment'># I reference an account.
+</span>    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:account</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Account</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='comment'># One user references me.
+</span>    <span class='id has_one'>has_one</span> <span class='symbol'>:user</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+The tables for these classes could look something like:
+</p>
+<pre class="code">
+  CREATE TABLE users (
+    id int(11) NOT NULL auto_increment,
+    account_id int(11) default NULL,
+    name varchar default NULL,
+    PRIMARY KEY  (id)
+  )
+
+  CREATE TABLE accounts (
+    id int(11) NOT NULL auto_increment,
+    name varchar default NULL,
+    PRIMARY KEY  (id)
+  )
+</pre>
+<h2>Unsaved objects and associations</h2>
+<p>
+You can manipulate objects and associations before they are saved to the
+database, but there is some special behavior you should be aware of, mostly
+involving the saving of associated objects.
+</p>
+<p>
+You can set the :autosave option on a <tt>has_one</tt>,
+<tt>belongs_to</tt>, <tt>has_many</tt>, or <tt>has_and_belongs_to_many</tt>
+association. Setting it to <tt>true</tt> will <em>always</em> save the
+members, whereas setting it to <tt>false</tt> will <em>never</em> save the
+members. More details about :autosave option is available at
+autosave_association.rb .
+</p>
+<h3>One-to-one associations</h3>
+<ul>
+<li><p>
+Assigning an object to a <tt>has_one</tt> association automatically saves
+that object and
+</p>
+</li>
+</ul>
+<p>
+the object being replaced (if there is one), in order to update their
+primary keys - except if the parent object is unsaved (<tt>new_record? ==
+true</tt>).
+</p>
+<ul>
+<li><p>
+If either of these saves fail (due to one of the objects being invalid) the
+assignment
+</p>
+</li>
+</ul>
+<p>
+statement returns <tt>false</tt> and the assignment is cancelled.
+</p>
+<ul>
+<li><p>
+If you wish to assign an object to a <tt>has_one</tt> association without
+saving it,
+</p>
+</li>
+</ul>
+<p>
+use the <tt>association.build</tt> method (documented below).
+</p>
+<ul>
+<li><p>
+Assigning an object to a <tt>belongs_to</tt> association does not save the
+object, since
+</p>
+</li>
+</ul>
+<p>
+the foreign key field belongs on the parent. It does not save the parent
+either.
+</p>
+<h3>Collections</h3>
+<ul>
+<li><p>
+Adding an object to a collection (<tt>has_many</tt> or
+<tt>has_and_belongs_to_many</tt>) automatically
+</p>
+</li>
+</ul>
+<p>
+saves that object, except if the parent object (the owner of the
+collection) is not yet stored in the database.
+</p>
+<ul>
+<li><p>
+If saving any of the objects being added to a collection (via <tt>push</tt>
+or similar)
+</p>
+</li>
+</ul>
+<p>
+fails, then <tt>push</tt> returns <tt>false</tt>.
+</p>
+<ul>
+<li><p>
+You can add an object to a collection without automatically saving it by
+using the
+</p>
+</li>
+</ul>
+<p>
+<tt>collection.build</tt> method (documented below).
+</p>
+<ul>
+<li><p>
+All unsaved (<tt>new_record? == true</tt>) members of the collection are
+automatically
+</p>
+</li>
+</ul>
+<p>
+saved when the parent is saved.
+</p>
+<h3>Association callbacks</h3>
+<p>
+Similar to the normal callbacks that hook into the life cycle of an Active
+Record object, you can also define callbacks that get triggered when you
+add an object to or remove an object from an association collection.
+</p>
+<pre class="code">
+  class Project
+    has_and_belongs_to_many :developers, :after_add =&gt; :evaluate_velocity
+
+    def evaluate_velocity(developer)
+      ...
+    end
+  end
+</pre>
+<p>
+It&#8217;s possible to stack callbacks by passing them as an array.
+Example:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Project</span>
+    <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:developers</span><span class='comma'>,</span>
+                            <span class='symbol'>:after_add</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='symbol'>:evaluate_velocity</span><span class='comma'>,</span> <span class='const'>Proc</span><span class='period'>.</span><span class='id new'>new</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id p'>p</span><span class='comma'>,</span> <span class='id d'>d</span><span class='op'>|</span> <span class='id p'>p</span><span class='period'>.</span><span class='id shipping_date'>shipping_date</span> <span class='op'>=</span> <span class='const'>Time</span><span class='period'>.</span><span class='id now'>now</span><span class='rbrace'>}</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Possible callbacks are: <tt>before_add</tt>, <tt>after_add</tt>,
+<tt>before_remove</tt> and <tt>after_remove</tt>.
+</p>
+<p>
+Should any of the <tt>before_add</tt> callbacks throw an exception, the
+object does not get added to the collection. Same with the
+<tt>before_remove</tt> callbacks; if an exception is thrown the object
+doesn&#8217;t get removed.
+</p>
+<h3>Association extensions</h3>
+<p>
+The proxy objects that control the access to associations can be extended
+through anonymous modules. This is especially beneficial for adding new
+finders, creators, and other factory-type methods that are only used as
+part of this association.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Account</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:people</span> <span class='kw'>do</span>
+      <span class='kw'>def</span> <span class='id find_or_create_by_name'>find_or_create_by_name</span><span class='lparen'>(</span><span class='id name'>name</span><span class='rparen'>)</span>
+        <span class='id first_name'>first_name</span><span class='comma'>,</span> <span class='id last_name'>last_name</span> <span class='op'>=</span> <span class='id name'>name</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> </span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='int'>2</span><span class='rparen'>)</span>
+        <span class='id find_or_create_by_first_name_and_last_name'>find_or_create_by_first_name_and_last_name</span><span class='lparen'>(</span><span class='id first_name'>first_name</span><span class='comma'>,</span> <span class='id last_name'>last_name</span><span class='rparen'>)</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='id person'>person</span> <span class='op'>=</span> <span class='const'>Account</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:first</span><span class='rparen'>)</span><span class='period'>.</span><span class='id people'>people</span><span class='period'>.</span><span class='id find_or_create_by_name'>find_or_create_by_name</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>David Heinemeier Hansson</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+  <span class='id person'>person</span><span class='period'>.</span><span class='id first_name'>first_name</span> <span class='comment'># =&gt; &quot;David&quot;
+</span>  <span class='id person'>person</span><span class='period'>.</span><span class='id last_name'>last_name</span>  <span class='comment'># =&gt; &quot;Heinemeier Hansson&quot;
+</span></pre>
+<p>
+If you need to share the same extensions between many associations, you can
+use a named extension module.
+</p>
+<pre class="code">
+  <span class='kw'>module</span> <span class='const'>FindOrCreateByNameExtension</span>
+    <span class='kw'>def</span> <span class='id find_or_create_by_name'>find_or_create_by_name</span><span class='lparen'>(</span><span class='id name'>name</span><span class='rparen'>)</span>
+      <span class='id first_name'>first_name</span><span class='comma'>,</span> <span class='id last_name'>last_name</span> <span class='op'>=</span> <span class='id name'>name</span><span class='period'>.</span><span class='id split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'> </span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='int'>2</span><span class='rparen'>)</span>
+      <span class='id find_or_create_by_first_name_and_last_name'>find_or_create_by_first_name_and_last_name</span><span class='lparen'>(</span><span class='id first_name'>first_name</span><span class='comma'>,</span> <span class='id last_name'>last_name</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Account</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:people</span><span class='comma'>,</span> <span class='symbol'>:extend</span> <span class='op'>=&gt;</span> <span class='const'>FindOrCreateByNameExtension</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Company</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:people</span><span class='comma'>,</span> <span class='symbol'>:extend</span> <span class='op'>=&gt;</span> <span class='const'>FindOrCreateByNameExtension</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+If you need to use multiple named extension modules, you can specify an
+array of modules with the <tt>:extend</tt> option. In the case of name
+conflicts between methods in the modules, methods in modules later in the
+array supercede those earlier in the array.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Account</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:people</span><span class='comma'>,</span> <span class='symbol'>:extend</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='const'>FindOrCreateByNameExtension</span><span class='comma'>,</span> <span class='const'>FindRecentExtension</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Some extensions can only be made to work with knowledge of the association
+proxy&#8217;s internals. Extensions can access relevant state using
+accessors on the association proxy:
+</p>
+<ul>
+<li><p>
+<tt>proxy_owner</tt> - Returns the object the association is part of.
+</p>
+</li>
+<li><p>
+<tt>proxy_reflection</tt> - Returns the reflection object that describes
+the association.
+</p>
+</li>
+<li><p>
+<tt>proxy_target</tt> - Returns the associated object for
+<tt>belongs_to</tt> and <tt>has_one</tt>, or the collection of associated
+objects for <tt>has_many</tt> and <tt>has_and_belongs_to_many</tt>.
+</p>
+</li>
+</ul>
+<h3>Association Join Models</h3>
+<p>
+Has Many associations can be configured with the <tt>:through</tt> option
+to use an explicit join model to retrieve the data.  This operates
+similarly to a <tt>has_and_belongs_to_many</tt> association.  The advantage
+is that you&#8217;re able to add validations, callbacks, and extra
+attributes on the join model.  Consider the following schema:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Author</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:authorships</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:books</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:authorships</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Authorship</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:author</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:book</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@author</span> <span class='op'>=</span> <span class='const'>Author</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:first</span>
+  <span class='ivar'>@author</span><span class='period'>.</span><span class='id authorships'>authorships</span><span class='period'>.</span><span class='id collect'>collect</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id a'>a</span><span class='op'>|</span> <span class='id a'>a</span><span class='period'>.</span><span class='id book'>book</span> <span class='rbrace'>}</span> <span class='comment'># selects all books that the author's authorships belong to
+</span>  <span class='ivar'>@author</span><span class='period'>.</span><span class='id books'>books</span>                              <span class='comment'># selects all books by using the Authorship join model
+</span></pre>
+<p>
+You can also go through a <tt>has_many</tt> association on the join model:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Firm</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:clients</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:invoices</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:clients</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Client</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:firm</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:invoices</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Invoice</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:client</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@firm</span> <span class='op'>=</span> <span class='const'>Firm</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:first</span>
+  <span class='ivar'>@firm</span><span class='period'>.</span><span class='id clients'>clients</span><span class='period'>.</span><span class='id collect'>collect</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id c'>c</span><span class='op'>|</span> <span class='id c'>c</span><span class='period'>.</span><span class='id invoices'>invoices</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id flatten'>flatten</span> <span class='comment'># select all invoices for all clients of the firm
+</span>  <span class='ivar'>@firm</span><span class='period'>.</span><span class='id invoices'>invoices</span>                                   <span class='comment'># selects all invoices by going through the Client join model
+</span></pre>
+<p>
+Similarly you can go through a <tt>has_one</tt> association on the join
+model:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Group</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:users</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:avatars</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:users</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>User</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:group</span>
+    <span class='id has_one'>has_one</span>    <span class='symbol'>:avatar</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Avatar</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:user</span>
+  <span class='kw'>end</span>
+
+  <span class='ivar'>@group</span> <span class='op'>=</span> <span class='const'>Group</span><span class='period'>.</span><span class='id first'>first</span>
+  <span class='ivar'>@group</span><span class='period'>.</span><span class='id users'>users</span><span class='period'>.</span><span class='id collect'>collect</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id u'>u</span><span class='op'>|</span> <span class='id u'>u</span><span class='period'>.</span><span class='id avatar'>avatar</span> <span class='rbrace'>}</span><span class='period'>.</span><span class='id flatten'>flatten</span> <span class='comment'># select all avatars for all users in the group
+</span>  <span class='ivar'>@group</span><span class='period'>.</span><span class='id avatars'>avatars</span>                                <span class='comment'># selects all avatars by going through the User join model.
+</span></pre>
+<p>
+An important caveat with going through <tt>has_one</tt> or
+<tt>has_many</tt> associations on the join model is that these associations
+are <b>read-only</b>.  For example, the following would not work following
+the previous example:
+</p>
+<pre class="code">
+  <span class='ivar'>@group</span><span class='period'>.</span><span class='id avatars'>avatars</span> <span class='op'>&lt;&lt;</span> <span class='const'>Avatar</span><span class='period'>.</span><span class='id new'>new</span>   <span class='comment'># this would work if User belonged_to Avatar rather than the other way around
+</span>  <span class='ivar'>@group</span><span class='period'>.</span><span class='id avatars'>avatars</span><span class='period'>.</span><span class='id delete'>delete</span><span class='lparen'>(</span><span class='ivar'>@group</span><span class='period'>.</span><span class='id avatars'>avatars</span><span class='period'>.</span><span class='id last'>last</span><span class='rparen'>)</span>  <span class='comment'># so would this
+</span></pre>
+<h3>Polymorphic Associations</h3>
+<p>
+Polymorphic associations on models are not restricted on what types of
+models they can be associated with.  Rather, they specify an interface that
+a <tt>has_many</tt> association must adhere to.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Asset</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:attachable</span><span class='comma'>,</span> <span class='symbol'>:polymorphic</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Post</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:assets</span><span class='comma'>,</span> <span class='symbol'>:as</span> <span class='op'>=&gt;</span> <span class='symbol'>:attachable</span>         <span class='comment'># The :as option specifies the polymorphic interface to use.
+</span>  <span class='kw'>end</span>
+
+  <span class='ivar'>@asset</span><span class='period'>.</span><span class='id attachable'>attachable</span> <span class='op'>=</span> <span class='ivar'>@post</span>
+</pre>
+<p>
+This works by using a type column in addition to a foreign key to specify
+the associated record.  In the Asset example, you&#8217;d need an
+<tt>attachable_id</tt> integer column and an <tt>attachable_type</tt>
+string column.
+</p>
+<p>
+Using polymorphic associations in combination with single table inheritance
+(STI) is a little tricky. In order for the associations to work as
+expected, ensure that you store the base model for the STI models in the
+type column of the polymorphic association. To continue with the asset
+example above, suppose there are guest posts and member posts that use the
+posts table for STI. In this case, there must be a <tt>type</tt> column in
+the posts table.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Asset</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:attachable</span><span class='comma'>,</span> <span class='symbol'>:polymorphic</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+
+    <span class='kw'>def</span> <span class='id attachable_type='>attachable_type=</span><span class='lparen'>(</span><span class='id sType'>sType</span><span class='rparen'>)</span>
+       <span class='kw'>super</span><span class='lparen'>(</span><span class='id sType'>sType</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='period'>.</span><span class='id classify'>classify</span><span class='period'>.</span><span class='id constantize'>constantize</span><span class='period'>.</span><span class='id base_class'>base_class</span><span class='period'>.</span><span class='id to_s'>to_s</span><span class='rparen'>)</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>Post</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='comment'># because we store &quot;Post&quot; in attachable_type now :dependent =&gt; :destroy will work
+</span>    <span class='id has_many'>has_many</span> <span class='symbol'>:assets</span><span class='comma'>,</span> <span class='symbol'>:as</span> <span class='op'>=&gt;</span> <span class='symbol'>:attachable</span><span class='comma'>,</span> <span class='symbol'>:dependent</span> <span class='op'>=&gt;</span> <span class='symbol'>:destroy</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>GuestPost</span> <span class='op'>&lt;</span> <span class='const'>Post</span>
+  <span class='kw'>end</span>
+
+  <span class='kw'>class</span> <span class='const'>MemberPost</span> <span class='op'>&lt;</span> <span class='const'>Post</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Caching</h2>
+<p>
+All of the methods are built on a simple caching principle that will keep
+the result of the last query around unless specifically instructed not to.
+The cache is even shared across methods to make it even cheaper to use the
+macro-added methods without worrying too much about performance at the
+first go.
+</p>
+<pre class="code">
+  <span class='id project'>project</span><span class='period'>.</span><span class='id milestones'>milestones</span>             <span class='comment'># fetches milestones from the database
+</span>  <span class='id project'>project</span><span class='period'>.</span><span class='id milestones'>milestones</span><span class='period'>.</span><span class='id size'>size</span>        <span class='comment'># uses the milestone cache
+</span>  <span class='id project'>project</span><span class='period'>.</span><span class='id milestones'>milestones</span><span class='period'>.</span><span class='id empty?'>empty?</span>      <span class='comment'># uses the milestone cache
+</span>  <span class='id project'>project</span><span class='period'>.</span><span class='id milestones'>milestones</span><span class='lparen'>(</span><span class='kw'>true</span><span class='rparen'>)</span><span class='period'>.</span><span class='id size'>size</span>  <span class='comment'># fetches milestones from the database
+</span>  <span class='id project'>project</span><span class='period'>.</span><span class='id milestones'>milestones</span>             <span class='comment'># uses the milestone cache
+</span></pre>
+<h2>Eager loading of associations</h2>
+<p>
+Eager loading is a way to find objects of a certain class and a number of
+named associations. This is one of the easiest ways of to prevent the
+dreaded 1+N problem in which fetching 100 posts that each need to display
+their author triggers 101 database queries. Through the use of eager
+loading, the 101 queries can be reduced to 2.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Post</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:author</span>
+    <span class='id has_many'>has_many</span>   <span class='symbol'>:comments</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Consider the following loop using the class above:
+</p>
+<pre class="code">
+  <span class='kw'>for</span> <span class='id post'>post</span> <span class='kw'>in</span> <span class='const'>Post</span><span class='period'>.</span><span class='id all'>all</span>
+    <span class='id puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Post:            </span><span class='tstring_end'>&quot;</span></span> <span class='op'>+</span> <span class='id post'>post</span><span class='period'>.</span><span class='id title'>title</span>
+    <span class='id puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Written by:      </span><span class='tstring_end'>&quot;</span></span> <span class='op'>+</span> <span class='id post'>post</span><span class='period'>.</span><span class='id author'>author</span><span class='period'>.</span><span class='id name'>name</span>
+    <span class='id puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Last comment on: </span><span class='tstring_end'>&quot;</span></span> <span class='op'>+</span> <span class='id post'>post</span><span class='period'>.</span><span class='id comments'>comments</span><span class='period'>.</span><span class='id first'>first</span><span class='period'>.</span><span class='id created_on'>created_on</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+To iterate over these one hundred posts, we&#8217;ll generate 201 database
+queries. Let&#8217;s first just optimize it for retrieving the author:
+</p>
+<pre class="code">
+  for post in Post.find(:all, :include =&gt; :author)
+</pre>
+<p>
+This references the name of the <tt>belongs_to</tt> association that also
+used the <tt>:author</tt> symbol. After loading the posts, find will
+collect the <tt>author_id</tt> from each one and load all the referenced
+authors with one query. Doing so will cut down the number of queries from
+201 to 102.
+</p>
+<p>
+We can improve upon the situation further by referencing both associations
+in the finder with:
+</p>
+<pre class="code">
+  for post in Post.find(:all, :include =&gt; [ :author, :comments ])
+</pre>
+<p>
+This will load all comments with a single query. This reduces the total
+number of queries to 3. More generally the number of queries will be 1 plus
+the number of associations named (except if some of the associations are
+polymorphic <tt>belongs_to</tt> - see below).
+</p>
+<p>
+To include a deep hierarchy of associations, use a hash:
+</p>
+<pre class="code">
+  for post in Post.find(:all, :include =&gt; [ :author, { :comments =&gt; { :author =&gt; :gravatar } } ])
+</pre>
+<p>
+That&#8217;ll grab not only all the comments but all their authors and
+gravatar pictures. You can mix and match symbols, arrays and hashes in any
+combination to describe the associations you want to load.
+</p>
+<p>
+All of this power shouldn&#8217;t fool you into thinking that you can pull
+out huge amounts of data with no performance penalty just because
+you&#8217;ve reduced the number of queries. The database still needs to
+send all the data to Active Record and it still needs to be processed. So
+it&#8217;s no catch-all for performance problems, but it&#8217;s a great
+way to cut down on the number of queries in a situation as the one
+described above.
+</p>
+<p>
+Since only one table is loaded at a time, conditions or orders cannot
+reference tables other than the main one. If this is the case Active Record
+falls back to the previously used LEFT OUTER JOIN based strategy. For
+example
+</p>
+<pre class="code">
+  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span> <span class='symbol'>:author</span><span class='comma'>,</span> <span class='symbol'>:comments</span> <span class='rbracket'>]</span><span class='comma'>,</span> <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>comments.approved = ?</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span><span class='rparen'>)</span>
+</pre>
+<p>
+This will result in a single SQL query with joins along the lines of:
+<tt>LEFT OUTER JOIN comments ON comments.post_id = posts.id</tt> and
+<tt>LEFT OUTER JOIN authors ON authors.id = posts.author_id</tt>. Note that
+using conditions like this can have unintended consequences. In the above
+example posts with no approved comments are not returned at all, because
+the conditions apply to the SQL statement as a whole and not just to the
+association. You must disambiguate column references for this fallback to
+happen, for example <tt>:order =&gt; &quot;author.name DESC&quot;</tt> will
+work but <tt>:order =&gt; &quot;name DESC&quot;</tt> will not.
+</p>
+<p>
+If you do want eager load only some members of an association it is usually
+more natural to <tt>:include</tt> an association which has conditions
+defined on it:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Post</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:approved_comments</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Comment</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>approved = ?</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span>
+  <span class='kw'>end</span>
+
+  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='symbol'>:approved_comments</span><span class='rparen'>)</span>
+</pre>
+<p>
+This will load posts and eager load the <tt>approved_comments</tt>
+association, which contains only those comments that have been approved.
+</p>
+<p>
+If you eager load an association with a specified <tt>:limit</tt> option,
+it will be ignored, returning all the associated objects:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Picture</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id has_many'>has_many</span> <span class='symbol'>:most_recent_comments</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>Comment</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:order</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>id DESC</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:limit</span> <span class='op'>=&gt;</span> <span class='int'>10</span>
+  <span class='kw'>end</span>
+
+  <span class='const'>Picture</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:first</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='symbol'>:most_recent_comments</span><span class='rparen'>)</span><span class='period'>.</span><span class='id most_recent_comments'>most_recent_comments</span> <span class='comment'># =&gt; returns all associated comments.
+</span></pre>
+<p>
+When eager loaded, conditions are interpolated in the context of the model
+class, not the model instance.  Conditions are lazily interpolated before
+the actual model exists.
+</p>
+<p>
+Eager loading is supported with polymorphic associations.
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>Address</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+    <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:addressable</span><span class='comma'>,</span> <span class='symbol'>:polymorphic</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+A call that tries to eager load the addressable model
+</p>
+<pre class="code">
+  <span class='const'>Address</span><span class='period'>.</span><span class='id find'>find</span><span class='lparen'>(</span><span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='symbol'>:addressable</span><span class='rparen'>)</span>
+</pre>
+<p>
+This will execute one query to load the addresses and load the addressables
+with one query per addressable type. For example if all the addressables
+are either of class Person or Company then a total of 3 queries will be
+executed. The list of addressable types to load is determined on the back
+of the addresses loaded. This is not supported if Active Record has to
+fallback to the previous implementation of eager loading and will raise
+ActiveRecord::EagerLoadPolymorphicError. The reason is that the parent
+model&#8217;s type is a column value so its corresponding table name cannot
+be put in the <tt>FROM</tt>/<tt>JOIN</tt> clauses of that query.
+</p>
+<h2>Table Aliasing</h2>
+<p>
+Active Record uses table aliasing in the case that a table is referenced
+multiple times in a join.  If a table is referenced only once, the standard
+table name is used.  The second time, the table is aliased as
+<tt>#{reflection_name}_#{parent_table_name}</tt>. Indexes are appended for
+any more successive uses of the table name.
+</p>
+<pre class="code">
+  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='symbol'>:comments</span>
+  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN comments ON ...
+</span>  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='symbol'>:special_comments</span> <span class='comment'># STI
+</span>  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN comments ON ... AND comments.type = 'SpecialComment'
+</span>  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='symbol'>:comments</span><span class='comma'>,</span> <span class='symbol'>:special_comments</span><span class='rbracket'>]</span> <span class='comment'># special_comments is the reflection name, posts is the parent table name
+</span>  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN comments ON ... INNER JOIN comments special_comments_posts
+</span></pre>
+<p>
+Acts as tree example:
+</p>
+<pre class="code">
+  TreeMixin.find :all, :joins =&gt; :children
+  # =&gt; SELECT ... FROM mixins INNER JOIN mixins childrens_mixins ...
+  TreeMixin.find :all, :joins =&gt; {:children =&gt; :parent}
+  # =&gt; SELECT ... FROM mixins INNER JOIN mixins childrens_mixins ...
+                              INNER JOIN parents_mixins ...
+  TreeMixin.find :all, :joins =&gt; {:children =&gt; {:parent =&gt; :children}}
+  # =&gt; SELECT ... FROM mixins INNER JOIN mixins childrens_mixins ...
+                              INNER JOIN parents_mixins ...
+                              INNER JOIN mixins childrens_mixins_2
+</pre>
+<p>
+Has and Belongs to Many join tables use the same idea, but add a
+<tt>_join</tt> suffix:
+</p>
+<pre class="code">
+  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='symbol'>:categories</span>
+  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN categories_posts ... INNER JOIN categories ...
+</span>  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span><span class='symbol'>:categories</span> <span class='op'>=&gt;</span> <span class='symbol'>:posts</span><span class='rbrace'>}</span>
+  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN categories_posts ... INNER JOIN categories ...
+</span>                             <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id categories_posts'>categories_posts</span> <span class='id posts_categories_join'>posts_categories_join</span> <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id posts'>posts</span> <span class='id posts_categories'>posts_categories</span>
+  <span class='const'>Post</span><span class='period'>.</span><span class='id find'>find</span> <span class='symbol'>:all</span><span class='comma'>,</span> <span class='symbol'>:joins</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span><span class='symbol'>:categories</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span><span class='symbol'>:posts</span> <span class='op'>=&gt;</span> <span class='symbol'>:categories</span><span class='rbrace'>}</span><span class='rbrace'>}</span>
+  <span class='comment'># =&gt; SELECT ... FROM posts INNER JOIN categories_posts ... INNER JOIN categories ...
+</span>                             <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id categories_posts'>categories_posts</span> <span class='id posts_categories_join'>posts_categories_join</span> <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id posts'>posts</span> <span class='id posts_categories'>posts_categories</span>
+                             <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id categories_posts'>categories_posts</span> <span class='id categories_posts_join'>categories_posts_join</span> <span class='const'>INNER</span> <span class='const'>JOIN</span> <span class='id categories'>categories</span> <span class='id categories_posts_2'>categories_posts_2</span>
+</pre>
+<p>
+If you wish to specify your own custom joins using a <tt>:joins</tt>
+option, those table names will take precedence over the eager associations:
+</p>
+<pre class="code">
+  Post.find :all, :joins =&gt; :comments, :joins =&gt; &quot;inner join comments ...&quot;
+  # =&gt; SELECT ... FROM posts INNER JOIN comments_posts ON ... INNER JOIN comments ...
+  Post.find :all, :joins =&gt; [:comments, :special_comments], :joins =&gt; &quot;inner join comments ...&quot;
+  # =&gt; SELECT ... FROM posts INNER JOIN comments comments_posts ON ...
+                             INNER JOIN comments special_comments_posts ...
+                             INNER JOIN comments ...
+</pre>
+<p>
+Table aliases are automatically truncated according to the maximum length
+of table identifiers according to the specific database.
+</p>
+<h2>Modules</h2>
+<p>
+By default, associations will look for objects within the current module
+scope. Consider:
+</p>
+<pre class="code">
+  <span class='kw'>module</span> <span class='const'>MyApplication</span>
+    <span class='kw'>module</span> <span class='const'>Business</span>
+      <span class='kw'>class</span> <span class='const'>Firm</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+         <span class='id has_many'>has_many</span> <span class='symbol'>:clients</span>
+       <span class='kw'>end</span>
+
+      <span class='kw'>class</span> <span class='const'>Client</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span><span class='semicolon'>;</span> <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+When <tt>Firm#clients</tt> is called, it will in turn call
+<tt>MyApplication::Business::Client.find_all_by_firm_id(firm.id)</tt>. If
+you want to associate with a class in another module scope, this can be
+done by specifying the complete class name.
+</p>
+<pre class="code">
+  <span class='kw'>module</span> <span class='const'>MyApplication</span>
+    <span class='kw'>module</span> <span class='const'>Business</span>
+      <span class='kw'>class</span> <span class='const'>Firm</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span><span class='semicolon'>;</span> <span class='kw'>end</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>module</span> <span class='const'>Billing</span>
+      <span class='kw'>class</span> <span class='const'>Account</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+        <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:firm</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>MyApplication::Business::Firm</span><span class='tstring_end'>&quot;</span></span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<h2>Bi-directional associations</h2>
+<p>
+When you specify an association there is usually an association on the
+associated model that specifies the same relationship in reverse.  For
+example, with the following models:
+</p>
+<pre class="code">
+   <span class='kw'>class</span> <span class='const'>Dungeon</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id has_many'>has_many</span> <span class='symbol'>:traps</span>
+     <span class='id has_one'>has_one</span> <span class='symbol'>:evil_wizard</span>
+   <span class='kw'>end</span>
+
+   <span class='kw'>class</span> <span class='const'>Trap</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:dungeon</span>
+   <span class='kw'>end</span>
+
+   <span class='kw'>class</span> <span class='const'>EvilWizard</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:dungeon</span>
+   <span class='kw'>end</span>
+</pre>
+<p>
+The <tt>traps</tt> association on <tt>Dungeon</tt> and the the
+<tt>dungeon</tt> association on <tt>Trap</tt> are the inverse of each other
+and the inverse of the <tt>dungeon</tt> association on <tt>EvilWizard</tt>
+is the <tt>evil_wizard</tt> association on <tt>Dungeon</tt> (and
+vice-versa).  By default, Active Record doesn&#8217;t know anything about
+these inverse relationships and so no object loading optimisation is
+possible.  For example:
+</p>
+<pre class="code">
+   <span class='id d'>d</span> <span class='op'>=</span> <span class='const'>Dungeon</span><span class='period'>.</span><span class='id first'>first</span>
+   <span class='id t'>t</span> <span class='op'>=</span> <span class='id d'>d</span><span class='period'>.</span><span class='id traps'>traps</span><span class='period'>.</span><span class='id first'>first</span>
+   <span class='id d'>d</span><span class='period'>.</span><span class='id level'>level</span> <span class='op'>==</span> <span class='id t'>t</span><span class='period'>.</span><span class='id dungeon'>dungeon</span><span class='period'>.</span><span class='id level'>level</span> <span class='comment'># =&gt; true
+</span>   <span class='id d'>d</span><span class='period'>.</span><span class='id level'>level</span> <span class='op'>=</span> <span class='int'>10</span>
+   <span class='id d'>d</span><span class='period'>.</span><span class='id level'>level</span> <span class='op'>==</span> <span class='id t'>t</span><span class='period'>.</span><span class='id dungeon'>dungeon</span><span class='period'>.</span><span class='id level'>level</span> <span class='comment'># =&gt; false
+</span></pre>
+<p>
+The <tt>Dungeon</tt> instances <tt>d</tt> and <tt>t.dungeon</tt> in the
+above example refer to the same object data from the database, but are
+actually different in-memory copies of that data.  Specifying the
+<tt>:inverse_of</tt> option on associations lets you tell Active Record
+about inverse relationships and it will optimise object loading.  For
+example, if we changed our model definitions to:
+</p>
+<pre class="code">
+   <span class='kw'>class</span> <span class='const'>Dungeon</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id has_many'>has_many</span> <span class='symbol'>:traps</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span> <span class='op'>=&gt;</span> <span class='symbol'>:dungeon</span>
+     <span class='id has_one'>has_one</span> <span class='symbol'>:evil_wizard</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span> <span class='op'>=&gt;</span> <span class='symbol'>:dungeon</span>
+   <span class='kw'>end</span>
+
+   <span class='kw'>class</span> <span class='const'>Trap</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:dungeon</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span> <span class='op'>=&gt;</span> <span class='symbol'>:traps</span>
+   <span class='kw'>end</span>
+
+   <span class='kw'>class</span> <span class='const'>EvilWizard</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Base</span>
+     <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:dungeon</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span> <span class='op'>=&gt;</span> <span class='symbol'>:evil_wizard</span>
+   <span class='kw'>end</span>
+</pre>
+<p>
+Then, from our code snippet above, <tt>d</tt> and <tt>t.dungeon</tt> are
+actually the same in-memory instance and our final <tt>d.level ==
+t.dungeon.level</tt> will return <tt>true</tt>.
+</p>
+<p>
+There are limitations to <tt>:inverse_of</tt> support:
+</p>
+<ul>
+<li><p>
+does not work with <tt>:through</tt> associations.
+</p>
+</li>
+<li><p>
+does not work with <tt>:polymorphic</tt> associations.
+</p>
+</li>
+<li><p>
+for <tt>belongs_to</tt> associations <tt>has_many</tt> inverse associations
+are ignored.
+</p>
+</li>
+</ul>
+<h2>Type safety with <tt>ActiveRecord::AssociationTypeMismatch</tt></h2>
+<p>
+If you attempt to assign an object to an association that doesn&#8217;t
+match the inferred or specified <tt>:class_name</tt>, you&#8217;ll get an
+<tt>ActiveRecord::AssociationTypeMismatch</tt>.
+</p>
+<h2>Options</h2>
+<p>
+All of the association macros can be specialized through options. This
+makes cases more complex than the simple and guessable ones possible.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><h2>Defined Under Namespace</h2>
+<p class="children">
+   
+    
+   
+    
+      <strong class="classes">Classes:</strong> <span class='object_link'><a href="ClassMethods/JoinDependency.html" title="ActiveRecord::Associations::ClassMethods::JoinDependency (class)">JoinDependency</a></span>
+    
+  
+</p>
+
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="valid_keys_for_has_many_association-classvariable" class="">@@valid_keys_for_has_many_association =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:class_name</span><span class='comma'>,</span> <span class='symbol'>:table_name</span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span><span class='comma'>,</span> <span class='symbol'>:primary_key</span><span class='comma'>,</span>
+  <span class='symbol'>:dependent</span><span class='comma'>,</span>
+  <span class='symbol'>:select</span><span class='comma'>,</span> <span class='symbol'>:conditions</span><span class='comma'>,</span> <span class='symbol'>:include</span><span class='comma'>,</span> <span class='symbol'>:order</span><span class='comma'>,</span> <span class='symbol'>:group</span><span class='comma'>,</span> <span class='symbol'>:having</span><span class='comma'>,</span> <span class='symbol'>:limit</span><span class='comma'>,</span> <span class='symbol'>:offset</span><span class='comma'>,</span>
+  <span class='symbol'>:as</span><span class='comma'>,</span> <span class='symbol'>:through</span><span class='comma'>,</span> <span class='symbol'>:source</span><span class='comma'>,</span> <span class='symbol'>:source_type</span><span class='comma'>,</span>
+  <span class='symbol'>:uniq</span><span class='comma'>,</span>
+  <span class='symbol'>:finder_sql</span><span class='comma'>,</span> <span class='symbol'>:counter_sql</span><span class='comma'>,</span>
+  <span class='symbol'>:before_add</span><span class='comma'>,</span> <span class='symbol'>:after_add</span><span class='comma'>,</span> <span class='symbol'>:before_remove</span><span class='comma'>,</span> <span class='symbol'>:after_remove</span><span class='comma'>,</span>
+  <span class='symbol'>:extend</span><span class='comma'>,</span> <span class='symbol'>:readonly</span><span class='comma'>,</span>
+  <span class='symbol'>:validate</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="valid_keys_for_has_one_association-classvariable" class="">@@valid_keys_for_has_one_association =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:class_name</span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span><span class='comma'>,</span> <span class='symbol'>:remote</span><span class='comma'>,</span> <span class='symbol'>:select</span><span class='comma'>,</span> <span class='symbol'>:conditions</span><span class='comma'>,</span> <span class='symbol'>:order</span><span class='comma'>,</span>
+  <span class='symbol'>:include</span><span class='comma'>,</span> <span class='symbol'>:dependent</span><span class='comma'>,</span> <span class='symbol'>:counter_cache</span><span class='comma'>,</span> <span class='symbol'>:extend</span><span class='comma'>,</span> <span class='symbol'>:as</span><span class='comma'>,</span> <span class='symbol'>:readonly</span><span class='comma'>,</span>
+  <span class='symbol'>:validate</span><span class='comma'>,</span> <span class='symbol'>:primary_key</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="valid_keys_for_belongs_to_association-classvariable" class="">@@valid_keys_for_belongs_to_association =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:class_name</span><span class='comma'>,</span> <span class='symbol'>:primary_key</span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span><span class='comma'>,</span> <span class='symbol'>:foreign_type</span><span class='comma'>,</span> <span class='symbol'>:remote</span><span class='comma'>,</span> <span class='symbol'>:select</span><span class='comma'>,</span> <span class='symbol'>:conditions</span><span class='comma'>,</span>
+  <span class='symbol'>:include</span><span class='comma'>,</span> <span class='symbol'>:dependent</span><span class='comma'>,</span> <span class='symbol'>:counter_cache</span><span class='comma'>,</span> <span class='symbol'>:extend</span><span class='comma'>,</span> <span class='symbol'>:polymorphic</span><span class='comma'>,</span> <span class='symbol'>:readonly</span><span class='comma'>,</span>
+  <span class='symbol'>:validate</span><span class='comma'>,</span> <span class='symbol'>:touch</span><span class='comma'>,</span> <span class='symbol'>:inverse_of</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+        <dt id="valid_keys_for_has_and_belongs_to_many_association-classvariable" class="">@@valid_keys_for_has_and_belongs_to_many_association =
+          
+        </dt>
+        <dd><pre class="code"><span class='lbracket'>[</span>
+  <span class='symbol'>:class_name</span><span class='comma'>,</span> <span class='symbol'>:table_name</span><span class='comma'>,</span> <span class='symbol'>:join_table</span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span><span class='comma'>,</span> <span class='symbol'>:association_foreign_key</span><span class='comma'>,</span>
+  <span class='symbol'>:select</span><span class='comma'>,</span> <span class='symbol'>:conditions</span><span class='comma'>,</span> <span class='symbol'>:include</span><span class='comma'>,</span> <span class='symbol'>:order</span><span class='comma'>,</span> <span class='symbol'>:group</span><span class='comma'>,</span> <span class='symbol'>:having</span><span class='comma'>,</span> <span class='symbol'>:limit</span><span class='comma'>,</span> <span class='symbol'>:offset</span><span class='comma'>,</span>
+  <span class='symbol'>:uniq</span><span class='comma'>,</span>
+  <span class='symbol'>:finder_sql</span><span class='comma'>,</span> <span class='symbol'>:counter_sql</span><span class='comma'>,</span> <span class='symbol'>:delete_sql</span><span class='comma'>,</span> <span class='symbol'>:insert_sql</span><span class='comma'>,</span>
+  <span class='symbol'>:before_add</span><span class='comma'>,</span> <span class='symbol'>:after_add</span><span class='comma'>,</span> <span class='symbol'>:before_remove</span><span class='comma'>,</span> <span class='symbol'>:after_remove</span><span class='comma'>,</span>
+  <span class='symbol'>:extend</span><span class='comma'>,</span> <span class='symbol'>:readonly</span><span class='comma'>,</span>
+  <span class='symbol'>:validate</span>
+<span class='rbracket'>]</span></pre></dd>
+      
+    </dl>
+  
+
+
+
+  
+    <h2>
+      Instance Method Summary
+      <small>(<a href="#" class="summary_toggle">collapse</a>)</small>
+    </h2>
+
+    <ul class="summary">
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#belongs_to-instance_method" title="#belongs_to (instance method)">- (Object) <strong>belongs_to</strong>(association_id, options = {}) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Specifies a one-to-one association with another class.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#has_and_belongs_to_many-instance_method" title="#has_and_belongs_to_many (instance method)">- (Object) <strong>has_and_belongs_to_many</strong>(association_id, options = {}, &amp;extension) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Specifies a many-to-many relationship with another class.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#has_many-instance_method" title="#has_many (instance method)">- (Object) <strong>has_many</strong>(association_id, options = {}, &amp;extension) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Specifies a one-to-many association.
+</p>
+</div></span>
+  
+</li>
+
+      
+        <li class="public ">
+  <span class="summary_signature">
+    
+      <a href="#has_one-instance_method" title="#has_one (instance method)">- (Object) <strong>has_one</strong>(association_id, options = {}) </a>
+    
+
+    
+  </span>
+  
+  
+  
+  
+  
+  
+
+  
+    <span class="summary_desc"><div class='inline'><p>
+Specifies a one-to-one association with another class.
+</p>
+</div></span>
+  
+</li>
+
+      
+    </ul>
+  
+
+
+
+  <div id="instance_method_details" class="method_details_list">
+    <h2>Instance Method Details</h2>
+    
+    
+      <div class="method_details first">
+  <p class="signature first" id="belongs_to-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>belongs_to</strong>(association_id, options = {}) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Specifies a one-to-one association with another class. This method should
+only be used if this class contains the foreign key. If the other class
+contains the foreign key, then you should use <tt>has_one</tt> instead. See
+also ActiveRecord::Associations::ClassMethods&#8217;s overview on when to
+use <tt>has_one</tt> and when to use <tt>belongs_to</tt>.
+</p>
+<p>
+Methods will be added for retrieval and query for a single associated
+object, for which this object holds an id:
+</p>
+<dl>
+<dt>association(force_reload = false)</dt><dd><p>
+Returns the associated object. <tt>nil</tt> is returned if none is found.
+</p>
+</dd>
+<dt>association=(associate)</dt><dd><p>
+Assigns the associate object, extracts the primary key, and sets it as the
+foreign key.
+</p>
+</dd>
+<dt>build_association(attributes = {})</dt><dd><p>
+Returns a new object of the associated type that has been instantiated with
+<tt>attributes</tt> and linked to this object through a foreign key, but
+has not yet been saved.
+</p>
+</dd>
+<dt>create_association(attributes = {})</dt><dd><p>
+Returns a new object of the associated type that has been instantiated with
+<tt>attributes</tt>, linked to this object through a foreign key, and that
+has already been saved (if it passed the validation).
+</p>
+</dd>
+</dl>
+<p>
+(<tt>association</tt> is replaced with the symbol passed as the first
+argument, so <tt>belongs_to :author</tt> would add among others
+<tt>author.nil?</tt>.)
+</p>
+<h3>Example</h3>
+<p>
+A Post class declares <tt>belongs_to :author</tt>, which will add:
+</p>
+<ul>
+<li><p>
+<tt>Post#author</tt> (similar to <tt>Author.find(author_id)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Post#author=(author)</tt> (similar to <tt>post.author_id =
+author.id</tt>)
+</p>
+</li>
+<li><p>
+<tt>Post#build_author</tt> (similar to <tt>post.author = Author.new</tt>)
+</p>
+</li>
+<li><p>
+<tt>Post#create_author</tt> (similar to <tt>post.author = Author.new;
+post.author.save; post.author</tt>)
+</p>
+</li>
+</ul>
+<p>
+The declaration can also include an options hash to specialize the behavior
+of the association.
+</p>
+<h3>Options</h3>
+<dl>
+<dt>:class_name</dt><dd><p>
+Specify the class name of the association. Use it only if that name
+can&#8217;t be inferred from the association name. So <tt>has_one
+:author</tt> will by default be linked to the Author class, but if the real
+class name is Person, you&#8217;ll have to specify it with this option.
+</p>
+</dd>
+<dt>:conditions</dt><dd><p>
+Specify the conditions that the associated object must meet in order to be
+included as a <tt>WHERE</tt> SQL fragment, such as <tt>authorized = 1</tt>.
+</p>
+</dd>
+<dt>:select</dt><dd><p>
+By default, this is <tt>*</tt> as in <tt>SELECT * FROM</tt>, but can be
+changed if, for example, you want to do a join but not include the joined
+columns. Do not forget to include the primary and foreign keys, otherwise
+it will raise an error.
+</p>
+</dd>
+<dt>:foreign_key</dt><dd><p>
+Specify the foreign key used for the association. By default this is
+guessed to be the name of the association with an &#8220;_id&#8221; suffix.
+So a class that defines a <tt>belongs_to :person</tt> association will use
+&#8220;person_id&#8221; as the default <tt>:foreign_key</tt>. Similarly,
+<tt>belongs_to :favorite_person, :class_name =&gt; &quot;Person&quot;</tt>
+will use a foreign key of &#8220;favorite_person_id&#8221;.
+</p>
+</dd>
+<dt>:primary_key</dt><dd><p>
+Specify the method that returns the primary key of associated object used
+for the association. By default this is id.
+</p>
+</dd>
+<dt>:dependent</dt><dd><p>
+If set to <tt>:destroy</tt>, the associated object is destroyed when this
+object is. If set to <tt>:delete</tt>, the associated object is deleted
+<b>without</b> calling its destroy method. This option should not be
+specified when <tt>belongs_to</tt> is used in conjunction with a
+<tt>has_many</tt> relationship on another class because of the potential to
+leave orphaned records behind.
+</p>
+</dd>
+<dt>:counter_cache</dt><dd><p>
+Caches the number of belonging objects on the associate class through the
+use of <tt>increment_counter</tt> and <tt>decrement_counter</tt>. The
+counter cache is incremented when an object of this class is created and
+decremented when it&#8217;s destroyed. This requires that a column named
+<tt>#{table_name}_count</tt> (such as <tt>comments_count</tt> for a
+belonging Comment class) is used on the associate class (such as a Post
+class). You can also specify a custom counter cache column by providing a
+column name instead of a <tt>true</tt>/<tt>false</tt> value to this option
+(e.g., <tt>:counter_cache =&gt; :my_custom_counter</tt>.) Note: Specifying
+a counter cache will add it to that model&#8217;s list of readonly
+attributes using <tt>attr_readonly</tt>.
+</p>
+</dd>
+<dt>:include</dt><dd><p>
+Specify second-order associations that should be eager loaded when this
+object is loaded.
+</p>
+</dd>
+<dt>:polymorphic</dt><dd><p>
+Specify this association is a polymorphic association by passing
+<tt>true</tt>. Note: If you&#8217;ve enabled the counter cache, then you
+may want to add the counter cache attribute to the <tt>attr_readonly</tt>
+list in the associated classes (e.g. <tt>class Post; attr_readonly
+:comments_count; end</tt>).
+</p>
+</dd>
+<dt>:readonly</dt><dd><p>
+If true, the associated object is readonly through the association.
+</p>
+</dd>
+<dt>:validate</dt><dd><p>
+If <tt>false</tt>, don&#8217;t validate the associated objects when saving
+the parent object. <tt>false</tt> by default.
+</p>
+</dd>
+<dt>:autosave</dt><dd><p>
+If true, always save the associated object or destroy it if marked for
+destruction, when saving the parent object. If false, never save or destroy
+the associated object. By default, only save the associated object if
+it&#8217;s a new record.
+</p>
+</dd>
+<dt>:touch</dt><dd><p>
+If true, the associated object will be touched (the updated_at/on
+attributes set to now) when this record is either saved or destroyed. If
+you specify a symbol, that attribute will be updated with the current time
+instead of the updated_at/on attribute.
+</p>
+</dd>
+<dt>:inverse_of</dt><dd><p>
+Specifies the name of the <tt>has_one</tt> or <tt>has_many</tt> association
+on the associated object that is the inverse of this <tt>belongs_to</tt>
+association.  Does not work in combination with the <tt>:polymorphic</tt>
+options. See ActiveRecord::Associations::ClassMethods&#8217;s overview on
+Bi-directional associations for more detail.
+</p>
+</dd>
+</dl>
+<p>
+Option examples:
+</p>
+<pre class="code">
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:firm</span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>client_of</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:person</span><span class='comma'>,</span> <span class='symbol'>:primary_key</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>name</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>person_name</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:author</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Person</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>author_id</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:valid_coupon</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Coupon</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:foreign_key</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>coupon_id</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span>
+             <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>discounts &gt; #{payments_count}</span><span class='tstring_end'>'</span></span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:attachable</span><span class='comma'>,</span> <span class='symbol'>:polymorphic</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:project</span><span class='comma'>,</span> <span class='symbol'>:readonly</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:post</span><span class='comma'>,</span> <span class='symbol'>:counter_cache</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:company</span><span class='comma'>,</span> <span class='symbol'>:touch</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id belongs_to'>belongs_to</span> <span class='symbol'>:company</span><span class='comma'>,</span> <span class='symbol'>:touch</span> <span class='op'>=&gt;</span> <span class='symbol'>:employees_last_updated_at</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1219
+1220
+1221
+1222
+1223
+1224
+1225
+1226
+1227
+1228
+1229
+1230
+1231
+1232
+1233
+1234</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/associations.rb', line 1219</span>
+
+<span class='kw'>def</span> <span class='id belongs_to'>belongs_to</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='id reflection'>reflection</span> <span class='op'>=</span> <span class='id create_belongs_to_reflection'>create_belongs_to_reflection</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+
+  <span class='kw'>if</span> <span class='id reflection'>reflection</span><span class='period'>.</span><span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:polymorphic</span><span class='rbracket'>]</span>
+    <span class='id association_accessor_methods'>association_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>BelongsToPolymorphicAssociation</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id association_accessor_methods'>association_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>BelongsToAssociation</span><span class='rparen'>)</span>
+    <span class='id association_constructor_method'>association_constructor_method</span><span class='lparen'>(</span><span class='symbol'>:build</span><span class='comma'>,</span>  <span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>BelongsToAssociation</span><span class='rparen'>)</span>
+    <span class='id association_constructor_method'>association_constructor_method</span><span class='lparen'>(</span><span class='symbol'>:create</span><span class='comma'>,</span> <span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>BelongsToAssociation</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+
+  <span class='id add_counter_cache_callbacks'>add_counter_cache_callbacks</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='rparen'>)</span>          <span class='kw'>if</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:counter_cache</span><span class='rbracket'>]</span>
+  <span class='id add_touch_callbacks'>add_touch_callbacks</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:touch</span><span class='rbracket'>]</span><span class='rparen'>)</span> <span class='kw'>if</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:touch</span><span class='rbracket'>]</span>
+
+  <span class='id configure_dependency_for_belongs_to'>configure_dependency_for_belongs_to</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="has_and_belongs_to_many-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>has_and_belongs_to_many</strong>(association_id, options = {}, &amp;extension) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Specifies a many-to-many relationship with another class. This associates
+two classes via an intermediate join table.  Unless the join table is
+explicitly specified as an option, it is guessed using the lexical order of
+the class names. So a join between Developer and Project will give the
+default join table name of &#8220;developers_projects&#8221; because
+&#8220;D&#8221; outranks &#8220;P&#8221;. Note that this precedence is
+calculated using the <tt>&lt;</tt> operator for String.  This means that if
+the strings are of different lengths, and the strings are equal when
+compared up to the shortest length, then the longer string is considered of
+higher lexical precedence than the shorter one.  For example, one would
+expect the tables &#8220;paper_boxes&#8221; and &#8220;papers&#8221; to
+generate a join table name of &#8220;papers_paper_boxes&#8221; because of
+the length of the name &#8220;paper_boxes&#8221;, but it in fact generates
+a join table name of &#8220;paper_boxes_papers&#8221;.  Be aware of this
+caveat, and use the custom <tt>:join_table</tt> option if you need to.
+</p>
+<p>
+The join table should not have a primary key or a model associated with it.
+You must manually generate the join table with a migration such as this:
+</p>
+<pre class="code">
+  <span class='kw'>class</span> <span class='const'>CreateDevelopersProjectsJoinTable</span> <span class='op'>&lt;</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Migration</span>
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id up'>up</span>
+      <span class='id create_table'>create_table</span> <span class='symbol'>:developers_projects</span><span class='comma'>,</span> <span class='symbol'>:id</span> <span class='op'>=&gt;</span> <span class='kw'>false</span> <span class='kw'>do</span> <span class='op'>|</span><span class='id t'>t</span><span class='op'>|</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id integer'>integer</span> <span class='symbol'>:developer_id</span>
+        <span class='id t'>t</span><span class='period'>.</span><span class='id integer'>integer</span> <span class='symbol'>:project_id</span>
+      <span class='kw'>end</span>
+    <span class='kw'>end</span>
+
+    <span class='kw'>def</span> <span class='kw'>self</span><span class='period'>.</span><span class='id down'>down</span>
+      <span class='id drop_table'>drop_table</span> <span class='symbol'>:developers_projects</span>
+    <span class='kw'>end</span>
+  <span class='kw'>end</span>
+</pre>
+<p>
+Deprecated: Any additional fields added to the join table will be placed as
+attributes when pulling records out through
+<tt>has_and_belongs_to_many</tt> associations. Records returned from join
+tables with additional attributes will be marked as readonly (because we
+can&#8217;t save changes to the additional attributes). It&#8217;s strongly
+recommended that you upgrade any associations with attributes to a real
+join model (see introduction).
+</p>
+<p>
+Adds the following methods for retrieval and query:
+</p>
+<dl>
+<dt>collection(force_reload = false)</dt><dd><p>
+Returns an array of all the associated objects. An empty array is returned
+if none are found.
+</p>
+</dd>
+<dt>collection<<(object, &#8230;)</dt><dd><p>
+Adds one or more objects to the collection by creating associations in the
+join table (<tt>collection.push</tt> and <tt>collection.concat</tt> are
+aliases to this method). Note that this operation instantly fires update
+sql without waiting for the save or update call on the parent object.
+</p>
+</dd>
+<dt>collection.delete(object, &#8230;)</dt><dd><p>
+Removes one or more objects from the collection by removing their
+associations from the join table. This does not destroy the objects.
+</p>
+</dd>
+<dt>collection=objects</dt><dd><p>
+Replaces the collection&#8217;s content by deleting and adding objects as
+appropriate.
+</p>
+</dd>
+<dt>collection_singular_ids</dt><dd><p>
+Returns an array of the associated objects&#8217; ids.
+</p>
+</dd>
+<dt>collection_singular_ids=ids</dt><dd><p>
+Replace the collection by the objects identified by the primary keys in
+<tt>ids</tt>.
+</p>
+</dd>
+<dt>collection.clear</dt><dd><p>
+Removes every object from the collection. This does not destroy the
+objects.
+</p>
+</dd>
+<dt>collection.empty?</dt><dd><p>
+Returns <tt>true</tt> if there are no associated objects.
+</p>
+</dd>
+<dt>collection.size</dt><dd><p>
+Returns the number of associated objects.
+</p>
+</dd>
+<dt>collection.find(id)</dt><dd><p>
+Finds an associated object responding to the <tt>id</tt> and that meets the
+condition that it has to be associated with this object. Uses the same
+rules as ActiveRecord::Base.find.
+</p>
+</dd>
+<dt>collection.exists?(&#8230;)</dt><dd><p>
+Checks whether an associated object with the given conditions exists. Uses
+the same rules as ActiveRecord::Base.exists?.
+</p>
+</dd>
+<dt>collection.build(attributes = {})</dt><dd><p>
+Returns a new object of the collection type that has been instantiated with
+<tt>attributes</tt> and linked to this object through the join table, but
+has not yet been saved.
+</p>
+</dd>
+<dt>collection.create(attributes = {})</dt><dd><p>
+Returns a new object of the collection type that has been instantiated with
+<tt>attributes</tt>, linked to this object through the join table, and that
+has already been saved (if it passed the validation).
+</p>
+</dd>
+</dl>
+<p>
+(<tt>collection</tt> is replaced with the symbol passed as the first
+argument, so <tt>has_and_belongs_to_many :categories</tt> would add among
+others <tt>categories.empty?</tt>.)
+</p>
+<h3>Example</h3>
+<p>
+A Developer class declares <tt>has_and_belongs_to_many :projects</tt>,
+which will add:
+</p>
+<ul>
+<li><p>
+<tt>Developer#projects</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects&lt;&lt;</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.delete</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects=</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#project_ids</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#project_ids=</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.clear</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.empty?</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.size</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.find(id)</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.exists?(...)</tt>
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.build</tt> (similar to
+<tt>Project.new(&quot;project_id&quot; =&gt; id)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Developer#projects.create</tt> (similar to <tt>c =
+Project.new(&quot;project_id&quot; =&gt; id); c.save; c</tt>)
+</p>
+</li>
+</ul>
+<p>
+The declaration may include an options hash to specialize the behavior of
+the association.
+</p>
+<h3>Options</h3>
+<dl>
+<dt>:class_name</dt><dd><p>
+Specify the class name of the association. Use it only if that name
+can&#8217;t be inferred from the association name. So
+<tt>has_and_belongs_to_many :projects</tt> will by default be linked to the
+Project class, but if the real class name is SuperProject, you&#8217;ll
+have to specify it with this option.
+</p>
+</dd>
+<dt>:join_table</dt><dd><p>
+Specify the name of the join table if the default based on lexical order
+isn&#8217;t what you want. <b>WARNING:</b> If you&#8217;re overwriting the
+table name of either class, the <tt>table_name</tt> method MUST be declared
+underneath any <tt>has_and_belongs_to_many</tt> declaration in order to
+work.
+</p>
+</dd>
+<dt>:foreign_key</dt><dd><p>
+Specify the foreign key used for the association. By default this is
+guessed to be the name of this class in lower-case and &#8220;_id&#8221;
+suffixed. So a Person class that makes a <tt>has_and_belongs_to_many</tt>
+association to Project will use &#8220;person_id&#8221; as the default
+<tt>:foreign_key</tt>.
+</p>
+</dd>
+<dt>:association_foreign_key</dt><dd><p>
+Specify the foreign key used for the association on the receiving side of
+the association. By default this is guessed to be the name of the
+associated class in lower-case and &#8220;_id&#8221; suffixed. So if a
+Person class makes a <tt>has_and_belongs_to_many</tt> association to
+Project, the association will use &#8220;project_id&#8221; as the default
+<tt>:association_foreign_key</tt>.
+</p>
+</dd>
+<dt>:conditions</dt><dd><p>
+Specify the conditions that the associated object must meet in order to be
+included as a <tt>WHERE</tt> SQL fragment, such as <tt>authorized = 1</tt>.
+Record creations from the association are scoped if a hash is used.
+<tt>has_many :posts, :conditions =&gt; {:published =&gt; true}</tt> will
+create published posts with <tt>@blog.posts.create</tt> or
+<tt>@blog.posts.build</tt>.
+</p>
+</dd>
+<dt>:order</dt><dd><p>
+Specify the order in which the associated objects are returned as an
+<tt>ORDER BY</tt> SQL fragment, such as <tt>last_name, first_name DESC</tt>
+</p>
+</dd>
+<dt>:uniq</dt><dd><p>
+If true, duplicate associated objects will be ignored by accessors and
+query methods.
+</p>
+</dd>
+<dt>:finder_sql</dt><dd><p>
+Overwrite the default generated SQL statement used to fetch the association
+with a manual statement
+</p>
+</dd>
+<dt>:counter_sql</dt><dd><p>
+Specify a complete SQL statement to fetch the size of the association. If
+<tt>:finder_sql</tt> is specified but not <tt>:counter_sql</tt>,
+<tt>:counter_sql</tt> will be generated by replacing <tt>SELECT ...
+FROM</tt> with <tt>SELECT COUNT(*) FROM</tt>.
+</p>
+</dd>
+<dt>:delete_sql</dt><dd><p>
+Overwrite the default generated SQL statement used to remove links between
+the associated classes with a manual statement.
+</p>
+</dd>
+<dt>:insert_sql</dt><dd><p>
+Overwrite the default generated SQL statement used to add links between the
+associated classes with a manual statement.
+</p>
+</dd>
+<dt>:extend</dt><dd><p>
+Anonymous module for extending the proxy, see &#8220;Association
+extensions&#8221;.
+</p>
+</dd>
+<dt>:include</dt><dd><p>
+Specify second-order associations that should be eager loaded when the
+collection is loaded.
+</p>
+</dd>
+<dt>:group</dt><dd><p>
+An attribute name by which the result should be grouped. Uses the <tt>GROUP
+BY</tt> SQL-clause.
+</p>
+</dd>
+<dt>:having</dt><dd><p>
+Combined with <tt>:group</tt> this can be used to filter the records that a
+<tt>GROUP BY</tt> returns. Uses the <tt>HAVING</tt> SQL-clause.
+</p>
+</dd>
+<dt>:limit</dt><dd><p>
+An integer determining the limit on the number of rows that should be
+returned.
+</p>
+</dd>
+<dt>:offset</dt><dd><p>
+An integer determining the offset from where the rows should be fetched. So
+at 5, it would skip the first 4 rows.
+</p>
+</dd>
+<dt>:select</dt><dd><p>
+By default, this is <tt>*</tt> as in <tt>SELECT * FROM</tt>, but can be
+changed if, for example, you want to do a join but not include the joined
+columns. Do not forget to include the primary and foreign keys, otherwise
+it will raise an error.
+</p>
+</dd>
+<dt>:readonly</dt><dd><p>
+If true, all the associated objects are readonly through the association.
+</p>
+</dd>
+<dt>:validate</dt><dd><p>
+If <tt>false</tt>, don&#8217;t validate the associated objects when saving
+the parent object. <tt>true</tt> by default.
+</p>
+</dd>
+<dt>:autosave</dt><dd><p>
+If true, always save the associated objects or destroy them if marked for
+destruction, when saving the parent object. If false, never save or destroy
+the associated objects. By default, only save associated objects that are
+new records.
+</p>
+</dd>
+</dl>
+<p>
+Option examples:
+</p>
+<pre class="code">
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:projects</span>
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:projects</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span> <span class='symbol'>:milestones</span><span class='comma'>,</span> <span class='symbol'>:manager</span> <span class='rbracket'>]</span>
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:nations</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Country</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:categories</span><span class='comma'>,</span> <span class='symbol'>:join_table</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>prods_cats</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:categories</span><span class='comma'>,</span> <span class='symbol'>:readonly</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span> <span class='symbol'>:active_projects</span><span class='comma'>,</span> <span class='symbol'>:join_table</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>developers_projects</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='symbol'>:delete_sql</span> <span class='op'>=&gt;</span>
+  <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>DELETE FROM developers_projects WHERE active=1 AND developer_id = #{id} AND project_id = #{record.id}</span><span class='tstring_end'>'</span></span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1410
+1411
+1412
+1413
+1414
+1415
+1416
+1417
+1418
+1419
+1420
+1421
+1422
+1423
+1424
+1425
+1426</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/associations.rb', line 1410</span>
+
+<span class='kw'>def</span> <span class='id has_and_belongs_to_many'>has_and_belongs_to_many</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id extension'>extension</span><span class='rparen'>)</span>
+  <span class='id reflection'>reflection</span> <span class='op'>=</span> <span class='id create_has_and_belongs_to_many_reflection'>create_has_and_belongs_to_many_reflection</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id extension'>extension</span><span class='rparen'>)</span>
+  <span class='id collection_accessor_methods'>collection_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasAndBelongsToManyAssociation</span><span class='rparen'>)</span>
+
+  <span class='comment'># Don't use a before_destroy callback since users' before_destroy
+</span>  <span class='comment'># callbacks will be executed after the association is wiped out.
+</span>  <span class='id include'>include</span> <span class='const'>Module</span><span class='period'>.</span><span class='id new'>new</span> <span class='lbrace'>{</span>
+    <span class='id class_eval'>class_eval</span> <span class='heredoc_beg'>&lt;&lt;-RUBY</span><span class='tstring_content'>      def destroy                     # def destroy
+        super                         #   super
+</span><span class='tstring_content'>        </span><span class='embexpr_beg'>#{</span><span class='id reflection'>reflection</span><span class='period'>.</span><span class='id name'>name</span><span class='rbrace'>}</span><span class='tstring_content'>.clear      #   posts.clear
+      end                             # end
+</span><span class='heredoc_end'>    RUBY
+</span><span class='comma'>,</span> <span class='kw'>__FILE__</span><span class='comma'>,</span> <span class='kw'>__LINE__</span> <span class='op'>+</span> <span class='int'>1</span>
+  <span class='rbrace'>}</span>
+
+  <span class='id add_association_callbacks'>add_association_callbacks</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='period'>.</span><span class='id name'>name</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="has_many-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>has_many</strong>(association_id, options = {}, &amp;extension) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Specifies a one-to-many association. The following methods for retrieval
+and query of collections of associated objects will be added:
+</p>
+<dl>
+<dt>collection(force_reload = false)</dt><dd><p>
+Returns an array of all the associated objects. An empty array is returned
+if none are found.
+</p>
+</dd>
+<dt>collection<<(object, &#8230;)</dt><dd><p>
+Adds one or more objects to the collection by setting their foreign keys to
+the collection&#8217;s primary key. Note that this operation instantly
+fires update sql without waiting for the save or update call on the parent
+object.
+</p>
+</dd>
+<dt>collection.delete(object, &#8230;)</dt><dd><p>
+Removes one or more objects from the collection by setting their foreign
+keys to <tt>NULL</tt>. Objects will be in addition destroyed if
+they&#8217;re associated with <tt>:dependent =&gt; :destroy</tt>, and
+deleted if they&#8217;re associated with <tt>:dependent =&gt;
+:delete_all</tt>.
+</p>
+</dd>
+<dt>collection=objects</dt><dd><p>
+Replaces the collections content by deleting and adding objects as
+appropriate. If the <tt>:through</tt> option is true callbacks in the join
+models are triggered except destroy callbacks, since deletion is direct.
+</p>
+</dd>
+<dt>collection_singular_ids</dt><dd><p>
+Returns an array of the associated objects&#8217; ids
+</p>
+</dd>
+<dt>collection_singular_ids=ids</dt><dd><p>
+Replace the collection with the objects identified by the primary keys in
+<tt>ids</tt>. This method loads the models and calls <tt>collection=</tt>.
+See above.
+</p>
+</dd>
+<dt>collection.clear</dt><dd><p>
+Removes every object from the collection. This destroys the associated
+objects if they are associated with <tt>:dependent =&gt; :destroy</tt>,
+deletes them directly from the database if <tt>:dependent =&gt;
+:delete_all</tt>, otherwise sets their foreign keys to <tt>NULL</tt>. If
+the <tt>:through</tt> option is true no destroy callbacks are invoked on
+the join models. Join models are directly deleted.
+</p>
+</dd>
+<dt>collection.empty?</dt><dd><p>
+Returns <tt>true</tt> if there are no associated objects.
+</p>
+</dd>
+<dt>collection.size</dt><dd><p>
+Returns the number of associated objects.
+</p>
+</dd>
+<dt>collection.find(&#8230;)</dt><dd><p>
+Finds an associated object according to the same rules as
+ActiveRecord::Base.find.
+</p>
+</dd>
+<dt>collection.exists?(&#8230;)</dt><dd><p>
+Checks whether an associated object with the given conditions exists. Uses
+the same rules as ActiveRecord::Base.exists?.
+</p>
+</dd>
+<dt>collection.build(attributes = {}, &#8230;)</dt><dd><p>
+Returns one or more new objects of the collection type that have been
+instantiated with <tt>attributes</tt> and linked to this object through a
+foreign key, but have not yet been saved.
+</p>
+</dd>
+<dt>collection.create(attributes = {})</dt><dd><p>
+Returns a new object of the collection type that has been instantiated with
+<tt>attributes</tt>, linked to this object through a foreign key, and that
+has already been saved (if it passed the validation). <b>Note</b>: This
+only works if the base model already exists in the DB, not if it is a new
+(unsaved) record!
+</p>
+</dd>
+</dl>
+<p>
+(<b>Note</b>: <tt>collection</tt> is replaced with the symbol passed as the
+first argument, so <tt>has_many :clients</tt> would add among others
+<tt>clients.empty?</tt>.)
+</p>
+<h3>Example</h3>
+<p>
+Example: A Firm class declares <tt>has_many :clients</tt>, which will add:
+</p>
+<ul>
+<li><p>
+<tt>Firm#clients</tt> (similar to <tt>Clients.find :all, :conditions =&gt;
+[&quot;firm_id = ?&quot;, id]</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients&lt;&lt;</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.delete</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#clients=</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#client_ids</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#client_ids=</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.clear</tt>
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.empty?</tt> (similar to <tt>firm.clients.size == 0</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.size</tt> (similar to <tt>Client.count &quot;firm_id =
+#{id}&quot;</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.find</tt> (similar to <tt>Client.find(id, :conditions
+=&gt; &quot;firm_id = #{id}&quot;)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.exists?(:name =&gt; 'ACME')</tt> (similar to
+<tt>Client.exists?(:name =&gt; 'ACME', :firm_id =&gt; firm.id)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.build</tt> (similar to <tt>Client.new(&quot;firm_id&quot;
+=&gt; id)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Firm#clients.create</tt> (similar to <tt>c =
+Client.new(&quot;firm_id&quot; =&gt; id); c.save; c</tt>)
+</p>
+</li>
+</ul>
+<p>
+The declaration can also include an options hash to specialize the behavior
+of the association.
+</p>
+<h3>Supported options</h3>
+<dl>
+<dt>:class_name</dt><dd><p>
+Specify the class name of the association. Use it only if that name
+can&#8217;t be inferred from the association name. So <tt>has_many
+:products</tt> will by default be linked to the Product class, but if the
+real class name is SpecialProduct, you&#8217;ll have to specify it with
+this option.
+</p>
+</dd>
+<dt>:conditions</dt><dd><p>
+Specify the conditions that the associated objects must meet in order to be
+included as a <tt>WHERE</tt> SQL fragment, such as <tt>price &gt; 5 AND
+name LIKE 'B%'</tt>.  Record creations from the association are scoped if a
+hash is used. <tt>has_many :posts, :conditions =&gt; {:published =&gt;
+true}</tt> will create published posts with <tt>@blog.posts.create</tt> or
+<tt>@blog.posts.build</tt>.
+</p>
+</dd>
+<dt>:order</dt><dd><p>
+Specify the order in which the associated objects are returned as an
+<tt>ORDER BY</tt> SQL fragment, such as <tt>last_name, first_name
+DESC</tt>.
+</p>
+</dd>
+<dt>:foreign_key</dt><dd><p>
+Specify the foreign key used for the association. By default this is
+guessed to be the name of this class in lower-case and &#8220;_id&#8221;
+suffixed. So a Person class that makes a <tt>has_many</tt> association will
+use &#8220;person_id&#8221; as the default <tt>:foreign_key</tt>.
+</p>
+</dd>
+<dt>:primary_key</dt><dd><p>
+Specify the method that returns the primary key used for the association.
+By default this is <tt>id</tt>.
+</p>
+</dd>
+<dt>:dependent</dt><dd><p>
+If set to <tt>:destroy</tt> all the associated objects are destroyed
+alongside this object by calling their <tt>destroy</tt> method.  If set to
+<tt>:delete_all</tt> all associated objects are deleted <b>without</b>
+calling their <tt>destroy</tt> method.  If set to <tt>:nullify</tt> all
+associated objects&#8217; foreign keys are set to <tt>NULL</tt>
+<b>without</b> calling their <tt>save</tt> callbacks. If set to
+<tt>:restrict</tt> this object cannot be deleted if it has any associated
+object.
+</p>
+<p>
+<b>Warning:</b> This option is ignored when used with <tt>:through</tt>
+option.
+</p>
+</dd>
+<dt>:finder_sql</dt><dd><p>
+Specify a complete SQL statement to fetch the association. This is a good
+way to go for complex associations that depend on multiple tables. Note:
+When this option is used, <tt>find_in_collection</tt> is <em>not</em>
+added.
+</p>
+</dd>
+<dt>:counter_sql</dt><dd><p>
+Specify a complete SQL statement to fetch the size of the association. If
+<tt>:finder_sql</tt> is specified but not <tt>:counter_sql</tt>,
+<tt>:counter_sql</tt> will be generated by replacing <tt>SELECT ...
+FROM</tt> with <tt>SELECT COUNT(*) FROM</tt>.
+</p>
+</dd>
+<dt>:extend</dt><dd><p>
+Specify a named module for extending the proxy. See &#8220;Association
+extensions&#8221;.
+</p>
+</dd>
+<dt>:include</dt><dd><p>
+Specify second-order associations that should be eager loaded when the
+collection is loaded.
+</p>
+</dd>
+<dt>:group</dt><dd><p>
+An attribute name by which the result should be grouped. Uses the <tt>GROUP
+BY</tt> SQL-clause.
+</p>
+</dd>
+<dt>:having</dt><dd><p>
+Combined with <tt>:group</tt> this can be used to filter the records that a
+<tt>GROUP BY</tt> returns. Uses the <tt>HAVING</tt> SQL-clause.
+</p>
+</dd>
+<dt>:limit</dt><dd><p>
+An integer determining the limit on the number of rows that should be
+returned.
+</p>
+</dd>
+<dt>:offset</dt><dd><p>
+An integer determining the offset from where the rows should be fetched. So
+at 5, it would skip the first 4 rows.
+</p>
+</dd>
+<dt>:select</dt><dd><p>
+By default, this is <tt>*</tt> as in <tt>SELECT * FROM</tt>, but can be
+changed if you, for example, want to do a join but not include the joined
+columns. Do not forget to include the primary and foreign keys, otherwise
+it will raise an error.
+</p>
+</dd>
+<dt>:as</dt><dd><p>
+Specifies a polymorphic interface (See <tt>belongs_to</tt>).
+</p>
+</dd>
+<dt>:through</dt><dd><p>
+Specifies a join model through which to perform the query.  Options for
+<tt>:class_name</tt> and <tt>:foreign_key</tt> are ignored, as the
+association uses the source reflection. You can only use a
+<tt>:through</tt> query through a <tt>belongs_to</tt>, <tt>has_one</tt> or
+<tt>has_many</tt> association on the join model. The collection of join
+models can be managed via the collection API. For example, new join models
+are created for newly associated objects, and if some are gone their rows
+are deleted (directly, no destroy callbacks are triggered).
+</p>
+</dd>
+<dt>:source</dt><dd><p>
+Specifies the source association name used by <tt>has_many :through</tt>
+queries. Only use it if the name cannot be inferred from the association.
+<tt>has_many :subscribers, :through =&gt; :subscriptions</tt> will look for
+either <tt>:subscribers</tt> or <tt>:subscriber</tt> on Subscription,
+unless a <tt>:source</tt> is given.
+</p>
+</dd>
+<dt>:source_type</dt><dd><p>
+Specifies type of the source association used by <tt>has_many :through</tt>
+queries where the source association is a polymorphic <tt>belongs_to</tt>.
+</p>
+</dd>
+<dt>:uniq</dt><dd><p>
+If true, duplicates will be omitted from the collection. Useful in
+conjunction with <tt>:through</tt>.
+</p>
+</dd>
+<dt>:readonly</dt><dd><p>
+If true, all the associated objects are readonly through the association.
+</p>
+</dd>
+<dt>:validate</dt><dd><p>
+If <tt>false</tt>, don&#8217;t validate the associated objects when saving
+the parent object. true by default.
+</p>
+</dd>
+<dt>:autosave</dt><dd><p>
+If true, always save the associated objects or destroy them if marked for
+destruction, when saving the parent object. If false, never save or destroy
+the associated objects. By default, only save associated objects that are
+new records.
+</p>
+</dd>
+<dt>:inverse_of</dt><dd><p>
+Specifies the name of the <tt>belongs_to</tt> association on the associated
+object that is the inverse of this <tt>has_many</tt> association. Does not
+work in combination with <tt>:through</tt> or <tt>:as</tt> options. See
+ActiveRecord::Associations::ClassMethods&#8217;s overview on Bi-directional
+associations for more detail.
+</p>
+</dd>
+</dl>
+<p>
+Option examples:
+</p>
+<pre class="code">
+  <span class='id has_many'>has_many</span> <span class='symbol'>:comments</span><span class='comma'>,</span> <span class='symbol'>:order</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>posted_on</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:comments</span><span class='comma'>,</span> <span class='symbol'>:include</span> <span class='op'>=&gt;</span> <span class='symbol'>:author</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:people</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Person</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>deleted = 0</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:order</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>name</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:tracks</span><span class='comma'>,</span> <span class='symbol'>:order</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>position</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:dependent</span> <span class='op'>=&gt;</span> <span class='symbol'>:destroy</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:comments</span><span class='comma'>,</span> <span class='symbol'>:dependent</span> <span class='op'>=&gt;</span> <span class='symbol'>:nullify</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:tags</span><span class='comma'>,</span> <span class='symbol'>:as</span> <span class='op'>=&gt;</span> <span class='symbol'>:taggable</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:reports</span><span class='comma'>,</span> <span class='symbol'>:readonly</span> <span class='op'>=&gt;</span> <span class='kw'>true</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:subscribers</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:subscriptions</span><span class='comma'>,</span> <span class='symbol'>:source</span> <span class='op'>=&gt;</span> <span class='symbol'>:user</span>
+  <span class='id has_many'>has_many</span> <span class='symbol'>:subscribers</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Person</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:finder_sql</span> <span class='op'>=&gt;</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>SELECT DISTINCT people.* </span><span class='tstring_end'>'</span></span> <span class='op'>+</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>FROM people p, post_subscriptions ps </span><span class='tstring_end'>'</span></span> <span class='op'>+</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>WHERE ps.post_id = #{id} AND ps.person_id = p.id </span><span class='tstring_end'>'</span></span> <span class='op'>+</span>
+      <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>ORDER BY p.first_name</span><span class='tstring_end'>'</span></span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+982
+983
+984
+985
+986
+987
+988
+989
+990
+991
+992</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/associations.rb', line 982</span>
+
+<span class='kw'>def</span> <span class='id has_many'>has_many</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id extension'>extension</span><span class='rparen'>)</span>
+  <span class='id reflection'>reflection</span> <span class='op'>=</span> <span class='id create_has_many_reflection'>create_has_many_reflection</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span><span class='comma'>,</span> <span class='op'>&amp;</span><span class='id extension'>extension</span><span class='rparen'>)</span>
+  <span class='id configure_dependency_for_has_many'>configure_dependency_for_has_many</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='rparen'>)</span>
+  <span class='id add_association_callbacks'>add_association_callbacks</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='period'>.</span><span class='id name'>name</span><span class='comma'>,</span> <span class='id reflection'>reflection</span><span class='period'>.</span><span class='id options'>options</span><span class='rparen'>)</span>
+
+  <span class='kw'>if</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:through</span><span class='rbracket'>]</span>
+    <span class='id collection_accessor_methods'>collection_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasManyThroughAssociation</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id collection_accessor_methods'>collection_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasManyAssociation</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="has_one-instance_method">
+  
+    - (<tt><span class='object_link'><a href="../../Object.html" title="Object (class)">Object</a></span></tt>) <strong>has_one</strong>(association_id, options = {}) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Specifies a one-to-one association with another class. This method should
+only be used if the other class contains the foreign key. If the current
+class contains the foreign key, then you should use <tt>belongs_to</tt>
+instead. See also ActiveRecord::Associations::ClassMethods&#8217;s overview
+on when to use has_one and when to use belongs_to.
+</p>
+<p>
+The following methods for retrieval and query of a single associated object
+will be added:
+</p>
+<dl>
+<dt>association(force_reload = false)</dt><dd><p>
+Returns the associated object. <tt>nil</tt> is returned if none is found.
+</p>
+</dd>
+<dt>association=(associate)</dt><dd><p>
+Assigns the associate object, extracts the primary key, sets it as the
+foreign key, and saves the associate object.
+</p>
+</dd>
+<dt>build_association(attributes = {})</dt><dd><p>
+Returns a new object of the associated type that has been instantiated with
+<tt>attributes</tt> and linked to this object through a foreign key, but
+has not yet been saved. <b>Note:</b> This ONLY works if an association
+already exists. It will NOT work if the association is <tt>nil</tt>.
+</p>
+</dd>
+<dt>create_association(attributes = {})</dt><dd><p>
+Returns a new object of the associated type that has been instantiated with
+<tt>attributes</tt>, linked to this object through a foreign key, and that
+has already been saved (if it passed the validation).
+</p>
+</dd>
+</dl>
+<p>
+(<tt>association</tt> is replaced with the symbol passed as the first
+argument, so <tt>has_one :manager</tt> would add among others
+<tt>manager.nil?</tt>.)
+</p>
+<h3>Example</h3>
+<p>
+An Account class declares <tt>has_one :beneficiary</tt>, which will add:
+</p>
+<ul>
+<li><p>
+<tt>Account#beneficiary</tt> (similar to <tt>Beneficiary.find(:first,
+:conditions =&gt; &quot;account_id = #{id}&quot;)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Account#beneficiary=(beneficiary)</tt> (similar to
+<tt>beneficiary.account_id = account.id; beneficiary.save</tt>)
+</p>
+</li>
+<li><p>
+<tt>Account#build_beneficiary</tt> (similar to
+<tt>Beneficiary.new(&quot;account_id&quot; =&gt; id)</tt>)
+</p>
+</li>
+<li><p>
+<tt>Account#create_beneficiary</tt> (similar to <tt>b =
+Beneficiary.new(&quot;account_id&quot; =&gt; id); b.save; b</tt>)
+</p>
+</li>
+</ul>
+<h3>Options</h3>
+<p>
+The declaration can also include an options hash to specialize the behavior
+of the association.
+</p>
+<p>
+Options are:
+</p>
+<dl>
+<dt>:class_name</dt><dd><p>
+Specify the class name of the association. Use it only if that name
+can&#8217;t be inferred from the association name. So <tt>has_one
+:manager</tt> will by default be linked to the Manager class, but if the
+real class name is Person, you&#8217;ll have to specify it with this
+option.
+</p>
+</dd>
+<dt>:conditions</dt><dd><p>
+Specify the conditions that the associated object must meet in order to be
+included as a <tt>WHERE</tt> SQL fragment, such as <tt>rank = 5</tt>.
+Record creation from the association is scoped if a hash is used.
+<tt>has_one :account, :conditions =&gt; {:enabled =&gt; true}</tt> will
+create an enabled account with <tt>@company.create_account</tt> or
+<tt>@company.build_account</tt>.
+</p>
+</dd>
+<dt>:order</dt><dd><p>
+Specify the order in which the associated objects are returned as an
+<tt>ORDER BY</tt> SQL fragment, such as <tt>last_name, first_name
+DESC</tt>.
+</p>
+</dd>
+<dt>:dependent</dt><dd><p>
+If set to <tt>:destroy</tt>, the associated object is destroyed when this
+object is. If set to <tt>:delete</tt>, the associated object is deleted
+<b>without</b> calling its destroy method. If set to <tt>:nullify</tt>, the
+associated object&#8217;s foreign key is set to <tt>NULL</tt>. Also,
+association is assigned.
+</p>
+</dd>
+<dt>:foreign_key</dt><dd><p>
+Specify the foreign key used for the association. By default this is
+guessed to be the name of this class in lower-case and &#8220;_id&#8221;
+suffixed. So a Person class that makes a <tt>has_one</tt> association will
+use &#8220;person_id&#8221; as the default <tt>:foreign_key</tt>.
+</p>
+</dd>
+<dt>:primary_key</dt><dd><p>
+Specify the method that returns the primary key used for the association.
+By default this is <tt>id</tt>.
+</p>
+</dd>
+<dt>:include</dt><dd><p>
+Specify second-order associations that should be eager loaded when this
+object is loaded.
+</p>
+</dd>
+<dt>:as</dt><dd><p>
+Specifies a polymorphic interface (See <tt>belongs_to</tt>).
+</p>
+</dd>
+<dt>:select</dt><dd><p>
+By default, this is <tt>*</tt> as in <tt>SELECT * FROM</tt>, but can be
+changed if, for example, you want to do a join but not include the joined
+columns. Do not forget to include the primary and foreign keys, otherwise
+it will raise an error.
+</p>
+</dd>
+<dt>:through</dt><dd><p>
+Specifies a Join Model through which to perform the query.  Options for
+<tt>:class_name</tt> and <tt>:foreign_key</tt> are ignored, as the
+association uses the source reflection. You can only use a
+<tt>:through</tt> query through a <tt>has_one</tt> or <tt>belongs_to</tt>
+association on the join model.
+</p>
+</dd>
+<dt>:source</dt><dd><p>
+Specifies the source association name used by <tt>has_one :through</tt>
+queries. Only use it if the name cannot be inferred from the association.
+<tt>has_one :favorite, :through =&gt; :favorites</tt> will look for a
+<tt>:favorite</tt> on Favorite, unless a <tt>:source</tt> is given.
+</p>
+</dd>
+<dt>:source_type</dt><dd><p>
+Specifies type of the source association used by <tt>has_one :through</tt>
+queries where the source association is a polymorphic <tt>belongs_to</tt>.
+</p>
+</dd>
+<dt>:readonly</dt><dd><p>
+If true, the associated object is readonly through the association.
+</p>
+</dd>
+<dt>:validate</dt><dd><p>
+If <tt>false</tt>, don&#8217;t validate the associated object when saving
+the parent object. <tt>false</tt> by default.
+</p>
+</dd>
+<dt>:autosave</dt><dd><p>
+If true, always save the associated object or destroy it if marked for
+destruction, when saving the parent object. If false, never save or destroy
+the associated object. By default, only save the associated object if
+it&#8217;s a new record.
+</p>
+</dd>
+<dt>:inverse_of</dt><dd><p>
+Specifies the name of the <tt>belongs_to</tt> association on the associated
+object that is the inverse of this <tt>has_one</tt> association.  Does not
+work in combination with <tt>:through</tt> or <tt>:as</tt> options. See
+ActiveRecord::Associations::ClassMethods&#8217;s overview on Bi-directional
+associations for more detail.
+</p>
+</dd>
+</dl>
+<p>
+Option examples:
+</p>
+<pre class="code">
+  <span class='id has_one'>has_one</span> <span class='symbol'>:credit_card</span><span class='comma'>,</span> <span class='symbol'>:dependent</span> <span class='op'>=&gt;</span> <span class='symbol'>:destroy</span>  <span class='comment'># destroys the associated credit card
+</span>  <span class='id has_one'>has_one</span> <span class='symbol'>:credit_card</span><span class='comma'>,</span> <span class='symbol'>:dependent</span> <span class='op'>=&gt;</span> <span class='symbol'>:nullify</span>  <span class='comment'># updates the associated records foreign
+</span>                                                <span class='comment'># key value to NULL rather than destroying it
+</span>  <span class='id has_one'>has_one</span> <span class='symbol'>:last_comment</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Comment</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:order</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>posted_on</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_one'>has_one</span> <span class='symbol'>:project_manager</span><span class='comma'>,</span> <span class='symbol'>:class_name</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Person</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>role = 'project_manager'</span><span class='tstring_end'>&quot;</span></span>
+  <span class='id has_one'>has_one</span> <span class='symbol'>:attachment</span><span class='comma'>,</span> <span class='symbol'>:as</span> <span class='op'>=&gt;</span> <span class='symbol'>:attachable</span>
+  <span class='id has_one'>has_one</span> <span class='symbol'>:boss</span><span class='comma'>,</span> <span class='symbol'>:readonly</span> <span class='op'>=&gt;</span> <span class='symbol'>:true</span>
+  <span class='id has_one'>has_one</span> <span class='symbol'>:club</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:membership</span>
+  <span class='id has_one'>has_one</span> <span class='symbol'>:primary_address</span><span class='comma'>,</span> <span class='symbol'>:through</span> <span class='op'>=&gt;</span> <span class='symbol'>:addressables</span><span class='comma'>,</span> <span class='symbol'>:conditions</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>addressable.primary = ?</span><span class='tstring_end'>&quot;</span></span><span class='comma'>,</span> <span class='kw'>true</span><span class='rbracket'>]</span><span class='comma'>,</span> <span class='symbol'>:source</span> <span class='op'>=&gt;</span> <span class='symbol'>:addressable</span></pre>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+1100
+1101
+1102
+1103
+1104
+1105
+1106
+1107
+1108
+1109
+1110
+1111</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'activerecord/lib/active_record/associations.rb', line 1100</span>
+
+<span class='kw'>def</span> <span class='id has_one'>has_one</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span> <span class='op'>=</span> <span class='lbrace'>{</span><span class='rbrace'>}</span><span class='rparen'>)</span>
+  <span class='kw'>if</span> <span class='id options'>options</span><span class='lbracket'>[</span><span class='symbol'>:through</span><span class='rbracket'>]</span>
+    <span class='id reflection'>reflection</span> <span class='op'>=</span> <span class='id create_has_one_through_reflection'>create_has_one_through_reflection</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+    <span class='id association_accessor_methods'>association_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>ActiveRecord</span><span class='op'>::</span><span class='const'>Associations</span><span class='op'>::</span><span class='const'>HasOneThroughAssociation</span><span class='rparen'>)</span>
+  <span class='kw'>else</span>
+    <span class='id reflection'>reflection</span> <span class='op'>=</span> <span class='id create_has_one_reflection'>create_has_one_reflection</span><span class='lparen'>(</span><span class='id association_id'>association_id</span><span class='comma'>,</span> <span class='id options'>options</span><span class='rparen'>)</span>
+    <span class='id association_accessor_methods'>association_accessor_methods</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasOneAssociation</span><span class='rparen'>)</span>
+    <span class='id association_constructor_method'>association_constructor_method</span><span class='lparen'>(</span><span class='symbol'>:build</span><span class='comma'>,</span>  <span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasOneAssociation</span><span class='rparen'>)</span>
+    <span class='id association_constructor_method'>association_constructor_method</span><span class='lparen'>(</span><span class='symbol'>:create</span><span class='comma'>,</span> <span class='id reflection'>reflection</span><span class='comma'>,</span> <span class='const'>HasOneAssociation</span><span class='rparen'>)</span>
+    <span class='id configure_dependency_for_has_one'>configure_dependency_for_has_one</span><span class='lparen'>(</span><span class='id reflection'>reflection</span><span class='rparen'>)</span>
+  <span class='kw'>end</span>
+<span class='kw'>end</span></pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Thu Nov  4 20:03:37 2010 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.6.1 (ruby-1.9.2).
+</div>
+
+  </body>
+</html>
